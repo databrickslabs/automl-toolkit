@@ -1,6 +1,7 @@
 package com.databricks.spark.automatedml
 
 
+import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{DataType, StructType}
 
@@ -47,6 +48,43 @@ trait DataValidation{
 
     (vectorizableFields.result, conversionFields.result)
 
+  }
+
+  def indexStrings(categoricalFields: List[String]): (Array[StringIndexer], Array[String]) = {
+
+    var indexedColumns = new ListBuffer[String]
+    var stringIndexers = new ListBuffer[StringIndexer]
+
+    categoricalFields.map(x => {
+      val stringIndexedColumnName = x + "_si"
+      val stringIndexerObj = new StringIndexer()
+        .setHandleInvalid("keep")
+        .setInputCol(x)
+        .setOutputCol(stringIndexedColumnName)
+      indexedColumns += stringIndexedColumnName
+      stringIndexers += stringIndexerObj
+    })
+
+    (stringIndexers.result.toArray, indexedColumns.result.toArray)
+
+  }
+
+  def generateAssembly(numericColumns: List[String], characterColumns: List[String], featureCol: String):
+  (Array[StringIndexer], Array[String], VectorAssembler) = {
+
+    val assemblerColumns = new ListBuffer[String]
+    numericColumns.map(x => assemblerColumns += x)
+
+    val (indexers, indexedColumns) = indexStrings(characterColumns)
+    indexedColumns.map(x => assemblerColumns += x)
+
+    val assembledColumns = assemblerColumns.result.toArray
+
+    val assembler = new VectorAssembler()
+      .setInputCols(assembledColumns)
+      .setOutputCol(featureCol)
+
+    (indexers, assembledColumns, assembler)
   }
 
 }

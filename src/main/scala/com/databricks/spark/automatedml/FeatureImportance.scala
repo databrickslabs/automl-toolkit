@@ -1,14 +1,15 @@
 package com.databricks.spark.automatedml
 
 
-import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, DecisionTreeClassifier, RandomForestClassificationModel, RandomForestClassifier}
 import org.apache.spark.ml.regression.RandomForestRegressionModel
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: ModelsWithResults)
+class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: ModelsWithResults, importances: DataFrame)
   extends DataValidation with SparkSessionWrapper {
 
 
@@ -43,8 +44,6 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
   //TODO: Implement pearson auto-correlation feature removal (automated and manual override mode)
   //TODO: Model report information (MLFlow + static table explaining what happened within the framework)
 
-  //TODO: continue from here
-
   def generateFrameReport(columns: Array[String], importances: Array[Double]): DataFrame = {
     import spark.sqlContext.implicits._
     sc.parallelize(columns zip importances).toDF("Columns", "Importances").orderBy($"Importances".desc)
@@ -60,7 +59,7 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
 
   def reportFields(fieldIndexArray: Array[(String, Int)]) = {
 
-    cleanupFieldArray(fieldIndexArray).map(x => {
+    cleanupFieldArray(fieldIndexArray).foreach(x => {
       println(s"Column ${x._1} is feature ${x._2}")
     })
   }
@@ -78,25 +77,33 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
       .withColumn("Columns", split(col("Columns"), "_si$")(0))
   }
 
-  private def generateDecisionTree[A,B](data: DataFrame) = {
+  case class DecisionTreeConfig(impurity: String,
+                                maxBins: Int,
+                                maxDepth: Int,
+                                minInfoGain: Double,
+                                minInstancesPerNode: Int,
+                                importanceCutoff: Double
+                               )
 
-    val importances
+  private def generateDecisionTree[A,B](decisionTreeConfig: DecisionTreeConfig) = {
+
+
 
     // pull this out and put a switch statement in for classifier vs regressor
     val treeClassifierModel = new DecisionTreeClassifier()
-      .setLabelCol(config.labelColumn)
-      .setFeaturesCol(config.featuresColumn)
-      .setImpurity(config.impurity)
-      .setMaxBins(config.maxBins)
-      .setMaxDepth(config.maxDepth)
-      .setMinInfoGain(config.minInfoGain)
-      .setMinInstancesPerNode(config.minInstancesPerNode)
+      .setLabelCol(_labelCol)
+      .setFeaturesCol(_featuresCol)
+      .setImpurity(decisionTreeConfig.impurity)
+      .setMaxBins(decisionTreeConfig.maxBins)
+      .setMaxDepth(decisionTreeConfig.maxDepth)
+      .setMinInfoGain(decisionTreeConfig.minInfoGain)
+      .setMinInstancesPerNode(decisionTreeConfig.minInstancesPerNode)
 
-    val filteredData = filterData(rawData, randomForestImportances, config.importanceCutoff)
+    val filteredData = filterData(df, importances, decisionTreeConfig.importanceCutoff)
 
-    val (numericFields, categoricalFields) = extractTypes(filteredData, config.labelColumn)
+    val (numericFields, categoricalFields) = extractTypes(filteredData, _labelCol)
 
-    val (indexers, assembledColumns, assembler) = generateAssembly(numericFields, categoricalFields)
+    val (indexers, assembledColumns, assembler) = generateAssembly(numericFields, categoricalFields, _featuresCol)
 
     val pipeline = new Pipeline()
       .setStages(indexers :+ assembler :+ treeClassifierModel)
@@ -112,7 +119,8 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
   }
 
   def filterData(rawData: DataFrame, reportResult: DataFrame, cutoff: Double) = {
-    val filteredData = reportResult.filter($"Importances" >= cutoff)
+
+    val filteredData = reportResult.filter(col("Importances") >= cutoff)
     val filteredFields = filteredData.select("Columns").as[String].collect
 
     assert(filteredFields.length > 0, "All feature fields have been filtered!  Retry with a lower threshold.")
@@ -130,7 +138,7 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
 
   def generateDecisionText(decisionTreeModel: DecisionTreeClassificationModel, modelColumnArray: Array[(String, Int)]) = {
     val reparsedArray = new ArrayBuffer[(String, String)]
-    cleanupFieldArray(modelColumnArray).result.toArray.map(x => {
+    cleanupFieldArray(modelColumnArray).toArray.map(x => {
       reparsedArray += (("feature " + x._2.toString, x._1))
     })
     val mappedArray = reparsedArray.result.toMap
