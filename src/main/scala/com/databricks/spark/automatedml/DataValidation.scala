@@ -8,6 +8,7 @@ import org.apache.spark.sql.types.{DataType, StructType}
 import scala.collection.mutable.ListBuffer
 
 trait DataValidation{
+
   def invalidateSelection(value: String, allowances: Seq[String]): String = {
     s"${allowances.foldLeft("")((a, b) => a + " " + b)}"
   }

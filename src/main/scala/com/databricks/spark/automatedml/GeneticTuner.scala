@@ -1,6 +1,5 @@
 package com.databricks.spark.automatedml
 
-
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -11,28 +10,6 @@ import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, Regres
 
 //TODO: change the par mapping to proper thread pooling?
 //TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
-
-
-case class RandomForestConfig(numTrees: Int,
-                              impurity: String,
-                              maxBins: Int,
-                              maxDepth: Int,
-                              minInfoGain: Double,
-                              subSamplingRate: Double,
-                              featureSubsetStrategy: String
-                             )
-case class ModelsWithResults(modelHyperParams: RandomForestConfig,
-                             model: Any,
-                             score: Double,
-                             evalMetrics: Map[String, Double],
-                             generation: Int)
-
-
-case class StaticModelConfig(labelColumn: String, featuresColumn: String)
-
-sealed trait ModelType[A,B]
-final case class ClassiferType[A,B](a: A) extends ModelType[A,B]
-final case class RegressorType[A,B](b: B) extends ModelType[A,B]
 
 class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation with SparkSessionWrapper {
 

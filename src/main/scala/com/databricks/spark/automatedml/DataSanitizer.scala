@@ -10,6 +10,7 @@ import org.apache.spark.ml.feature.StringIndexer
 
 //TODO: add in outlier removal options in this class (automated = remove rows outside of n stddev outliers),
 // manual = supply fields to remove and a quantile removal threshold
+// either approach will need ntile filtering with windowing functions to calculate the 1000th percentile ranking of all fields.
 
 class DataSanitizer(data: DataFrame) extends DataValidation {
 
