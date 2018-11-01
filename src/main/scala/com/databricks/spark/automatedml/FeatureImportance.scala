@@ -77,6 +77,7 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
       .withColumn("Columns", split(col("Columns"), "_si$")(0))
   }
 
+  // TODO: FIX THIS MOVE IT AND MAKE IT SUPPORT CLASSIFIER AND REGRESSOR!!!!
   case class DecisionTreeConfig(impurity: String,
                                 maxBins: Int,
                                 maxDepth: Int,
