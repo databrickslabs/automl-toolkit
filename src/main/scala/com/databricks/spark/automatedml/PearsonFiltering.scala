@@ -60,6 +60,18 @@ class PearsonFiltering(df: DataFrame) extends DataValidation {
     this
   }
 
+  def setFilterManualValue(value: Double): this.type = {
+    _filterManualValue = value
+    this
+  }
+
+  def setFilterMode(value: String): this.type = {
+    assert(_allowedFilterModes.contains(value), s"Filter Mode $value is not a valid member of ${
+      invalidateSelection(value, _allowedFilterModes)}")
+    _filterMode = value
+    this
+  }
+
   //TODO: getters setters for filtering mode / manual value, provide quantile representation for automatic mode.
 
   def getLabelCol: String = _labelCol
@@ -67,8 +79,8 @@ class PearsonFiltering(df: DataFrame) extends DataValidation {
   def getFeatureColumnsListing: Array[String] = _featureColumnsListing
   def getFilterStatistic: String = _filterStatistic
   def getFilterDirection: String = _filterDirection
-
-
+  def getFilterManualValue: Double = _filterManualValue
+  def getFilterMode: String = _filterMode
 
 
   private def buildChiSq(): List[PearsonPayload] = {
