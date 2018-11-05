@@ -3,7 +3,15 @@ package com.databricks.spark.automatedml
 
 
 
-case class PearsonPayload(fieldName: String, pvalue: Double, degreesFreedom: Int, pearsonStat: Double)
+case class PearsonPayload(fieldName: String,
+                          pvalue: Double,
+                          degreesFreedom: Int,
+                          pearsonStat: Double)
+
+case class FilterData(
+                       field: String,
+                       uniqueValues: Long
+                     )
 
 case class RandomForestConfig(numTrees: Int,
                               impurity: String,
