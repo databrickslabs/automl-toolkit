@@ -112,5 +112,17 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     mutatedDF
   }
 
+  def filterContinuousOutliers(manualFilter: List[ManualFilters]): DataFrame = {
 
+    var mutatedDF = df
+    manualFilter.foreach{x =>
+      _filterBounds match {
+        case "lower" => mutatedDF = filterLow(mutatedDF, x.field, x.threshold)
+        case "upper" => mutatedDF = filterHigh(mutatedDF, x.field, x.threshold)
+        case _ => throw new UnsupportedOperationException(
+          s"Filter mode '${_filterBounds} is not supported.  Please use either 'lower' or 'upper'")
+      }
+    }
+    mutatedDF
+  }
 }

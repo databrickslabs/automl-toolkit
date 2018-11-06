@@ -13,6 +13,11 @@ case class FilterData(
                        uniqueValues: Long
                      )
 
+case class ManualFilters(
+                        field: String,
+                        threshold: Double
+                        )
+
 case class RandomForestConfig(numTrees: Int,
                               impurity: String,
                               maxBins: Int,
