@@ -92,12 +92,13 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     data.filter(col(field) <= filterThreshold)
   }
 
-  def filterContinuousOutliers(): DataFrame = {
+  def filterContinuousOutliers(ignoreList: Array[String]=Array("")): DataFrame = {
 
     val filteredNumericPayload = new ListBuffer[String]
     val numericPayload = validateNumericFields()
     numericPayload.foreach{x =>
-      if(x.uniqueValues >= _continuousDataThreshold) filteredNumericPayload += x.field
+      if(!ignoreList.contains(x.field) & x.uniqueValues >= _continuousDataThreshold)
+        filteredNumericPayload += x.field
     }
     var mutatedDF = df
     filteredNumericPayload.foreach{x =>
