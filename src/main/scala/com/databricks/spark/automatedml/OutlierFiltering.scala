@@ -4,12 +4,17 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import scala.collection.mutable.ListBuffer
 
+/**
+  *
+  * @param df - Input DataFrame pre-feature vectorization
+  */
+
 class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValidation{
 
   private var _labelCol: String = "label"
   private var _filterBounds: String = "both"
-  private var _lowerFilterNTile: Double = 0.01
-  private var _upperFilterNTile: Double = 0.99
+  private var _lowerFilterNTile: Double = 0.02
+  private var _upperFilterNTile: Double = 0.98
   private var _filterPrecision: Double = 0.01
   private var _continuousDataThreshold: Int = 50
 
@@ -49,7 +54,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
   }
 
   def setContinuousDataThreshold(value: Int): this.type = {
-    if(value <= 50) println("Warning! Values less than 50 may indicate oridinal data!")
+    if(value < 50) println("Warning! Values less than 50 may indicate oridinal data!")
     this._continuousDataThreshold = value
     this
   }
@@ -80,11 +85,11 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
   }
 
   private def filterLow(data: DataFrame, field: String, filterThreshold: Double): DataFrame = {
-    data.filter(col(field) <= filterThreshold)
+    data.filter(col(field) >= filterThreshold)
   }
 
   private def filterHigh(data: DataFrame, field: String, filterThreshold: Double): DataFrame = {
-    data.filter(col(field) >= filterThreshold)
+    data.filter(col(field) <= filterThreshold)
   }
 
   def filterContinuousOutliers(): DataFrame = {
@@ -94,17 +99,17 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     numericPayload.foreach{x =>
       if(x.uniqueValues >= _continuousDataThreshold) filteredNumericPayload += x.field
     }
-    
+    var mutatedDF = df
     filteredNumericPayload.foreach{x =>
       _filterBounds match {
-        case "lower" => filterLow(df, x, filterBoundaries(x, _lowerFilterNTile))
-        case "upper" => filterHigh(df, x, filterBoundaries(x, _upperFilterNTile))
+        case "lower" => mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
+        case "upper" => mutatedDF = filterHigh(mutatedDF, x, filterBoundaries(x, _upperFilterNTile))
         case "both" =>
-          filterLow(df, x, filterBoundaries(x, _lowerFilterNTile))
-          filterHigh(df, x, filterBoundaries(x, _upperFilterNTile))
+          mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
+          mutatedDF = filterHigh(mutatedDF, x, filterBoundaries(x, _upperFilterNTile))
       }
     }
-
+    mutatedDF
   }
 
 
