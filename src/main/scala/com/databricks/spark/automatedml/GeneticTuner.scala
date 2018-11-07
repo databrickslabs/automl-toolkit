@@ -1,23 +1,20 @@
 package com.databricks.spark.automatedml
 
+import org.apache.spark.ml.classification.RandomForestClassifier
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
+import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
+
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.reflect.runtime.universe._
-import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.regression.RandomForestRegressor
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 
 //TODO: change the par mapping to proper thread pooling?
 //TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
 
-class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation with SparkSessionWrapper {
+class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
+  with SparkSessionWrapper with Evolution {
 
-  private var _labelCol = "label"
-  private var _featuresCol = "features"
-  private var _trainPortion = 0.8
-  private var _kFold = 3
-  private var _seed = 42L
   private var _scoringMetric = modelSelection match {
     case "regressor" => "rmse"
     case "classifier" => "f1"
@@ -33,7 +30,6 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
   private var _mutationMagnitudeMode = "random"
   private var _fixedMutationValue = 1
 
-  private var _kFoldIteratorRange = Range(0, _kFold).par
 
   final val allowableStrategies = Seq("minimize", "maximize")
   final val allowableMutationStrategies = Seq("linear", "fixed")
@@ -58,41 +54,17 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     "featureSubsetStrategy" -> List("all", "sqrt", "log2", "onethird")
   )
 
-  def setLabelCol(value: String): this.type = {
-    this._labelCol = value
-    this
-  }
-
-  def setFeaturesCol(value: String): this.type = {
-    this._featuresCol = value
-    this
-  }
-
-  def setTrainPortion(value: Double): this.type = {
-    assert(value < 1.0 & value > 0.0, "Training portion must be in the range > 0 and < 1")
-    this._trainPortion = value
-    this
-  }
-
-  def setKFold(value: Int): this.type = {
-    this._kFold = value
-    this._kFoldIteratorRange = Range(0, _kFold).par
-    this
-  }
-
-  def setSeed(value: Long): this.type = {
-    this._seed = value
-    this
-  }
 
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
       case "regressor" => assert(regressionMetrics.contains(value),
         s"Regressor scoring optimization '$value' is not a valid member of ${
-          invalidateSelection(value, regressionMetrics)}")
+          invalidateSelection(value, regressionMetrics)
+        }")
       case "classifier" => assert(classificationMetrics.contains(value),
         s"Regressor scoring optimization '$value' is not a valid member of ${
-          invalidateSelection(value, classificationMetrics)}")
+          invalidateSelection(value, classificationMetrics)
+        }")
       case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
     }
     this._scoringMetric = value
@@ -103,7 +75,8 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     val valueLC = value.toLowerCase
     assert(allowableStrategies.contains(valueLC),
       s"Optimization Strategy '$valueLC' is not a member of ${
-        invalidateSelection(valueLC, allowableStrategies)}")
+        invalidateSelection(valueLC, allowableStrategies)
+      }")
     this._optimizationStrategy = valueLC
     this
   }
@@ -143,7 +116,8 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     val valueLC = value.toLowerCase
     assert(allowableMutationStrategies.contains(valueLC),
       s"Generational Mutation Strategy '$valueLC' is not a member of ${
-        invalidateSelection(valueLC, allowableMutationStrategies)}")
+        invalidateSelection(valueLC, allowableMutationStrategies)
+      }")
     this._generationalMutationStrategy = valueLC
     this
   }
@@ -152,7 +126,8 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     val valueLC = value.toLowerCase
     assert(allowableMutationMagnitudeMode.contains(valueLC),
       s"Mutation Magnitude Mode '$valueLC' is not a member of ${
-        invalidateSelection(valueLC, allowableMutationMagnitudeMode)}")
+        invalidateSelection(valueLC, allowableMutationMagnitudeMode)
+      }")
     this._mutationMagnitudeMode = valueLC
     this
   }
@@ -166,7 +141,7 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     this
   }
 
-  def setRandomForestNumericBoundaries(value: Map[String,(Double, Double)]): this.type = {
+  def setRandomForestNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
     this._randomForestNumericBoundaries = value
     this
   }
@@ -176,41 +151,48 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     this
   }
 
-  def getLabelCol: String = _labelCol
-  def getFeaturesCol: String = _featuresCol
-  def getTrainPortion: Double = _trainPortion
-  def getKFold: Int = _kFold
-  def getSeed: Long = _seed
+
   def getScoringMetric: String = _scoringMetric
+
   def getOptimizationStrategy: String = _optimizationStrategy
+
   def getFirstGenerationGenePool: Int = _firstGenerationGenePool
+
   def getNumberOfMutationGenerations: Int = _numberOfMutationGenerations
+
   def getNumberOfParentsToRetain: Int = _numberOfParentsToRetain
+
   def getNumberOfMutationsPerGeneration: Int = _numberOfMutationsPerGeneration
+
   def getGeneticMixing: Double = _geneticMixing
+
   def getGenerationalMutationStrategy: String = _generationalMutationStrategy
+
   def getMutationMagnitudeMode: String = _mutationMagnitudeMode
+
   def getFixedMutationValue: Int = _fixedMutationValue
+
   def getRandomForestNumericBoundaries: Map[String, (Double, Double)] = _randomForestNumericBoundaries
+
   def getRandomForestStringBoundaries: Map[String, List[String]] = _randomForestStringBoundaries
 
   private def modelConfigLength[T: TypeTag]: Int = {
-    typeOf[T].members.collect{
+    typeOf[T].members.collect {
       case m: MethodSymbol if m.isCaseAccessor => m
     }.toList.length
   }
 
   private def genTestTrain(data: DataFrame, seed: Long): Array[DataFrame] = {
-    data.randomSplit(Array(_trainPortion, 1-_trainPortion), seed)
+    data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
   }
 
-  private def modelDecider[A,B](modelConfig: RandomForestConfig) = {
+  private def modelDecider[A, B](modelConfig: RandomForestConfig) = {
 
     val builtModel = modelSelection match {
       case "classifier" =>
         new RandomForestClassifier()
           .setLabelCol(_labelCol)
-          .setFeaturesCol(_featuresCol)
+          .setFeaturesCol(_featureCol)
           .setNumTrees(modelConfig.numTrees)
           .setCheckpointInterval(-1)
           .setImpurity(modelConfig.impurity)
@@ -222,7 +204,7 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
       case "regressor" =>
         new RandomForestRegressor()
           .setLabelCol(_labelCol)
-          .setFeaturesCol(_featuresCol)
+          .setFeaturesCol(_featureCol)
           .setNumTrees(modelConfig.numTrees)
           .setCheckpointInterval(-1)
           .setImpurity(modelConfig.impurity)
@@ -286,13 +268,13 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
       iterations += RandomForestConfig(numTrees, impurity, maxBins, maxDepth, minInfoGain, subSamplingRate,
         featureSubsetStrategy)
       i += 1
-    }while(i < iterationCount)
+    } while (i < iterationCount)
 
     iterations.toArray
   }
 
   private def generateAndScoreRandomForestModel(train: DataFrame, test: DataFrame,
-                                                modelConfig: RandomForestConfig, generation: Int=1): ModelsWithResults = {
+                                                modelConfig: RandomForestConfig, generation: Int = 1): RandomForestModelsWithResults = {
 
     val randomForestModel = modelDecider(modelConfig)
 
@@ -304,7 +286,7 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
 
     modelSelection match {
       case "classifier" =>
-        for(i <- classificationMetrics) {
+        for (i <- classificationMetrics) {
           val scoreEvaluator = new MulticlassClassificationEvaluator()
             .setLabelCol(_labelCol)
             .setPredictionCol("prediction")
@@ -312,7 +294,7 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
           scoringMap(i) = scoreEvaluator.evaluate(predictedData)
         }
       case "regressor" =>
-        for(i <- regressionMetrics) {
+        for (i <- regressionMetrics) {
           val scoreEvaluator = new RegressionEvaluator()
             .setLabelCol(_labelCol)
             .setPredictionCol("prediction")
@@ -321,51 +303,53 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
         }
     }
 
-    ModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
+    RandomForestModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
   }
 
 
-  def runBattery(battery: Array[RandomForestConfig], generation: Int=1): Array[ModelsWithResults] = {
+  def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
 
     val dfSchema = df.schema
     assert(dfSchema.fieldNames.contains(_labelCol),
       s"Dataframe does not contain label column named: ${_labelCol}")
-    assert(dfSchema.fieldNames.contains(_featuresCol),
-      s"Dataframe does not contain features column named: ${_featuresCol}")
+    assert(dfSchema.fieldNames.contains(_featureCol),
+      s"Dataframe does not contain features column named: ${_featureCol}")
 
-    val results = new ArrayBuffer[ModelsWithResults]
+    val results = new ArrayBuffer[RandomForestModelsWithResults]
     val runs = battery.par
 
-    runs.foreach{x =>
+    runs.foreach { x =>
 
-      val kFoldBuffer = new ArrayBuffer[ModelsWithResults]
+      val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
         kFoldBuffer += generateAndScoreRandomForestModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {scores += x.score})
+      kFoldBuffer.map(x => {
+        scores += x.score
+      })
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
         case "classifier" =>
-          for(a <- classificationMetrics){
+          for (a <- classificationMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
-            scoringMap(a) = metricScores.sum/metricScores.length
+            scoringMap(a) = metricScores.sum / metricScores.length
           }
         case "regressor" =>
-          for(a <- regressionMetrics){
+          for (a <- regressionMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
-            scoringMap(a) = metricScores.sum/metricScores.length
+            scoringMap(a) = metricScores.sum / metricScores.length
           }
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
 
-      val runAvg = ModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum/scores.length,
+      val runAvg = RandomForestModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
     }
@@ -379,21 +363,21 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     val fullIndexArray = List.range(0, maximum)
     val randomSeed = new scala.util.Random
     val count = minimum + randomSeed.nextInt((parameterCount - minimum) + 1)
-    val adjCount = if(count < 1) 1 else count
+    val adjCount = if (count < 1) 1 else count
     val shuffledArray = scala.util.Random.shuffle(fullIndexArray).take(adjCount)
-    shuffledArray.sortWith(_<_)
+    shuffledArray.sortWith(_ < _)
   }
 
   private def getFixedIndeces(minimum: Int, maximum: Int, parameterCount: Int): List[Int] = {
     val fullIndexArray = List.range(0, maximum)
     val randomSeed = new scala.util.Random
-    randomSeed.shuffle(fullIndexArray).take(parameterCount).sortWith(_<_)
+    randomSeed.shuffle(fullIndexArray).take(parameterCount).sortWith(_ < _)
   }
 
   private def generateMutationIndeces(minimum: Int, maximum: Int, parameterCount: Int,
                                       mutationCount: Int): Array[List[Int]] = {
     val mutations = new ArrayBuffer[List[Int]]
-    for (_ <- 0 to mutationCount){
+    for (_ <- 0 to mutationCount) {
       _mutationMagnitudeMode match {
         case "random" => mutations += getRandomIndeces(minimum, maximum, parameterCount)
         case "fixed" => mutations += getFixedIndeces(minimum, maximum, parameterCount)
@@ -403,7 +387,7 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     mutations.result.toArray
   }
 
-  private def generateIdealParents(results: Array[ModelsWithResults]): Array[RandomForestConfig] = {
+  private def generateIdealParents(results: Array[RandomForestModelsWithResults]): Array[RandomForestConfig] = {
     val bestParents = new ArrayBuffer[RandomForestConfig]
     results.take(_numberOfParentsToRetain).map(x => {
       bestParents += x.modelHyperParams
@@ -412,11 +396,11 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
   }
 
   private def geneMixing(parent: Double, child: Double, parentMutationPercentage: Double): Double = {
-    (parent * parentMutationPercentage) + (child * (1-parentMutationPercentage))
+    (parent * parentMutationPercentage) + (child * (1 - parentMutationPercentage))
   }
 
-  private def geneMixing(parent: Int, child: Int, parentMutationPercentage: Double): Int= {
-    ((parent * parentMutationPercentage) + (child * (1-parentMutationPercentage))).toInt
+  private def geneMixing(parent: Int, child: Int, parentMutationPercentage: Double): Int = {
+    ((parent * parentMutationPercentage) + (child * (1 - parentMutationPercentage))).toInt
   }
 
   private def geneMixing(parent: String, child: String): String = {
@@ -430,37 +414,37 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
 
     val mutationPayload = new ArrayBuffer[RandomForestConfig]
     val totalConfigs = modelConfigLength[RandomForestConfig]
-    val indexMutation = if(mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs-mutationAggression
+    val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
     val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation,
       mutationCount)
 
-    for(i <- mutationCandidates.indices) {
+    for (i <- mutationCandidates.indices) {
 
       val randomParent = scala.util.Random.shuffle(parents.toList).head
       val mutationIteration = mutationCandidates(i)
       val mutationIndexIteration = mutationIndeces(i)
 
       mutationPayload += RandomForestConfig(
-        if(mutationIndexIteration.contains(0)) geneMixing(
+        if (mutationIndexIteration.contains(0)) geneMixing(
           randomParent.numTrees, mutationIteration.numTrees, mutationMagnitude)
         else randomParent.numTrees,
-        if(mutationIndexIteration.contains(1)) geneMixing(
+        if (mutationIndexIteration.contains(1)) geneMixing(
           randomParent.impurity, mutationIteration.impurity)
         else randomParent.impurity,
-        if(mutationIndexIteration.contains(2)) geneMixing(
+        if (mutationIndexIteration.contains(2)) geneMixing(
           randomParent.maxBins, mutationIteration.maxBins, mutationMagnitude)
         else randomParent.maxBins,
-        if(mutationIndexIteration.contains(3)) geneMixing(
+        if (mutationIndexIteration.contains(3)) geneMixing(
           randomParent.maxDepth, mutationIteration.maxDepth, mutationMagnitude)
         else randomParent.maxDepth,
-        if(mutationIndexIteration.contains(4)) geneMixing(
+        if (mutationIndexIteration.contains(4)) geneMixing(
           randomParent.minInfoGain, mutationIteration.minInfoGain, mutationMagnitude)
         else randomParent.minInfoGain,
-        if(mutationIndexIteration.contains(5)) geneMixing(
+        if (mutationIndexIteration.contains(5)) geneMixing(
           randomParent.subSamplingRate, mutationIteration.subSamplingRate, mutationMagnitude)
         else randomParent.subSamplingRate,
-        if(mutationIndexIteration.contains(6)) geneMixing(
+        if (mutationIndexIteration.contains(6)) geneMixing(
           randomParent.featureSubsetStrategy, mutationIteration.featureSubsetStrategy)
         else randomParent.featureSubsetStrategy
       )
@@ -468,11 +452,11 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     mutationPayload.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[RandomForestConfig]=None): Array[ModelsWithResults] = {
+  def evolveParameters(startingSeed: Option[RandomForestConfig] = None): Array[RandomForestModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
-    val fossilRecord = new ArrayBuffer[ModelsWithResults]
+    val fossilRecord = new ArrayBuffer[RandomForestModelsWithResults]
 
     val totalConfigs = modelConfigLength[RandomForestConfig]
 
@@ -493,7 +477,7 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     (1 to _numberOfMutationGenerations).map(i => {
 
       val mutationAggressiveness = _generationalMutationStrategy match {
-        case "linear" => if(totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
+        case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
         case _ => _fixedMutationValue
       }
 
@@ -517,11 +501,11 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
     }
   }
 
-  def evolveBest(startingSeed: Option[RandomForestConfig] = None): ModelsWithResults = {
+  def evolveBest(startingSeed: Option[RandomForestConfig] = None): RandomForestModelsWithResults = {
     evolveParameters(startingSeed).head
   }
 
-  def generateScoredDataFrame(results: Array[ModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(results: Array[RandomForestModelsWithResults]): DataFrame = {
 
     import spark.sqlContext.implicits._
 
@@ -532,8 +516,8 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends DataValidation
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[RandomForestConfig]=None):
-  (Array[ModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(startingSeed: Option[RandomForestConfig] = None):
+  (Array[RandomForestModelsWithResults], DataFrame) = {
     val evolutionResults = evolveParameters(startingSeed)
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
