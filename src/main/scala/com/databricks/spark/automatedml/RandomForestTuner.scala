@@ -11,7 +11,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 //TODO: change the par mapping to proper thread pooling?
 //TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
 
-class GeneticTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
+class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
   with Evolution {
 
   private var _scoringMetric = modelSelection match {
@@ -19,9 +19,6 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     case "classifier" => "f1"
     case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not supported.")
   }
-
-  final val classificationMetrics: List[String] = List("f1", "weightedPrecision", "weightedRecall", "accuracy")
-  final val regressionMetrics: List[String] = List("rmse", "mse", "r2", "mae")
 
   private var _randomForestNumericBoundaries = Map(
     "numTrees" -> Tuple2(50.0, 1000.0),
@@ -38,11 +35,11 @@ class GeneticTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
-      case "regressor" => assert(regressionMetrics.contains(value),
+      case "regressor" => require(regressionMetrics.contains(value),
         s"Regressor scoring optimization '$value' is not a valid member of ${
           invalidateSelection(value, regressionMetrics)
         }")
-      case "classifier" => assert(classificationMetrics.contains(value),
+      case "classifier" => require(classificationMetrics.contains(value),
         s"Regressor scoring optimization '$value' is not a valid member of ${
           invalidateSelection(value, classificationMetrics)
         }")

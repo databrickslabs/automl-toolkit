@@ -27,6 +27,9 @@ trait Evolution extends DataValidation {
   final val allowableStrategies = Seq("minimize", "maximize")
   final val allowableMutationStrategies = Seq("linear", "fixed")
   final val allowableMutationMagnitudeMode = Seq("random", "fixed")
+  final val regressionMetrics: List[String] = List("rmse", "mse", "r2", "mae")
+  final val classificationMetrics: List[String] = List("f1", "weightedPrecision", "weightedRecall", "accuracy")
+
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
@@ -193,6 +196,10 @@ trait Evolution extends DataValidation {
     _randomizer.shuffle(boundaryMap(param)).head
   }
 
+  def coinFlip(): Boolean = {
+    math.random < 0.5
+  }
+
   def getRandomIndeces(minimum: Int, maximum: Int, parameterCount: Int): List[Int] = {
     val fullIndexArray = List.range(0, maximum)
     val randomSeed = new scala.util.Random
@@ -209,7 +216,7 @@ trait Evolution extends DataValidation {
   }
 
   def generateMutationIndeces(minimum: Int, maximum: Int, parameterCount: Int,
-                                      mutationCount: Int): Array[List[Int]] = {
+                              mutationCount: Int): Array[List[Int]] = {
     val mutations = new ArrayBuffer[List[Int]]
     for (_ <- 0 to mutationCount) {
       _mutationMagnitudeMode match {
