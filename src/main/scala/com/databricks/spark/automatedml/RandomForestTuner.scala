@@ -135,7 +135,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
   private def generateAndScoreRandomForestModel(train: DataFrame, test: DataFrame,
-                                                modelConfig: RandomForestConfig, generation: Int = 1): RandomForestModelsWithResults = {
+                                                modelConfig: RandomForestConfig,
+                                                generation: Int = 1): RandomForestModelsWithResults = {
 
     val randomForestModel = modelDecider(modelConfig)
 
@@ -170,11 +171,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
 
-    val dfSchema = df.schema
-    assert(dfSchema.fieldNames.contains(_labelCol),
-      s"Dataframe does not contain label column named: ${_labelCol}")
-    assert(dfSchema.fieldNames.contains(_featureCol),
-      s"Dataframe does not contain features column named: ${_featureCol}")
+    validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     val results = new ArrayBuffer[RandomForestModelsWithResults]
     val runs = battery.par
@@ -261,6 +258,14 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       )
     }
     mutationPayload.result.toArray
+  }
+
+  def generateIdealParents(results: Array[RandomForestModelsWithResults]): Array[RandomForestConfig] = {
+    val bestParents = new ArrayBuffer[RandomForestConfig]
+    results.take(_numberOfParentsToRetain).map(x => {
+      bestParents += x.modelHyperParams
+    })
+    bestParents.result.toArray
   }
 
   def evolveParameters(startingSeed: Option[RandomForestConfig] = None): Array[RandomForestModelsWithResults] = {

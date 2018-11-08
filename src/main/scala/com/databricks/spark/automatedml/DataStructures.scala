@@ -47,6 +47,14 @@ case class LinearRegressionConfig(
                                    tolerance: Double
                                  )
 
+case class LinearRegressionModelsWithResults(
+                                            modelHyperParams: LinearRegressionConfig,
+                                            model: LinearRegressionModel,
+                                            score: Double,
+                                            evalMetrics: Map[String, Double],
+                                            generation: Int
+                                            )
+
 case class RandomForestModelsWithResults(
                                           modelHyperParams: RandomForestConfig,
                                           model: Any,

@@ -200,6 +200,10 @@ trait Evolution extends DataValidation {
     math.random < 0.5
   }
 
+  def coinFlip(parent: Boolean, child: Boolean, p: Double): Boolean = {
+    if(math.random < p) parent else child
+  }
+
   def getRandomIndeces(minimum: Int, maximum: Int, parameterCount: Int): List[Int] = {
     val fullIndexArray = List.range(0, maximum)
     val randomSeed = new scala.util.Random
@@ -227,14 +231,6 @@ trait Evolution extends DataValidation {
       }
     }
     mutations.result.toArray
-  }
-
-  def generateIdealParents(results: Array[RandomForestModelsWithResults]): Array[RandomForestConfig] = {
-    val bestParents = new ArrayBuffer[RandomForestConfig]
-    results.take(_numberOfParentsToRetain).map(x => {
-      bestParents += x.modelHyperParams
-    })
-    bestParents.result.toArray
   }
 
   def geneMixing(parent: Double, child: Double, parentMutationPercentage: Double): Double = {
