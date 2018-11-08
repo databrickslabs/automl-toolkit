@@ -29,7 +29,7 @@ case class RandomForestConfig(numTrees: Int,
                              )
 
 case class LogisticRegressionConfig(
-                                     elasticNetParam: Double,
+                                     elasticNetParams: Double,
                                      fitIntercept: Boolean,
                                      maxIter: Int,
                                      regParam: Double,
@@ -38,7 +38,7 @@ case class LogisticRegressionConfig(
                                    )
 
 case class LinearRegressionConfig(
-                                   elasticNetParam: Double,
+                                   elasticNetParams: Double,
                                    fitIntercept: Boolean,
                                    loss: String,
                                    maxIter: Int,
@@ -54,6 +54,14 @@ case class LinearRegressionModelsWithResults(
                                               evalMetrics: Map[String, Double],
                                               generation: Int
                                             )
+
+case class LogisticRegressionModelsWithResults(
+                                                modelHyperParams: LogisticRegressionConfig,
+                                                model: LogisticRegressionModel,
+                                                score: Double,
+                                                evalMetrics: Map[String, Double],
+                                                generation: Int
+                                              )
 
 case class RandomForestModelsWithResults(
                                           modelHyperParams: RandomForestConfig,

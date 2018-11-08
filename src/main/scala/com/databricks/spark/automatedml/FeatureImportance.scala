@@ -2,21 +2,19 @@ package com.databricks.spark.automatedml
 
 
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, DecisionTreeClassifier, RandomForestClassificationModel, RandomForestClassifier}
+import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, DecisionTreeClassifier, RandomForestClassificationModel}
 import org.apache.spark.ml.regression.RandomForestRegressionModel
-import org.apache.spark.sql.{DataFrame, Dataset}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: ModelsWithResults, importances: DataFrame)
+class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: RandomForestModelsWithResults, importances: DataFrame)
   extends DataValidation with SparkSessionWrapper {
 
 
   private var _labelCol = "label"
   private var _featuresCol = "features"
-
-
 
 
   final val dfSchemaNames = df.schema.fieldNames
@@ -27,14 +25,16 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
     _labelCol = value
     this
   }
+
   def setFeaturesCol(value: String): this.type = {
     assert(dfSchemaNames.contains(_featuresCol, s"DataFrame supplied does not contain label column '$value'"))
     _featuresCol = value
     this
   }
-
+// TODO: REFACTOR THIS MESS
 
   def getLabelCol: String = _labelCol
+
   def getFeaturesCol: String = _featuresCol
 
 
@@ -57,14 +57,14 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
     cleanedBuffer.result
   }
 
-  def reportFields(fieldIndexArray: Array[(String, Int)]) = {
+  def reportFields(fieldIndexArray: Array[(String, Int)]): Unit = {
 
     cleanupFieldArray(fieldIndexArray).foreach(x => {
       println(s"Column ${x._1} is feature ${x._2}")
     })
   }
 
-  def reportImportances(assembledColumns: Array[String]):DataFrame = {
+  def reportImportances(assembledColumns: Array[String]): DataFrame = {
 
     val importances = modelSelection match {
       case "classifier" => modelPayload.model.asInstanceOf[RandomForestClassificationModel].featureImportances.toArray
@@ -85,8 +85,7 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
                                 importanceCutoff: Double
                                )
 
-  private def generateDecisionTree[A,B](decisionTreeConfig: DecisionTreeConfig) = {
-
+  private def generateDecisionTree[A, B](decisionTreeConfig: DecisionTreeConfig) = {
 
 
     // pull this out and put a switch statement in for classifier vs regressor
@@ -118,7 +117,7 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
 
   }
 
-  def filterData(rawData: DataFrame, reportResult: DataFrame, cutoff: Double) = {
+  def filterData(rawData: DataFrame, reportResult: DataFrame, cutoff: Double): DataFrame = {
 
     import spark.implicits._
     val filteredData = reportResult.filter(col("Importances") >= cutoff)
@@ -133,17 +132,18 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
 
     val fields = fieldBuffer.result.toArray
 
-    rawData.select(fields.map(col):_*)
+    rawData.select(fields.map(col): _*)
 
   }
 
-  def generateDecisionText(decisionTreeModel: DecisionTreeClassificationModel, modelColumnArray: Array[(String, Int)]) = {
+  def generateDecisionText(decisionTreeModel: DecisionTreeClassificationModel,
+                           modelColumnArray: Array[(String, Int)]): String = {
     val reparsedArray = new ArrayBuffer[(String, String)]
     cleanupFieldArray(modelColumnArray).toArray.map(x => {
       reparsedArray += (("feature " + x._2.toString, x._1))
     })
     val mappedArray = reparsedArray.result.toMap
-    mappedArray.foldLeft(decisionTreeModel.toDebugString){case(body,(k,v)) => body.replaceAll(k,v)}
+    mappedArray.foldLeft(decisionTreeModel.toDebugString) { case (body, (k, v)) => body.replaceAll(k, v) }
   }
 
 }

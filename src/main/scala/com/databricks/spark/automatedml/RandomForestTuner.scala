@@ -36,11 +36,11 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
       case "regressor" => require(regressionMetrics.contains(value),
-        s"Regressor scoring optimization '$value' is not a valid member of ${
+        s"Regressor scoring metric '$value' is not a valid member of ${
           invalidateSelection(value, regressionMetrics)
         }")
       case "classifier" => require(classificationMetrics.contains(value),
-        s"Regressor scoring optimization '$value' is not a valid member of ${
+        s"Regressor scoring metric '$value' is not a valid member of ${
           invalidateSelection(value, classificationMetrics)
         }")
       case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
