@@ -9,6 +9,9 @@ import scala.collection.mutable.ListBuffer
   * @param df - Input DataFrame pre-feature vectorization
   */
 
+
+//TODO: return both the filtered dataframe (without outliers) and the rows that were filtered.
+
 class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValidation{
 
   private var _labelCol: String = "label"
@@ -92,7 +95,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     data.filter(col(field) <= filterThreshold)
   }
 
-  def filterContinuousOutliers(ignoreList: Array[String]=Array("")): DataFrame = {
+  def filterContinuousOutliers(ignoreList: Array[String]=Array("")): (DataFrame, DataFrame) = {
 
     val filteredNumericPayload = new ListBuffer[String]
     val numericPayload = validateNumericFields()
@@ -101,29 +104,41 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
         filteredNumericPayload += x.field
     }
     var mutatedDF = df
+    var outlierDF = df
     filteredNumericPayload.foreach{x =>
       _filterBounds match {
-        case "lower" => mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
-        case "upper" => mutatedDF = filterHigh(mutatedDF, x, filterBoundaries(x, _upperFilterNTile))
+        case "lower" =>
+          mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
+          outlierDF = filterHigh(outlierDF, x, filterBoundaries(x, _lowerFilterNTile))
+        case "upper" =>
+          mutatedDF = filterHigh(mutatedDF, x, filterBoundaries(x, _upperFilterNTile))
+          outlierDF = filterLow(outlierDF, x, filterBoundaries(x, _upperFilterNTile))
         case "both" =>
           mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
           mutatedDF = filterHigh(mutatedDF, x, filterBoundaries(x, _upperFilterNTile))
+          outlierDF = filterHigh(outlierDF, x, filterBoundaries(x, _lowerFilterNTile))
+          outlierDF = filterLow(outlierDF, x, filterBoundaries(x, _upperFilterNTile))
       }
     }
-    mutatedDF
+    (mutatedDF, outlierDF)
   }
 
-  def filterContinuousOutliers(manualFilter: List[ManualFilters]): DataFrame = {
+  def filterContinuousOutliers(manualFilter: List[ManualFilters]): (DataFrame, DataFrame) = {
 
     var mutatedDF = df
+    var outlierDF = df
     manualFilter.foreach{x =>
       _filterBounds match {
-        case "lower" => mutatedDF = filterLow(mutatedDF, x.field, x.threshold)
-        case "upper" => mutatedDF = filterHigh(mutatedDF, x.field, x.threshold)
+        case "lower" =>
+          mutatedDF = filterLow(mutatedDF, x.field, x.threshold)
+          outlierDF = filterHigh(outlierDF, x.field, x.threshold)
+        case "upper" =>
+          mutatedDF = filterHigh(mutatedDF, x.field, x.threshold)
+          outlierDF = filterLow(outlierDF, x.field, x.threshold)
         case _ => throw new UnsupportedOperationException(
           s"Filter mode '${_filterBounds} is not supported.  Please use either 'lower' or 'upper'")
       }
     }
-    mutatedDF
+    (mutatedDF, outlierDF)
   }
 }

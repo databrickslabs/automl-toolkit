@@ -37,11 +37,10 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Ran
 
   def getFeaturesCol: String = _featuresCol
 
-
+  //TODO: build main accessor and factory configuration class
+  //TODO: finish implementing the Decision Tree logic for submitting a report from the main runner
+  //TODO: determine covariance and remove highly auto-correlated fields from the feature vector.
   //TODO: Implement Bertrand's additive feature selection algorithm using information gain
-  //TODO: Add in Linear Regression + Logistic Regression Support
-  //TODO: Outlier Filtering based on algorithmic approach OR supplied fields
-  //TODO: Implement pearson auto-correlation feature removal (automated and manual override mode)
   //TODO: Model report information (MLFlow + static table explaining what happened within the framework)
 
   def generateFrameReport(columns: Array[String], importances: Array[Double]): DataFrame = {
