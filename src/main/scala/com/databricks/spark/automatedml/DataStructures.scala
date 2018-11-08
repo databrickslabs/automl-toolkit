@@ -48,11 +48,11 @@ case class LinearRegressionConfig(
                                  )
 
 case class LinearRegressionModelsWithResults(
-                                            modelHyperParams: LinearRegressionConfig,
-                                            model: LinearRegressionModel,
-                                            score: Double,
-                                            evalMetrics: Map[String, Double],
-                                            generation: Int
+                                              modelHyperParams: LinearRegressionConfig,
+                                              model: LinearRegressionModel,
+                                              score: Double,
+                                              evalMetrics: Map[String, Double],
+                                              generation: Int
                                             )
 
 case class RandomForestModelsWithResults(

@@ -147,36 +147,36 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper
 
     val mutationPayload = new ArrayBuffer[LinearRegressionConfig]
     val totalConfigs = modelConfigLength[LinearRegressionConfig]
-    val indexMutation = if(mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
+    val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
     val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
 
-    for(i <- mutationCandidates.indices) {
+    for (i <- mutationCandidates.indices) {
 
       val randomParent = scala.util.Random.shuffle(parents.toList).head
       val mutationIteration = mutationCandidates(i)
       val mutationIndexIteration = mutationIndeces(i)
 
       mutationPayload += LinearRegressionConfig(
-        if(mutationIndexIteration.contains(0)) geneMixing(randomParent.elasticNetParam,
+        if (mutationIndexIteration.contains(0)) geneMixing(randomParent.elasticNetParam,
           mutationIteration.elasticNetParam, mutationMagnitude)
         else randomParent.elasticNetParam,
-        if(mutationIndexIteration.contains(1)) coinFlip(randomParent.fitIntercept,
+        if (mutationIndexIteration.contains(1)) coinFlip(randomParent.fitIntercept,
           mutationIteration.fitIntercept, mutationMagnitude)
         else randomParent.fitIntercept,
-        if(mutationIndexIteration.contains(2)) geneMixing(randomParent.loss,
+        if (mutationIndexIteration.contains(2)) geneMixing(randomParent.loss,
           mutationIteration.loss)
         else randomParent.loss,
-        if(mutationIndexIteration.contains(3)) geneMixing(randomParent.maxIter,
+        if (mutationIndexIteration.contains(3)) geneMixing(randomParent.maxIter,
           mutationIteration.maxIter, mutationMagnitude)
         else randomParent.maxIter,
-        if(mutationIndexIteration.contains(4)) geneMixing(randomParent.regParam,
+        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.regParam,
           mutationIteration.regParam, mutationMagnitude)
         else randomParent.regParam,
-        if(mutationIndexIteration.contains(5)) coinFlip(randomParent.standardization,
+        if (mutationIndexIteration.contains(5)) coinFlip(randomParent.standardization,
           mutationIteration.standardization, mutationMagnitude)
         else randomParent.standardization,
-        if(mutationIndexIteration.contains(6)) geneMixing(randomParent.tolerance,
+        if (mutationIndexIteration.contains(6)) geneMixing(randomParent.tolerance,
           mutationIteration.tolerance, mutationMagnitude)
         else randomParent.tolerance
       )
@@ -261,6 +261,6 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper
     val evolutionResults = evolveParameters(startingSeed)
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
-  
+
 
 }

@@ -45,7 +45,7 @@ trait Evolution extends DataValidation {
   }
 
   def setTrainPortion(value: Double): this.type = {
-    assert(value < 1.0 & value > 0.0, "Training portion must be in the range > 0 and < 1")
+    require(value < 1.0 & value > 0.0, "Training portion must be in the range > 0 and < 1")
     this._trainPortion = value
     this
   }
@@ -63,7 +63,7 @@ trait Evolution extends DataValidation {
 
   def setOptimizationStrategy(value: String): this.type = {
     val valueLC = value.toLowerCase
-    assert(allowableStrategies.contains(valueLC),
+    require(allowableStrategies.contains(valueLC),
       s"Optimization Strategy '$valueLC' is not a member of ${
         invalidateSelection(valueLC, allowableStrategies)
       }")
@@ -72,31 +72,31 @@ trait Evolution extends DataValidation {
   }
 
   def setFirstGenerationGenePool(value: Int): this.type = {
-    assert(value > 5, s"Values less than 5 for firstGenerationGenePool will require excessive generational mutation to converge")
+    require(value > 5, s"Values less than 5 for firstGenerationGenePool will require excessive generational mutation to converge")
     this._firstGenerationGenePool = value
     this
   }
 
   def setNumberOfMutationGenerations(value: Int): this.type = {
-    assert(value > 0, s"Number of Generations must be greater than 0")
+    require(value > 0, s"Number of Generations must be greater than 0")
     this._numberOfMutationGenerations = value
     this
   }
 
   def setNumberOfParentsToRetain(value: Int): this.type = {
-    assert(value > 0, s"Number of Parents must be greater than 0. '$value' is not a valid number.")
+    require(value > 0, s"Number of Parents must be greater than 0. '$value' is not a valid number.")
     this._numberOfParentsToRetain = value
     this
   }
 
   def setNumberOfMutationsPerGeneration(value: Int): this.type = {
-    assert(value > 0, s"Number of Mutations per generation must be greater than 0. '$value' is not a valid number.")
+    require(value > 0, s"Number of Mutations per generation must be greater than 0. '$value' is not a valid number.")
     this._numberOfMutationsPerGeneration = value
     this
   }
 
   def setGeneticMixing(value: Double): this.type = {
-    assert(value < 1.0 & value > 0.0,
+    require(value < 1.0 & value > 0.0,
       s"Mutation Aggressiveness must be in range (0,1). Current Setting of $value is not permitted.")
     this._geneticMixing = value
     this
@@ -104,7 +104,7 @@ trait Evolution extends DataValidation {
 
   def setGenerationalMutationStrategy(value: String): this.type = {
     val valueLC = value.toLowerCase
-    assert(allowableMutationStrategies.contains(valueLC),
+    require(allowableMutationStrategies.contains(valueLC),
       s"Generational Mutation Strategy '$valueLC' is not a member of ${
         invalidateSelection(valueLC, allowableMutationStrategies)
       }")
@@ -114,7 +114,7 @@ trait Evolution extends DataValidation {
 
   def setMutationMagnitudeMode(value: String): this.type = {
     val valueLC = value.toLowerCase
-    assert(allowableMutationMagnitudeMode.contains(valueLC),
+    require(allowableMutationMagnitudeMode.contains(valueLC),
       s"Mutation Magnitude Mode '$valueLC' is not a member of ${
         invalidateSelection(valueLC, allowableMutationMagnitudeMode)
       }")
@@ -124,9 +124,9 @@ trait Evolution extends DataValidation {
 
   def setFixedMutationValue(value: Int): this.type = {
     val maxMutationCount = modelConfigLength[RandomForestConfig]
-    assert(value <= maxMutationCount,
+    require(value <= maxMutationCount,
       s"Mutation count '$value' cannot exceed number of hyperparameters ($maxMutationCount)")
-    assert(value > 0, s"Mutation count '$value' must be greater than 0")
+    require(value > 0, s"Mutation count '$value' must be greater than 0")
     this._fixedMutationValue = value
     this
   }
@@ -201,7 +201,7 @@ trait Evolution extends DataValidation {
   }
 
   def coinFlip(parent: Boolean, child: Boolean, p: Double): Boolean = {
-    if(math.random < p) parent else child
+    if (math.random < p) parent else child
   }
 
   def getRandomIndeces(minimum: Int, maximum: Int, parameterCount: Int): List[Int] = {
