@@ -4,6 +4,12 @@ import org.apache.spark.ml.classification.LogisticRegressionModel
 import org.apache.spark.ml.regression.LinearRegressionModel
 
 
+//TODO: Auto-correlation detection
+//TODO: add in time logging based on each model's runtime to each case class for ModelsWithResults
+//TODO: main entry points, main runner object
+//TODO: split out each core functionality package to its own directory
+
+
 case class PearsonPayload(fieldName: String,
                           pvalue: Double,
                           degreesFreedom: Int,
