@@ -10,10 +10,18 @@ import org.apache.spark.ml.regression.LinearRegressionModel
 //TODO: split out each core functionality package to its own directory
 
 
-case class PearsonPayload(fieldName: String,
-                          pvalue: Double,
-                          degreesFreedom: Int,
-                          pearsonStat: Double)
+case class PearsonPayload(
+                           fieldName: String,
+                           pvalue: Double,
+                           degreesFreedom: Int,
+                           pearsonStat: Double
+                         )
+
+case class FeatureCorrelationStats(
+                                    leftCol: String,
+                                    rightCol: String,
+                                    correlation: Double
+                                  )
 
 case class FilterData(
                        field: String,
