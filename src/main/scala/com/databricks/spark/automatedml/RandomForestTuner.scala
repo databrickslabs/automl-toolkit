@@ -169,7 +169,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
 
-  def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
+  private def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
@@ -217,7 +217,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     }
   }
 
-  def irradiateGeneration(parents: Array[RandomForestConfig], mutationCount: Int,
+  private def irradiateGeneration(parents: Array[RandomForestConfig], mutationCount: Int,
                           mutationAggression: Int, mutationMagnitude: Double): Array[RandomForestConfig] = {
 
     val mutationPayload = new ArrayBuffer[RandomForestConfig]

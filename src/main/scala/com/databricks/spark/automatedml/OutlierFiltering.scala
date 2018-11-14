@@ -9,9 +9,6 @@ import scala.collection.mutable.ListBuffer
   * @param df - Input DataFrame pre-feature vectorization
   */
 
-
-//TODO: return both the filtered dataframe (without outliers) and the rows that were filtered.
-
 class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValidation{
 
   private var _labelCol: String = "label"

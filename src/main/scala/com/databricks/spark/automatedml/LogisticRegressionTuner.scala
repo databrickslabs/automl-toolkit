@@ -92,7 +92,7 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
   }
 
 
-  def runBattery(battery: Array[LogisticRegressionConfig],
+  private def runBattery(battery: Array[LogisticRegressionConfig],
                  generation: Int = 1): Array[LogisticRegressionModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
@@ -131,8 +131,7 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
 
   }
 
-
-  def irradiateGeneration(parents: Array[LogisticRegressionConfig], mutationCount: Int,
+  private def irradiateGeneration(parents: Array[LogisticRegressionConfig], mutationCount: Int,
                           mutationAggression: Int, mutationMagnitude: Double): Array[LogisticRegressionConfig] = {
 
     val mutationPayload = new ArrayBuffer[LogisticRegressionConfig]
