@@ -33,7 +33,8 @@ case class ManualFilters(
                           threshold: Double
                         )
 
-case class RandomForestConfig(numTrees: Int,
+case class RandomForestConfig(
+                               numTrees: Int,
                               impurity: String,
                               maxBins: Int,
                               maxDepth: Int,
@@ -41,6 +42,17 @@ case class RandomForestConfig(numTrees: Int,
                               subSamplingRate: Double,
                               featureSubsetStrategy: String
                              )
+
+case class GBTConfig(
+                      impurity: String,
+                      lossType: String,
+                      maxBins: Int,
+                      maxDepth: Int,
+                      maxIter: Int,
+                      minInfoGain: Double,
+                      minInstancesPerNode: Int,
+                      stepSize: Double
+                    )
 
 case class LogisticRegressionConfig(
                                      elasticNetParams: Double,
@@ -84,6 +96,14 @@ case class RandomForestModelsWithResults(
                                           evalMetrics: Map[String, Double],
                                           generation: Int
                                         )
+
+case class GBTModelsWithResults(
+                               modelHyperParams: GBTConfig,
+                               model: Any,
+                               score: Double,
+                               evaluMetrics: Map[String, Double],
+                               generation: Int
+                               )
 
 case class LogisticModelsWithResults(
                                       modelHyperParams: LogisticRegressionConfig,
