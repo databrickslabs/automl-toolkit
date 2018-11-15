@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml
 
-import org.apache.spark.ml.classification.LogisticRegressionModel
+import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel}
 import org.apache.spark.ml.regression.LinearRegressionModel
 
 
@@ -35,12 +35,12 @@ case class ManualFilters(
 
 case class RandomForestConfig(
                                numTrees: Int,
-                              impurity: String,
-                              maxBins: Int,
-                              maxDepth: Int,
-                              minInfoGain: Double,
-                              subSamplingRate: Double,
-                              featureSubsetStrategy: String
+                               impurity: String,
+                               maxBins: Int,
+                               maxDepth: Int,
+                               minInfoGain: Double,
+                               subSamplingRate: Double,
+                               featureSubsetStrategy: String
                              )
 
 case class GBTConfig(
@@ -98,11 +98,11 @@ case class RandomForestModelsWithResults(
                                         )
 
 case class GBTModelsWithResults(
-                               modelHyperParams: GBTConfig,
-                               model: Any,
-                               score: Double,
-                               evalMetrics: Map[String, Double],
-                               generation: Int
+                                 modelHyperParams: GBTConfig,
+                                 model: Any,
+                                 score: Double,
+                                 evalMetrics: Map[String, Double],
+                                 generation: Int
                                )
 
 case class LogisticModelsWithResults(
@@ -120,6 +120,23 @@ case class LinearModelsWithResults(
                                     evalMetrics: Map[String, Double],
                                     generation: Int
                                   )
+
+
+case class SVMConfig(
+                      fitIntercept: Boolean,
+                      maxIter: Int,
+                      regParam: Double,
+                      standardization: Boolean,
+                      tol: Double
+                    )
+
+case class SVMModelsWithResults(
+                                 modelHyperParams: SVMConfig,
+                                 model: LinearSVCModel,
+                                 score: Double,
+                                 evalMetrics: Map[String, Double],
+                                 generation: Int
+                               )
 
 case class StaticModelConfig(
                               labelColumn: String,
