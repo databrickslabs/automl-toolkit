@@ -39,7 +39,7 @@ trait DataValidation{
         case "boolean" => vectorizableFields += x._2
         case "binary" => vectorizableFields += x._2
         case _ => throw new UnsupportedOperationException(
-          s"WARNING! Field ${x._2} is of type ${x._1} which is not supported!!")
+          s"Field '${x._2}' is of type ${x._1} which is not supported.")
       }
     )
 
