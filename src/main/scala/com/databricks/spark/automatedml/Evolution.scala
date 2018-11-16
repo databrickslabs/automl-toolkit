@@ -204,6 +204,30 @@ trait Evolution extends DataValidation {
     if (math.random < p) parent else child
   }
 
+  def buildLayerArray(inputFeatureSize: Int, distinctClasses: Int, nLayers: Int,
+                      hiddenLayerSizeAdjust: Int): Array[Int] = {
+
+    val layerConstruct = new ArrayBuffer[Int]
+
+    layerConstruct += inputFeatureSize
+
+    (1 to nLayers).foreach { x =>
+      layerConstruct += inputFeatureSize + nLayers - x + hiddenLayerSizeAdjust
+    }
+    layerConstruct += distinctClasses
+    layerConstruct.result.toArray
+  }
+
+  def generateLayerArray(layerParam: String, layerSizeParam: String, boundaryMap: Map[String, (AnyVal, AnyVal)],
+                         inputFeatureSize: Int, distinctClasses: Int): Array[Int] = {
+
+    val layersToGenerate = generateRandomInteger(layerParam, boundaryMap)
+    val hiddenLayerSizeAdjust = generateRandomInteger(layerSizeParam, boundaryMap)
+
+    buildLayerArray(inputFeatureSize, distinctClasses, layersToGenerate, hiddenLayerSizeAdjust)
+
+  }
+
   def getRandomIndeces(minimum: Int, maximum: Int, parameterCount: Int): List[Int] = {
     val fullIndexArray = List.range(0, maximum)
     val randomSeed = new scala.util.Random

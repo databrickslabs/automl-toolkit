@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml
 
-import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel}
+import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.regression.LinearRegressionModel
 
 
@@ -121,7 +121,6 @@ case class LinearModelsWithResults(
                                     generation: Int
                                   )
 
-
 case class SVMConfig(
                       fitIntercept: Boolean,
                       maxIter: Int,
@@ -137,6 +136,22 @@ case class SVMModelsWithResults(
                                  evalMetrics: Map[String, Double],
                                  generation: Int
                                )
+
+case class MLPCConfig(
+                       layers: Array[Int],
+                       maxIter: Int,
+                       solver: String,
+                       stepSize: Double,
+                       tol: Double
+                     )
+
+case class MLPCModelsWithResults(
+                                  modelHyperParams: MLPCConfig,
+                                  model: MultilayerPerceptronClassificationModel,
+                                  score: Double,
+                                  evalMetrics: Map[String, Double],
+                                  generation: Int
+                                )
 
 case class StaticModelConfig(
                               labelColumn: String,
