@@ -271,6 +271,24 @@ trait Evolution extends DataValidation {
     scala.util.Random.shuffle(mixed.toList).head
   }
 
+  def geneMixing(parent: Array[Int], child: Array[Int], parentMutationPercentage: Double): Array[Int] = {
+
+    val staticStart = parent.head
+    val staticEnd = parent.last
+
+    val parentHiddenLayers = parent.length - 2
+    val childHiddenLayers = child.length - 2
+
+    val parentMagnitude = parent(1) - staticStart
+    val childMagnidue = child(1) - staticStart
+
+    val hiddenLayerMix = geneMixing(parentHiddenLayers, childHiddenLayers, parentMutationPercentage)
+    val sizeAdjustMix = geneMixing(parentMagnitude, childMagnidue, parentMutationPercentage)
+
+    buildLayerArray(staticStart, staticEnd, hiddenLayerMix, sizeAdjustMix)
+
+  }
+
 }
 
 //TODO: set the default behavior to be RandomForest based algo's
