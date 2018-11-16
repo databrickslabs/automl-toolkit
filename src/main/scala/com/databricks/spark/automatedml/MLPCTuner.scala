@@ -102,7 +102,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution {
     MLPCModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
 
   }
-  
+
   private def runBattery(battery: Array[MLPCConfig], generation: Int = 1): Array[MLPCModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
