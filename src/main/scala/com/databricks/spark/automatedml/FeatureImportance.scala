@@ -120,6 +120,7 @@ class FeatureImportance(df: DataFrame, modelSelection: String, modelPayload: Mod
 
   def filterData(rawData: DataFrame, reportResult: DataFrame, cutoff: Double) = {
 
+    import spark.implicits._
     val filteredData = reportResult.filter(col("Importances") >= cutoff)
     val filteredFields = filteredData.select("Columns").as[String].collect
 
