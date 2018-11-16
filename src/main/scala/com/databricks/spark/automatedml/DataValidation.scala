@@ -88,4 +88,12 @@ trait DataValidation{
     (indexers, assembledColumns, assembler)
   }
 
+  def validateLabelAndFeatures(df: DataFrame, labelCol: String, featureCol: String): Unit = {
+    val dfSchema = df.schema
+    assert(dfSchema.fieldNames.contains(labelCol),
+      s"Dataframe does not contain label column named: $labelCol")
+    assert(dfSchema.fieldNames.contains(featureCol),
+      s"Dataframe does not contain features column named: $featureCol")
+  }
+
 }

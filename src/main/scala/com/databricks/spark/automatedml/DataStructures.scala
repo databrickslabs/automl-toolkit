@@ -1,6 +1,13 @@
 package com.databricks.spark.automatedml
 
+import org.apache.spark.ml.classification.LogisticRegressionModel
+import org.apache.spark.ml.regression.LinearRegressionModel
 
+
+//TODO: Auto-correlation detection
+//TODO: add in time logging based on each model's runtime to each case class for ModelsWithResults
+//TODO: main entry points, main runner object
+//TODO: split out each core functionality package to its own directory
 
 
 case class PearsonPayload(fieldName: String,
@@ -14,8 +21,8 @@ case class FilterData(
                      )
 
 case class ManualFilters(
-                        field: String,
-                        threshold: Double
+                          field: String,
+                          threshold: Double
                         )
 
 case class RandomForestConfig(numTrees: Int,
@@ -26,17 +33,75 @@ case class RandomForestConfig(numTrees: Int,
                               subSamplingRate: Double,
                               featureSubsetStrategy: String
                              )
-case class ModelsWithResults(modelHyperParams: RandomForestConfig,
-                             model: Any,
-                             score: Double,
-                             evalMetrics: Map[String, Double],
-                             generation: Int)
 
+case class LogisticRegressionConfig(
+                                     elasticNetParams: Double,
+                                     fitIntercept: Boolean,
+                                     maxIter: Int,
+                                     regParam: Double,
+                                     standardization: Boolean,
+                                     tolerance: Double
+                                   )
 
-case class StaticModelConfig(labelColumn: String, featuresColumn: String)
+case class LinearRegressionConfig(
+                                   elasticNetParams: Double,
+                                   fitIntercept: Boolean,
+                                   loss: String,
+                                   maxIter: Int,
+                                   regParam: Double,
+                                   standardization: Boolean,
+                                   tolerance: Double
+                                 )
 
-sealed trait ModelType[A,B]
-final case class ClassiferType[A,B](a: A) extends ModelType[A,B]
-final case class RegressorType[A,B](b: B) extends ModelType[A,B]
+case class LinearRegressionModelsWithResults(
+                                              modelHyperParams: LinearRegressionConfig,
+                                              model: LinearRegressionModel,
+                                              score: Double,
+                                              evalMetrics: Map[String, Double],
+                                              generation: Int
+                                            )
+
+case class LogisticRegressionModelsWithResults(
+                                                modelHyperParams: LogisticRegressionConfig,
+                                                model: LogisticRegressionModel,
+                                                score: Double,
+                                                evalMetrics: Map[String, Double],
+                                                generation: Int
+                                              )
+
+case class RandomForestModelsWithResults(
+                                          modelHyperParams: RandomForestConfig,
+                                          model: Any,
+                                          score: Double,
+                                          evalMetrics: Map[String, Double],
+                                          generation: Int
+                                        )
+
+case class LogisticModelsWithResults(
+                                      modelHyperParams: LogisticRegressionConfig,
+                                      model: LogisticRegressionModel,
+                                      score: Double,
+                                      evalMetrics: Map[String, Double],
+                                      generation: Int
+                                    )
+
+case class LinearModelsWithResults(
+                                    modelHyperParams: LinearRegressionConfig,
+                                    model: LinearRegressionModel,
+                                    score: Double,
+                                    evalMetrics: Map[String, Double],
+                                    generation: Int
+                                  )
+
+case class StaticModelConfig(
+                              labelColumn: String,
+                              featuresColumn: String
+                            )
+
+sealed trait ModelType[A, B]
+
+final case class ClassiferType[A, B](a: A) extends ModelType[A, B]
+
+final case class RegressorType[A, B](b: B) extends ModelType[A, B]
 
 
