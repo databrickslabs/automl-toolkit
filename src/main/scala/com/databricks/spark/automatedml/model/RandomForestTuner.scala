@@ -1,33 +1,39 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.model
 
-import org.apache.spark.ml.classification.GBTClassifier
+import com.databricks.spark.automatedml.ModelingConfig
+import com.databricks.spark.automatedml.params.{RandomForestConfig, RandomForestModelsWithResults}
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
-import org.apache.spark.ml.regression.GBTRegressor
+import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution {
+//TODO: change the par mapping to proper thread pooling?
+//TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
 
+class RandomForestTuner(df: DataFrame, modelSelection: String, config: ModelingConfig) extends SparkSessionWrapper
+  with Evolution {
 
   private var _scoringMetric = modelSelection match {
     case "regressor" => "rmse"
     case "classifier" => "f1"
-    case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not a supported modeling mode")
+    case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not supported.")
   }
 
-  private var _gbtNumericBoundaries = Map(
+  private var _randomForestNumericBoundaries = Map(
+    "numTrees" -> Tuple2(50.0, 1000.0),
     "maxBins" -> Tuple2(10.0, 100.0),
     "maxDepth" -> Tuple2(2.0, 20.0),
     "minInfoGain" -> Tuple2(0.0, 1.0),
-    "minInstancesPerNode" -> Tuple2(1.0, 50.0),
-    "stepSize" -> Tuple2(0.0, 1.0)
+    "subSamplingRate" -> Tuple2(0.5, 1.0)
   )
 
-  private var _gbtStringBoundaries = Map(
+  private var _randomForestStringBoundaries = Map(
     "impurity" -> List("gini", "entropy"),
-    "lossType" -> List("logistic")
+    "featureSubsetStrategy" -> List("all", "sqrt", "log2", "onethird")
   )
 
   def setScoringMetric(value: String): this.type = {
@@ -47,54 +53,52 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   }
 
   def setRandomForestNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
-    _gbtNumericBoundaries = value
+    this._randomForestNumericBoundaries = value
     this
   }
 
   def setRandomForestStringBoundaries(value: Map[String, List[String]]): this.type = {
-    _gbtStringBoundaries = value
+    this._randomForestStringBoundaries = value
     this
   }
 
   def getScoringMetric: String = _scoringMetric
 
-  def getRandomForestNumericBoundaries: Map[String, (Double, Double)] = _gbtNumericBoundaries
+  def getRandomForestNumericBoundaries: Map[String, (Double, Double)] = _randomForestNumericBoundaries
 
-  def getRandomForestStringBoundaries: Map[String, List[String]] = _gbtStringBoundaries
+  def getRandomForestStringBoundaries: Map[String, List[String]] = _randomForestStringBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
 
-  private def modelDecider[A, B](modelConfig: GBTConfig) = {
+  private def modelDecider[A, B](modelConfig: RandomForestConfig) = {
 
     val builtModel = modelSelection match {
       case "classifier" =>
-        new GBTClassifier()
+        new RandomForestClassifier()
           .setLabelCol(_labelCol)
           .setFeaturesCol(_featureCol)
+          .setNumTrees(modelConfig.numTrees)
           .setCheckpointInterval(-1)
           .setImpurity(modelConfig.impurity)
-          .setLossType(modelConfig.lossType)
           .setMaxBins(modelConfig.maxBins)
           .setMaxDepth(modelConfig.maxDepth)
-          .setMaxIter(modelConfig.maxIter)
           .setMinInfoGain(modelConfig.minInfoGain)
-          .setMinInstancesPerNode(modelConfig.minInstancesPerNode)
-          .setStepSize(modelConfig.stepSize)
+          .setFeatureSubsetStrategy(modelConfig.featureSubsetStrategy)
+          .setSubsamplingRate(modelConfig.subSamplingRate)
       case "regressor" =>
-        new GBTRegressor()
+        new RandomForestRegressor()
           .setLabelCol(_labelCol)
           .setFeaturesCol(_featureCol)
+          .setNumTrees(modelConfig.numTrees)
           .setCheckpointInterval(-1)
           .setImpurity(modelConfig.impurity)
-          .setLossType(modelConfig.lossType)
           .setMaxBins(modelConfig.maxBins)
           .setMaxDepth(modelConfig.maxDepth)
-          .setMaxIter(modelConfig.maxIter)
           .setMinInfoGain(modelConfig.minInfoGain)
-          .setMinInstancesPerNode(modelConfig.minInstancesPerNode)
-          .setStepSize(modelConfig.stepSize)
+          .setFeatureSubsetStrategy(modelConfig.featureSubsetStrategy)
+          .setSubsamplingRate(modelConfig.subSamplingRate)
       case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
     }
     builtModel
@@ -107,44 +111,39 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
         case "regressor" => List("variance")
         case _ => boundaryMap(param)
       }
-      case "lossType" => modelSelection match {
-        case "regressor" => List("squared", "absolute")
-        case _ => boundaryMap(param)
-      }
       case _ => boundaryMap(param)
     }
     _randomizer.shuffle(stringListing).head
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[GBTConfig] = {
+  private def generateThresholdedParams(iterationCount: Int): Array[RandomForestConfig] = {
 
-    val iterations = new ArrayBuffer[GBTConfig]
+    val iterations = new ArrayBuffer[RandomForestConfig]
 
     var i = 0
     do {
-      val impurity = generateRandomString("impurity", _gbtStringBoundaries)
-      val lossType = generateRandomString("lossType", _gbtStringBoundaries)
-      val maxBins = generateRandomInteger("maxBins", _gbtNumericBoundaries)
-      val maxDepth = generateRandomInteger("maxDepth", _gbtNumericBoundaries)
-      val maxIter = generateRandomInteger("maxIter", _gbtNumericBoundaries)
-      val minInfoGain = generateRandomDouble("minInfoGain", _gbtNumericBoundaries)
-      val minInstancesPerNode = generateRandomInteger("minInstancesPerNode", _gbtNumericBoundaries)
-      val stepSize = generateRandomInteger("stepSize", _gbtNumericBoundaries)
-      iterations += GBTConfig(impurity, lossType, maxBins, maxDepth, maxIter, minInfoGain, minInstancesPerNode,
-        stepSize)
+      val featureSubsetStrategy = generateRandomString("featureSubsetStrategy", _randomForestStringBoundaries)
+      val subSamplingRate = generateRandomDouble("subSamplingRate", _randomForestNumericBoundaries)
+      val impurity = generateRandomString("impurity", _randomForestStringBoundaries)
+      val minInfoGain = generateRandomDouble("minInfoGain", _randomForestNumericBoundaries)
+      val maxBins = generateRandomInteger("maxBins", _randomForestNumericBoundaries)
+      val numTrees = generateRandomInteger("numTrees", _randomForestNumericBoundaries)
+      val maxDepth = generateRandomInteger("maxDepth", _randomForestNumericBoundaries)
+      iterations += RandomForestConfig(numTrees, impurity, maxBins, maxDepth, minInfoGain, subSamplingRate,
+        featureSubsetStrategy)
       i += 1
     } while (i < iterationCount)
 
     iterations.toArray
   }
 
-  private def generateAndScoreGBTModel(train: DataFrame, test: DataFrame,
-                                                modelConfig: GBTConfig,
-                                                generation: Int = 1): GBTModelsWithResults = {
+  private def generateAndScoreRandomForestModel(train: DataFrame, test: DataFrame,
+                                                modelConfig: RandomForestConfig,
+                                                generation: Int = 1): RandomForestModelsWithResults = {
 
-    val gbtModel = modelDecider(modelConfig)
+    val randomForestModel = modelDecider(modelConfig)
 
-    val builtModel = gbtModel.fit(train)
+    val builtModel = randomForestModel.fit(train)
 
     val predictedData = builtModel.transform(test)
 
@@ -169,23 +168,24 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
         }
     }
 
-    GBTModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
+    RandomForestModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
   }
 
-  private def runBattery(battery: Array[GBTConfig], generation: Int = 1): Array[GBTModelsWithResults] = {
+
+  private def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
-    val results = new ArrayBuffer[GBTModelsWithResults]
+    val results = new ArrayBuffer[RandomForestModelsWithResults]
     val runs = battery.par
 
     runs.foreach { x =>
 
-      val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
+      val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
-        kFoldBuffer += generateAndScoreGBTModel(train, test, x)
+        kFoldBuffer += generateAndScoreRandomForestModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {
@@ -210,7 +210,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       }
 
 
-      val runAvg = GBTModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
+      val runAvg = RandomForestModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
     }
@@ -220,12 +220,11 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     }
   }
 
+  private def irradiateGeneration(parents: Array[RandomForestConfig], mutationCount: Int,
+                          mutationAggression: Int, mutationMagnitude: Double): Array[RandomForestConfig] = {
 
-  private def irradiateGeneration(parents: Array[GBTConfig], mutationCount: Int,
-                          mutationAggression: Int, mutationMagnitude: Double): Array[GBTConfig] = {
-
-    val mutationPayload = new ArrayBuffer[GBTConfig]
-    val totalConfigs = modelConfigLength[GBTConfig]
+    val mutationPayload = new ArrayBuffer[RandomForestConfig]
+    val totalConfigs = modelConfigLength[RandomForestConfig]
     val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
     val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation,
@@ -237,13 +236,13 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val mutationIteration = mutationCandidates(i)
       val mutationIndexIteration = mutationIndeces(i)
 
-      mutationPayload += GBTConfig(
+      mutationPayload += RandomForestConfig(
         if (mutationIndexIteration.contains(0)) geneMixing(
+          randomParent.numTrees, mutationIteration.numTrees, mutationMagnitude)
+        else randomParent.numTrees,
+        if (mutationIndexIteration.contains(1)) geneMixing(
           randomParent.impurity, mutationIteration.impurity)
         else randomParent.impurity,
-        if (mutationIndexIteration.contains(1)) geneMixing(
-          randomParent.lossType, mutationIteration.lossType)
-        else randomParent.lossType,
         if (mutationIndexIteration.contains(2)) geneMixing(
           randomParent.maxBins, mutationIteration.maxBins, mutationMagnitude)
         else randomParent.maxBins,
@@ -251,44 +250,41 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
           randomParent.maxDepth, mutationIteration.maxDepth, mutationMagnitude)
         else randomParent.maxDepth,
         if (mutationIndexIteration.contains(4)) geneMixing(
-          randomParent.maxIter, mutationIteration.maxIter, mutationMagnitude)
-        else randomParent.maxIter,
-        if (mutationIndexIteration.contains(5)) geneMixing(
           randomParent.minInfoGain, mutationIteration.minInfoGain, mutationMagnitude)
         else randomParent.minInfoGain,
+        if (mutationIndexIteration.contains(5)) geneMixing(
+          randomParent.subSamplingRate, mutationIteration.subSamplingRate, mutationMagnitude)
+        else randomParent.subSamplingRate,
         if (mutationIndexIteration.contains(6)) geneMixing(
-          randomParent.minInstancesPerNode, mutationIteration.minInstancesPerNode, mutationMagnitude)
-        else randomParent.minInstancesPerNode,
-        if (mutationIndexIteration.contains(7)) geneMixing(
-          randomParent.stepSize, mutationIteration.stepSize, mutationMagnitude)
-        else randomParent.stepSize
+          randomParent.featureSubsetStrategy, mutationIteration.featureSubsetStrategy)
+        else randomParent.featureSubsetStrategy
       )
     }
     mutationPayload.result.toArray
   }
 
-  def generateIdealParents(results: Array[GBTModelsWithResults]): Array[GBTConfig] = {
-    val bestParents = new ArrayBuffer[GBTConfig]
+  def generateIdealParents(results: Array[RandomForestModelsWithResults]): Array[RandomForestConfig] = {
+    val bestParents = new ArrayBuffer[RandomForestConfig]
     results.take(_numberOfParentsToRetain).map(x => {
       bestParents += x.modelHyperParams
     })
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[GBTConfig] = None): Array[GBTModelsWithResults] = {
+  def evolveParameters(startingSeed: Option[RandomForestConfig] = None): Array[RandomForestModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
-    val fossilRecord = new ArrayBuffer[GBTModelsWithResults]
+    val fossilRecord = new ArrayBuffer[RandomForestModelsWithResults]
 
-    val totalConfigs = modelConfigLength[GBTConfig]
+    val totalConfigs = modelConfigLength[RandomForestConfig]
 
     val primordial = startingSeed match {
       case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[GBTConfig]
-        generativeArray += startingSeed.asInstanceOf[GBTConfig]
+        val generativeArray = new ArrayBuffer[RandomForestConfig]
+        generativeArray += startingSeed.asInstanceOf[RandomForestConfig]
         generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[GBTConfig]),
+          Array(startingSeed.asInstanceOf[RandomForestConfig]),
           _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
         runBattery(generativeArray.result.toArray, generation)
       case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
@@ -324,11 +320,11 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     }
   }
 
-  def evolveBest(startingSeed: Option[GBTConfig] = None): GBTModelsWithResults = {
+  def evolveBest(startingSeed: Option[RandomForestConfig] = None): RandomForestModelsWithResults = {
     evolveParameters(startingSeed).head
   }
 
-  def generateScoredDataFrame(results: Array[GBTModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(results: Array[RandomForestModelsWithResults]): DataFrame = {
 
     import spark.sqlContext.implicits._
 
@@ -339,10 +335,11 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[GBTConfig] = None):
-  (Array[GBTModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(startingSeed: Option[RandomForestConfig] = None):
+  (Array[RandomForestModelsWithResults], DataFrame) = {
     val evolutionResults = evolveParameters(startingSeed)
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
 
 }
+

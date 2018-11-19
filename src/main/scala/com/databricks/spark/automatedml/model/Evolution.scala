@@ -1,5 +1,7 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.params.RandomForestConfig
+import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer

@@ -1,5 +1,4 @@
-package com.databricks.spark.automatedml
-
+package com.databricks.spark.automatedml.utils
 
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame

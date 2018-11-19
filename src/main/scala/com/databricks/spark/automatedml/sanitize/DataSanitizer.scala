@@ -1,12 +1,12 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.sanitize
 
-
+import com.databricks.spark.automatedml.utils.DataValidation
+import org.apache.spark.ml.feature.StringIndexer
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
-import org.apache.spark.ml.feature.StringIndexer
 
 class DataSanitizer(data: DataFrame) extends DataValidation {
 

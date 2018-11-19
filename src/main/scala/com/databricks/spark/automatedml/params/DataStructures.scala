@@ -1,4 +1,4 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.params
 
 import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.regression.LinearRegressionModel

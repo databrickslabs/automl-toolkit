@@ -1,5 +1,7 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.params.{SVMConfig, SVMModelsWithResults}
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.LinearSVC
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.sql.DataFrame
@@ -13,7 +15,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution {
   private var _scoringMetric = "rmse"
 
   private var _svmNumericBoundaries = Map(
-    "maxIter" -> Tuple2(100, 10000),
+    "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
     "tol" -> Tuple2(1E-9, 1E-5)
   )
