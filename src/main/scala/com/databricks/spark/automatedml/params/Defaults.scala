@@ -13,7 +13,7 @@ trait Defaults {
 
   val _geneticTunerDefaults = GeneticConfig(
     kFold = 5,
-    trainPortion = 3,
+    trainPortion = 0.8,
     seed = 42L,
     firstGenerationGenePool = 20,
     numberOfGenerations = 10,
