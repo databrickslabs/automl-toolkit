@@ -78,6 +78,19 @@ trait Defaults {
     "solver" -> List("gd", "l-bfgs")
   )
 
+  val _gbtDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "maxBins" -> Tuple2(10.0, 100.0),
+    "maxDepth" -> Tuple2(2.0, 20.0),
+    "minInfoGain" -> Tuple2(0.0, 1.0),
+    "minInstancesPerNode" -> Tuple2(1.0, 50.0),
+    "stepSize" -> Tuple2(0.0, 1.0)
+  )
+
+  val _gbtDefaultStringBoundaries: Map[String, List[String]] = Map(
+    "impurity" -> List("gini", "entropy"),
+    "lossType" -> List("logistic")
+  )
+
   val _scoringDefaultClassifier = "f1"
   val _scoringOptimizationStrategyClassifier = "maximize"
   val _scoringDefaultRegressor = "rmse"

@@ -1,6 +1,5 @@
 package com.databricks.spark.automatedml.executor
 
-import com.databricks.spark.automatedml.model.{MLPCTuner, RandomForestTuner}
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize._
@@ -16,7 +15,7 @@ case class ModelingConfig(
                                    scoringMetric: String
                                  )
 
-sealed class Automation(config: MainConfig) extends Defaults with SparkSessionWrapper {
+class Automation(config: MainConfig) extends Defaults with SparkSessionWrapper {
 
   require(_supportedModels.contains(config.modelType))
 
@@ -34,14 +33,17 @@ sealed class Automation(config: MainConfig) extends Defaults with SparkSessionWr
     numericBoundaries = config.modelType match {
       case "RandomForest" => config.numericBoundaries.getOrElse(_rfDefaultNumBoundaries)
       case "MLPC" => config.numericBoundaries.getOrElse(_mlpcDefaultNumBoundaries)
+      case "GBT" => config.numericBoundaries.getOrElse(_gbtDefaultNumBoundaries)
     },
     stringBoundaries = config.modelType match {
       case "RandomForest" => config.stringBoundaries.getOrElse(_rfDefaultStringBoundaries)
       case "MLPC" => config.stringBoundaries.getOrElse(_mlpcDefaultStringBoundaries)
+      case "GBT" => config.stringBoundaries.getOrElse(_gbtDefaultStringBoundaries)
     },
     scoringMetric = config.modelType match {
       case "RandomForest" => config.scoringMetric.getOrElse(_scoringDefaultClassifier)
       case "MLPC" => config.scoringMetric.getOrElse(_scoringDefaultClassifier)
+      case "GBT" => config.scoringMetric.getOrElse(_scoringDefaultClassifier)
     }
   )
 
