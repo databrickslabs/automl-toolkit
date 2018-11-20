@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.ModelingConfig
+import com.databricks.spark.automatedml.executor.ModelingConfig
 import com.databricks.spark.automatedml.params.{RandomForestConfig, RandomForestModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.RandomForestClassifier
@@ -14,7 +14,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 //TODO: change the par mapping to proper thread pooling?
 //TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
 
-class RandomForestTuner(df: DataFrame, modelSelection: String, config: ModelingConfig) extends SparkSessionWrapper
+class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
   with Evolution {
 
   private var _scoringMetric = modelSelection match {
