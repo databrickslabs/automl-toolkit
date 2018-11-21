@@ -1,5 +1,7 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.params.{GBTConfig, GBTModelsWithResults}
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.GBTRegressor
@@ -46,21 +48,21 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     this
   }
 
-  def setRandomForestNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+  def setRGBTNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
     _gbtNumericBoundaries = value
     this
   }
 
-  def setRandomForestStringBoundaries(value: Map[String, List[String]]): this.type = {
+  def setGBTStringBoundaries(value: Map[String, List[String]]): this.type = {
     _gbtStringBoundaries = value
     this
   }
 
   def getScoringMetric: String = _scoringMetric
 
-  def getRandomForestNumericBoundaries: Map[String, (Double, Double)] = _gbtNumericBoundaries
+  def getGBTNumericBoundaries: Map[String, (Double, Double)] = _gbtNumericBoundaries
 
-  def getRandomForestStringBoundaries: Map[String, List[String]] = _gbtStringBoundaries
+  def getGBTStringBoundaries: Map[String, List[String]] = _gbtStringBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
 

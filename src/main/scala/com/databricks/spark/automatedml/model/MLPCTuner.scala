@@ -1,5 +1,7 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.params.{MLPCConfig, MLPCModelsWithResults}
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.linalg.SparseVector

@@ -1,5 +1,7 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.params.RandomForestConfig
+import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
@@ -184,12 +186,12 @@ trait Evolution extends DataValidation {
 
   def generateRandomDouble(param: String, boundaryMap: Map[String, (AnyVal, AnyVal)]): Double = {
     val (minimumValue, maximumValue) = extractBoundaryDouble(param, boundaryMap)
-    (_randomizer.nextDouble * (maximumValue - minimumValue)) + minimumValue
+    minimumValue + _randomizer.nextDouble() * (maximumValue - minimumValue)
   }
 
   def generateRandomInteger(param: String, boundaryMap: Map[String, (AnyVal, AnyVal)]): Int = {
     val (minimumValue, maximumValue) = extractBoundaryInteger(param, boundaryMap)
-    (_randomizer.nextInt * (maximumValue - minimumValue)) + minimumValue
+    _randomizer.nextInt(maximumValue - minimumValue) + minimumValue
   }
 
   def generateRandomString(param: String, boundaryMap: Map[String, List[String]]): String = {

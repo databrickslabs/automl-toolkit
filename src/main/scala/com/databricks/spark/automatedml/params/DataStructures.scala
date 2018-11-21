@@ -1,4 +1,4 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.params
 
 import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.regression.LinearRegressionModel
@@ -104,22 +104,6 @@ case class GBTModelsWithResults(
                                  evalMetrics: Map[String, Double],
                                  generation: Int
                                )
-
-case class LogisticModelsWithResults(
-                                      modelHyperParams: LogisticRegressionConfig,
-                                      model: LogisticRegressionModel,
-                                      score: Double,
-                                      evalMetrics: Map[String, Double],
-                                      generation: Int
-                                    )
-
-case class LinearModelsWithResults(
-                                    modelHyperParams: LinearRegressionConfig,
-                                    model: LinearRegressionModel,
-                                    score: Double,
-                                    evalMetrics: Map[String, Double],
-                                    generation: Int
-                                  )
 
 case class SVMConfig(
                       fitIntercept: Boolean,

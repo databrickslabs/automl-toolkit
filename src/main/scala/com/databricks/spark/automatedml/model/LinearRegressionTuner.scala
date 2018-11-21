@@ -1,77 +1,91 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.model
 
-import org.apache.spark.ml.classification.LogisticRegression
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import com.databricks.spark.automatedml.params.{LinearRegressionConfig, LinearRegressionModelsWithResults}
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.spark.ml.evaluation.RegressionEvaluator
+import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
+class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper
   with Evolution {
 
-  private var _scoringMetric = "f1"
-
-  private var _logisticRegressionNumericBoundaries = Map(
-    "elasticNetParam" -> Tuple2(0.0, 1.0),
-    "maxIter" -> Tuple2(100, 10000),
+  private var _scoringMetric = "rmse"
+  private var _linearRegressionNumericBoundaries = Map(
+    "elasticNetParams" -> Tuple2(0.0, 1.0),
+    "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
     "tol" -> Tuple2(1E-9, 1E-5)
   )
+  private var _linearRegressionStringBoundaries = Map(
+    "loss" -> List("squaredError", "huber")
+  )
 
   def setScoringMetric(value: String): this.type = {
-    require(classificationMetrics.contains(value),
-      s"Classification scoring metric $value is not a valid member of ${
-        invalidateSelection(value, classificationMetrics)
+    require(regressionMetrics.contains(value),
+      s"Regressor scoring metric '$value' is not a valid member of ${
+        invalidateSelection(value, regressionMetrics)
       }")
     this._scoringMetric = value
     this
   }
 
-  def setLogisticRegressionNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
-    this._logisticRegressionNumericBoundaries = value
+  def setLinearRegressionNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+    this._linearRegressionNumericBoundaries = value
+    this
+  }
+
+  def setLinearRegressionStringBoundaries(value: Map[String, List[String]]): this.type = {
+    this._linearRegressionStringBoundaries = value
     this
   }
 
   def getScoringMetric: String = _scoringMetric
 
-  def getLogisticRegressionNumericBoundaries: Map[String, (Double, Double)] = _logisticRegressionNumericBoundaries
+  def getLinearRegressionNumericBoundaries: Map[String, (Double, Double)] = _linearRegressionNumericBoundaries
 
-  private def configureModel(modelConfig: LogisticRegressionConfig): LogisticRegression = {
-    new LogisticRegression()
+  def getLinearRegressionStringBoundaries: Map[String, List[String]] = _linearRegressionStringBoundaries
+
+  private def configureModel(modelConfig: LinearRegressionConfig): LinearRegression = {
+    new LinearRegression()
       .setLabelCol(_labelCol)
       .setFeaturesCol(_featureCol)
       .setElasticNetParam(modelConfig.elasticNetParams)
-      .setFamily("auto")
       .setFitIntercept(modelConfig.fitIntercept)
+      .setLoss(modelConfig.loss)
       .setMaxIter(modelConfig.maxIter)
       .setRegParam(modelConfig.regParam)
+      .setSolver("auto")
       .setStandardization(modelConfig.standardization)
       .setTol(modelConfig.tolerance)
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[LogisticRegressionConfig] = {
+  private def generateThresholdedParams(iterationCount: Int): Array[LinearRegressionConfig] = {
 
-    val iterations = new ArrayBuffer[LogisticRegressionConfig]
+    val iterations = new ArrayBuffer[LinearRegressionConfig]
 
     var i = 0
     do {
-      val elasticNetParams = generateRandomDouble("elasticNetParams", _logisticRegressionNumericBoundaries)
+      val elasticNetParams = generateRandomDouble("elasticNetParams", _linearRegressionNumericBoundaries)
       val fitIntercept = coinFlip()
-      val maxIter = generateRandomInteger("maxIter", _logisticRegressionNumericBoundaries)
-      val regParam = generateRandomDouble("regParam", _logisticRegressionNumericBoundaries)
+      val loss = generateRandomString("loss", _linearRegressionStringBoundaries)
+      val maxIter = generateRandomInteger("maxIter", _linearRegressionNumericBoundaries)
+      val regParam = generateRandomDouble("regParam", _linearRegressionNumericBoundaries)
       val standardization = coinFlip()
-      val tolerance = generateRandomDouble("tolerance", _logisticRegressionNumericBoundaries)
-      iterations += LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter, regParam, standardization,
-        tolerance)
+      val tol = generateRandomDouble("tolerance", _linearRegressionNumericBoundaries)
+      iterations += LinearRegressionConfig(elasticNetParams, fitIntercept, loss, maxIter, regParam, standardization,
+        tol)
       i += 1
     } while (i < iterationCount)
     iterations.toArray
   }
 
-  private def generateAndScoreLogisticRegression(train: DataFrame, test: DataFrame,
-                                                 modelConfig: LogisticRegressionConfig,
-                                                 generation: Int = 1): LogisticRegressionModelsWithResults = {
+  private def generateAndScoreLinearRegression(train: DataFrame, test: DataFrame,
+                                               modelConfig: LinearRegressionConfig,
+                                               generation: Int = 1): LinearRegressionModelsWithResults = {
+
     val regressionModel = configureModel(modelConfig)
 
     val builtModel = regressionModel.fit(train)
@@ -80,33 +94,31 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
-    for (i <- classificationMetrics) {
-      val scoreEvaluator = new MulticlassClassificationEvaluator()
+    for (i <- regressionMetrics) {
+      val scoreEvaluator = new RegressionEvaluator()
         .setLabelCol(_labelCol)
         .setPredictionCol("prediction")
         .setMetricName(i)
       scoringMap(i) = scoreEvaluator.evaluate(predictedData)
     }
-    LogisticRegressionModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap,
-      generation)
+    LinearRegressionModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric),
+      scoringMap.toMap, generation)
   }
 
-
-  private def runBattery(battery: Array[LogisticRegressionConfig],
-                 generation: Int = 1): Array[LogisticRegressionModelsWithResults] = {
+  private def runBattery(battery: Array[LinearRegressionConfig], generation: Int = 1): Array[LinearRegressionModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
-    val results = new ArrayBuffer[LogisticRegressionModelsWithResults]
+    val results = new ArrayBuffer[LinearRegressionModelsWithResults]
     val runs = battery.par
 
     runs.foreach { x =>
 
-      val kFoldBuffer = new ArrayBuffer[LogisticRegressionModelsWithResults]
+      val kFoldBuffer = new ArrayBuffer[LinearRegressionModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
-        kFoldBuffer += generateAndScoreLogisticRegression(train, test, x)
+        kFoldBuffer += generateAndScoreLinearRegression(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {
@@ -114,12 +126,12 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
       })
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
-      for (a <- classificationMetrics) {
+      for (a <- regressionMetrics) {
         val metricScores = new ListBuffer[Double]
         kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
         scoringMap(a) = metricScores.sum / metricScores.length
       }
-      val runAvg = LogisticRegressionModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
+      val runAvg = LinearRegressionModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
 
@@ -131,11 +143,11 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
 
   }
 
-  private def irradiateGeneration(parents: Array[LogisticRegressionConfig], mutationCount: Int,
-                          mutationAggression: Int, mutationMagnitude: Double): Array[LogisticRegressionConfig] = {
+  private def irradiateGeneration(parents: Array[LinearRegressionConfig], mutationCount: Int,
+                          mutationAggression: Int, mutationMagnitude: Double): Array[LinearRegressionConfig] = {
 
-    val mutationPayload = new ArrayBuffer[LogisticRegressionConfig]
-    val totalConfigs = modelConfigLength[LogisticRegressionConfig]
+    val mutationPayload = new ArrayBuffer[LinearRegressionConfig]
+    val totalConfigs = modelConfigLength[LinearRegressionConfig]
     val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
     val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
@@ -146,23 +158,26 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
       val mutationIteration = mutationCandidates(i)
       val mutationIndexIteration = mutationIndeces(i)
 
-      mutationPayload += LogisticRegressionConfig(
+      mutationPayload += LinearRegressionConfig(
         if (mutationIndexIteration.contains(0)) geneMixing(randomParent.elasticNetParams,
           mutationIteration.elasticNetParams, mutationMagnitude)
         else randomParent.elasticNetParams,
         if (mutationIndexIteration.contains(1)) coinFlip(randomParent.fitIntercept,
           mutationIteration.fitIntercept, mutationMagnitude)
         else randomParent.fitIntercept,
-        if (mutationIndexIteration.contains(2)) geneMixing(randomParent.maxIter,
+        if (mutationIndexIteration.contains(2)) geneMixing(randomParent.loss,
+          mutationIteration.loss)
+        else randomParent.loss,
+        if (mutationIndexIteration.contains(3)) geneMixing(randomParent.maxIter,
           mutationIteration.maxIter, mutationMagnitude)
         else randomParent.maxIter,
-        if (mutationIndexIteration.contains(3)) geneMixing(randomParent.regParam,
+        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.regParam,
           mutationIteration.regParam, mutationMagnitude)
         else randomParent.regParam,
-        if (mutationIndexIteration.contains(4)) coinFlip(randomParent.standardization,
+        if (mutationIndexIteration.contains(5)) coinFlip(randomParent.standardization,
           mutationIteration.standardization, mutationMagnitude)
         else randomParent.standardization,
-        if (mutationIndexIteration.contains(5)) geneMixing(randomParent.tolerance,
+        if (mutationIndexIteration.contains(6)) geneMixing(randomParent.tolerance,
           mutationIteration.tolerance, mutationMagnitude)
         else randomParent.tolerance
       )
@@ -170,28 +185,28 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
     mutationPayload.result.toArray
   }
 
-  def generateIdealParents(results: Array[LogisticRegressionModelsWithResults]): Array[LogisticRegressionConfig] = {
-    val bestParents = new ArrayBuffer[LogisticRegressionConfig]
+  def generateIdealParents(results: Array[LinearRegressionModelsWithResults]): Array[LinearRegressionConfig] = {
+    val bestParents = new ArrayBuffer[LinearRegressionConfig]
     results.take(_numberOfParentsToRetain).map(x => {
       bestParents += x.modelHyperParams
     })
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[LogisticRegressionConfig] = None): Array[LogisticRegressionModelsWithResults] = {
+  def evolveParameters(startingSeed: Option[LinearRegressionConfig] = None): Array[LinearRegressionModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
-    val fossilRecord = new ArrayBuffer[LogisticRegressionModelsWithResults]
+    val fossilRecord = new ArrayBuffer[LinearRegressionModelsWithResults]
 
-    val totalConfigs = modelConfigLength[LogisticRegressionConfig]
+    val totalConfigs = modelConfigLength[LinearRegressionConfig]
 
     val primordial = startingSeed match {
       case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[LogisticRegressionConfig]
-        generativeArray += startingSeed.asInstanceOf[LogisticRegressionConfig]
+        val generativeArray = new ArrayBuffer[LinearRegressionConfig]
+        generativeArray += startingSeed.asInstanceOf[LinearRegressionConfig]
         generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[LogisticRegressionConfig]),
+          Array(startingSeed.asInstanceOf[LinearRegressionConfig]),
           _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
         runBattery(generativeArray.result.toArray, generation)
       case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
@@ -227,11 +242,11 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
     }
   }
 
-  def evolveBest(startingSeed: Option[LogisticRegressionConfig] = None): LogisticRegressionModelsWithResults = {
+  def evolveBest(startingSeed: Option[LinearRegressionConfig] = None): LinearRegressionModelsWithResults = {
     evolveParameters(startingSeed).head
   }
 
-  def generateScoredDataFrame(results: Array[LogisticRegressionModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(results: Array[LinearRegressionModelsWithResults]): DataFrame = {
 
     import spark.sqlContext.implicits._
 
@@ -242,10 +257,11 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[LogisticRegressionConfig] = None):
-  (Array[LogisticRegressionModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(startingSeed: Option[LinearRegressionConfig] = None):
+  (Array[LinearRegressionModelsWithResults], DataFrame) = {
     val evolutionResults = evolveParameters(startingSeed)
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
+
 
 }

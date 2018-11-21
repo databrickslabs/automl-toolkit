@@ -1,9 +1,12 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.sanitize
 
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions._
+import com.databricks.spark.automatedml.params.PearsonPayload
+import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.ml.stat.ChiSquareTest
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
+
 import scala.collection.mutable.ListBuffer
 
 /**

@@ -1,6 +1,6 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.pipeline
 
-
+import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.sql.DataFrame
 
