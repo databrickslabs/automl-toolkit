@@ -103,7 +103,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper
       scoringMap.toMap, generation)
   }
 
-  def runBattery(battery: Array[LinearRegressionConfig], generation: Int = 1): Array[LinearRegressionModelsWithResults] = {
+  private def runBattery(battery: Array[LinearRegressionConfig], generation: Int = 1): Array[LinearRegressionModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
@@ -141,7 +141,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper
 
   }
 
-  def irradiateGeneration(parents: Array[LinearRegressionConfig], mutationCount: Int,
+  private def irradiateGeneration(parents: Array[LinearRegressionConfig], mutationCount: Int,
                           mutationAggression: Int, mutationMagnitude: Double): Array[LinearRegressionConfig] = {
 
     val mutationPayload = new ArrayBuffer[LinearRegressionConfig]

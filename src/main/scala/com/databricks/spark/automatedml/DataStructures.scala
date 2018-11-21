@@ -1,10 +1,10 @@
 package com.databricks.spark.automatedml
 
-import org.apache.spark.ml.classification.LogisticRegressionModel
+import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.regression.LinearRegressionModel
 
 
-//TODO: Auto-correlation detection
+//TODO: add in ability to do Bayesian hyperparameter search for large data sets
 //TODO: add in time logging based on each model's runtime to each case class for ModelsWithResults
 //TODO: main entry points, main runner object
 //TODO: split out each core functionality package to its own directory
@@ -33,14 +33,26 @@ case class ManualFilters(
                           threshold: Double
                         )
 
-case class RandomForestConfig(numTrees: Int,
-                              impurity: String,
-                              maxBins: Int,
-                              maxDepth: Int,
-                              minInfoGain: Double,
-                              subSamplingRate: Double,
-                              featureSubsetStrategy: String
+case class RandomForestConfig(
+                               numTrees: Int,
+                               impurity: String,
+                               maxBins: Int,
+                               maxDepth: Int,
+                               minInfoGain: Double,
+                               subSamplingRate: Double,
+                               featureSubsetStrategy: String
                              )
+
+case class GBTConfig(
+                      impurity: String,
+                      lossType: String,
+                      maxBins: Int,
+                      maxDepth: Int,
+                      maxIter: Int,
+                      minInfoGain: Double,
+                      minInstancesPerNode: Int,
+                      stepSize: Double
+                    )
 
 case class LogisticRegressionConfig(
                                      elasticNetParams: Double,
@@ -85,6 +97,14 @@ case class RandomForestModelsWithResults(
                                           generation: Int
                                         )
 
+case class GBTModelsWithResults(
+                                 modelHyperParams: GBTConfig,
+                                 model: Any,
+                                 score: Double,
+                                 evalMetrics: Map[String, Double],
+                                 generation: Int
+                               )
+
 case class LogisticModelsWithResults(
                                       modelHyperParams: LogisticRegressionConfig,
                                       model: LogisticRegressionModel,
@@ -100,6 +120,38 @@ case class LinearModelsWithResults(
                                     evalMetrics: Map[String, Double],
                                     generation: Int
                                   )
+
+case class SVMConfig(
+                      fitIntercept: Boolean,
+                      maxIter: Int,
+                      regParam: Double,
+                      standardization: Boolean,
+                      tol: Double
+                    )
+
+case class SVMModelsWithResults(
+                                 modelHyperParams: SVMConfig,
+                                 model: LinearSVCModel,
+                                 score: Double,
+                                 evalMetrics: Map[String, Double],
+                                 generation: Int
+                               )
+
+case class MLPCConfig(
+                       layers: Array[Int],
+                       maxIter: Int,
+                       solver: String,
+                       stepSize: Double,
+                       tol: Double
+                     )
+
+case class MLPCModelsWithResults(
+                                  modelHyperParams: MLPCConfig,
+                                  model: MultilayerPerceptronClassificationModel,
+                                  score: Double,
+                                  evalMetrics: Map[String, Double],
+                                  generation: Int
+                                )
 
 case class StaticModelConfig(
                               labelColumn: String,

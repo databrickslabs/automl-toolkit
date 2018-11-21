@@ -204,6 +204,30 @@ trait Evolution extends DataValidation {
     if (math.random < p) parent else child
   }
 
+  def buildLayerArray(inputFeatureSize: Int, distinctClasses: Int, nLayers: Int,
+                      hiddenLayerSizeAdjust: Int): Array[Int] = {
+
+    val layerConstruct = new ArrayBuffer[Int]
+
+    layerConstruct += inputFeatureSize
+
+    (1 to nLayers).foreach { x =>
+      layerConstruct += inputFeatureSize + nLayers - x + hiddenLayerSizeAdjust
+    }
+    layerConstruct += distinctClasses
+    layerConstruct.result.toArray
+  }
+
+  def generateLayerArray(layerParam: String, layerSizeParam: String, boundaryMap: Map[String, (AnyVal, AnyVal)],
+                         inputFeatureSize: Int, distinctClasses: Int): Array[Int] = {
+
+    val layersToGenerate = generateRandomInteger(layerParam, boundaryMap)
+    val hiddenLayerSizeAdjust = generateRandomInteger(layerSizeParam, boundaryMap)
+
+    buildLayerArray(inputFeatureSize, distinctClasses, layersToGenerate, hiddenLayerSizeAdjust)
+
+  }
+
   def getRandomIndeces(minimum: Int, maximum: Int, parameterCount: Int): List[Int] = {
     val fullIndexArray = List.range(0, maximum)
     val randomSeed = new scala.util.Random
@@ -245,6 +269,24 @@ trait Evolution extends DataValidation {
     val mixed = new ArrayBuffer[String]
     mixed += parent += child
     scala.util.Random.shuffle(mixed.toList).head
+  }
+
+  def geneMixing(parent: Array[Int], child: Array[Int], parentMutationPercentage: Double): Array[Int] = {
+
+    val staticStart = parent.head
+    val staticEnd = parent.last
+
+    val parentHiddenLayers = parent.length - 2
+    val childHiddenLayers = child.length - 2
+
+    val parentMagnitude = parent(1) - staticStart
+    val childMagnidue = child(1) - staticStart
+
+    val hiddenLayerMix = geneMixing(parentHiddenLayers, childHiddenLayers, parentMutationPercentage)
+    val sizeAdjustMix = geneMixing(parentMagnitude, childMagnidue, parentMutationPercentage)
+
+    buildLayerArray(staticStart, staticEnd, hiddenLayerMix, sizeAdjustMix)
+
   }
 
 }
