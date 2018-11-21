@@ -2,100 +2,127 @@ package com.databricks.spark.automatedml
 
 import com.databricks.spark.automatedml.executor.Automation
 import com.databricks.spark.automatedml.model.{GBTreesTuner, MLPCTuner, RandomForestTuner}
-import com.databricks.spark.automatedml.params.{GBTModelsWithResults, MLPCModelsWithResults, MainConfig, RandomForestModelsWithResults}
+import com.databricks.spark.automatedml.params._
 import org.apache.spark.sql.DataFrame
 
+import scala.collection.mutable.ArrayBuffer
 
-class AutomationRunner(conf: MainConfig) extends Automation(conf){
+class AutomationRunner() extends Automation {
 
-  def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame) = {
+  //_mainConfig = getMainConfig //TODO: this probably isn't needed.
 
-    val (data, fields, modelType) = dataPrep()
+  private def runRandomForest(df: DataFrame): (Array[RandomForestModelsWithResults], DataFrame) = {
+
+    val (data, fields, modelType) = dataPrep(df)
 
     val (modelResults, modelStats) = new RandomForestTuner(data, modelType)
-      .setLabelCol(conf.labelCol)
-      .setFeaturesCol(conf.featuresCol)
-      .setRandomForestNumericBoundaries(_modelParams.numericBoundaries)
-      .setRandomForestStringBoundaries(_modelParams.stringBoundaries)
-      .setScoringMetric(_modelParams.scoringMetric)
-      .setTrainPortion(_geneticConfig.trainPortion)
-      .setKFold(_geneticConfig.kFold)
-      .setSeed(_geneticConfig.seed)
-      .setOptimizationStrategy(_scoringOptimizationStrategy)
-      .setFirstGenerationGenePool(_geneticConfig.firstGenerationGenePool)
-      .setNumberOfMutationsPerGeneration(_geneticConfig.numberOfMutationsPerGeneration)
-      .setNumberOfParentsToRetain(_geneticConfig.numberOfParentsToRetain)
-      .setNumberOfMutationsPerGeneration(_geneticConfig.numberOfMutationsPerGeneration)
-      .setGeneticMixing(_geneticConfig.geneticMixing)
-      .setGenerationalMutationStrategy(_geneticConfig.generationalMutationStrategy)
-      .setMutationMagnitudeMode(_geneticConfig.mutationMagnitudeMode)
-      .setFixedMutationValue(_geneticConfig.fixedMutationValue)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
+      .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
+      .setScoringMetric(_mainConfig.scoringMetric)
+      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setKFold(_mainConfig.geneticConfig.kFold)
+      .setSeed(_mainConfig.geneticConfig.seed)
+      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+      .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+      .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
 
     (modelResults, modelStats)
 
-    //TODO: get reporting stats of the run out here.
-    //TODO: Starting Fields, Filtered Fields, Filtered Data, Which elements ran in data preprocessing
-    //TODO: extract the hyperparameter payload into a Map object so that it can be generically stored
   }
 
-  def runMLPC(): (Array[MLPCModelsWithResults], DataFrame) = {
+  private def runMLPC(df: DataFrame): (Array[MLPCModelsWithResults], DataFrame) = {
 
-    val (data, fields, modelType) = dataPrep()
+    val (data, fields, modelType) = dataPrep(df)
 
     new MLPCTuner(data)
-      .setLabelCol(conf.labelCol)
-      .setFeaturesCol(conf.featuresCol)
-      .setMlpcNumericBoundaries(_modelParams.numericBoundaries)
-      .setMlpcStringBoundaries(_modelParams.stringBoundaries)
-      .setScoringMetric(_modelParams.scoringMetric)
-      .setTrainPortion(_geneticConfig.trainPortion)
-      .setKFold(_geneticConfig.kFold)
-      .setSeed(_geneticConfig.seed)
-      .setOptimizationStrategy(_scoringOptimizationStrategy)
-      .setFirstGenerationGenePool(_geneticConfig.firstGenerationGenePool)
-      .setNumberOfMutationsPerGeneration(_geneticConfig.numberOfMutationsPerGeneration)
-      .setNumberOfParentsToRetain(_geneticConfig.numberOfParentsToRetain)
-      .setNumberOfMutationsPerGeneration(_geneticConfig.numberOfMutationsPerGeneration)
-      .setGeneticMixing(_geneticConfig.geneticMixing)
-      .setGenerationalMutationStrategy(_geneticConfig.generationalMutationStrategy)
-      .setMutationMagnitudeMode(_geneticConfig.mutationMagnitudeMode)
-      .setFixedMutationValue(_geneticConfig.fixedMutationValue)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
+      .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
+      .setScoringMetric(_mainConfig.scoringMetric)
+      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setKFold(_mainConfig.geneticConfig.kFold)
+      .setSeed(_mainConfig.geneticConfig.seed)
+      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+      .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+      .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
   }
 
 
-  def runGBT(): (Array[GBTModelsWithResults], DataFrame) = {
+  private def runGBT(df: DataFrame): (Array[GBTModelsWithResults], DataFrame) = {
 
-    val (data, fields, modelType) = dataPrep()
+    val (data, fields, modelType) = dataPrep(df)
 
     new GBTreesTuner(data, modelType)
-      .setLabelCol(conf.labelCol)
-      .setFeaturesCol(conf.featuresCol)
-      .setRGBTNumericBoundaries(_modelParams.numericBoundaries)
-      .setGBTStringBoundaries(_modelParams.stringBoundaries)
-      .setScoringMetric(_modelParams.scoringMetric)
-      .setTrainPortion(_geneticConfig.trainPortion)
-      .setKFold(_geneticConfig.kFold)
-      .setSeed(_geneticConfig.seed)
-      .setOptimizationStrategy(_scoringOptimizationStrategy)
-      .setFirstGenerationGenePool(_geneticConfig.firstGenerationGenePool)
-      .setNumberOfMutationsPerGeneration(_geneticConfig.numberOfMutationsPerGeneration)
-      .setNumberOfParentsToRetain(_geneticConfig.numberOfParentsToRetain)
-      .setNumberOfMutationsPerGeneration(_geneticConfig.numberOfMutationsPerGeneration)
-      .setGeneticMixing(_geneticConfig.geneticMixing)
-      .setGenerationalMutationStrategy(_geneticConfig.generationalMutationStrategy)
-      .setMutationMagnitudeMode(_geneticConfig.mutationMagnitudeMode)
-      .setFixedMutationValue(_geneticConfig.fixedMutationValue)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setRGBTNumericBoundaries(_mainConfig.numericBoundaries)
+      .setGBTStringBoundaries(_mainConfig.stringBoundaries)
+      .setScoringMetric(_mainConfig.scoringMetric)
+      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setKFold(_mainConfig.geneticConfig.kFold)
+      .setSeed(_mainConfig.geneticConfig.seed)
+      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+      .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+      .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
+  }
+
+
+
+
+  def run(data: DataFrame): (Array[GenericModelReturn], DataFrame) = {
+
+    val genericResults = new ArrayBuffer[GenericModelReturn]
+
+    val (modelResults, modelStats) = _mainConfig.modelType match {
+      case "RandomForest" => runRandomForest(data)
+    }
+
+    modelResults.foreach{ x=>
+      genericResults += GenericModelReturn(
+        hyperParams = extractPayload(x.modelHyperParams),
+        model = x.model,
+        score = x.score,
+        metrics = x.evalMetrics,
+        generation = x.generation
+      )
+    }
+
+    (genericResults.toArray, modelStats)
   }
 
 }
 
 
-object AutomationRunner {
-
-}
+//object AutomationRunner {
+//
+//}
 
 /**
   * Import Config (which elements to do) and their settings

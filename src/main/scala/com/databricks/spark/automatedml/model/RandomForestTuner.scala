@@ -1,6 +1,5 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.executor.ModelingConfig
 import com.databricks.spark.automatedml.params.{RandomForestConfig, RandomForestModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.RandomForestClassifier

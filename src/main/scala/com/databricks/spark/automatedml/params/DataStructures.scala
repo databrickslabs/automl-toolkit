@@ -105,22 +105,6 @@ case class GBTModelsWithResults(
                                  generation: Int
                                )
 
-case class LogisticModelsWithResults(
-                                      modelHyperParams: LogisticRegressionConfig,
-                                      model: LogisticRegressionModel,
-                                      score: Double,
-                                      evalMetrics: Map[String, Double],
-                                      generation: Int
-                                    )
-
-case class LinearModelsWithResults(
-                                    modelHyperParams: LinearRegressionConfig,
-                                    model: LinearRegressionModel,
-                                    score: Double,
-                                    evalMetrics: Map[String, Double],
-                                    generation: Int
-                                  )
-
 case class SVMConfig(
                       fitIntercept: Boolean,
                       maxIter: Int,

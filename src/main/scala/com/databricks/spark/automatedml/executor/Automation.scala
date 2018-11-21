@@ -1,89 +1,50 @@
 package com.databricks.spark.automatedml.executor
 
-import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize._
-import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import com.databricks.spark.automatedml.utils.{AutomationTools, SparkSessionWrapper}
 import org.apache.spark.sql.{DataFrame, Row}
 
 
-case class ModelingConfig(
-                                   labelCol: String,
-                                   featuresCol: String,
-                                   numericBoundaries: Map[String, (Double, Double)],
-                                   stringBoundaries: Map[String, List[String]],
-                                   scoringMetric: String
-                                 )
 
-class Automation(config: MainConfig) extends Defaults with SparkSessionWrapper {
+class Automation() extends AutomationConfig with SparkSessionWrapper with AutomationTools {
 
-  require(_supportedModels.contains(config.modelType))
+  require(_supportedModels.contains(_mainConfig.modelType))
 
-  val _geneticConfig: GeneticConfig = config.geneticConfig.getOrElse(_geneticTunerDefaults)
-  val _scoringOptimizationStrategy: String = config.scoringOptimizationStrategy
-    .getOrElse(_scoringOptimizationStrategyClassifier)
-  val _fillConfig: FillConfig = config.fillConfig.getOrElse(_fillConfigDefaults)
-  val _outlierConfig: OutlierConfig = config.outlierConfig.getOrElse(_outlierConfigDefaults)
-  val _pearsonConfig: PearsonConfig = config.pearsonConfig.getOrElse(_pearsonConfigDefaults)
-  val _covarianceConfig: CovarianceConfig = config.covarianceConfig.getOrElse(_covarianceConfigDefaults)
-
-  val _modelParams = ModelingConfig(
-    labelCol = config.labelCol,
-    featuresCol = config.featuresCol,
-    numericBoundaries = config.modelType match {
-      case "RandomForest" => config.numericBoundaries.getOrElse(_rfDefaultNumBoundaries)
-      case "MLPC" => config.numericBoundaries.getOrElse(_mlpcDefaultNumBoundaries)
-      case "GBT" => config.numericBoundaries.getOrElse(_gbtDefaultNumBoundaries)
-    },
-    stringBoundaries = config.modelType match {
-      case "RandomForest" => config.stringBoundaries.getOrElse(_rfDefaultStringBoundaries)
-      case "MLPC" => config.stringBoundaries.getOrElse(_mlpcDefaultStringBoundaries)
-      case "GBT" => config.stringBoundaries.getOrElse(_gbtDefaultStringBoundaries)
-    },
-    scoringMetric = config.modelType match {
-      case "RandomForest" => config.scoringMetric.getOrElse(_scoringDefaultClassifier)
-      case "MLPC" => config.scoringMetric.getOrElse(_scoringDefaultClassifier)
-      case "GBT" => config.scoringMetric.getOrElse(_scoringDefaultClassifier)
-    }
-  )
-
-  def getModelConfig: ModelingConfig = _modelParams
-
-
-  def dataPrep():(DataFrame, Array[String], String) = {
+  def dataPrep(data: DataFrame):(DataFrame, Array[String], String) = {
 
     // Fill na values
-    val dataSanitizer = new DataSanitizer(config.df)
-      .setLabelCol(config.labelCol)
-      .setFeatureCol(config.featuresCol)
-      .setCharacterFillStat(_fillConfig.characterFillStat)
-      .setNumericFillStat(_fillConfig.numericFillStat)
-      .setModelSelectionDistinctThreshold(_fillConfig.modelSelectionDistinctThreshold)
+    val dataSanitizer = new DataSanitizer(data)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeatureCol(_mainConfig.featuresCol)
+      .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
+      .setNumericFillStat(_mainConfig.fillConfig.numericFillStat)
+      .setModelSelectionDistinctThreshold(_mainConfig.fillConfig.modelSelectionDistinctThreshold)
 
-    val (filledData, modelType) = if (config.naFillFlag) {
+    val (filledData, modelType) = if (_mainConfig.naFillFlag) {
       dataSanitizer.generateCleanData()
     } else {
-      (config.df, dataSanitizer.decideModel())
+      (data, dataSanitizer.decideModel())
     }
 
     // Variance Filtering
     val varianceFiltering = new VarianceFiltering(filledData)
-      .setLabelCol(config.labelCol)
+      .setLabelCol(_mainConfig.labelCol)
 
-    val varianceFilteredData = if (config.varianceFilterFlag) varianceFiltering.filterZeroVariance() else filledData
+    val varianceFilteredData = if (_mainConfig.varianceFilterFlag) varianceFiltering.filterZeroVariance() else filledData
 
 
     // Outlier Filtering
     val outlierFiltering = new OutlierFiltering(varianceFilteredData)
-      .setLabelCol(config.labelCol)
-      .setFilterBounds(_outlierConfig.filterBounds)
-      .setLowerFilterNTile(_outlierConfig.lowerFilterNTile)
-      .setUpperFilterNTile(_outlierConfig.upperFilterNTile)
-      .setFilterPrecision(_outlierConfig.filterPrecision)
-      .setContinuousDataThreshold(_outlierConfig.continuousDataThreshold)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFilterBounds(_mainConfig.outlierConfig.filterBounds)
+      .setLowerFilterNTile(_mainConfig.outlierConfig.lowerFilterNTile)
+      .setUpperFilterNTile(_mainConfig.outlierConfig.upperFilterNTile)
+      .setFilterPrecision(_mainConfig.outlierConfig.filterPrecision)
+      .setContinuousDataThreshold(_mainConfig.outlierConfig.continuousDataThreshold)
 
-    val (outlierCleanedData, removedData) = if (config.outlierFilterFlag) {
-      outlierFiltering.filterContinuousOutliers(_outlierConfig.fieldsToIgnore)
+    val (outlierCleanedData, removedData) = if (_mainConfig.outlierFilterFlag) {
+      outlierFiltering.filterContinuousOutliers(_mainConfig.outlierConfig.fieldsToIgnore)
     } else {
       (filledData, spark.createDataFrame(sc.emptyRDD[Row], filledData.schema))
     }
@@ -91,10 +52,15 @@ class Automation(config: MainConfig) extends Defaults with SparkSessionWrapper {
     // Construct the Featurized Data Pipeline
     val (preFilteredData, preFilteredFields) = new FeaturePipeline(outlierCleanedData).makeFeaturePipeline()
 
-    // Covariance Filtering
-    val covarianceFiltering = new FeatureCorrelationDetection(preFilteredData, preFilteredFields)
+    // Covariance Filtering //TODO: this is broken due to the "features" column being present.  FIX THIS. try the drop
+    //TODO: this might need to get the original field list, the fields that were removed previously, and select only those.
+    //TODO: this requires a bit of a redesign of how this chain of elements work.  Maintain a Buffer of fields to keep?
+    val covarianceFiltering = new FeatureCorrelationDetection(preFilteredData.drop(_mainConfig.featuresCol), preFilteredFields)
+      .setLabelCol(_mainConfig.labelCol)
+      .setCorrelationCutoffLow(_mainConfig.covarianceConfig.correlationCutoffLow)
+      .setCorrelationCutoffHigh(_mainConfig.covarianceConfig.correlationCutoffHigh)
 
-    val (postFilteredData, postFilteredFields) = if (config.covarianceFilteringFlag) {
+    val (postFilteredData, postFilteredFields) = if (_mainConfig.covarianceFilteringFlag) {
       new FeaturePipeline(covarianceFiltering.filterFeatureCorrelation()).makeFeaturePipeline()
     } else {
       (preFilteredData, preFilteredFields)
@@ -102,16 +68,16 @@ class Automation(config: MainConfig) extends Defaults with SparkSessionWrapper {
 
     // Pearson Filtering
     val pearsonFiltering = new PearsonFiltering(postFilteredData, postFilteredFields)
-      .setLabelCol(config.labelCol)
-      .setFeaturesCol(config.featuresCol)
-      .setFilterStatistic(_pearsonConfig.filterStatistic)
-      .setFilterDirection(_pearsonConfig.filterDirection)
-      .setFilterManualValue(_pearsonConfig.filterManualValue)
-      .setFilterMode(_pearsonConfig.filterMode)
-      .setAutoFilterNTile(_pearsonConfig.autoFilterNTile)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setFilterStatistic(_mainConfig.pearsonConfig.filterStatistic)
+      .setFilterDirection(_mainConfig.pearsonConfig.filterDirection)
+      .setFilterManualValue(_mainConfig.pearsonConfig.filterManualValue)
+      .setFilterMode(_mainConfig.pearsonConfig.filterMode)
+      .setAutoFilterNTile(_mainConfig.pearsonConfig.autoFilterNTile)
 
     // Final Featurization and Field Listing Generation (method's output)
-    val (outputData, fieldListing) = if (config.pearsonFilteringFlag) {
+    val (outputData, fieldListing) = if (_mainConfig.pearsonFilteringFlag) {
       new FeaturePipeline(pearsonFiltering.filterFields()).makeFeaturePipeline()
     } else {
       (postFilteredData, postFilteredFields)

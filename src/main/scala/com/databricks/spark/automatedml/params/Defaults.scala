@@ -91,10 +91,57 @@ trait Defaults {
     "lossType" -> List("logistic")
   )
 
+  val _linearRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map (
+    "elasticNetParams" -> Tuple2(0.0, 1.0),
+    "maxIter" -> Tuple2(100.0, 10000.0),
+    "regParam" -> Tuple2(0.0, 1.0),
+    "tol" -> Tuple2(1E-9, 1E-5)
+  )
+  val _linearRegressionDefaultStringBoundaries: Map[String, List[String]] = Map (
+    "loss" -> List("squaredError", "huber")
+  )
+  val _logisticRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "elasticNetParam" -> Tuple2(0.0, 1.0),
+    "maxIter" -> Tuple2(100.0, 10000.0),
+    "regParam" -> Tuple2(0.0, 1.0),
+    "tol" -> Tuple2(1E-9, 1E-5)
+  )
+  val _logisticRegressionDefaultStringBoundaries: Map[String, List[String]] = Map(
+    "" -> List("")
+  )
+  val _svmDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "maxIter" -> Tuple2(100.0, 10000.0),
+    "regParam" -> Tuple2(0.0, 1.0),
+    "tol" -> Tuple2(1E-9, 1E-5)
+  )
+  val _svmDefaultStringBoundaries: Map[String, List[String]] = Map(
+    "" -> List("")
+  )
+
   val _scoringDefaultClassifier = "f1"
   val _scoringOptimizationStrategyClassifier = "maximize"
   val _scoringDefaultRegressor = "rmse"
   val _scoringOptimizationStrategyRegressor = "minimize"
 
+  val _modelTypeDefault = "RandomForest"
 
+  val _mainConfigDefaults = MainConfig(
+    modelType = _modelTypeDefault,
+    labelCol = "label",
+    featuresCol = "features",
+    naFillFlag = true,
+    varianceFilterFlag = true,
+    outlierFilterFlag = true,
+    pearsonFilteringFlag = true,
+    covarianceFilteringFlag = true,
+    numericBoundaries = _rfDefaultNumBoundaries,
+    stringBoundaries = _rfDefaultStringBoundaries,
+    scoringMetric = _scoringDefaultClassifier,
+    scoringOptimizationStrategy = _scoringOptimizationStrategyClassifier,
+    fillConfig = _fillConfigDefaults,
+    outlierConfig = _outlierConfigDefaults,
+    pearsonConfig = _pearsonConfigDefaults,
+    covarianceConfig = _covarianceConfigDefaults,
+    geneticConfig = _geneticTunerDefaults
+  )
 }
