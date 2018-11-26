@@ -1,15 +1,12 @@
-package com.databricks.spark.automatedml
+package com.databricks.spark.automatedml.sanitize
 
-
+import com.databricks.spark.automatedml.utils.DataValidation
+import org.apache.spark.ml.feature.StringIndexer
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
-import org.apache.spark.ml.feature.StringIndexer
-
-//TODO: add in outlier removal options in this class (automated = remove rows outside of n stddev outliers),
-// manual = supply fields to remove and a quantile removal threshold
 
 class DataSanitizer(data: DataFrame) extends DataValidation {
 
@@ -19,7 +16,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
   private var _characterFillStat = "max"
   private var _modelSelectionDistinctThreshold = 10
 
-  def setLabel(value: String): this.type = {
+  def setLabelCol(value: String): this.type = {
     this._labelCol = value
     this
   }
@@ -143,8 +140,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     (numericMapping, characterMapping)
   }
 
-  private def decideModel(df: DataFrame): String = {
-    val uniqueLabelCounts = df.select(_labelCol).distinct.count
+  def decideModel(): String = {
+    val uniqueLabelCounts = data.select(_labelCol).distinct.count
     val decision = uniqueLabelCounts match {
       case x if x <= _modelSelectionDistinctThreshold => "classifier"
       case _ => "regressor"
@@ -159,7 +156,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     val (numMap, charMap) = fillMissing(preFilter)
     val filledData = preFilter.na.fill(numMap).na.fill(charMap)
 
-    (filledData, decideModel(filledData))
+    (filledData, decideModel())
 
   }
 

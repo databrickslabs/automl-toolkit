@@ -1,5 +1,4 @@
-package com.databricks.spark.automatedml
-
+package com.databricks.spark.automatedml.utils
 
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
@@ -8,6 +7,7 @@ import org.apache.spark.sql.types.{DataType, StructType}
 import scala.collection.mutable.ListBuffer
 
 trait DataValidation{
+
   def invalidateSelection(value: String, allowances: Seq[String]): String = {
     s"${allowances.foldLeft("")((a, b) => a + " " + b)}"
   }
@@ -38,7 +38,7 @@ trait DataValidation{
         case "boolean" => vectorizableFields += x._2
         case "binary" => vectorizableFields += x._2
         case _ => throw new UnsupportedOperationException(
-          s"WARNING! Field ${x._2} is of type ${x._1} which is not supported!!")
+          s"Field '${x._2}' is of type ${x._1} which is not supported.")
       }
     )
 
@@ -85,6 +85,14 @@ trait DataValidation{
       .setOutputCol(featureCol)
 
     (indexers, assembledColumns, assembler)
+  }
+
+  def validateLabelAndFeatures(df: DataFrame, labelCol: String, featureCol: String): Unit = {
+    val dfSchema = df.schema
+    assert(dfSchema.fieldNames.contains(labelCol),
+      s"Dataframe does not contain label column named: $labelCol")
+    assert(dfSchema.fieldNames.contains(featureCol),
+      s"Dataframe does not contain features column named: $featureCol")
   }
 
 }
