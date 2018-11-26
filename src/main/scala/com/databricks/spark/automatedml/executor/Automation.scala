@@ -4,6 +4,7 @@ import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize._
 import com.databricks.spark.automatedml.utils.{AutomationTools, SparkSessionWrapper}
 import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.functions._
 
 
 
@@ -22,7 +23,11 @@ class Automation() extends AutomationConfig with SparkSessionWrapper with Automa
       .setModelSelectionDistinctThreshold(_mainConfig.fillConfig.modelSelectionDistinctThreshold)
 
     val (filledData, modelType) = if (_mainConfig.naFillFlag) {
-      dataSanitizer.generateCleanData()
+      val (naFillData, detectedModelType) = dataSanitizer.generateCleanData()
+      //TODO: add logging to log4j
+      println(s"NA values filled on Dataframe. Detected Model Type: $detectedModelType")
+
+      (naFillData, detectedModelType)
     } else {
       (data, dataSanitizer.decideModel())
     }
@@ -44,26 +49,35 @@ class Automation() extends AutomationConfig with SparkSessionWrapper with Automa
       .setContinuousDataThreshold(_mainConfig.outlierConfig.continuousDataThreshold)
 
     val (outlierCleanedData, removedData) = if (_mainConfig.outlierFilterFlag) {
-      outlierFiltering.filterContinuousOutliers(_mainConfig.outlierConfig.fieldsToIgnore)
+      val (cleanedData, outlierData) = outlierFiltering.filterContinuousOutliers(_mainConfig.outlierConfig.fieldsToIgnore)
+      //TODO: add logging to log4j
+      println(s"Removed outlier data.  Total rows removed = ${outlierData.count()}")
+
+      (cleanedData, outlierData)
     } else {
       (filledData, spark.createDataFrame(sc.emptyRDD[Row], filledData.schema))
     }
 
-    // Construct the Featurized Data Pipeline
-    val (preFilteredData, preFilteredFields) = new FeaturePipeline(outlierCleanedData).makeFeaturePipeline()
+    val (preCovariance, preCovarianceFields) = new FeaturePipeline(outlierCleanedData).makeFeaturePipeline()
 
-    // Covariance Filtering //TODO: this is broken due to the "features" column being present.  FIX THIS. try the drop
-    //TODO: this might need to get the original field list, the fields that were removed previously, and select only those.
-    //TODO: this requires a bit of a redesign of how this chain of elements work.  Maintain a Buffer of fields to keep?
-    val covarianceFiltering = new FeatureCorrelationDetection(preFilteredData.drop(_mainConfig.featuresCol), preFilteredFields)
+    val preCovarianceFieldsRestrict = preCovarianceFields ++ Array(_labelCol)
+    val preCovarianceFilteredData = preCovariance.select(preCovarianceFieldsRestrict map col: _*)
+
+    // Covariance Filtering
+    val covarianceFiltering = new FeatureCorrelationDetection(preCovarianceFilteredData, preCovarianceFields)
       .setLabelCol(_mainConfig.labelCol)
       .setCorrelationCutoffLow(_mainConfig.covarianceConfig.correlationCutoffLow)
       .setCorrelationCutoffHigh(_mainConfig.covarianceConfig.correlationCutoffHigh)
 
     val (postFilteredData, postFilteredFields) = if (_mainConfig.covarianceFilteringFlag) {
+      val covarianceFilter = covarianceFiltering.filterFeatureCorrelation()
+
+      println(s"Post Covariance Filtered fields: '${covarianceFilter.schema.fieldNames.mkString(", ")}'")
+      println(s"Row count: ${covarianceFilter.count()}")
+
       new FeaturePipeline(covarianceFiltering.filterFeatureCorrelation()).makeFeaturePipeline()
     } else {
-      (preFilteredData, preFilteredFields)
+      new FeaturePipeline(preCovarianceFilteredData).makeFeaturePipeline()
     }
 
     // Pearson Filtering
@@ -82,7 +96,8 @@ class Automation() extends AutomationConfig with SparkSessionWrapper with Automa
     } else {
       (postFilteredData, postFilteredFields)
     }
-
+    println(s"Finished with Data Generation. Schema: ${outputData.schema}, fieldListing: '${
+      fieldListing.mkString(", ")}'")
     (outputData, fieldListing, modelType)
 
   }

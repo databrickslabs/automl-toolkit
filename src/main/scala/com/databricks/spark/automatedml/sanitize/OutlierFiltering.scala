@@ -77,14 +77,15 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     df.select(field).distinct().count()
   }
 
-  private def validateNumericFields(): List[FilterData] = {
+  private def validateNumericFields(): (List[FilterData], List[String]) = {
 
     val numericFieldReport = new ListBuffer[FilterData]
     val (numericFields, characterFields) = extractTypes(df, _labelCol)
     numericFields.foreach{x =>
       numericFieldReport += FilterData(x, numericUniqueness(x))
     }
-    numericFieldReport.result()
+    val totalFields = numericFields ::: characterFields
+    (numericFieldReport.result(), totalFields)
   }
 
   private def filterLow(data: DataFrame, field: String, filterThreshold: Double): DataFrame = {
@@ -98,7 +99,8 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
   def filterContinuousOutliers(ignoreList: Array[String]=Array("")): (DataFrame, DataFrame) = {
 
     val filteredNumericPayload = new ListBuffer[String]
-    val numericPayload = validateNumericFields()
+    val (numericPayload, totalFeatureFields) = validateNumericFields()
+    val totalFields = totalFeatureFields ::: List(_labelCol)
     numericPayload.foreach{x =>
       if(!ignoreList.contains(x.field) & x.uniqueValues >= _continuousDataThreshold)
         filteredNumericPayload += x.field
@@ -120,13 +122,15 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
           outlierDF = filterLow(outlierDF, x, filterBoundaries(x, _upperFilterNTile))
       }
     }
-    (mutatedDF, outlierDF)
+    (mutatedDF.select(totalFields map col: _*), outlierDF.select(totalFields map col: _*))
   }
 
   def filterContinuousOutliers(manualFilter: List[ManualFilters]): (DataFrame, DataFrame) = {
 
     var mutatedDF = df
     var outlierDF = df
+    val (numericPayload, totalFeatureFields) = validateNumericFields()
+    val totalFields = totalFeatureFields ::: List(_labelCol)
     manualFilter.foreach{x =>
       _filterBounds match {
         case "lower" =>
@@ -139,6 +143,6 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
           s"Filter mode '${_filterBounds} is not supported.  Please use either 'lower' or 'upper'")
       }
     }
-    (mutatedDF, outlierDF)
+    (mutatedDF.select(totalFields map col: _*), outlierDF.select(totalFields map col: _*))
   }
 }

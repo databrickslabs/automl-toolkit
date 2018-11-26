@@ -11,6 +11,9 @@ class AutomationRunner() extends Automation {
 
   //_mainConfig = getMainConfig //TODO: this probably isn't needed.
 
+  //TODO: validation checks for type of model selected and the model's capabilities (i.e. don't try to use a classifier
+  //if the model type doesn't support it)
+
   private def runRandomForest(df: DataFrame): (Array[RandomForestModelsWithResults], DataFrame) = {
 
     val (data, fields, modelType) = dataPrep(df)
