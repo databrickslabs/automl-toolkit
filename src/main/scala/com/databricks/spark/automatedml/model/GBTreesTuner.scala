@@ -174,6 +174,9 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     runs.foreach { x =>
 
+      val runUUID = java.util.UUID.randomUUID.toString
+      println(s"Starting run: $runUUID \n  of generation: $generation \n    with params: ${x.toString}")
+
       val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
@@ -206,6 +209,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val runAvg = GBTModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
+
+      println(s"Finished Model of run: $runUUID \n  of generation : $generation \n  with params: ${x.toString} \n    With results: ${runAvg.toString}")
     }
     _optimizationStrategy match {
       case "minimize" => results.toArray.sortWith(_.score < _.score)

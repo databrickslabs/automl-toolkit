@@ -2,13 +2,13 @@ package com.databricks.spark.automatedml.executor
 
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize._
-import com.databricks.spark.automatedml.utils.{AutomationTools, SparkSessionWrapper}
+import com.databricks.spark.automatedml.utils.AutomationTools
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
 
 import org.apache.log4j.{Level, Logger}
 
-class Automation() extends AutomationConfig with SparkSessionWrapper with AutomationTools {
+class Automation() extends AutomationConfig with AutomationTools {
 
   require(_supportedModels.contains(_mainConfig.modelType))
 

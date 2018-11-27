@@ -68,7 +68,7 @@ trait Defaults {
 
   val _mlpcDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "layers" -> Tuple2(1.0, 10.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
+    "maxIter" -> Tuple2(10.0, 100.0),
     "stepSize" -> Tuple2(0.01, 1.0),
     "tol" -> Tuple2(1E-9, 1E-5),
     "hiddenLayerSizeAdjust" -> Tuple2(0.0, 50.0)
@@ -80,7 +80,7 @@ trait Defaults {
 
   val _gbtDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "maxBins" -> Tuple2(10.0, 100.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
+    "maxIter" -> Tuple2(10.0, 100.0),
     "maxDepth" -> Tuple2(2.0, 20.0),
     "minInfoGain" -> Tuple2(0.0, 1.0),
     "minInstancesPerNode" -> Tuple2(1.0, 50.0),

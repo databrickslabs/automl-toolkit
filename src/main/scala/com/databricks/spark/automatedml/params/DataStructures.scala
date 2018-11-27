@@ -142,6 +142,22 @@ case class StaticModelConfig(
                               featuresColumn: String
                             )
 
+case class GenericModelReturn(
+                               hyperParams: Map[String, Any],
+                               model: Any,
+                               score: Double,
+                               metrics: Map[String, Double],
+                               generation: Int
+                             )
+
+case class GenerationalReport(
+                               modelFamily: String,
+                               modelType: String,
+                               generation: Int,
+                               generationMeanScore: Double,
+                               generationStddevScore: Double
+                             )
+
 sealed trait ModelType[A, B]
 
 final case class ClassiferType[A, B](a: A) extends ModelType[A, B]

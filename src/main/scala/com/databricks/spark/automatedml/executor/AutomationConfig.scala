@@ -95,6 +95,8 @@ trait AutomationConfig extends Defaults {
 
   var _mainConfig: MainConfig = _mainConfigDefaults
 
+  var _featureImportanceConfig: MainConfig = _featureImportancesDefaults
+
   def setModelingType(value: String): this.type = {
     _modelingType = value
     _numericBoundaries = value match {
@@ -460,6 +462,10 @@ trait AutomationConfig extends Defaults {
     this
   }
 
+  def setFeatConfig(value: MainConfig): this.type = {
+    _featureImportanceConfig = value
+    this
+  }
 
   def getModelingType: String = _modelingType
 
@@ -540,5 +546,7 @@ trait AutomationConfig extends Defaults {
   def getGeneticConfig: GeneticConfig = _geneticConfig
 
   def getMainConfig: MainConfig = _mainConfig
+
+  def getFeatConfig: MainConfig = _featureImportanceConfig
 
 }

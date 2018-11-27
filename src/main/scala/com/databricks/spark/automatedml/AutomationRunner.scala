@@ -15,20 +15,16 @@ class AutomationRunner() extends Automation {
   //TODO: validation checks for type of model selected and the model's capabilities (i.e. don't try to use a classifier
   //if the model type doesn't support it)
 
-  private var _featureImportanceConfig = _featureImportancesDefaults
   //TODO: this needs to override the numeric and string configs for Regression vs Classification!!!!
-  def setFeatConfig(value: MainConfig): this.type = {
-    _featureImportanceConfig = value
-    this
-  }
 
-  def getFeatConfig: MainConfig = _featureImportanceConfig
 
-  private def runRandomForest(df: DataFrame): (Array[RandomForestModelsWithResults], DataFrame) = {
 
-    val (data, fields, modelType) = dataPrep(df)
 
-    val (modelResults, modelStats) = new RandomForestTuner(data, modelType)
+  private def runRandomForest(df: DataFrame): (Array[RandomForestModelsWithResults], DataFrame, String) = {
+
+    val (data, fields, modelSelection) = dataPrep(df)
+
+    val (modelResults, modelStats) = new RandomForestTuner(data, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
@@ -49,13 +45,13 @@ class AutomationRunner() extends Automation {
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
 
-    (modelResults, modelStats)
+    (modelResults, modelStats, modelSelection)
 
   }
 
-  private def runMLPC(df: DataFrame): (Array[MLPCModelsWithResults], DataFrame) = {
+  private def runMLPC(df: DataFrame): (Array[MLPCModelsWithResults], DataFrame, String) = {
 
-    val (data, fields, modelType) = dataPrep(df)
+    val (data, fields, modelSelection) = dataPrep(df)
 
     val (modelResults, modelStats) = new MLPCTuner(data)
       .setLabelCol(_mainConfig.labelCol)
@@ -78,15 +74,15 @@ class AutomationRunner() extends Automation {
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
 
-    (modelResults, modelStats)
+    (modelResults, modelStats, modelSelection)
   }
 
 
-  private def runGBT(df: DataFrame): (Array[GBTModelsWithResults], DataFrame) = {
+  private def runGBT(df: DataFrame): (Array[GBTModelsWithResults], DataFrame, String) = {
 
-    val (data, fields, modelType) = dataPrep(df)
+    val (data, fields, modelSelection) = dataPrep(df)
 
-    val (modelResults, modelStats) = new GBTreesTuner(data, modelType)
+    val (modelResults, modelStats) = new GBTreesTuner(data, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
@@ -107,25 +103,26 @@ class AutomationRunner() extends Automation {
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
 
-    (modelResults, modelStats)
+    (modelResults, modelStats, modelSelection)
   }
 
+  //TODO: Generation median, average, and stddev for scoring. (Help with full model search decision making)
 
-  def extractFeatureImportances(data: DataFrame): (RandomForestModelsWithResults, DataFrame) = {
+  def extractFeatureImportances(df: DataFrame): (RandomForestModelsWithResults, DataFrame) = {
 
-    val (data, fields, modelType) = dataPrep(data)
+    val (data, fields, modelType) = dataPrep(df)
 
-    new RandomForestFeatureImportance(data, fields, _featureImportancesDefaults).runFeatureImportances()
+    new RandomForestFeatureImportance(data, fields, _featureImportanceConfig).runFeatureImportances(modelType)
 
   }
 
-  def run(data: DataFrame): (Array[GenericModelReturn], DataFrame) = {
+  def run(data: DataFrame): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
 
-    val (resultArray, modelStats) = _mainConfig.modelType match {
-      case "RandomForest" => {
-        val (results, stats) = runRandomForest(data)
+    val (resultArray, modelStats, modelSelection) = _mainConfig.modelType match {
+      case "RandomForest" =>
+        val (results, stats, selection) = runRandomForest(data)
         results.foreach{ x=>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -135,11 +132,9 @@ class AutomationRunner() extends Automation {
             generation = x.generation
           )
         }
-        (genericResults, stats)
-
-      }
+        (genericResults, stats, selection)
       case "GBT" =>
-        val (results, stats) = runGBT(data)
+        val (results, stats, selection) = runGBT(data)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -149,9 +144,9 @@ class AutomationRunner() extends Automation {
             generation = x.generation
           )
         }
-        (genericResults, stats)
+        (genericResults, stats, selection)
       case "MLPC" =>
-        val (results, stats) = runMLPC(data)
+        val (results, stats, selection) = runMLPC(data)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -161,7 +156,7 @@ class AutomationRunner() extends Automation {
             generation = x.generation
           )
         }
-        (genericResults, stats)
+        (genericResults, stats, selection)
     }
 
 //    resultArray.foreach{ x=>
@@ -173,7 +168,13 @@ class AutomationRunner() extends Automation {
 //        generation = x.generation
 //      )
 //    }
-  (genericResults.toArray, modelStats)
+    //TODO: generation report
+    val genericResultData = genericResults.result.toArray
+    val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
+      _mainConfig.modelType, modelSelection)
+
+  (genericResults.result.toArray, generationalData, modelStats, generationDataFrameReport(generationalData,
+    _mainConfig.scoringOptimizationStrategy))
   }
 
 }

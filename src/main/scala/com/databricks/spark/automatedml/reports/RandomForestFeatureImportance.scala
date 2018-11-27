@@ -16,9 +16,9 @@ class RandomForestFeatureImportance(data: DataFrame, fieldListing: Array[String]
     sc.parallelize(columns zip importances).toDF("Columns", "Importances").orderBy($"Importances".desc)
   }
 
-  def runFeatureImportances(): (RandomForestModelsWithResults, DataFrame) = {
+  def runFeatureImportances(modelType: String): (RandomForestModelsWithResults, DataFrame) = {
 
-    val (modelResults, modelStats) = new RandomForestTuner(data, featConfig.modelType)
+    val (modelResults, modelStats) = new RandomForestTuner(data, modelType)
       .setLabelCol(featConfig.labelCol)
       .setFeaturesCol(featConfig.featuresCol)
       .setRandomForestNumericBoundaries(featConfig.numericBoundaries)
@@ -40,7 +40,7 @@ class RandomForestFeatureImportance(data: DataFrame, fieldListing: Array[String]
       .evolveWithScoringDF()
 
     val bestModelData = modelResults(0)
-    val bestModelFeatureImportances = featConfig.modelType match {
+    val bestModelFeatureImportances = modelType match {
       case "classifier" => bestModelData.model.asInstanceOf[RandomForestClassificationModel].featureImportances.toArray
       case "regressor" => bestModelData.model.asInstanceOf[RandomForestRegressionModel].featureImportances.toArray
       case _ => throw new UnsupportedOperationException(s"The model type provided, '${featConfig.modelType}', is not supported.")
