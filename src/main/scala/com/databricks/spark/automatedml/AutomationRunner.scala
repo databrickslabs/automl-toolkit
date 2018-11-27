@@ -3,6 +3,7 @@ package com.databricks.spark.automatedml
 import com.databricks.spark.automatedml.executor.Automation
 import com.databricks.spark.automatedml.model.{GBTreesTuner, MLPCTuner, RandomForestTuner}
 import com.databricks.spark.automatedml.params._
+import com.databricks.spark.automatedml.reports.RandomForestFeatureImportance
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
@@ -13,6 +14,15 @@ class AutomationRunner() extends Automation {
 
   //TODO: validation checks for type of model selected and the model's capabilities (i.e. don't try to use a classifier
   //if the model type doesn't support it)
+
+  private var _featureImportanceConfig = _featureImportancesDefaults
+  //TODO: this needs to override the numeric and string configs for Regression vs Classification!!!!
+  def setFeatConfig(value: MainConfig): this.type = {
+    _featureImportanceConfig = value
+    this
+  }
+
+  def getFeatConfig: MainConfig = _featureImportanceConfig
 
   private def runRandomForest(df: DataFrame): (Array[RandomForestModelsWithResults], DataFrame) = {
 
@@ -47,7 +57,7 @@ class AutomationRunner() extends Automation {
 
     val (data, fields, modelType) = dataPrep(df)
 
-    new MLPCTuner(data)
+    val (modelResults, modelStats) = new MLPCTuner(data)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
@@ -67,6 +77,8 @@ class AutomationRunner() extends Automation {
       .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
+
+    (modelResults, modelStats)
   }
 
 
@@ -74,10 +86,10 @@ class AutomationRunner() extends Automation {
 
     val (data, fields, modelType) = dataPrep(df)
 
-    new GBTreesTuner(data, modelType)
+    val (modelResults, modelStats) = new GBTreesTuner(data, modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
-      .setRGBTNumericBoundaries(_mainConfig.numericBoundaries)
+      .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
       .setGBTStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
@@ -94,30 +106,74 @@ class AutomationRunner() extends Automation {
       .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
+
+    (modelResults, modelStats)
   }
 
 
+  def extractFeatureImportances(data: DataFrame): (RandomForestModelsWithResults, DataFrame) = {
 
+    val (data, fields, modelType) = dataPrep(data)
+
+    new RandomForestFeatureImportance(data, fields, _featureImportancesDefaults).runFeatureImportances()
+
+  }
 
   def run(data: DataFrame): (Array[GenericModelReturn], DataFrame) = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
 
-    val (modelResults, modelStats) = _mainConfig.modelType match {
-      case "RandomForest" => runRandomForest(data)
+    val (resultArray, modelStats) = _mainConfig.modelType match {
+      case "RandomForest" => {
+        val (results, stats) = runRandomForest(data)
+        results.foreach{ x=>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats)
+
+      }
+      case "GBT" =>
+        val (results, stats) = runGBT(data)
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats)
+      case "MLPC" =>
+        val (results, stats) = runMLPC(data)
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats)
     }
 
-    modelResults.foreach{ x=>
-      genericResults += GenericModelReturn(
-        hyperParams = extractPayload(x.modelHyperParams),
-        model = x.model,
-        score = x.score,
-        metrics = x.evalMetrics,
-        generation = x.generation
-      )
-    }
-
-    (genericResults.toArray, modelStats)
+//    resultArray.foreach{ x=>
+//      genericResults += GenericModelReturn(
+//        hyperParams = extractPayload(x.modelHyperParams),
+//        model = x.model,
+//        score = x.score,
+//        metrics = x.evalMetrics,
+//        generation = x.generation
+//      )
+//    }
+  (genericResults.toArray, modelStats)
   }
 
 }

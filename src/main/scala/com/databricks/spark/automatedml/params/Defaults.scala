@@ -80,10 +80,11 @@ trait Defaults {
 
   val _gbtDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "maxBins" -> Tuple2(10.0, 100.0),
+    "maxIter" -> Tuple2(100.0, 10000.0),
     "maxDepth" -> Tuple2(2.0, 20.0),
     "minInfoGain" -> Tuple2(0.0, 1.0),
     "minInstancesPerNode" -> Tuple2(1.0, 50.0),
-    "stepSize" -> Tuple2(0.0, 1.0)
+    "stepSize" -> Tuple2(1E-4, 1.0)
   )
 
   val _gbtDefaultStringBoundaries: Map[String, List[String]] = Map(
@@ -144,4 +145,38 @@ trait Defaults {
     covarianceConfig = _covarianceConfigDefaults,
     geneticConfig = _geneticTunerDefaults
   )
+
+  val _featureImportancesDefaults = MainConfig(
+    modelType = "RandomForest",
+    labelCol = "label",
+    featuresCol = "features",
+    naFillFlag = true,
+    varianceFilterFlag = true,
+    outlierFilterFlag = true,
+    pearsonFilteringFlag = true,
+    covarianceFilteringFlag = true,
+    numericBoundaries = _rfDefaultNumBoundaries,
+    stringBoundaries = _rfDefaultStringBoundaries,
+    scoringMetric = _scoringDefaultClassifier,
+    scoringOptimizationStrategy = _scoringOptimizationStrategyClassifier,
+    fillConfig = _fillConfigDefaults,
+    outlierConfig = _outlierConfigDefaults,
+    pearsonConfig = _pearsonConfigDefaults,
+    covarianceConfig = _covarianceConfigDefaults,
+    geneticConfig = GeneticConfig(
+      kFold = 3,
+      trainPortion = 0.8,
+      seed = 42L,
+      firstGenerationGenePool = 6,
+      numberOfGenerations = 3,
+      numberOfParentsToRetain = 1,
+      numberOfMutationsPerGeneration = 6,
+      geneticMixing = 0.7,
+      generationalMutationStrategy = "linear",
+      fixedMutationValue = 1,
+      mutationMagnitudeMode = "fixed"
+    )
+  )
+
+
 }

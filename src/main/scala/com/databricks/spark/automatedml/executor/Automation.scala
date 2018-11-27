@@ -6,13 +6,26 @@ import com.databricks.spark.automatedml.utils.{AutomationTools, SparkSessionWrap
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
 
-
+import org.apache.log4j.{Level, Logger}
 
 class Automation() extends AutomationConfig with SparkSessionWrapper with AutomationTools {
 
   require(_supportedModels.contains(_mainConfig.modelType))
 
+  val logger: Logger = Logger.getLogger(this.getClass)
+
   def dataPrep(data: DataFrame):(DataFrame, Array[String], String) = {
+
+    // Print to stdout the filter settings
+    println(s"Configuration setting flags: \n NA Fill Flag: ${_naFillFlag.toString} \n " +
+      s"Zero Variance Filter Flag: ${_varianceFilterFlag.toString} \n Covariance Filter Flag: " +
+      s"${_covarianceFilterFlag.toString} \n Pearson Filter Flag: ${_pearsonFilterFlag.toString}")
+
+    // Log the data Prep settings
+    logger.log(Level.INFO, s"NA Fill Flag: ${_naFillFlag.toString}")
+    logger.log(Level.INFO, s"Zero Variance Filter Flag: ${_varianceFilterFlag.toString}")
+    logger.log(Level.INFO, s"Covariance Filter Flag: ${_covarianceFilterFlag.toString}")
+    logger.log(Level.INFO, s"Pearson Filter Flag: ${_pearsonFilterFlag.toString}")
 
     // Fill na values
     val dataSanitizer = new DataSanitizer(data)
@@ -23,9 +36,12 @@ class Automation() extends AutomationConfig with SparkSessionWrapper with Automa
       .setModelSelectionDistinctThreshold(_mainConfig.fillConfig.modelSelectionDistinctThreshold)
 
     val (filledData, modelType) = if (_mainConfig.naFillFlag) {
+
       val (naFillData, detectedModelType) = dataSanitizer.generateCleanData()
-      //TODO: add logging to log4j
-      println(s"NA values filled on Dataframe. Detected Model Type: $detectedModelType")
+
+      val naLog: String = s"NA values filled on Dataframe. Detected Model Type: $detectedModelType"
+      logger.log(Level.INFO, naLog)
+      println(naLog)
 
       (naFillData, detectedModelType)
     } else {
@@ -49,9 +65,12 @@ class Automation() extends AutomationConfig with SparkSessionWrapper with Automa
       .setContinuousDataThreshold(_mainConfig.outlierConfig.continuousDataThreshold)
 
     val (outlierCleanedData, removedData) = if (_mainConfig.outlierFilterFlag) {
-      val (cleanedData, outlierData) = outlierFiltering.filterContinuousOutliers(_mainConfig.outlierConfig.fieldsToIgnore)
-      //TODO: add logging to log4j
-      println(s"Removed outlier data.  Total rows removed = ${outlierData.count()}")
+      val (cleanedData, outlierData) = outlierFiltering.filterContinuousOutliers(
+        _mainConfig.outlierConfig.fieldsToIgnore)
+
+      val outlierRemovalInfo = s"Removed outlier data.  Total rows removed = ${outlierData.count()}"
+      logger.log(Level.INFO, outlierRemovalInfo)
+      println(outlierRemovalInfo)
 
       (cleanedData, outlierData)
     } else {
@@ -72,8 +91,10 @@ class Automation() extends AutomationConfig with SparkSessionWrapper with Automa
     val (postFilteredData, postFilteredFields) = if (_mainConfig.covarianceFilteringFlag) {
       val covarianceFilter = covarianceFiltering.filterFeatureCorrelation()
 
-      println(s"Post Covariance Filtered fields: '${covarianceFilter.schema.fieldNames.mkString(", ")}'")
-      println(s"Row count: ${covarianceFilter.count()}")
+      val covarianceFilteringInfo = s"Post Covariance Filtered fields: '${
+        covarianceFilter.schema.fieldNames.mkString(", ")}'"
+      logger.log(Level.INFO, covarianceFilteringInfo)
+      println(covarianceFilteringInfo)
 
       new FeaturePipeline(covarianceFiltering.filterFeatureCorrelation()).makeFeaturePipeline()
     } else {
@@ -96,8 +117,11 @@ class Automation() extends AutomationConfig with SparkSessionWrapper with Automa
     } else {
       (postFilteredData, postFilteredFields)
     }
-    println(s"Finished with Data Generation. Schema: ${outputData.schema}, fieldListing: '${
-      fieldListing.mkString(", ")}'")
+    val finalFilteringInfo = s"Finished with Data Generation. \n  Schema: ${
+      outputData.schema} \n  Feature Field Listing: '${fieldListing.mkString(", ")}'"
+    println(finalFilteringInfo)
+    logger.log(Level.INFO, finalFilteringInfo)
+
     (outputData, fieldListing, modelType)
 
   }

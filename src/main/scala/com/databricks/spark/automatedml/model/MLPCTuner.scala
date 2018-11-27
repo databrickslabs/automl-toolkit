@@ -4,7 +4,7 @@ import com.databricks.spark.automatedml.params.{MLPCConfig, MLPCModelsWithResult
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.ml.linalg.SparseVector
+import org.apache.spark.ml.linalg.{DenseVector, SparseVector}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
@@ -27,7 +27,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution {
     "solver" -> List("gd", "l-bfgs")
   )
 
-  final private val featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[SparseVector].size
+  final private val featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
   final private val classDistinctCount = df.select(_labelCol).distinct().count().toInt
 
 
