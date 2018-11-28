@@ -292,7 +292,3 @@ trait Evolution extends DataValidation {
   }
 
 }
-
-//TODO: set the default behavior to be RandomForest based algo's
-//TODO: give an override to the main method for configuring for Linear or Logistic Regression
-//TODO: override the methods in this trait for per-model-family specific settings

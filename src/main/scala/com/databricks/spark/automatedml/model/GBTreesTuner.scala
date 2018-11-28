@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.{GBTConfig, GBTModelsWithResults}
+import com.databricks.spark.automatedml.params.{Defaults, GBTConfig, GBTModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
@@ -10,7 +10,7 @@ import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution {
+class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution with Defaults{
 
 
   private var _scoringMetric = modelSelection match {
@@ -19,18 +19,9 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not a supported modeling mode")
   }
 
-  private var _gbtNumericBoundaries = Map(
-    "maxBins" -> Tuple2(10.0, 100.0),
-    "maxDepth" -> Tuple2(2.0, 20.0),
-    "minInfoGain" -> Tuple2(0.0, 1.0),
-    "minInstancesPerNode" -> Tuple2(1.0, 50.0),
-    "stepSize" -> Tuple2(0.0, 1.0)
-  )
+  private var _gbtNumericBoundaries = _gbtDefaultNumBoundaries
 
-  private var _gbtStringBoundaries = Map(
-    "impurity" -> List("gini", "entropy"),
-    "lossType" -> List("logistic")
-  )
+  private var _gbtStringBoundaries = _gbtDefaultStringBoundaries
 
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
@@ -48,7 +39,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     this
   }
 
-  def setRGBTNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+  def setGBTNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
     _gbtNumericBoundaries = value
     this
   }
@@ -131,7 +122,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val maxIter = generateRandomInteger("maxIter", _gbtNumericBoundaries)
       val minInfoGain = generateRandomDouble("minInfoGain", _gbtNumericBoundaries)
       val minInstancesPerNode = generateRandomInteger("minInstancesPerNode", _gbtNumericBoundaries)
-      val stepSize = generateRandomInteger("stepSize", _gbtNumericBoundaries)
+      val stepSize = generateRandomDouble("stepSize", _gbtNumericBoundaries)
       iterations += GBTConfig(impurity, lossType, maxBins, maxDepth, maxIter, minInfoGain, minInstancesPerNode,
         stepSize)
       i += 1
@@ -183,6 +174,9 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     runs.foreach { x =>
 
+      val runUUID = java.util.UUID.randomUUID.toString
+      println(s"Starting run: $runUUID \n  of generation: $generation \n    with params: ${x.toString}")
+
       val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
@@ -215,6 +209,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val runAvg = GBTModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
+
+      println(s"Finished Model of run: $runUUID \n  of generation : $generation \n  with params: ${x.toString} \n    With results: ${runAvg.toString}")
     }
     _optimizationStrategy match {
       case "minimize" => results.toArray.sortWith(_.score < _.score)
@@ -341,8 +337,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[GBTConfig] = None):
-  (Array[GBTModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(startingSeed: Option[GBTConfig] = None): (Array[GBTModelsWithResults], DataFrame) = {
     val evolutionResults = evolveParameters(startingSeed)
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }

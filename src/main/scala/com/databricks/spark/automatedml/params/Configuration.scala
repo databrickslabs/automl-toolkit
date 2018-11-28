@@ -1,7 +1,7 @@
 package com.databricks.spark.automatedml.params
 
 case class MainConfig(
-                       modelType: String,
+                       modelFamily: String,
                        labelCol: String ,
                        featuresCol: String,
                        naFillFlag: Boolean,

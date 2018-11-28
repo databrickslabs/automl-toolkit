@@ -1,20 +1,17 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig, RandomForestModelsWithResults}
+import com.databricks.spark.automatedml.params.{Defaults, TreesConfig, TreesModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
-import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
-import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions._
+import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
+import org.apache.spark.ml.regression.DecisionTreeRegressor
+import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-//TODO: change the par mapping to proper thread pooling?
-//TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
-
-class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
-  with Evolution with Defaults {
+class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution with
+  Defaults {
 
   private var _scoringMetric = modelSelection match {
     case "regressor" => "rmse"
@@ -22,9 +19,9 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not supported.")
   }
 
-  private var _randomForestNumericBoundaries = _rfDefaultNumBoundaries
+  private var _treesNumericBoundaries = _treesDefaultNumBoundaries
 
-  private var _randomForestStringBoundaries = _rfDefaultStringBoundaries
+  private var _treesStringBoundaries = _treesDefaultStringBoundaries
 
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
@@ -42,54 +39,44 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     this
   }
 
-  def setRandomForestNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
-    this._randomForestNumericBoundaries = value
+  def setTreesNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+    _treesNumericBoundaries = value
     this
   }
 
-  def setRandomForestStringBoundaries(value: Map[String, List[String]]): this.type = {
-    this._randomForestStringBoundaries = value
+  def setTreesStringBoundaries(value: Map[String, List[String]]): this.type = {
+    _treesStringBoundaries = value
     this
   }
 
   def getScoringMetric: String = _scoringMetric
 
-  def getRandomForestNumericBoundaries: Map[String, (Double, Double)] = _randomForestNumericBoundaries
+  def getTreesNumericBoundaries: Map[String, (Double, Double)] = _treesNumericBoundaries
 
-  def getRandomForestStringBoundaries: Map[String, List[String]] = _randomForestStringBoundaries
+  def getTreesStringBoundaries: Map[String, List[String]] = _treesStringBoundaries
 
-  def getClassificationMetrics: List[String] = classificationMetrics
-
-  def getRegressionMetrics: List[String] = regressionMetrics
-
-  private def modelDecider[A, B](modelConfig: RandomForestConfig) = {
+  private def modelDecider[A, B](modelConfig: TreesConfig) = {
 
     val builtModel = modelSelection match {
       case "classifier" =>
-        new RandomForestClassifier()
-          .setLabelCol(_labelCol)
-          .setFeaturesCol(_featureCol)
-          .setNumTrees(modelConfig.numTrees)
-          .setCheckpointInterval(-1)
-          .setImpurity(modelConfig.impurity)
-          .setMaxBins(modelConfig.maxBins)
-          .setMaxDepth(modelConfig.maxDepth)
-          .setMinInfoGain(modelConfig.minInfoGain)
-          .setFeatureSubsetStrategy(modelConfig.featureSubsetStrategy)
-          .setSubsamplingRate(modelConfig.subSamplingRate)
+        new DecisionTreeClassifier()
+        .setLabelCol(_labelCol)
+        .setFeaturesCol(_featureCol)
+        .setMaxBins(modelConfig.maxBins)
+        .setImpurity(modelConfig.impurity)
+        .setMaxDepth(modelConfig.maxDepth)
+        .setMinInfoGain(modelConfig.minInfoGain)
+        .setMinInstancesPerNode(modelConfig.minInstancesPerNode)
       case "regressor" =>
-        new RandomForestRegressor()
+        new DecisionTreeRegressor()
           .setLabelCol(_labelCol)
           .setFeaturesCol(_featureCol)
-          .setNumTrees(modelConfig.numTrees)
-          .setCheckpointInterval(-1)
-          .setImpurity(modelConfig.impurity)
           .setMaxBins(modelConfig.maxBins)
+          .setImpurity(modelConfig.impurity)
           .setMaxDepth(modelConfig.maxDepth)
           .setMinInfoGain(modelConfig.minInfoGain)
-          .setFeatureSubsetStrategy(modelConfig.featureSubsetStrategy)
-          .setSubsamplingRate(modelConfig.subSamplingRate)
-      case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
+          .setMinInstancesPerNode(modelConfig.minInstancesPerNode)
+      case _ => throw new UnsupportedOperationException(s"Unsupported model type $modelSelection")
     }
     builtModel
   }
@@ -106,34 +93,32 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     _randomizer.shuffle(stringListing).head
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[RandomForestConfig] = {
+  private def generateThresholdedParams(iterationCount: Int): Array[TreesConfig] = {
 
-    val iterations = new ArrayBuffer[RandomForestConfig]
+    val iterations = new ArrayBuffer[TreesConfig]
 
     var i = 0
     do {
-      val featureSubsetStrategy = generateRandomString("featureSubsetStrategy", _randomForestStringBoundaries)
-      val subSamplingRate = generateRandomDouble("subSamplingRate", _randomForestNumericBoundaries)
-      val impurity = generateRandomString("impurity", _randomForestStringBoundaries)
-      val minInfoGain = generateRandomDouble("minInfoGain", _randomForestNumericBoundaries)
-      val maxBins = generateRandomInteger("maxBins", _randomForestNumericBoundaries)
-      val numTrees = generateRandomInteger("numTrees", _randomForestNumericBoundaries)
-      val maxDepth = generateRandomInteger("maxDepth", _randomForestNumericBoundaries)
-      iterations += RandomForestConfig(numTrees, impurity, maxBins, maxDepth, minInfoGain, subSamplingRate,
-        featureSubsetStrategy)
+      val impurity = generateRandomString("impurity", _treesStringBoundaries)
+      val maxBins = generateRandomInteger("maxBins", _treesNumericBoundaries)
+      val maxDepth = generateRandomInteger("maxDepth", _treesNumericBoundaries)
+      val minInfoGain = generateRandomDouble("minInfoGain", _treesNumericBoundaries)
+      val minInstancesPerNode = generateRandomInteger("minInstancesPerNode", _treesNumericBoundaries)
+
+      iterations += TreesConfig(impurity, maxBins, maxDepth, minInfoGain, minInstancesPerNode)
       i += 1
     } while (i < iterationCount)
 
     iterations.toArray
   }
 
-  private def generateAndScoreRandomForestModel(train: DataFrame, test: DataFrame,
-                                                modelConfig: RandomForestConfig,
-                                                generation: Int = 1): RandomForestModelsWithResults = {
+  private def generateAndScoreTreesModel(train: DataFrame, test: DataFrame,
+                                                modelConfig: TreesConfig,
+                                                generation: Int = 1): TreesModelsWithResults = {
 
-    val randomForestModel = modelDecider(modelConfig)
+    val treesModel = modelDecider(modelConfig)
 
-    val builtModel = randomForestModel.fit(train)
+    val builtModel = treesModel.fit(train)
 
     val predictedData = builtModel.transform(test)
 
@@ -158,24 +143,23 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
         }
     }
 
-    RandomForestModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
+    TreesModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
   }
 
-
-  private def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
+  private def runBattery(battery: Array[TreesConfig], generation: Int = 1): Array[TreesModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
-    val results = new ArrayBuffer[RandomForestModelsWithResults]
+    val results = new ArrayBuffer[TreesModelsWithResults]
     val runs = battery.par
 
     runs.foreach { x =>
 
-      val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
+      val kFoldBuffer = new ArrayBuffer[TreesModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
-        kFoldBuffer += generateAndScoreRandomForestModel(train, test, x)
+        kFoldBuffer += generateAndScoreTreesModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {
@@ -200,7 +184,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       }
 
 
-      val runAvg = RandomForestModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
+      val runAvg = TreesModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
     }
@@ -210,11 +194,11 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     }
   }
 
-  private def irradiateGeneration(parents: Array[RandomForestConfig], mutationCount: Int,
-                          mutationAggression: Int, mutationMagnitude: Double): Array[RandomForestConfig] = {
+  private def irradiateGeneration(parents: Array[TreesConfig], mutationCount: Int,
+                                  mutationAggression: Int, mutationMagnitude: Double): Array[TreesConfig] = {
 
-    val mutationPayload = new ArrayBuffer[RandomForestConfig]
-    val totalConfigs = modelConfigLength[RandomForestConfig]
+    val mutationPayload = new ArrayBuffer[TreesConfig]
+    val totalConfigs = modelConfigLength[TreesConfig]
     val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
     val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation,
@@ -226,55 +210,49 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val mutationIteration = mutationCandidates(i)
       val mutationIndexIteration = mutationIndeces(i)
 
-      mutationPayload += RandomForestConfig(
+      mutationPayload += TreesConfig(
         if (mutationIndexIteration.contains(0)) geneMixing(
-          randomParent.numTrees, mutationIteration.numTrees, mutationMagnitude)
-        else randomParent.numTrees,
-        if (mutationIndexIteration.contains(1)) geneMixing(
           randomParent.impurity, mutationIteration.impurity)
         else randomParent.impurity,
-        if (mutationIndexIteration.contains(2)) geneMixing(
+        if (mutationIndexIteration.contains(1)) geneMixing(
           randomParent.maxBins, mutationIteration.maxBins, mutationMagnitude)
         else randomParent.maxBins,
-        if (mutationIndexIteration.contains(3)) geneMixing(
+        if (mutationIndexIteration.contains(2)) geneMixing(
           randomParent.maxDepth, mutationIteration.maxDepth, mutationMagnitude)
         else randomParent.maxDepth,
-        if (mutationIndexIteration.contains(4)) geneMixing(
+        if (mutationIndexIteration.contains(3)) geneMixing(
           randomParent.minInfoGain, mutationIteration.minInfoGain, mutationMagnitude)
         else randomParent.minInfoGain,
-        if (mutationIndexIteration.contains(5)) geneMixing(
-          randomParent.subSamplingRate, mutationIteration.subSamplingRate, mutationMagnitude)
-        else randomParent.subSamplingRate,
-        if (mutationIndexIteration.contains(6)) geneMixing(
-          randomParent.featureSubsetStrategy, mutationIteration.featureSubsetStrategy)
-        else randomParent.featureSubsetStrategy
+        if (mutationIndexIteration.contains(4)) geneMixing(
+          randomParent.minInstancesPerNode, mutationIteration.minInstancesPerNode, mutationMagnitude)
+        else randomParent.minInstancesPerNode
       )
     }
     mutationPayload.result.toArray
   }
 
-  def generateIdealParents(results: Array[RandomForestModelsWithResults]): Array[RandomForestConfig] = {
-    val bestParents = new ArrayBuffer[RandomForestConfig]
+  def generateIdealParents(results: Array[TreesModelsWithResults]): Array[TreesConfig] = {
+    val bestParents = new ArrayBuffer[TreesConfig]
     results.take(_numberOfParentsToRetain).map(x => {
       bestParents += x.modelHyperParams
     })
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[RandomForestConfig] = None): Array[RandomForestModelsWithResults] = {
+  def evolveParameters(startingSeed: Option[TreesConfig] = None): Array[TreesModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
-    val fossilRecord = new ArrayBuffer[RandomForestModelsWithResults]
+    val fossilRecord = new ArrayBuffer[TreesModelsWithResults]
 
-    val totalConfigs = modelConfigLength[RandomForestConfig]
+    val totalConfigs = modelConfigLength[TreesConfig]
 
     val primordial = startingSeed match {
       case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[RandomForestConfig]
-        generativeArray += startingSeed.asInstanceOf[RandomForestConfig]
+        val generativeArray = new ArrayBuffer[TreesConfig]
+        generativeArray += startingSeed.asInstanceOf[TreesConfig]
         generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[RandomForestConfig]),
+          Array(startingSeed.asInstanceOf[TreesConfig]),
           _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
         runBattery(generativeArray.result.toArray, generation)
       case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
@@ -310,11 +288,11 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     }
   }
 
-  def evolveBest(startingSeed: Option[RandomForestConfig] = None): RandomForestModelsWithResults = {
+  def evolveBest(startingSeed: Option[TreesConfig] = None): TreesModelsWithResults = {
     evolveParameters(startingSeed).head
   }
 
-  def generateScoredDataFrame(results: Array[RandomForestModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(results: Array[TreesModelsWithResults]): DataFrame = {
 
     import spark.sqlContext.implicits._
 
@@ -325,11 +303,10 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[RandomForestConfig] = None):
-  (Array[RandomForestModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(startingSeed: Option[TreesConfig] = None):
+  (Array[TreesModelsWithResults], DataFrame) = {
     val evolutionResults = evolveParameters(startingSeed)
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
 
 }
-

@@ -5,21 +5,21 @@ import com.databricks.spark.automatedml.params._
 trait AutomationConfig extends Defaults {
 
 
-  var _modelingType: String = "RandomForest"
+  var _modelingFamily: String = _defaultModelingFamily
 
-  var _labelCol: String = "label"
+  var _labelCol: String = _defaultLabelCol
 
-  var _featuresCol: String = "features"
+  var _featuresCol: String = _defaultFeaturesCol
 
-  var _naFillFlag: Boolean = true
+  var _naFillFlag: Boolean = _defaultNAFillFlag
 
-  var _varianceFilterFlag: Boolean = true
+  var _varianceFilterFlag: Boolean = _defaultVarianceFilterFlag
 
-  var _outlierFilterFlag: Boolean = true
+  var _outlierFilterFlag: Boolean = _defaultOutlierFilterFlag
 
-  var _pearsonFilterFlag: Boolean = true
+  var _pearsonFilterFlag: Boolean = _defaultPearsonFilterFlag
 
-  var _covarianceFilterFlag: Boolean = true
+  var _covarianceFilterFlag: Boolean = _defaultCovarianceFilterFlag
 
   var _numericBoundaries: Map[String, (Double, Double)] = _rfDefaultNumBoundaries
 
@@ -95,11 +95,14 @@ trait AutomationConfig extends Defaults {
 
   var _mainConfig: MainConfig = _mainConfigDefaults
 
-  def setModelingType(value: String): this.type = {
-    _modelingType = value
+  var _featureImportancesConfig: MainConfig = _featureImportancesDefaults
+
+  def setModelingFamily(value: String): this.type = {
+    _modelingFamily = value
     _numericBoundaries = value match {
       case "RandomForest" => _rfDefaultNumBoundaries
       case "MLPC" => _mlpcDefaultNumBoundaries
+      case "Trees" => _treesDefaultNumBoundaries
       case "GBT" => _gbtDefaultNumBoundaries
       case "LinearRegression" => _linearRegressionDefaultNumBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultNumBoundaries
@@ -109,6 +112,7 @@ trait AutomationConfig extends Defaults {
     _stringBoundaries = value match {
       case "RandomForest" => _rfDefaultStringBoundaries
       case "MLPC" => _mlpcDefaultStringBoundaries
+      case "Trees" => _treesDefaultStringBoundaries
       case "GBT" => _gbtDefaultStringBoundaries
       case "LinearRegression" => _linearRegressionDefaultStringBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultStringBoundaries
@@ -151,6 +155,18 @@ trait AutomationConfig extends Defaults {
 
   def varianceFilterOff(): this.type = {
     _varianceFilterFlag = false
+    setMainConfig()
+    this
+  }
+
+  def outlierFilterOn(): this.type = {
+    _outlierFilterFlag = true
+    setMainConfig()
+    this
+  }
+
+  def outlierFilterOff(): this.type = {
+    _outlierFilterFlag = false
     setMainConfig()
     this
   }
@@ -439,7 +455,7 @@ trait AutomationConfig extends Defaults {
 
   def setMainConfig(): this.type = {
     _mainConfig = MainConfig(
-      modelType = _modelingType,
+      modelFamily = _modelingFamily,
       labelCol = _labelCol,
       featuresCol = _featuresCol,
       naFillFlag = _naFillFlag,
@@ -460,8 +476,17 @@ trait AutomationConfig extends Defaults {
     this
   }
 
+  def setMainConfig(value: MainConfig): this.type = {
+    _mainConfig = value
+    this
+  }
 
-  def getModelingType: String = _modelingType
+  def setFeatConfig(value: MainConfig): this.type = {
+    _featureImportancesConfig = value
+    this
+  }
+
+  def getModelingFamily: String = _modelingFamily
 
   def getLabelCol: String = _labelCol
 
@@ -470,6 +495,12 @@ trait AutomationConfig extends Defaults {
   def getNaFillStatus: Boolean = _naFillFlag
 
   def getVarianceFilterStatus: Boolean = _varianceFilterFlag
+
+  def getOutlierFilterStatus: Boolean = _outlierFilterFlag
+
+  def getPearsonFilterStatus: Boolean = _pearsonFilterFlag
+
+  def getCovarianceFilterStatus: Boolean = _covarianceFilterFlag
 
   def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
 
@@ -540,5 +571,7 @@ trait AutomationConfig extends Defaults {
   def getGeneticConfig: GeneticConfig = _geneticConfig
 
   def getMainConfig: MainConfig = _mainConfig
+
+  def getFeatConfig: MainConfig = _featureImportancesConfig
 
 }

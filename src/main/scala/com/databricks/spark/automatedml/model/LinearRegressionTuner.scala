@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.{LinearRegressionConfig, LinearRegressionModelsWithResults}
+import com.databricks.spark.automatedml.params.{Defaults, LinearRegressionConfig, LinearRegressionModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.regression.LinearRegression
@@ -9,19 +9,12 @@ import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper
+class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defaults
   with Evolution {
 
-  private var _scoringMetric = "rmse"
-  private var _linearRegressionNumericBoundaries = Map(
-    "elasticNetParams" -> Tuple2(0.0, 1.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
-    "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
-  )
-  private var _linearRegressionStringBoundaries = Map(
-    "loss" -> List("squaredError", "huber")
-  )
+  private var _scoringMetric = _scoringDefaultRegressor
+  private var _linearRegressionNumericBoundaries = _linearRegressionDefaultNumBoundaries
+  private var _linearRegressionStringBoundaries = _linearRegressionDefaultStringBoundaries
 
   def setScoringMetric(value: String): this.type = {
     require(regressionMetrics.contains(value),
