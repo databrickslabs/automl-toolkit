@@ -2,13 +2,14 @@ package com.databricks.spark.automatedml.reports
 
 import com.databricks.spark.automatedml.model.RandomForestTuner
 import com.databricks.spark.automatedml.params.{MainConfig, RandomForestModelsWithResults}
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.RandomForestClassificationModel
 import org.apache.spark.ml.regression.RandomForestRegressionModel
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
-class RandomForestFeatureImportance(data: DataFrame, fieldListing: Array[String], featConfig: MainConfig)
-  extends RandomForestTuner(data, featConfig.modelType) {
+class RandomForestFeatureImportance(data: DataFrame, featConfig: MainConfig, modelType: String)
+  extends SparkSessionWrapper{
 
 
   private def generateFrameReport(columns: Array[String], importances: Array[Double]): DataFrame = {
@@ -16,7 +17,7 @@ class RandomForestFeatureImportance(data: DataFrame, fieldListing: Array[String]
     sc.parallelize(columns zip importances).toDF("Columns", "Importances").orderBy($"Importances".desc)
   }
 
-  def runFeatureImportances(modelType: String): (RandomForestModelsWithResults, DataFrame) = {
+  def runFeatureImportances(fields: Array[String]): (RandomForestModelsWithResults, DataFrame) = {
 
     val (modelResults, modelStats) = new RandomForestTuner(data, modelType)
       .setLabelCol(featConfig.labelCol)
@@ -43,11 +44,12 @@ class RandomForestFeatureImportance(data: DataFrame, fieldListing: Array[String]
     val bestModelFeatureImportances = modelType match {
       case "classifier" => bestModelData.model.asInstanceOf[RandomForestClassificationModel].featureImportances.toArray
       case "regressor" => bestModelData.model.asInstanceOf[RandomForestRegressionModel].featureImportances.toArray
-      case _ => throw new UnsupportedOperationException(s"The model type provided, '${featConfig.modelType}', is not supported.")
+      case _ => throw new UnsupportedOperationException(
+        s"The model type provided, '${featConfig.modelFamily}', is not supported.")
     }
 
-    val importances = generateFrameReport(fieldListing, bestModelFeatureImportances)
-      .withColumn("Importances", col("Importances") * 100)
+    val importances = generateFrameReport(fields, bestModelFeatureImportances)
+//      .withColumn("Importances", col("Importances") * 100.0)
       .withColumn("Columns", split(col("Columns"), "_si$")(0))
 
     (modelResults(0), importances)

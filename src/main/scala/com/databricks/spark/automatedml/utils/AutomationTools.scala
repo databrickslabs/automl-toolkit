@@ -4,7 +4,6 @@ import com.databricks.spark.automatedml.params.{GenerationalReport, GenericModel
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.math._
 
 trait AutomationTools extends SparkSessionWrapper {
 

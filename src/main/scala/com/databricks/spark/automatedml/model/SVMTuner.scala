@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.{SVMConfig, SVMModelsWithResults}
+import com.databricks.spark.automatedml.params.{Defaults, SVMConfig, SVMModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.LinearSVC
 import org.apache.spark.ml.evaluation.RegressionEvaluator
@@ -10,15 +10,11 @@ import org.apache.spark.sql.functions.col
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
-class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution {
+class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
 
-  private var _scoringMetric = "rmse"
+  private var _scoringMetric = _scoringDefaultRegressor
 
-  private var _svmNumericBoundaries = Map(
-    "maxIter" -> Tuple2(100.0, 10000.0),
-    "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
-  )
+  private var _svmNumericBoundaries = _svmDefaultNumBoundaries
 
   def setScoringMetric(value: String): this.type = {
     require(regressionMetrics.contains(value), s"Regressor scoring metric '$value' is not a valid member of ${

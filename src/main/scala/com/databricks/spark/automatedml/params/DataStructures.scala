@@ -43,6 +43,14 @@ case class RandomForestConfig(
                                featureSubsetStrategy: String
                              )
 
+case class TreesConfig(
+                        impurity: String,
+                        maxBins: Int,
+                        maxDepth: Int,
+                        minInfoGain: Double,
+                        minInstancesPerNode: Int
+                      )
+
 case class GBTConfig(
                       impurity: String,
                       lossType: String,
@@ -96,6 +104,14 @@ case class RandomForestModelsWithResults(
                                           evalMetrics: Map[String, Double],
                                           generation: Int
                                         )
+
+case class TreesModelsWithResults(
+                                 modelHyperParams: TreesConfig,
+                                 model: Any,
+                                 score: Double,
+                                 evalMetrics: Map[String, Double],
+                                 generation: Int
+                                 )
 
 case class GBTModelsWithResults(
                                  modelHyperParams: GBTConfig,

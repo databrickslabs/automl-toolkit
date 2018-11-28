@@ -8,9 +8,9 @@ import org.apache.spark.sql.functions._
 
 import org.apache.log4j.{Level, Logger}
 
-class Automation() extends AutomationConfig with AutomationTools {
+class Automation extends AutomationConfig with AutomationTools {
 
-  require(_supportedModels.contains(_mainConfig.modelType))
+  require(_supportedModels.contains(_mainConfig.modelFamily))
 
   val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -18,12 +18,14 @@ class Automation() extends AutomationConfig with AutomationTools {
 
     // Print to stdout the filter settings
     println(s"Configuration setting flags: \n NA Fill Flag: ${_naFillFlag.toString} \n " +
-      s"Zero Variance Filter Flag: ${_varianceFilterFlag.toString} \n Covariance Filter Flag: " +
+      s"Zero Variance Filter Flag: ${_varianceFilterFlag.toString} \n  Outlier Filter Flag: " +
+      s"${_outlierFilterFlag.toString}\n Covariance Filter Flag: " +
       s"${_covarianceFilterFlag.toString} \n Pearson Filter Flag: ${_pearsonFilterFlag.toString}")
 
     // Log the data Prep settings
     logger.log(Level.INFO, s"NA Fill Flag: ${_naFillFlag.toString}")
     logger.log(Level.INFO, s"Zero Variance Filter Flag: ${_varianceFilterFlag.toString}")
+    logger.log(Level.INFO, s"Outlier Filter Flag: ${_outlierFilterFlag.toString}")
     logger.log(Level.INFO, s"Covariance Filter Flag: ${_covarianceFilterFlag.toString}")
     logger.log(Level.INFO, s"Pearson Filter Flag: ${_pearsonFilterFlag.toString}")
 

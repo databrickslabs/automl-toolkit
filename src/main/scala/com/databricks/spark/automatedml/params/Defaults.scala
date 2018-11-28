@@ -4,6 +4,7 @@ trait Defaults {
 
   final val _supportedModels: Array[String] = Array(
     "GBT",
+    "Trees",
     "RandomForest",
     "LinearRegression",
     "LogisticRegression",
@@ -11,7 +12,23 @@ trait Defaults {
     "SVM"
   )
 
-  val _geneticTunerDefaults = GeneticConfig(
+  def _defaultModelingFamily: String = "RandomForest"
+
+  def _defaultLabelCol: String = "label"
+
+  def _defaultFeaturesCol: String = "features"
+
+  def _defaultNAFillFlag: Boolean = true
+
+  def _defaultVarianceFilterFlag: Boolean = true
+
+  def _defaultOutlierFilterFlag: Boolean = true
+
+  def _defaultPearsonFilterFlag: Boolean = true
+
+  def _defaultCovarianceFilterFlag: Boolean = true
+
+  def _geneticTunerDefaults = GeneticConfig(
     kFold = 5,
     trainPortion = 0.8,
     seed = 42L,
@@ -25,13 +42,13 @@ trait Defaults {
     mutationMagnitudeMode = "fixed"
   )
 
-  val _fillConfigDefaults = FillConfig(
+  def _fillConfigDefaults = FillConfig(
     numericFillStat = "mean",
     characterFillStat = "max",
     modelSelectionDistinctThreshold = 10
   )
 
-  val _outlierConfigDefaults = OutlierConfig(
+  def _outlierConfigDefaults = OutlierConfig(
     filterBounds = "both",
     lowerFilterNTile = 0.02,
     upperFilterNTile = 0.98,
@@ -40,7 +57,7 @@ trait Defaults {
     fieldsToIgnore = Array("")
   )
 
-  val _pearsonConfigDefaults = PearsonConfig(
+  def _pearsonConfigDefaults = PearsonConfig(
     filterStatistic = "pearsonStat",
     filterDirection = "greater",
     filterManualValue = 0.0,
@@ -48,12 +65,12 @@ trait Defaults {
     autoFilterNTile = 0.75
   )
 
-  val _covarianceConfigDefaults = CovarianceConfig(
+  def _covarianceConfigDefaults = CovarianceConfig(
     correlationCutoffLow = -0.8,
     correlationCutoffHigh = 0.8
   )
 
-  val _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+  def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "numTrees" -> Tuple2(50.0, 1000.0),
     "maxBins" -> Tuple2(10.0, 100.0),
     "maxDepth" -> Tuple2(2.0, 20.0),
@@ -61,12 +78,23 @@ trait Defaults {
     "subSamplingRate" -> Tuple2(0.5, 1.0)
   )
 
-  val _rfDefaultStringBoundaries = Map(
+  def _rfDefaultStringBoundaries = Map(
     "impurity" -> List("gini", "entropy"),
     "featureSubsetStrategy" -> List("all", "sqrt", "log2", "onethird")
   )
 
-  val _mlpcDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+  def _treesDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "maxBins" -> Tuple2(10.0, 100.0),
+    "maxDepth" -> Tuple2(2.0, 20.0),
+    "minInfoGain" -> Tuple2(0.0, 1.0),
+    "minInstancesPerNode" -> Tuple2(1.0, 50.0)
+  )
+
+  def _treesDefaultStringBoundaries: Map[String, List[String]] = Map(
+    "impurity" -> List("gini", "entropy")
+  )
+
+  def _mlpcDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "layers" -> Tuple2(1.0, 10.0),
     "maxIter" -> Tuple2(10.0, 100.0),
     "stepSize" -> Tuple2(0.01, 1.0),
@@ -74,11 +102,11 @@ trait Defaults {
     "hiddenLayerSizeAdjust" -> Tuple2(0.0, 50.0)
   )
 
-  val _mlpcDefaultStringBoundaries: Map[String, List[String]] = Map(
+  def _mlpcDefaultStringBoundaries: Map[String, List[String]] = Map(
     "solver" -> List("gd", "l-bfgs")
   )
 
-  val _gbtDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+  def _gbtDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "maxBins" -> Tuple2(10.0, 100.0),
     "maxIter" -> Tuple2(10.0, 100.0),
     "maxDepth" -> Tuple2(2.0, 20.0),
@@ -87,47 +115,47 @@ trait Defaults {
     "stepSize" -> Tuple2(1E-4, 1.0)
   )
 
-  val _gbtDefaultStringBoundaries: Map[String, List[String]] = Map(
+  def _gbtDefaultStringBoundaries: Map[String, List[String]] = Map(
     "impurity" -> List("gini", "entropy"),
     "lossType" -> List("logistic")
   )
 
-  val _linearRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map (
+  def _linearRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map (
     "elasticNetParams" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
     "tol" -> Tuple2(1E-9, 1E-5)
   )
-  val _linearRegressionDefaultStringBoundaries: Map[String, List[String]] = Map (
+  def _linearRegressionDefaultStringBoundaries: Map[String, List[String]] = Map (
     "loss" -> List("squaredError", "huber")
   )
-  val _logisticRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+  def _logisticRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "elasticNetParam" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
     "tol" -> Tuple2(1E-9, 1E-5)
   )
-  val _logisticRegressionDefaultStringBoundaries: Map[String, List[String]] = Map(
+  def _logisticRegressionDefaultStringBoundaries: Map[String, List[String]] = Map(
     "" -> List("")
   )
-  val _svmDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+  def _svmDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
     "tol" -> Tuple2(1E-9, 1E-5)
   )
-  val _svmDefaultStringBoundaries: Map[String, List[String]] = Map(
+  def _svmDefaultStringBoundaries: Map[String, List[String]] = Map(
     "" -> List("")
   )
 
-  val _scoringDefaultClassifier = "f1"
-  val _scoringOptimizationStrategyClassifier = "maximize"
-  val _scoringDefaultRegressor = "rmse"
-  val _scoringOptimizationStrategyRegressor = "minimize"
+  def _scoringDefaultClassifier = "f1"
+  def _scoringOptimizationStrategyClassifier = "maximize"
+  def _scoringDefaultRegressor = "rmse"
+  def _scoringOptimizationStrategyRegressor = "minimize"
 
-  val _modelTypeDefault = "RandomForest"
+  def _modelTypeDefault = "RandomForest"
 
-  val _mainConfigDefaults = MainConfig(
-    modelType = _modelTypeDefault,
+  def _mainConfigDefaults = MainConfig(
+    modelFamily = _modelTypeDefault,
     labelCol = "label",
     featuresCol = "features",
     naFillFlag = true,
@@ -146,15 +174,15 @@ trait Defaults {
     geneticConfig = _geneticTunerDefaults
   )
 
-  val _featureImportancesDefaults = MainConfig(
-    modelType = "RandomForest",
+  def _featureImportancesDefaults = MainConfig(
+    modelFamily = "RandomForest",
     labelCol = "label",
     featuresCol = "features",
     naFillFlag = true,
     varianceFilterFlag = true,
-    outlierFilterFlag = true,
-    pearsonFilteringFlag = true,
-    covarianceFilteringFlag = true,
+    outlierFilterFlag = false,
+    pearsonFilteringFlag = false,
+    covarianceFilteringFlag = false,
     numericBoundaries = _rfDefaultNumBoundaries,
     stringBoundaries = _rfDefaultStringBoundaries,
     scoringMetric = _scoringDefaultClassifier,
@@ -164,13 +192,13 @@ trait Defaults {
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
     geneticConfig = GeneticConfig(
-      kFold = 3,
+      kFold = 1,
       trainPortion = 0.8,
       seed = 42L,
-      firstGenerationGenePool = 6,
-      numberOfGenerations = 3,
-      numberOfParentsToRetain = 1,
-      numberOfMutationsPerGeneration = 6,
+      firstGenerationGenePool = 25,
+      numberOfGenerations = 20,
+      numberOfParentsToRetain = 2,
+      numberOfMutationsPerGeneration = 10,
       geneticMixing = 0.7,
       generationalMutationStrategy = "linear",
       fixedMutationValue = 1,

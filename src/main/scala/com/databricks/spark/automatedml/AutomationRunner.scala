@@ -1,26 +1,16 @@
 package com.databricks.spark.automatedml
 
 import com.databricks.spark.automatedml.executor.Automation
-import com.databricks.spark.automatedml.model.{GBTreesTuner, MLPCTuner, RandomForestTuner}
+import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.RandomForestFeatureImportance
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
-class AutomationRunner() extends Automation {
+class AutomationRunner(df: DataFrame) extends Automation {
 
-  //_mainConfig = getMainConfig //TODO: this probably isn't needed.
-
-  //TODO: validation checks for type of model selected and the model's capabilities (i.e. don't try to use a classifier
-  //if the model type doesn't support it)
-
-  //TODO: this needs to override the numeric and string configs for Regression vs Classification!!!!
-
-
-
-
-  private def runRandomForest(df: DataFrame): (Array[RandomForestModelsWithResults], DataFrame, String) = {
+  private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String) = {
 
     val (data, fields, modelSelection) = dataPrep(df)
 
@@ -46,39 +36,42 @@ class AutomationRunner() extends Automation {
       .evolveWithScoringDF()
 
     (modelResults, modelStats, modelSelection)
-
   }
 
-  private def runMLPC(df: DataFrame): (Array[MLPCModelsWithResults], DataFrame, String) = {
+  private def runMLPC(): (Array[MLPCModelsWithResults], DataFrame, String) = {
 
     val (data, fields, modelSelection) = dataPrep(df)
 
-    val (modelResults, modelStats) = new MLPCTuner(data)
-      .setLabelCol(_mainConfig.labelCol)
-      .setFeaturesCol(_mainConfig.featuresCol)
-      .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
-      .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
-      .setScoringMetric(_mainConfig.scoringMetric)
-      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-      .setKFold(_mainConfig.geneticConfig.kFold)
-      .setSeed(_mainConfig.geneticConfig.seed)
-      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
-      .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
-      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
-      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
-      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
-      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
-      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
-      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
-      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
-      .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
-      .evolveWithScoringDF()
+    modelSelection match {
+      case "classifier" =>
+        val (modelResults, modelStats) = new MLPCTuner(data)
+          .setLabelCol(_mainConfig.labelCol)
+          .setFeaturesCol(_mainConfig.featuresCol)
+          .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
+          .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
+          .setScoringMetric(_mainConfig.scoringMetric)
+          .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setKFold(_mainConfig.geneticConfig.kFold)
+          .setSeed(_mainConfig.geneticConfig.seed)
+          .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+          .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+          .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+          .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+          .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+          .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+          .evolveWithScoringDF()
 
-    (modelResults, modelStats, modelSelection)
+        (modelResults, modelStats, modelSelection)
+      case _ => throw new UnsupportedOperationException(
+        s"Detected Model Type $modelSelection is not supported by MultiLayer Perceptron Classifier")
+    }
   }
 
-
-  private def runGBT(df: DataFrame): (Array[GBTModelsWithResults], DataFrame, String) = {
+  private def runGBT(): (Array[GBTModelsWithResults], DataFrame, String) = {
 
     val (data, fields, modelSelection) = dataPrep(df)
 
@@ -106,23 +99,155 @@ class AutomationRunner() extends Automation {
     (modelResults, modelStats, modelSelection)
   }
 
-  //TODO: Generation median, average, and stddev for scoring. (Help with full model search decision making)
+  private def runLinearRegression(): (Array[LinearRegressionModelsWithResults], DataFrame, String) = {
 
-  def extractFeatureImportances(df: DataFrame): (RandomForestModelsWithResults, DataFrame) = {
+    val (data, fields, modelSelection) = dataPrep(df)
 
-    val (data, fields, modelType) = dataPrep(df)
+    modelSelection match {
+      case "regressor" =>
+        val (modelResults, modelStats) = new LinearRegressionTuner(data)
+          .setLabelCol(_mainConfig.labelCol)
+          .setFeaturesCol(_mainConfig.featuresCol)
+          .setLinearRegressionNumericBoundaries(_mainConfig.numericBoundaries)
+          .setLinearRegressionStringBoundaries(_mainConfig.stringBoundaries)
+          .setScoringMetric(_mainConfig.scoringMetric)
+          .setScoringMetric(_mainConfig.scoringMetric)
+          .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setKFold(_mainConfig.geneticConfig.kFold)
+          .setSeed(_mainConfig.geneticConfig.seed)
+          .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+          .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+          .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+          .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+          .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+          .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+          .evolveWithScoringDF()
 
-    new RandomForestFeatureImportance(data, fields, _featureImportanceConfig).runFeatureImportances(modelType)
+        (modelResults, modelStats, modelSelection)
+      case _ => throw new UnsupportedOperationException(
+        s"Detected Model Type $modelSelection is not supported by Linear Regression")
+    }
 
   }
 
-  def run(data: DataFrame): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+  private def runLogisticRegression(): (Array[LogisticRegressionModelsWithResults], DataFrame,  String) = {
+
+    val (data, fields, modelSelection) = dataPrep(df)
+
+    modelSelection match {
+      case "classifier" =>
+        val (modelResults, modelStats) = new LogisticRegressionTuner(data)
+          .setLabelCol(_mainConfig.labelCol)
+          .setFeaturesCol(_mainConfig.featuresCol)
+          .setLogisticRegressionNumericBoundaries(_mainConfig.numericBoundaries)
+          .setScoringMetric(_mainConfig.scoringMetric)
+          .setScoringMetric(_mainConfig.scoringMetric)
+          .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setKFold(_mainConfig.geneticConfig.kFold)
+          .setSeed(_mainConfig.geneticConfig.seed)
+          .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+          .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+          .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+          .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+          .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+          .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+          .evolveWithScoringDF()
+
+        (modelResults, modelStats, modelSelection)
+      case _ => throw new UnsupportedOperationException(
+        s"Detected Model Type $modelSelection is not supported by Logistic Regression")
+    }
+
+  }
+
+  private def runSVM(): (Array[SVMModelsWithResults], DataFrame, String) = {
+
+    val (data, fields, modelSelection) = dataPrep(df)
+
+    modelSelection match {
+      case "classifier" =>
+        val (modelResults, modelStats) = new SVMTuner(data)
+          .setLabelCol(_mainConfig.labelCol)
+          .setFeaturesCol(_mainConfig.featuresCol)
+          .setSvmNumericBoundaries(_mainConfig.numericBoundaries)
+          .setScoringMetric(_mainConfig.scoringMetric)
+          .setScoringMetric(_mainConfig.scoringMetric)
+          .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setKFold(_mainConfig.geneticConfig.kFold)
+          .setSeed(_mainConfig.geneticConfig.seed)
+          .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+          .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+          .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+          .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+          .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+          .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+          .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+          .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+          .evolveWithScoringDF()
+
+        (modelResults, modelStats, modelSelection)
+      case _ => throw new UnsupportedOperationException(
+        s"Detected Model Type $modelSelection is not supported by Support Vector Machines")
+    }
+  }
+
+ private def runTrees(): (Array[TreesModelsWithResults], DataFrame, String) = {
+
+   val (data, fields, modelSelection) = dataPrep(df)
+
+   val (modelResults, modelStats) = new DecisionTreeTuner(data, modelSelection)
+     .setLabelCol(_mainConfig.labelCol)
+     .setFeaturesCol(_mainConfig.featuresCol)
+     .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
+     .setTreesStringBoundaries(_mainConfig.stringBoundaries)
+     .setScoringMetric(_mainConfig.scoringMetric)
+     .setScoringMetric(_mainConfig.scoringMetric)
+     .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+     .setKFold(_mainConfig.geneticConfig.kFold)
+     .setSeed(_mainConfig.geneticConfig.seed)
+     .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+     .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+     .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+     .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+     .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+     .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+     .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+     .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+     .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+     .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+     .evolveWithScoringDF()
+
+   (modelResults, modelStats, modelSelection)
+ }
+
+  //TODO: FIX THIS.
+  def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame) = {
+
+    val (data, fields, modelType) = dataPrep(df)
+
+    new RandomForestFeatureImportance(data, _featureImportancesConfig, modelType).runFeatureImportances(fields)
+
+  }
+
+  //TODO: def generateDecisionSplits()
+
+  def run(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
 
-    val (resultArray, modelStats, modelSelection) = _mainConfig.modelType match {
+    val (resultArray, modelStats, modelSelection) = _mainConfig.modelFamily match {
       case "RandomForest" =>
-        val (results, stats, selection) = runRandomForest(data)
+        val (results, stats, selection) = runRandomForest()
         results.foreach{ x=>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -134,7 +259,7 @@ class AutomationRunner() extends Automation {
         }
         (genericResults, stats, selection)
       case "GBT" =>
-        val (results, stats, selection) = runGBT(data)
+        val (results, stats, selection) = runGBT()
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -146,7 +271,55 @@ class AutomationRunner() extends Automation {
         }
         (genericResults, stats, selection)
       case "MLPC" =>
-        val (results, stats, selection) = runMLPC(data)
+        val (results, stats, selection) = runMLPC()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection)
+      case "LinearRegression" =>
+        val (results, stats, selection) = runLinearRegression()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection)
+      case "LogisticRegression" =>
+        val (results, stats, selection) = runLogisticRegression()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection)
+      case "SVM" =>
+        val (results, stats, selection) = runSVM()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection)
+      case "Trees" =>
+        val (results, stats, selection) = runTrees()
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -159,19 +332,9 @@ class AutomationRunner() extends Automation {
         (genericResults, stats, selection)
     }
 
-//    resultArray.foreach{ x=>
-//      genericResults += GenericModelReturn(
-//        hyperParams = extractPayload(x.modelHyperParams),
-//        model = x.model,
-//        score = x.score,
-//        metrics = x.evalMetrics,
-//        generation = x.generation
-//      )
-//    }
-    //TODO: generation report
     val genericResultData = genericResults.result.toArray
     val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
-      _mainConfig.modelType, modelSelection)
+      _mainConfig.modelFamily, modelSelection)
 
   (genericResults.result.toArray, generationalData, modelStats, generationDataFrameReport(generationalData,
     _mainConfig.scoringOptimizationStrategy))

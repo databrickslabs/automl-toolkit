@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.{LogisticRegressionConfig, LogisticRegressionModelsWithResults}
+import com.databricks.spark.automatedml.params.{Defaults, LogisticRegressionConfig, LogisticRegressionModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
@@ -9,17 +9,12 @@ import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper
+class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defaults
   with Evolution {
 
-  private var _scoringMetric = "f1"
+  private var _scoringMetric = _scoringDefaultClassifier
 
-  private var _logisticRegressionNumericBoundaries = Map(
-    "elasticNetParam" -> Tuple2(0.0, 1.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
-    "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
-  )
+  private var _logisticRegressionNumericBoundaries = _logisticRegressionDefaultNumBoundaries
 
   def setScoringMetric(value: String): this.type = {
     require(classificationMetrics.contains(value),

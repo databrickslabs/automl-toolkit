@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.{MLPCConfig, MLPCModelsWithResults}
+import com.databricks.spark.automatedml.params.{Defaults, MLPCConfig, MLPCModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
@@ -11,21 +11,13 @@ import org.apache.spark.sql.functions.col
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
-class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution {
+class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
 
-  private var _scoringMetric = "f1"
+  private var _scoringMetric = _scoringDefaultClassifier
 
-  private var _mlpcNumericBoundaries = Map(
-    "layers" -> Tuple2(1.0, 10.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
-    "stepSize" -> Tuple2(0.01, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5),
-    "hiddenLayerSizeAdjust" -> Tuple2(0.0, 50.0)
-  )
+  private var _mlpcNumericBoundaries = _mlpcDefaultNumBoundaries
 
-  private var _mlpcStringBoundaries = Map(
-    "solver" -> List("gd", "l-bfgs")
-  )
+  private var _mlpcStringBoundaries = _mlpcDefaultStringBoundaries
 
   final private val featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
   final private val classDistinctCount = df.select(_labelCol).distinct().count().toInt
