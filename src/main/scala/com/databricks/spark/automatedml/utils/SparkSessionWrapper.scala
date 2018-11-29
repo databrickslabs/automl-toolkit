@@ -3,7 +3,7 @@ package com.databricks.spark.automatedml.utils
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SparkSession
 
-trait SparkSessionWrapper {
+trait SparkSessionWrapper extends Serializable {
 
   lazy val spark: SparkSession = SparkSession
     .builder()

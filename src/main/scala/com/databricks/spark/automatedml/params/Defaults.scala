@@ -206,5 +206,36 @@ trait Defaults {
     )
   )
 
+  def _treeSplitDefaults =  MainConfig(
+    modelFamily = "Trees",
+    labelCol = "label",
+    featuresCol = "features",
+    naFillFlag = true,
+    varianceFilterFlag = true,
+    outlierFilterFlag = false,
+    pearsonFilteringFlag = false,
+    covarianceFilteringFlag = false,
+    numericBoundaries = _treesDefaultNumBoundaries,
+    stringBoundaries = _treesDefaultStringBoundaries,
+    scoringMetric = _scoringDefaultClassifier,
+    scoringOptimizationStrategy = _scoringOptimizationStrategyClassifier,
+    fillConfig = _fillConfigDefaults,
+    outlierConfig = _outlierConfigDefaults,
+    pearsonConfig = _pearsonConfigDefaults,
+    covarianceConfig = _covarianceConfigDefaults,
+    geneticConfig = GeneticConfig(
+      kFold = 1,
+      trainPortion = 0.8,
+      seed = 42L,
+      firstGenerationGenePool = 25,
+      numberOfGenerations = 20,
+      numberOfParentsToRetain = 2,
+      numberOfMutationsPerGeneration = 10,
+      geneticMixing = 0.7,
+      generationalMutationStrategy = "linear",
+      fixedMutationValue = 1,
+      mutationMagnitudeMode = "fixed"
+    )
+  )
 
 }
