@@ -340,6 +340,9 @@ class AutomationRunner(df: DataFrame) extends Automation {
     _mainConfig.scoringOptimizationStrategy))
   }
 
+  //TODO: add a generational runner to find the best model in a modelType (classification / regression)
+  //TODO: this will require a new configuration methodology (generationalRunnerConfig) that has all of the families
+  //TODO: default configs within it. with setters to override individual parts.  Might want to make it its own class.
 }
 
 
