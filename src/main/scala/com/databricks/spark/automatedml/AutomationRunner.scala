@@ -4,8 +4,6 @@ import com.databricks.spark.automatedml.executor.Automation
 import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
-import org.apache.spark.ml.classification.DecisionTreeClassificationModel
-import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
@@ -23,6 +21,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
       .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setKFold(_mainConfig.geneticConfig.kFold)
       .setSeed(_mainConfig.geneticConfig.seed)
       .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -53,6 +52,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
           .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
           .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -84,6 +84,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
       .setGBTStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setKFold(_mainConfig.geneticConfig.kFold)
       .setSeed(_mainConfig.geneticConfig.seed)
       .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -115,6 +116,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
           .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -149,6 +151,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
           .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -183,6 +186,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
           .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -215,6 +219,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
      .setScoringMetric(_mainConfig.scoringMetric)
      .setScoringMetric(_mainConfig.scoringMetric)
      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+     .setParallelism(_mainConfig.geneticConfig.parallelism)
      .setKFold(_mainConfig.geneticConfig.kFold)
      .setSeed(_mainConfig.geneticConfig.seed)
      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)

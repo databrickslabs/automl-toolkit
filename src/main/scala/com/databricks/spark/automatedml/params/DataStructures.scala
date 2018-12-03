@@ -3,13 +3,6 @@ package com.databricks.spark.automatedml.params
 import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.regression.LinearRegressionModel
 
-
-//TODO: add in ability to do Bayesian hyperparameter search for large data sets
-//TODO: add in time logging based on each model's runtime to each case class for ModelsWithResults
-//TODO: main entry points, main runner object
-//TODO: split out each core functionality package to its own directory
-
-
 case class PearsonPayload(
                            fieldName: String,
                            pvalue: Double,

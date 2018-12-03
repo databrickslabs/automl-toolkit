@@ -9,9 +9,11 @@ import scala.reflect.runtime.universe._
 
 trait Evolution extends DataValidation {
 
+  // TODO: move all / most of these over to configuration defaults?
   var _labelCol = "label"
   var _featureCol = "features"
   var _trainPortion = 0.8
+  var _parallelism = 20
   var _kFold = 3
   var _seed = 42L
   var _kFoldIteratorRange: scala.collection.parallel.immutable.ParRange = Range(0, _kFold).par
@@ -49,6 +51,13 @@ trait Evolution extends DataValidation {
   def setTrainPortion(value: Double): this.type = {
     require(value < 1.0 & value > 0.0, "Training portion must be in the range > 0 and < 1")
     this._trainPortion = value
+    this
+  }
+
+  def setParallelism(value: Int): this.type = {
+    //TODO: SET PARALLELISM VALIDATION CORRECTLY
+    require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
+    this._parallelism = value
     this
   }
 
@@ -139,6 +148,8 @@ trait Evolution extends DataValidation {
 
   def getTrainPortion: Double = _trainPortion
 
+  def getParallelism: Int = _parallelism
+
   def getKFold: Int = _kFold
 
   def getSeed: Long = _seed
@@ -161,6 +172,7 @@ trait Evolution extends DataValidation {
 
   def getFixedMutationValue: Int = _fixedMutationValue
 
+  def totalModels: Int = (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool
 
   def modelConfigLength[T: TypeTag]: Int = {
     typeOf[T].members.collect {
@@ -288,6 +300,18 @@ trait Evolution extends DataValidation {
     val sizeAdjustMix = geneMixing(parentMagnitude, childMagnidue, parentMutationPercentage)
 
     buildLayerArray(staticStart, staticEnd, hiddenLayerMix, sizeAdjustMix)
+
+  }
+
+  def calculateModelingFamilyRemainingTime(currentGen: Int, currentModel: Int): Double = {
+
+    val modelsComplete = if (currentGen == 1) {
+      currentModel
+    } else {
+      _firstGenerationGenePool + (_numberOfMutationsPerGeneration * (currentGen - 2) + currentModel)
+    }
+
+    (modelsComplete.toDouble / totalModels.toDouble) * 100
 
   }
 

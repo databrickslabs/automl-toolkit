@@ -49,6 +49,7 @@ case class CovarianceConfig(
                            )
 
 case class GeneticConfig(
+                          parallelism: Int,
                           kFold: Int,
                           trainPortion: Double,
                           seed: Long,

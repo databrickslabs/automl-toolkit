@@ -4,14 +4,19 @@ import com.databricks.spark.automatedml.params.{Defaults, MLPCConfig, MLPCModels
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.ml.linalg.{DenseVector, SparseVector}
+import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
+import org.apache.log4j.{Level, Logger}
 
 class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
+
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   private var _scoringMetric = _scoringDefaultClassifier
 
@@ -101,10 +106,20 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
-    val results = new ArrayBuffer[MLPCModelsWithResults]
+    @volatile var results = new ArrayBuffer[MLPCModelsWithResults]
+    @volatile var modelCnt = 0
     val runs = battery.par
+    runs.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+
+    val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
+      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+
+    println(currentStatus)
+    logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
+      val runId = java.util.UUID.randomUUID()
+      println(s"Starting run $runId with Params: ${x.toString}")
 
       val kFoldBuffer = new ArrayBuffer[MLPCModelsWithResults]
 
@@ -126,7 +141,14 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       val runAvg = MLPCModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
-
+      modelCnt += 1
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
+      val progressStatement = f"\t\t Current modeling progress complete in family: ${
+        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      println(runScoreStatement)
+      println(progressStatement)
+      logger.log(Level.INFO, runScoreStatement)
+      logger.log(Level.INFO, progressStatement)
     }
     _optimizationStrategy match {
       case "minimize" => results.toArray.sortWith(_.score < _.score)
