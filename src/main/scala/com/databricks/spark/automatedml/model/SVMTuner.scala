@@ -8,9 +8,14 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
+import org.apache.log4j.{Level, Logger}
 
 class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
+
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   private var _scoringMetric = _scoringDefaultRegressor
 
@@ -82,10 +87,20 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
-    val results = new ArrayBuffer[SVMModelsWithResults]
+    @volatile var results = new ArrayBuffer[SVMModelsWithResults]
+    @volatile var modelCnt = 0
     val runs = battery.par
+    runs.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+
+    val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
+      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+
+    println(currentStatus)
+    logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
+      val runId = java.util.UUID.randomUUID()
+      println(s"Starting run $runId with Params: ${x.toString}")
 
       val kFoldBuffer = new ArrayBuffer[SVMModelsWithResults]
 
@@ -107,7 +122,14 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       val runAvg = SVMModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
-
+      modelCnt += 1
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
+      val progressStatement = f"\t\t Current modeling progress complete in family: ${
+        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      println(runScoreStatement)
+      println(progressStatement)
+      logger.log(Level.INFO, runScoreStatement)
+      logger.log(Level.INFO, progressStatement)
     }
     _optimizationStrategy match {
       case "minimize" => results.toArray.sortWith(_.score < _.score)

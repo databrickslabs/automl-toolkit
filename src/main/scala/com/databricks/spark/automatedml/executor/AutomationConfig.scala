@@ -69,6 +69,8 @@ trait AutomationConfig extends Defaults {
 
   var _covarianceConfig: CovarianceConfig = _covarianceConfigDefaults
 
+  var _parallelism: Int = _geneticTunerDefaults.parallelism
+
   var _kFold: Int = _geneticTunerDefaults.kFold
 
   var _trainPortion: Double = _geneticTunerDefaults.trainPortion
@@ -361,6 +363,15 @@ trait AutomationConfig extends Defaults {
     this
   }
 
+  def setParallelism(value: Integer): this.type = {
+    //TODO: FIND OUT WHAT THIS RESTRICTION NEEDS TO BE FOR PARALLELISM.
+    require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
+    _parallelism = value
+    setGeneticConfig()
+    setMainConfig()
+    this
+  }
+
   def setKFold(value: Integer): this.type = {
     _kFold = value
     setGeneticConfig()
@@ -440,6 +451,7 @@ trait AutomationConfig extends Defaults {
 
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
+      parallelism = _parallelism,
       kFold = _kFold,
       trainPortion = _trainPortion,
       seed = _seed,
@@ -552,6 +564,8 @@ trait AutomationConfig extends Defaults {
   def getCorrelationCutoffHigh: Double = _correlationCutoffHigh
 
   def getCovarianceConfig: CovarianceConfig = _covarianceConfig
+
+  def getParallelism: Int = _parallelism
 
   def getKFold: Int = _kFold
 

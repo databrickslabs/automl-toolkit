@@ -29,6 +29,7 @@ trait Defaults {
   def _defaultCovarianceFilterFlag: Boolean = true
 
   def _geneticTunerDefaults = GeneticConfig(
+    parallelism = 20,
     kFold = 5,
     trainPortion = 0.8,
     seed = 42L,
@@ -192,6 +193,7 @@ trait Defaults {
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
     geneticConfig = GeneticConfig(
+      parallelism = 20,
       kFold = 1,
       trainPortion = 0.8,
       seed = 42L,
@@ -224,6 +226,7 @@ trait Defaults {
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
     geneticConfig = GeneticConfig(
+      parallelism = 20,
       kFold = 1,
       trainPortion = 0.8,
       seed = 42L,

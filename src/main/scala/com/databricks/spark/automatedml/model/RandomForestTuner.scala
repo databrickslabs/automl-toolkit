@@ -9,12 +9,18 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.parallel.ForkJoinTaskSupport
 
-//TODO: change the par mapping to proper thread pooling?
+import scala.concurrent.forkjoin.ForkJoinPool
+
+import org.apache.log4j.{Level, Logger}
+
 //TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
 
 class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
   with Evolution with Defaults {
+
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   private var _scoringMetric = modelSelection match {
     case "regressor" => "rmse"
@@ -161,15 +167,26 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     RandomForestModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
   }
 
-
   private def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
-    val results = new ArrayBuffer[RandomForestModelsWithResults]
+    @volatile var results = new ArrayBuffer[RandomForestModelsWithResults]
+    @volatile var modelCnt = 0
     val runs = battery.par
+    runs.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+
+    val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
+      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+
+    println(currentStatus)
+    logger.log(Level.INFO, currentStatus)
+
+    //TODO: error handling in these Futures.  Wrap in a try/catch to force the stack trace.
 
     runs.foreach { x =>
+      val runId = java.util.UUID.randomUUID()
+      println(s"Starting run $runId with Params: ${x.toString}")
 
       val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
 
@@ -203,6 +220,14 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val runAvg = RandomForestModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
+      modelCnt += 1
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
+      val progressStatement = f"\t\t Current modeling progress complete in family: ${
+        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      println(runScoreStatement)
+      println(progressStatement)
+      logger.log(Level.INFO, runScoreStatement)
+      logger.log(Level.INFO, progressStatement)
     }
     _optimizationStrategy match {
       case "minimize" => results.toArray.sortWith(_.score < _.score)
