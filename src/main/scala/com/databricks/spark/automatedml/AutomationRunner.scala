@@ -3,7 +3,9 @@ package com.databricks.spark.automatedml
 import com.databricks.spark.automatedml.executor.Automation
 import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
-import com.databricks.spark.automatedml.reports.RandomForestFeatureImportance
+import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
+import org.apache.spark.ml.classification.DecisionTreeClassificationModel
+import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
@@ -230,7 +232,8 @@ class AutomationRunner(df: DataFrame) extends Automation {
    (modelResults, modelStats, modelSelection)
  }
 
-  //TODO: FIX THIS.
+  //TODO: have all of the return types return a case class instance to allow for single variable returns and positional notation to extract the data!!
+
   def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame) = {
 
     val (data, fields, modelType) = dataPrep(df)
@@ -239,7 +242,13 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   }
 
-  //TODO: def generateDecisionSplits()
+  def generateDecisionSplits(): (String, DataFrame, Any) = {
+
+    val (data, fields, modelType) = dataPrep(df)
+
+    new DecisionTreeSplits(data, _treeSplitsConfig, modelType).runTreeSplitAnalysis(fields)
+
+  }
 
   def run(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
 
@@ -340,6 +349,9 @@ class AutomationRunner(df: DataFrame) extends Automation {
     _mainConfig.scoringOptimizationStrategy))
   }
 
+  //TODO: add a generational runner to find the best model in a modelType (classification / regression)
+  //TODO: this will require a new configuration methodology (generationalRunnerConfig) that has all of the families
+  //TODO: default configs within it. with setters to override individual parts.  Might want to make it its own class.
 }
 
 

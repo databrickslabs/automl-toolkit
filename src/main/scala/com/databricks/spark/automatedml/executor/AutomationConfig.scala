@@ -97,6 +97,8 @@ trait AutomationConfig extends Defaults {
 
   var _featureImportancesConfig: MainConfig = _featureImportancesDefaults
 
+  var _treeSplitsConfig: MainConfig = _treeSplitDefaults
+
   def setModelingFamily(value: String): this.type = {
     _modelingFamily = value
     _numericBoundaries = value match {
@@ -486,6 +488,11 @@ trait AutomationConfig extends Defaults {
     this
   }
 
+  def setTreeSplitsConfig(value: MainConfig): this.type = {
+    _treeSplitsConfig = value
+    this
+  }
+
   def getModelingFamily: String = _modelingFamily
 
   def getLabelCol: String = _labelCol
@@ -574,4 +581,5 @@ trait AutomationConfig extends Defaults {
 
   def getFeatConfig: MainConfig = _featureImportancesConfig
 
+  def getTreeSplitsConfig: MainConfig = _treeSplitsConfig
 }
