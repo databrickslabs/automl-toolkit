@@ -53,6 +53,7 @@ class Automation extends AutomationConfig with AutomationTools {
     // Variance Filtering
     val varianceFiltering = new VarianceFiltering(filledData)
       .setLabelCol(_mainConfig.labelCol)
+      .setFeatureCol(_mainConfig.featuresCol)
 
     val varianceFilteredData = if (_mainConfig.varianceFilterFlag) varianceFiltering.filterZeroVariance() else filledData
 
@@ -79,7 +80,10 @@ class Automation extends AutomationConfig with AutomationTools {
       (filledData, spark.createDataFrame(sc.emptyRDD[Row], filledData.schema))
     }
 
-    val (preCovariance, preCovarianceFields) = new FeaturePipeline(outlierCleanedData).makeFeaturePipeline()
+    val (preCovariance, preCovarianceFields) = new FeaturePipeline(outlierCleanedData)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeatureCol(_mainConfig.featuresCol)
+      .makeFeaturePipeline()
 
     val preCovarianceFieldsRestrict = preCovarianceFields ++ Array(_labelCol)
     val preCovarianceFilteredData = preCovariance.select(preCovarianceFieldsRestrict map col: _*)
@@ -98,9 +102,15 @@ class Automation extends AutomationConfig with AutomationTools {
       logger.log(Level.INFO, covarianceFilteringInfo)
       println(covarianceFilteringInfo)
 
-      new FeaturePipeline(covarianceFiltering.filterFeatureCorrelation()).makeFeaturePipeline()
+      new FeaturePipeline(covarianceFiltering.filterFeatureCorrelation())
+        .setLabelCol(_mainConfig.labelCol)
+        .setFeatureCol(_mainConfig.featuresCol)
+        .makeFeaturePipeline()
     } else {
-      new FeaturePipeline(preCovarianceFilteredData).makeFeaturePipeline()
+      new FeaturePipeline(preCovarianceFilteredData)
+        .setLabelCol(_mainConfig.labelCol)
+        .setFeatureCol(_mainConfig.featuresCol)
+        .makeFeaturePipeline()
     }
 
     // Pearson Filtering
@@ -115,7 +125,10 @@ class Automation extends AutomationConfig with AutomationTools {
 
     // Final Featurization and Field Listing Generation (method's output)
     val (outputData, fieldListing) = if (_mainConfig.pearsonFilteringFlag) {
-      new FeaturePipeline(pearsonFiltering.filterFields()).makeFeaturePipeline()
+      new FeaturePipeline(pearsonFiltering.filterFields())
+        .setLabelCol(_mainConfig.labelCol)
+        .setFeatureCol(_mainConfig.featuresCol)
+        .makeFeaturePipeline()
     } else {
       (postFilteredData, postFilteredFields)
     }

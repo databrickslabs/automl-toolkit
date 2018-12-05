@@ -9,6 +9,7 @@ import scala.collection.mutable.ArrayBuffer
 class VarianceFiltering(data: DataFrame) {
 
   private var _labelCol = "label"
+  private var _featureCol = "features"
 
   private final val dfSchema = data.schema.fieldNames
 
@@ -18,7 +19,14 @@ class VarianceFiltering(data: DataFrame) {
     this
   }
 
+  def setFeatureCol(value: String) : this.type = {
+    _featureCol = value
+    this
+  }
+
   def getLabelCol: String = _labelCol
+
+  def getFeatureCol: String = _featureCol
 
   private def regenerateSchema(fieldSchema: Array[String]): Array[String] = {
     fieldSchema.map { x => x.split("_si$")(0) }
@@ -26,7 +34,10 @@ class VarianceFiltering(data: DataFrame) {
 
   def filterZeroVariance(): DataFrame = {
 
-    val (featurizedData, fields) = new FeaturePipeline(data).makeFeaturePipeline()
+    val (featurizedData, fields) = new FeaturePipeline(data)
+      .setLabelCol(_labelCol)
+      .setFeatureCol(_featureCol)
+      .makeFeaturePipeline()
 
     val stddevInformation = featurizedData.summary().filter(col("summary") === "stddev")
       .select(fields map col: _*).collect()(0).toSeq.toArray

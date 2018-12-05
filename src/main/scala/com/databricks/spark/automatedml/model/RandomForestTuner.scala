@@ -15,6 +15,20 @@ import scala.concurrent.forkjoin.ForkJoinPool
 
 import org.apache.log4j.{Level, Logger}
 
+//TODO: investigate possibility of ring-compute (a la Horovod) for asynch hyper parameter tuning
+// i.e. : start with 20, as a return occurs, generate best from that to continue the thread pool.
+
+/**
+Simplest implementation will be:
+1. Run initial epoch of random search parameters
+2. Create an empty stack / queue
+3. take top 1 best run, mutate randomly, then add to stack and pop from the stack in parallel.
+4. When each return comes, resort the Final ListBuffer that contains the run results, take the best value
+
+*/
+
+//TODO: Add standard scaling for numerical features as an option. PRIORITY 1!!!
+
 //TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
 
 class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
