@@ -1,12 +1,28 @@
 package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.utils.DataValidation
+import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.ml.feature.StringIndexer
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
 import scala.collection.mutable.ArrayBuffer
+
+object Hello {
+  def printStr(str: String) = println(str)
+}
+
+object DataSanitizerPythonHelper {
+
+  def generateCleanData(sanitizer: DataSanitizer): Unit = {
+    val (cleanDf, decision) = sanitizer.generateCleanData()
+    cleanDf.createOrReplaceTempView("clean_df")
+    println("Dataframe has been cleaned and registered as clean_df " + cleanDf)
+    println("Model decision was for " + decision)
+  }
+
+}
 
 class DataSanitizer(data: DataFrame) extends DataValidation {
 
