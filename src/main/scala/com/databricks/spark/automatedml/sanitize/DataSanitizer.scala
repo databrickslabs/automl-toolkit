@@ -9,10 +9,6 @@ import org.apache.spark.sql.types._
 
 import scala.collection.mutable.ArrayBuffer
 
-object Hello {
-  def printStr(str: String) = println(str)
-}
-
 object DataSanitizerPythonHelper {
 
   def generateCleanData(sanitizer: DataSanitizer): Unit = {
