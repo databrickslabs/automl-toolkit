@@ -10,14 +10,18 @@ import org.apache.spark.sql.types._
 import scala.collection.mutable.ArrayBuffer
 
 object DataSanitizerPythonHelper {
-
-  def generateCleanData(sanitizer: DataSanitizer): Unit = {
+  var _decision: String = _
+  def generateCleanData(sanitizer: DataSanitizer, dfName: String): Unit = {
     val (cleanDf, decision) = sanitizer.generateCleanData()
-    cleanDf.createOrReplaceTempView("clean_df")
-    println("Dataframe has been cleaned and registered as clean_df " + cleanDf)
+    _decision = decision
+    cleanDf.createOrReplaceTempView(dfName)
+    println("Dataframe has been cleaned and registered as " + dfName + " " + cleanDf)
     println("Model decision was for " + decision)
   }
 
+  def getModelDecision: String = {
+    _decision
+  }
 }
 
 class DataSanitizer(data: DataFrame) extends DataValidation {
