@@ -95,4 +95,9 @@ trait DataValidation{
       s"Dataframe does not contain features column named: $featureCol")
   }
 
+  def validateFieldPresence(df: DataFrame, column: String): Unit = {
+    val dfSchema = df.schema
+    assert(dfSchema.fieldNames.contains(column), s"Dataframe does not contain column named: '$column'")
+  }
+
 }

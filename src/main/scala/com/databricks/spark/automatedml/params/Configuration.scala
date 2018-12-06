@@ -2,13 +2,14 @@ package com.databricks.spark.automatedml.params
 
 case class MainConfig(
                        modelFamily: String,
-                       labelCol: String ,
+                       labelCol: String,
                        featuresCol: String,
                        naFillFlag: Boolean,
                        varianceFilterFlag: Boolean,
                        outlierFilterFlag: Boolean,
                        pearsonFilteringFlag: Boolean,
                        covarianceFilteringFlag: Boolean,
+                       scalingFlag: Boolean,
                        numericBoundaries: Map[String, (Double, Double)],
                        stringBoundaries: Map[String, List[String]],
                        scoringMetric: String,
@@ -17,6 +18,7 @@ case class MainConfig(
                        outlierConfig: OutlierConfig,
                        pearsonConfig: PearsonConfig,
                        covarianceConfig: CovarianceConfig,
+                       scalingConfig: ScalingConfig,
                        geneticConfig: GeneticConfig
                      )
 
@@ -44,8 +46,8 @@ case class PearsonConfig(
                         )
 
 case class CovarianceConfig(
-                           correlationCutoffLow: Double,
-                           correlationCutoffHigh: Double
+                             correlationCutoffLow: Double,
+                             correlationCutoffHigh: Double
                            )
 
 case class GeneticConfig(
@@ -63,3 +65,11 @@ case class GeneticConfig(
                           mutationMagnitudeMode: String
                         )
 
+case class ScalingConfig(
+                          scalerType: String,
+                          scalerMin: Double,
+                          scalerMax: Double,
+                          standardScalerMeanFlag: Boolean,
+                          standardScalerStdDevFlag: Boolean,
+                          pNorm: Double
+                        )

@@ -137,7 +137,21 @@ class Automation extends AutomationConfig with AutomationTools {
     println(finalFilteringInfo)
     logger.log(Level.INFO, finalFilteringInfo)
 
-    (outputData, fieldListing, modelType)
+    // Scale the final feature Vector
+    val scaling = new Scaler(outputData)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setScalerType(_mainConfig.scalingConfig.scalerType)
+      .setScalerMin(_mainConfig.scalingConfig.scalerMin)
+      .setScalerMax(_mainConfig.scalingConfig.scalerMax)
+      .setStandardScalerMeanMode(_mainConfig.scalingConfig.standardScalerMeanFlag)
+      .setStandardScalerStdDevMode(_mainConfig.scalingConfig.standardScalerStdDevFlag)
+      .setPNorm(_mainConfig.scalingConfig.pNorm)
+
+    val finalData = if (_mainConfig.scalingFlag) {
+      scaling.scaleFeatures()
+    } else outputData
+
+    (finalData, fieldListing, modelType)
 
   }
 

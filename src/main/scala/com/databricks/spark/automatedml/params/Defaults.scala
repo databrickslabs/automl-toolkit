@@ -28,6 +28,8 @@ trait Defaults {
 
   def _defaultCovarianceFilterFlag: Boolean = true
 
+  def _defaultScalingFlag: Boolean = false
+
   def _geneticTunerDefaults = GeneticConfig(
     parallelism = 20,
     kFold = 5,
@@ -69,6 +71,15 @@ trait Defaults {
   def _covarianceConfigDefaults = CovarianceConfig(
     correlationCutoffLow = -0.8,
     correlationCutoffHigh = 0.8
+  )
+
+  def _scalingConfigDefaults = ScalingConfig(
+    scalerType = "minMax",
+    scalerMin = 0.0,
+    scalerMax = 1.0,
+    standardScalerMeanFlag = false,
+    standardScalerStdDevFlag = true,
+    pNorm = 2.0
   )
 
   def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
@@ -164,6 +175,7 @@ trait Defaults {
     outlierFilterFlag = true,
     pearsonFilteringFlag = true,
     covarianceFilteringFlag = true,
+    scalingFlag = false,
     numericBoundaries = _rfDefaultNumBoundaries,
     stringBoundaries = _rfDefaultStringBoundaries,
     scoringMetric = _scoringDefaultClassifier,
@@ -172,6 +184,7 @@ trait Defaults {
     outlierConfig = _outlierConfigDefaults,
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
+    scalingConfig = _scalingConfigDefaults,
     geneticConfig = _geneticTunerDefaults
   )
 
@@ -184,6 +197,7 @@ trait Defaults {
     outlierFilterFlag = false,
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
+    scalingFlag = false,
     numericBoundaries = _rfDefaultNumBoundaries,
     stringBoundaries = _rfDefaultStringBoundaries,
     scoringMetric = _scoringDefaultClassifier,
@@ -192,6 +206,7 @@ trait Defaults {
     outlierConfig = _outlierConfigDefaults,
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
+    scalingConfig = _scalingConfigDefaults,
     geneticConfig = GeneticConfig(
       parallelism = 20,
       kFold = 1,
@@ -217,6 +232,7 @@ trait Defaults {
     outlierFilterFlag = false,
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
+    scalingFlag = false,
     numericBoundaries = _treesDefaultNumBoundaries,
     stringBoundaries = _treesDefaultStringBoundaries,
     scoringMetric = _scoringDefaultClassifier,
@@ -225,6 +241,7 @@ trait Defaults {
     outlierConfig = _outlierConfigDefaults,
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
+    scalingConfig = _scalingConfigDefaults,
     geneticConfig = GeneticConfig(
       parallelism = 20,
       kFold = 1,
