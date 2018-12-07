@@ -3,6 +3,8 @@ package com.databricks.spark.automatedml.utils
 import com.databricks.spark.automatedml.params.{GenerationalReport, GenericModelReturn}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
+import org.apache.spark.storage.StorageLevel
+
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 trait AutomationTools extends SparkSessionWrapper {
@@ -32,6 +34,19 @@ trait AutomationTools extends SparkSessionWrapper {
     }
   }
 
+  def dataPersist(preDF: DataFrame, postDF: DataFrame, cacheLevel: StorageLevel,
+                  blockUnpersist: Boolean): Unit = {
+
+    postDF.persist(cacheLevel)
+    preDF.unpersist(blockUnpersist)
+
+  }
+
+  def fieldRemovalCompare(preFilterFields: Array[String], postFilterFields: Array[String]): List[String] = {
+
+    preFilterFields.toList.filterNot(postFilterFields.toList.contains(_))
+
+  }
 
   def extractGenerationalScores(payload: Array[GenericModelReturn], scoringOptimizationStrategy: String,
                                 modelFamily: String, modelType: String): Array[GenerationalReport] = {

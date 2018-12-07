@@ -22,6 +22,16 @@ case class MainConfig(
                        geneticConfig: GeneticConfig
                      )
 
+// TODO: Change MainConfig to use this case class definition.
+case class DataPrepConfig(
+                         naFillFlag: Boolean,
+                         varianceFilterFlag: Boolean,
+                         outlierFilterFlag: Boolean,
+                         pearsonFilterFlag: Boolean,
+                         covarianceFilterFlag: Boolean,
+                         scalingFlag: Boolean
+                         )
+
 case class FillConfig(
                        numericFillStat: String,
                        characterFillStat: String,

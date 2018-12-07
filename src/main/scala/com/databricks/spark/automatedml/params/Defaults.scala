@@ -82,6 +82,15 @@ trait Defaults {
     pNorm = 2.0
   )
 
+  def _dataPrepConfigDefaults = DataPrepConfig(
+    naFillFlag = true,
+    varianceFilterFlag = true,
+    outlierFilterFlag = false,
+    pearsonFilterFlag = true,
+    covarianceFilterFlag = true,
+    scalingFlag = false
+  )
+
   def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "numTrees" -> Tuple2(50.0, 1000.0),
     "maxBins" -> Tuple2(10.0, 100.0),
