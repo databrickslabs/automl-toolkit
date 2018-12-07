@@ -26,23 +26,22 @@ import scala.collection.mutable.ListBuffer
   *                             .filterFields
   */
 
-class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) extends DataValidation {
+class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) extends DataValidation
+  with SanitizerDefaults {
 
-  private var _labelCol: String = "label"
-  private var _featuresCol: String = "features"
-  private var _filterStatistic: String = "pearsonStat"
-  private var _filterDirection: String = "greater"
+  private var _labelCol: String = defaultLabelCol
+  private var _featuresCol: String = defaultFeaturesCol
+  private var _filterStatistic: String = defaultPearsonFilterStatistic
+  private var _filterDirection: String = defaultPearsonFilterDirection
 
-  private var _filterManualValue: Double = 0.0
-  private var _filterMode: String = "auto"
-  private var _autoFilterNTile: Double = 0.75
+  private var _filterManualValue: Double = defaultPearsonFilterManualValue
+  private var _filterMode: String = defaultPearsonFilterMode
+  private var _autoFilterNTile: Double = defaultPearsonAutoFilterNTile
 
 
   final private val _dataFieldNames = df.schema.fieldNames
   final private val _dataFieldTypes = df.schema.fields
-  final private val _allowedStats: Array[String] = Array("pvalue", "degreesFreedom", "pearsonStat")
-  final private val _allowedFilterDirections: Array[String] = Array("greater", "lesser")
-  final private val _allowedFilterModes: Array[String] = Array("auto", "manual")
+
 
   def setLabelCol(value: String): this.type = {
     require(_dataFieldNames.contains(value), s"Label Field $value is not in DataFrame Schema.")
@@ -107,7 +106,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
   private def buildChiSq(): List[PearsonPayload] = {
     val reportBuffer = new ListBuffer[PearsonPayload]
 
-    val chi = ChiSquareTest.test(df, "features", "label").head
+    val chi = ChiSquareTest.test(df, _featuresCol, _labelCol).head
     val pvalues = chi.getAs[Vector](0).toArray
     val degreesFreedom = chi.getSeq[Int](1).toArray
     val pearsonStat = chi.getAs[Vector](2).toArray

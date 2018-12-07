@@ -8,8 +8,22 @@ trait SanitizerDefaults {
     * Global Defaults
     */
 
+  def defaultLabelCol = "label"
   def defaultFeaturesCol = "features"
 
+  /**
+    * Pearson Defaults
+    */
+
+  final val _allowedStats: Array[String] = Array("pvalue", "degreesFreedom", "pearsonStat")
+  final val _allowedFilterDirections: Array[String] = Array("greater", "lesser")
+  final val _allowedFilterModes: Array[String] = Array("auto", "manual")
+
+  def defaultPearsonFilterStatistic = "pearsonStat"
+  def defaultPearsonFilterDirection = "greater"
+  def defaultPearsonFilterManualValue = 0.0
+  def defaultPearsonFilterMode = "auto"
+  def defaultPearsonAutoFilterNTile = 0.75
 
   /**
     * Scaler Defaults
