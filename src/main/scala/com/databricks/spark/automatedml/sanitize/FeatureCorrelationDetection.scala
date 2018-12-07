@@ -2,12 +2,15 @@ package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.params.FeatureCorrelationStats
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.log4j.{Logger, Level}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
 
 class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) extends SparkSessionWrapper {
+
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   private var _correlationCutoffHigh: Double = 0.0
   private var _correlationCutoffLow: Double = 0.0
@@ -47,8 +50,16 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
     fieldListing.foreach{ x =>
       val leftFields = fieldListing.filterNot(_.contains(x)).filterNot(f => redundantRecursionEliminator.contains(f))
       leftFields.foreach{y =>
-        correlationInteractions += FeatureCorrelationStats(x, y, data.groupBy().agg(corr(x, y).as("pearson"))
-          .first().getDouble(0))
+        val corrStats: Double = try {
+          data.groupBy().agg(corr(x, y).as("pearson")).first().getDouble(0)
+        } catch {
+          case e: java.lang.NullPointerException =>
+            val errorMsg = s"Correlation Calculation for $x : $y failed.  Recording Inf for correlation."
+            println(errorMsg)
+            logger.log(Level.INFO, errorMsg + s"\n ${e.printStackTrace()}")
+            Double.PositiveInfinity
+        }
+        correlationInteractions += FeatureCorrelationStats(x, y, corrStats)
       }
       redundantRecursionEliminator += x
     }
