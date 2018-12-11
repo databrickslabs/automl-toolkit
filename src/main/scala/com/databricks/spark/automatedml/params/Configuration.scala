@@ -10,6 +10,8 @@ case class MainConfig(
                        pearsonFilteringFlag: Boolean,
                        covarianceFilteringFlag: Boolean,
                        scalingFlag: Boolean,
+                       dateTimeConversionType: String,
+                       fieldsToIgnoreInVector: Array[String],
                        numericBoundaries: Map[String, (Double, Double)],
                        stringBoundaries: Map[String, List[String]],
                        scoringMetric: String,

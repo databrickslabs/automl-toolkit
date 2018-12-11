@@ -3,10 +3,13 @@ package com.databricks.spark.automatedml.utils
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{DataType, StructType}
+import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ListBuffer
 
-trait DataValidation{
+trait DataValidation {
+
+  def _allowableDateTimeConversions = List("unix", "split")
 
   def invalidateSelection(value: String, allowances: Seq[String]): String = {
     s"${allowances.foldLeft("")((a, b) => a + " " + b)}"
@@ -21,10 +24,12 @@ trait DataValidation{
     preParsedFields.result
   }
 
-  def extractTypes(data: DataFrame, labelColumn: String): (List[String], List[String]) = {
+  def extractTypes(data: DataFrame, labelColumn: String): (List[String], List[String], List[String], List[String]) = {
 
     val fieldExtraction = extractSchema(data.schema)
     var conversionFields = new ListBuffer[String]
+    var dateFields = new ListBuffer[String]
+    var timeFields = new ListBuffer[String]
     var vectorizableFields = new ListBuffer[String]
 
     fieldExtraction.map(x =>
@@ -37,6 +42,8 @@ trait DataValidation{
         case "byte" => conversionFields += x._2
         case "boolean" => vectorizableFields += x._2
         case "binary" => vectorizableFields += x._2
+        case "date" => dateFields += x._2
+        case "timestamp" => timeFields += x._2
         case _ => throw new UnsupportedOperationException(
           s"Field '${x._2}' is of type ${x._1} which is not supported.")
       }
@@ -46,7 +53,7 @@ trait DataValidation{
       s"The provided Dataframe MUST contain a labeled column with the name '$labelColumn'")
     vectorizableFields -= labelColumn
 
-    (vectorizableFields.result, conversionFields.result)
+    (vectorizableFields.result, conversionFields.result, dateFields.result, timeFields.result)
 
   }
 
@@ -66,6 +73,65 @@ trait DataValidation{
     })
 
     (stringIndexers.result.toArray, indexedColumns.result.toArray)
+
+  }
+
+  private def splitDateTimeParts(df: DataFrame, dateFields: List[String], timeFields: List[String]):
+  (DataFrame, List[String]) = {
+
+    var resultFields = new ListBuffer[String]
+
+    var data = df
+    dateFields.map(x => {
+      data = data.withColumn(x + "_year", year(col(x)))
+        .withColumn(x + "_month", month(col(x)))
+        .withColumn(x + "_day", dayofmonth(col(x)))
+      resultFields ++= List(x + "_year", x + "_month", x + "_day")
+    })
+    timeFields.map(x => {
+      data = data.withColumn(x + "_year", year(col(x)))
+        .withColumn(x + "_month", month(col(x)))
+        .withColumn(x + "_day", dayofmonth(col(x)))
+        .withColumn(x + "_hour", hour(col(x)))
+        .withColumn(x + "_minute", minute(col(x)))
+        .withColumn(x + "_second", second(col(x)))
+      resultFields ++= List(x + "_year", x + "_month", x + "_day", x + "_hour", x + "_minute", x + "_second")
+    })
+
+    (data, resultFields.result)
+
+  }
+
+  private def convertToUnix(df: DataFrame, dateFields: List[String], timeFields: List[String]):
+    (DataFrame, List[String]) = {
+
+    var resultFields = new ListBuffer[String]
+
+    var data = df
+
+    dateFields.map(x => {
+      data = data.withColumn(x + "_unix", unix_timestamp(col(x)).cast("Double"))
+      resultFields += x + "_unix"
+    })
+
+    timeFields.map(x => {
+      data = data.withColumn(x + "_unix", unix_timestamp(col(x)).cast("Double"))
+      resultFields += x + "_unix"
+    })
+
+    (data, resultFields.result)
+
+  }
+
+  def convertDateAndTime(df: DataFrame, dateFields: List[String], timeFields: List[String], mode: String):
+  (DataFrame, List[String]) = {
+
+    val (data, fieldList) = mode match {
+      case "split" => splitDateTimeParts(df, dateFields, timeFields)
+      case "unix" => convertToUnix(df, dateFields, timeFields)
+    }
+
+    (data, fieldList)
 
   }
 

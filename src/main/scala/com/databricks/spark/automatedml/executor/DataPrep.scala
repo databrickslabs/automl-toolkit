@@ -43,7 +43,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     new FeaturePipeline(data)
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
-      .makeFeaturePipeline()
+      .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
+      .makeFeaturePipeline(_mainConfig.fieldsToIgnoreInVector)
 
   }
 
@@ -57,6 +58,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setModelSelectionDistinctThreshold(_mainConfig.fillConfig.modelSelectionDistinctThreshold)
       .setNumericFillStat(_mainConfig.fillConfig.numericFillStat)
       .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
+      .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
 
     val (naFilledDataFrame, detectedModelType) = if (_dataPrepFlags.naFillFlag) {
       naConfig.generateCleanData()
@@ -83,8 +85,9 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val varianceFiltering = new VarianceFiltering(data)
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
+      .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
 
-    val varianceFilteredData = varianceFiltering.filterZeroVariance()
+    val varianceFilteredData = varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
 
     val varianceFilterLog = "Zero Variance fields have been removed from the data."
 
@@ -189,6 +192,12 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
+  def printSchema(df: DataFrame, dataName: String): Unit = {
+
+    println(s"Schema for $dataName is: \n  ${df.schema.fieldNames.mkString(", ")}")
+
+  }
+
   def prepData(): (DataFrame, Array[String], String) = {
 
 
@@ -202,20 +211,40 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // cache the main DataFrame
     df.persist(cacheLevel)
 
-    val (dataStage1, detectedModelType) = fillNA(df)
+    //DEBUG
+    printSchema(df, "input")
+
+    // Start by converting fields
+    val (entryPointDf, entryPointFields) = vectorPipeline(df)
+
+    val restrictFields = entryPointFields ++ List(_mainConfig.labelCol)
+
+    val entryPointDataRestrict = entryPointDf.select(restrictFields map col:_*)
+
+    val (dataStage1, detectedModelType) = fillNA(entryPointDataRestrict)
 
     // uncache the main DataFrame, force the GC
     dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
+
+    //DEBUG
+    printSchema(dataStage1, "stage1")
+
 
     // Variance Filtering
     val dataStage2 = if (_dataPrepFlags.varianceFilterFlag) varianceFilter(dataStage1) else dataStage1
 
     dataPersist(dataStage1, dataStage2, cacheLevel, unpersistBlock)
 
+    //DEBUG
+    printSchema(dataStage2, "stage2")
+
     // Outlier Filtering
     val dataStage3 = if (_dataPrepFlags.outlierFilterFlag) outlierFilter(dataStage2) else dataStage2
 
     dataPersist(dataStage2, dataStage3, cacheLevel, unpersistBlock)
+
+    //DEBUG
+    printSchema(dataStage3, "stage3")
 
     // Next stages require a feature vector
     val (featurizedData, initialFields) = vectorPipeline(dataStage3)
@@ -227,6 +256,9 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     dataPersist(dataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
 
+    //DEBUG
+    printSchema(featurizedDataCleaned, "featurizedDataCleaned")
+
     // Covariance Filtering
     val dataStage4 = if (_dataPrepFlags.covarianceFilterFlag) {
       covarianceFilter(featurizedDataCleaned, initialFields)
@@ -234,20 +266,34 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     dataPersist(featurizedDataCleaned, dataStage4, cacheLevel, unpersistBlock)
 
+    //DEBUG
+    printSchema(dataStage4, "stage4")
+
     // All stages after this point require a feature vector.
     val (dataStage5, stage5Fields) = vectorPipeline(dataStage4)
 
     dataPersist(dataStage4, dataStage5, cacheLevel, unpersistBlock)
+
+    //DEBUG
+    printSchema(dataStage5, "stage5")
 
     // Pearson Filtering (generates a vector features Field)
     val (dataStage6, stage6Fields) = if (_dataPrepFlags.pearsonFilterFlag) {
       vectorPipeline(pearsonFilter(dataStage5, stage5Fields))
     } else (dataStage5, stage5Fields)
 
+    //DEBUG
+    printSchema(dataStage6, "stage6")
+
     // Scaler
     val dataStage7 = if (_dataPrepFlags.scalingFlag) scaler(dataStage6) else dataStage6
 
     dataPersist(dataStage5, dataStage7, cacheLevel, unpersistBlock)
+
+    val finalSchema = s"Final Schema: \n    ${stage6Fields.mkString(", ")}"
+
+    logger.log(Level.INFO, finalSchema)
+    println(finalSchema)
 
     val finalStatement = s"Data Prep complete.  Final Dataframe cached."
 
