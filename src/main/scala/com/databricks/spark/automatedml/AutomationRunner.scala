@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml
 
-import com.databricks.spark.automatedml.executor.Automation
+import com.databricks.spark.automatedml.executor.DataPrep
 import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
@@ -8,11 +8,11 @@ import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
-class AutomationRunner(df: DataFrame) extends Automation {
+class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String) = {
 
-    val (data, fields, modelSelection) = dataPrep(df)
+    val (data, fields, modelSelection) = prepData()
 
     val (modelResults, modelStats) = new RandomForestTuner(data, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
@@ -41,7 +41,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   private def runMLPC(): (Array[MLPCModelsWithResults], DataFrame, String) = {
 
-    val (data, fields, modelSelection) = dataPrep(df)
+    val (data, fields, modelSelection) = prepData()
 
     modelSelection match {
       case "classifier" =>
@@ -75,7 +75,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   private def runGBT(): (Array[GBTModelsWithResults], DataFrame, String) = {
 
-    val (data, fields, modelSelection) = dataPrep(df)
+    val (data, fields, modelSelection) = prepData()
 
     val (modelResults, modelStats) = new GBTreesTuner(data, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
@@ -104,7 +104,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   private def runLinearRegression(): (Array[LinearRegressionModelsWithResults], DataFrame, String) = {
 
-    val (data, fields, modelSelection) = dataPrep(df)
+    val (data, fields, modelSelection) = prepData()
 
     modelSelection match {
       case "regressor" =>
@@ -140,7 +140,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   private def runLogisticRegression(): (Array[LogisticRegressionModelsWithResults], DataFrame,  String) = {
 
-    val (data, fields, modelSelection) = dataPrep(df)
+    val (data, fields, modelSelection) = prepData()
 
     modelSelection match {
       case "classifier" =>
@@ -175,7 +175,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   private def runSVM(): (Array[SVMModelsWithResults], DataFrame, String) = {
 
-    val (data, fields, modelSelection) = dataPrep(df)
+    val (data, fields, modelSelection) = prepData()
 
     modelSelection match {
       case "classifier" =>
@@ -209,7 +209,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
  private def runTrees(): (Array[TreesModelsWithResults], DataFrame, String) = {
 
-   val (data, fields, modelSelection) = dataPrep(df)
+   val (data, fields, modelSelection) = prepData()
 
    val (modelResults, modelStats) = new DecisionTreeTuner(data, modelSelection)
      .setLabelCol(_mainConfig.labelCol)
@@ -241,7 +241,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame) = {
 
-    val (data, fields, modelType) = dataPrep(df)
+    val (data, fields, modelType) = prepData()
 
     new RandomForestFeatureImportance(data, _featureImportancesConfig, modelType).runFeatureImportances(fields)
 
@@ -249,7 +249,7 @@ class AutomationRunner(df: DataFrame) extends Automation {
 
   def generateDecisionSplits(): (String, DataFrame, Any) = {
 
-    val (data, fields, modelType) = dataPrep(df)
+    val (data, fields, modelType) = prepData()
 
     new DecisionTreeSplits(data, _treeSplitsConfig, modelType).runTreeSplitAnalysis(fields)
 

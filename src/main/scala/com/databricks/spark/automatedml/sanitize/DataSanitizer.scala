@@ -31,7 +31,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
   private var _numericFillStat = "mean"
   private var _characterFillStat = "max"
   private var _modelSelectionDistinctThreshold = 10
-  private var _dateTimeConversionType = "split"
+  private var _fieldsToIgnoreInVector = Array.empty[String]
 
   def setLabelCol(value: String): this.type = {
     this._labelCol = value
@@ -58,10 +58,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     this
   }
 
-  def setDateTimeConversionType(value: String): this.type = {
-    assert(_allowableDateTimeConversions.contains(value), s"Supplied conversion type '$value' is not in: " +
-      s"${invalidateSelection(value, _allowableDateTimeConversions)}")
-    _dateTimeConversionType = value
+  def setFieldsToIgnoreInVector(value: Array[String]): this.type = {
+    _fieldsToIgnoreInVector = value
     this
   }
 
@@ -70,7 +68,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
   def getNumericFillStat: String = _numericFillStat
   def getCharacterFillStat: String = _characterFillStat
   def getModelSelectionDistinctThreshold: Int = _modelSelectionDistinctThreshold
-  def getDateTimeConversionType: String = _dateTimeConversionType
+  def getFieldsToIgnoreInVector: Array[String] = _fieldsToIgnoreInVector
 
   private def convertLabel(df: DataFrame): DataFrame = {
 
@@ -132,17 +130,12 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     summaryColumns.zip(summaryValues)
   }
 
-  private def fillMissing(df: DataFrame): (DataFrame, Map[String, Double], Map[String, String]) = {
+  private def fillMissing(df: DataFrame): (Map[String, Double], Map[String, String]) = {
 
-    val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol)
+    val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
 
-    // Convert the date and time types
-    val (dateTimeModified, dateTimeFields) = convertDateAndTime(df, dateFields, timeFields, _dateTimeConversionType)
-
-    val updatedNumericFields = numericFields ++ dateTimeFields
-
-    val numericPayload = assemblePayload(dateTimeModified, updatedNumericFields, metricConversion(_numericFillStat))
-    val characterPayload = assemblePayload(dateTimeModified, characterFields, metricConversion(_characterFillStat))
+    val numericPayload = assemblePayload(df, numericFields, metricConversion(_numericFillStat))
+    val characterPayload = assemblePayload(df, characterFields, metricConversion(_characterFillStat))
 
     val numericFilterBuffer = new ArrayBuffer[(String, Double)]
     val characterFilterBuffer = new ArrayBuffer[(String, String)]
@@ -167,7 +160,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val characterMapping = characterFilterBuffer.toArray.toMap
 
-    (dateTimeModified, numericMapping, characterMapping)
+    (numericMapping, characterMapping)
   }
 
   def decideModel(): String = {
@@ -183,8 +176,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val preFilter = refactorLabel(data, _labelCol)
 
-    val (updatedData, numMap, charMap) = fillMissing(preFilter)
-    val filledData = updatedData.na.fill(numMap).na.fill(charMap)
+    val (numMap, charMap) = fillMissing(preFilter)
+    val filledData = preFilter.na.fill(numMap).na.fill(charMap)
 
     (filledData, decideModel())
 

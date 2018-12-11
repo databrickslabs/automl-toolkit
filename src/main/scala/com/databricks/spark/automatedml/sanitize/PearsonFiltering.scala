@@ -167,7 +167,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
 
   }
 
-  def filterFields(): DataFrame = {
+  def filterFields(ignoreFields: Array[String]=Array.empty[String]): DataFrame = {
 
     val chiSqData = buildChiSq()
     val featureFields: List[String] = _filterMode match {
@@ -177,7 +177,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
         filterChiSq(chiSqData, quantileGenerator(chiSqData))
       }
     require(featureFields.nonEmpty, "All feature fields have been filtered out.  Adjust parameters.")
-    val fieldListing = featureFields ::: List(_labelCol)
+    val fieldListing = featureFields ::: List(_labelCol) ::: ignoreFields.toList
     df.select(fieldListing.map(col):_*)
   }
 

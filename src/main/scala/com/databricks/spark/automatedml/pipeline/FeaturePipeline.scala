@@ -40,13 +40,13 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
   def getDateTimeConversionType: String = _dateTimeConversionType
 
   //TODO: allow for restricted fields to not be included in the featurization vector.
-  def makeFeaturePipeline(ignoreList: Array[String] = Array("")): (DataFrame, Array[String]) = {
+  def makeFeaturePipeline(ignoreList: Array[String]): (DataFrame, Array[String], Array[String]) = {
 
     val dfSchema = data.schema
     assert(dfSchema.fieldNames.contains(_labelCol), s"Dataframe does not contain label column named: ${_labelCol}")
 
     // Extract all of the field types
-    val (fieldsReady, fieldsToConvert, dateFields, timeFields) = extractTypes(data, _labelCol)
+    val (fieldsReady, fieldsToConvert, dateFields, timeFields) = extractTypes(data, _labelCol, ignoreList)
 
     // Support exclusions of fields
     val excludedFieldsReady = fieldsReady.filterNot(x => ignoreList.contains(x))
@@ -69,11 +69,14 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
     val createPipe = new Pipeline()
       .setStages(indexers :+ assembler)
 
-    val fieldsToInclude = assembledColumns ++ List(_featureCol, _labelCol)
+    val fieldsToInclude = assembledColumns ++ Array(_featureCol, _labelCol) ++ ignoreList
+
+    //DEBUG
+    println(s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")
 
     val transformedData = createPipe.fit(dateTimeModData).transform(dateTimeModData).select(fieldsToInclude map col:_*)
 
-    (transformedData, assembledColumns)
+    (transformedData, assembledColumns, fieldsToInclude.filterNot(_.contains(_featureCol)))
 
   }
 

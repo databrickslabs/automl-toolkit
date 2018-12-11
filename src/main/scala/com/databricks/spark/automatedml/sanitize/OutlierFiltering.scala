@@ -77,10 +77,10 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     df.select(field).distinct().count()
   }
 
-  private def validateNumericFields(): (List[FilterData], List[String]) = {
+  private def validateNumericFields(ignoreList: Array[String]): (List[FilterData], List[String]) = {
 
     val numericFieldReport = new ListBuffer[FilterData]
-    val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol)
+    val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol, ignoreList)
     numericFields.foreach{x =>
       numericFieldReport += FilterData(x, numericUniqueness(x))
     }
@@ -96,11 +96,12 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     data.filter(col(field) <= filterThreshold)
   }
 
-  def filterContinuousOutliers(ignoreList: Array[String]=Array("")): (DataFrame, DataFrame) = {
+  def filterContinuousOutliers(vectorIgnoreList: Array[String], ignoreList: Array[String]=Array.empty[String]):
+  (DataFrame, DataFrame) = {
 
     val filteredNumericPayload = new ListBuffer[String]
-    val (numericPayload, totalFeatureFields) = validateNumericFields()
-    val totalFields = totalFeatureFields ::: List(_labelCol)
+    val (numericPayload, totalFeatureFields) = validateNumericFields(vectorIgnoreList)
+    val totalFields = totalFeatureFields ++ List(_labelCol) ++ vectorIgnoreList.toList
     numericPayload.foreach{x =>
       if(!ignoreList.contains(x.field) & x.uniqueValues >= _continuousDataThreshold)
         filteredNumericPayload += x.field
@@ -122,15 +123,16 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
           outlierDF = filterLow(outlierDF, x, filterBoundaries(x, _upperFilterNTile))
       }
     }
-    (mutatedDF.select(totalFields map col: _*), outlierDF.select(totalFields map col: _*))
+    (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*))
   }
 
-  def filterContinuousOutliers(manualFilter: List[ManualFilters]): (DataFrame, DataFrame) = {
+  def filterContinuousOutliers(manualFilter: List[ManualFilters], vectorIgnoreList: Array[String]):
+  (DataFrame, DataFrame) = {
 
     var mutatedDF = df
     var outlierDF = df
-    val (numericPayload, totalFeatureFields) = validateNumericFields()
-    val totalFields = totalFeatureFields ::: List(_labelCol)
+    val (numericPayload, totalFeatureFields) = validateNumericFields(vectorIgnoreList)
+    val totalFields = totalFeatureFields ++ List(_labelCol) ++ vectorIgnoreList.toList
     manualFilter.foreach{x =>
       _filterBounds match {
         case "lower" =>
@@ -143,6 +145,6 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
           s"Filter mode '${_filterBounds} is not supported.  Please use either 'lower' or 'upper'")
       }
     }
-    (mutatedDF.select(totalFields map col: _*), outlierDF.select(totalFields map col: _*))
+    (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*))
   }
 }

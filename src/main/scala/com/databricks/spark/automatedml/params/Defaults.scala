@@ -32,7 +32,7 @@ trait Defaults {
 
   def _defaultDateTimeConversionType: String = "split"
 
-  def _defaultFieldsToIgnoreInVector: Array[String] = Array("")
+  def _defaultFieldsToIgnoreInVector: Array[String] = Array.empty[String]
 
   def _geneticTunerDefaults = GeneticConfig(
     parallelism = 20,

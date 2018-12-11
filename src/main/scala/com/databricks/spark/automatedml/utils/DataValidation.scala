@@ -24,9 +24,14 @@ trait DataValidation {
     preParsedFields.result
   }
 
-  def extractTypes(data: DataFrame, labelColumn: String): (List[String], List[String], List[String], List[String]) = {
+  def extractTypes(data: DataFrame, labelColumn: String, ignoreFields: Array[String]):
+  (List[String], List[String], List[String], List[String]) = {
 
-    val fieldExtraction = extractSchema(data.schema)
+    val fieldExtraction = extractSchema(data.schema).filterNot(x => ignoreFields.contains(x._2))
+
+    //DEBUG
+    println(s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
+
     var conversionFields = new ListBuffer[String]
     var dateFields = new ListBuffer[String]
     var timeFields = new ListBuffer[String]

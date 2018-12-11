@@ -91,7 +91,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
     assert(fieldListing.length > fieldsToFilter.length,
       s"All feature fields have been removed and modeling cannot continue.")
     val fieldsToSelect = _dataFieldNames.filterNot(f => fieldsToFilter.contains(f))
-    data.select(fieldsToSelect map col:_*)
+    data.select(fieldsToSelect.distinct map col:_*)
   }
 
 }
