@@ -1,8 +1,9 @@
 package com.databricks.spark.automatedml.executor
 
 import com.databricks.spark.automatedml.params._
+import com.databricks.spark.automatedml.sanitize.SanitizerDefaults
 
-trait AutomationConfig extends Defaults {
+trait AutomationConfig extends Defaults with SanitizerDefaults {
 
 
   var _modelingFamily: String = _defaultModelingFamily
@@ -20,6 +21,8 @@ trait AutomationConfig extends Defaults {
   var _pearsonFilterFlag: Boolean = _defaultPearsonFilterFlag
 
   var _covarianceFilterFlag: Boolean = _defaultCovarianceFilterFlag
+
+  var _scalingFlag: Boolean = _defaultScalingFlag
 
   var _numericBoundaries: Map[String, (Double, Double)] = _rfDefaultNumBoundaries
 
@@ -68,6 +71,20 @@ trait AutomationConfig extends Defaults {
   var _correlationCutoffHigh: Double = _covarianceConfigDefaults.correlationCutoffHigh
 
   var _covarianceConfig: CovarianceConfig = _covarianceConfigDefaults
+
+  var _scalerType: String = defaultScalerType
+
+  var _scalerMin: Double = defaultScalerMin
+
+  var _scalerMax: Double = defaultScalerMax
+
+  var _standardScalerMeanFlag: Boolean = defaultStandardScalerMeanFlag
+
+  var _standardScalerStdDevFlag: Boolean = defaultStandardScalerStdDevFlag
+
+  var _pNorm: Double = defaultPNorm
+
+  var _scalingConfig: ScalingConfig = _scalingConfigDefaults
 
   var _parallelism: Int = _geneticTunerDefaults.parallelism
 
@@ -195,6 +212,18 @@ trait AutomationConfig extends Defaults {
 
   def covarianceFilterOff(): this.type = {
     _covarianceFilterFlag = false
+    setMainConfig()
+    this
+  }
+
+  def scalingOn(): this.type = {
+    _scalingFlag = true
+    setMainConfig()
+    this
+  }
+
+  def scalingOff(): this.type = {
+    _scalingFlag = false
     setMainConfig()
     this
   }
@@ -363,6 +392,74 @@ trait AutomationConfig extends Defaults {
     this
   }
 
+  def setScalerType(value: String): this.type = {
+    _scalerType = value
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  def setScalerMin(value: Double): this.type = {
+    _scalerMin = value
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  def setScalerMax(value: Double): this.type = {
+    _scalerMax = value
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  def setStandardScalerMeanFlagOn(): this.type = {
+    _standardScalerMeanFlag = true
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  def setStandardScalerMeanFlagOff(): this.type = {
+    _standardScalerMeanFlag = false
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  def setStandardScalerStdDevFlagOn(): this.type = {
+    _standardScalerStdDevFlag = true
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  def setStandardScalerStdDevFlagOff(): this.type = {
+    _standardScalerStdDevFlag = false
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  def setPNorm(value: Double): this.type = {
+    _pNorm = value
+    setScalerConfig()
+    setMainConfig()
+    this
+  }
+
+  private def setScalerConfig(): this.type = {
+    _scalingConfig = ScalingConfig(
+      scalerType = _scalerType,
+      scalerMin = _scalerMin,
+      scalerMax = _scalerMax,
+      standardScalerMeanFlag = _standardScalerMeanFlag,
+      standardScalerStdDevFlag = _standardScalerStdDevFlag,
+      pNorm = _pNorm
+    )
+    this
+  }
+
   def setParallelism(value: Integer): this.type = {
     //TODO: FIND OUT WHAT THIS RESTRICTION NEEDS TO BE FOR PARALLELISM.
     require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
@@ -477,6 +574,7 @@ trait AutomationConfig extends Defaults {
       outlierFilterFlag = _outlierFilterFlag,
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
+      scalingFlag = _scalingFlag,
       numericBoundaries = _numericBoundaries,
       stringBoundaries = _stringBoundaries,
       scoringMetric = _scoringMetric,
@@ -485,6 +583,7 @@ trait AutomationConfig extends Defaults {
       outlierConfig = _outlierConfig,
       pearsonConfig = _pearsonConfig,
       covarianceConfig = _covarianceConfig,
+      scalingConfig = _scalingConfig,
       geneticConfig = _geneticConfig
     )
     this
@@ -564,6 +663,20 @@ trait AutomationConfig extends Defaults {
   def getCorrelationCutoffHigh: Double = _correlationCutoffHigh
 
   def getCovarianceConfig: CovarianceConfig = _covarianceConfig
+
+  def getScalerType: String = _scalerType
+
+  def getScalerMin: Double = _scalerMin
+
+  def getScalerMax: Double = _scalerMax
+
+  def getStandardScalingMeanFlag: Boolean = _standardScalerMeanFlag
+
+  def getStandardScalingStdDevFlag: Boolean = _standardScalerStdDevFlag
+
+  def getPNorm: Double = _pNorm
+
+  def getScalingConfig: ScalingConfig = _scalingConfig
 
   def getParallelism: Int = _parallelism
 
