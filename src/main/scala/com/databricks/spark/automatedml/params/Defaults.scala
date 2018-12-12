@@ -30,6 +30,10 @@ trait Defaults {
 
   def _defaultScalingFlag: Boolean = false
 
+  def _defaultDateTimeConversionType: String = "split"
+
+  def _defaultFieldsToIgnoreInVector: Array[String] = Array("")
+
   def _geneticTunerDefaults = GeneticConfig(
     parallelism = 20,
     kFold = 5,
@@ -185,6 +189,8 @@ trait Defaults {
     pearsonFilteringFlag = true,
     covarianceFilteringFlag = true,
     scalingFlag = false,
+    dateTimeConversionType = "split",
+    fieldsToIgnoreInVector = _defaultFieldsToIgnoreInVector,
     numericBoundaries = _rfDefaultNumBoundaries,
     stringBoundaries = _rfDefaultStringBoundaries,
     scoringMetric = _scoringDefaultClassifier,
@@ -207,6 +213,8 @@ trait Defaults {
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
     scalingFlag = false,
+    dateTimeConversionType = "split",
+    fieldsToIgnoreInVector = _defaultFieldsToIgnoreInVector,
     numericBoundaries = _rfDefaultNumBoundaries,
     stringBoundaries = _rfDefaultStringBoundaries,
     scoringMetric = _scoringDefaultClassifier,
@@ -242,6 +250,8 @@ trait Defaults {
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
     scalingFlag = false,
+    dateTimeConversionType = "split",
+    fieldsToIgnoreInVector = _defaultFieldsToIgnoreInVector,
     numericBoundaries = _treesDefaultNumBoundaries,
     stringBoundaries = _treesDefaultStringBoundaries,
     scoringMetric = _scoringDefaultClassifier,

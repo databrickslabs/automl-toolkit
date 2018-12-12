@@ -80,7 +80,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
   private def validateNumericFields(): (List[FilterData], List[String]) = {
 
     val numericFieldReport = new ListBuffer[FilterData]
-    val (numericFields, characterFields) = extractTypes(df, _labelCol)
+    val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol)
     numericFields.foreach{x =>
       numericFieldReport += FilterData(x, numericUniqueness(x))
     }

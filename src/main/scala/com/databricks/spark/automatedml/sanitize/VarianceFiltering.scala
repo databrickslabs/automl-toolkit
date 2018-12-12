@@ -10,6 +10,7 @@ class VarianceFiltering(data: DataFrame) {
 
   private var _labelCol = "label"
   private var _featureCol = "features"
+  private var _dateTimeConversionType = "split"
 
   private final val dfSchema = data.schema.fieldNames
 
@@ -24,20 +25,28 @@ class VarianceFiltering(data: DataFrame) {
     this
   }
 
+  def setDateTimeConversionType(value: String): this.type = {
+    _dateTimeConversionType = value
+    this
+  }
+
   def getLabelCol: String = _labelCol
 
   def getFeatureCol: String = _featureCol
+
+  def getDateTimeConversionType: String = _dateTimeConversionType
 
   private def regenerateSchema(fieldSchema: Array[String]): Array[String] = {
     fieldSchema.map { x => x.split("_si$")(0) }
   }
 
-  def filterZeroVariance(): DataFrame = {
+  def filterZeroVariance(fieldsToIgnore: Array[String]=Array("")): DataFrame = {
 
     val (featurizedData, fields) = new FeaturePipeline(data)
       .setLabelCol(_labelCol)
       .setFeatureCol(_featureCol)
-      .makeFeaturePipeline()
+      .setDateTimeConversionType(_dateTimeConversionType)
+      .makeFeaturePipeline(fieldsToIgnore)
 
     val stddevInformation = featurizedData.summary().filter(col("summary") === "stddev")
       .select(fields map col: _*).collect()(0).toSeq.toArray
@@ -52,9 +61,13 @@ class VarianceFiltering(data: DataFrame) {
 
     preserveColumns += _labelCol
 
-    val selectableColumns = regenerateSchema(preserveColumns.toArray)
+    // not needed any more
+    // TODO: remove this after validation.
+    //val selectableColumns = regenerateSchema(preserveColumns.toArray)
 
-    data.select(selectableColumns map col: _*)
+    //data.select(selectableColumns map col: _*)
+
+    data.select(preserveColumns map col:_*)
 
   }
 }

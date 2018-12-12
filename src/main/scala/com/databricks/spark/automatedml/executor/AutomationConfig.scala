@@ -36,6 +36,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _characterFillStat: String = _fillConfigDefaults.characterFillStat
 
+  var _dateTimeConversionType: String = _defaultDateTimeConversionType
+
+  var _fieldsToIgnoreInVector: Array[String] = _defaultFieldsToIgnoreInVector
+
   var _modelSelectionDistinctThreshold: Int = _fillConfigDefaults.modelSelectionDistinctThreshold
 
   var _fillConfig: FillConfig = _fillConfigDefaults
@@ -250,6 +254,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def setCharacterFillStat(value: String): this.type = {
     _characterFillStat = value
     setFillConfig()
+    setMainConfig()
+    this
+  }
+
+  def setDateTimeConversionType(value: String): this.type = {
+    _dateTimeConversionType = value
+    setMainConfig()
+    this
+  }
+
+  def setFieldsToIgnoreInVector(value: Array[String]): this.type = {
+    _fieldsToIgnoreInVector = value
     setMainConfig()
     this
   }
@@ -575,6 +591,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
       scalingFlag = _scalingFlag,
+      dateTimeConversionType = _dateTimeConversionType,
+      fieldsToIgnoreInVector = _fieldsToIgnoreInVector,
       numericBoundaries = _numericBoundaries,
       stringBoundaries = _stringBoundaries,
       scoringMetric = _scoringMetric,
@@ -627,6 +645,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getNumericFillStat: String = _numericFillStat
 
   def getCharacterFillStat: String = _characterFillStat
+
+  def getDateTimeConversionType: String = _dateTimeConversionType
+
+  def getFieldsToIgnoreInVector: Array[String] = _fieldsToIgnoreInVector
 
   def getModelSelectionDistinctThreshold: Int = _modelSelectionDistinctThreshold
 
