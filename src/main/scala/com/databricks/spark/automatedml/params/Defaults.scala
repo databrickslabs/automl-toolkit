@@ -32,7 +32,7 @@ trait Defaults {
 
   def _defaultDateTimeConversionType: String = "split"
 
-  def _defaultFieldsToIgnoreInVector: Array[String] = Array("")
+  def _defaultFieldsToIgnoreInVector: Array[String] = Array.empty[String]
 
   def _geneticTunerDefaults = GeneticConfig(
     parallelism = 20,
@@ -155,7 +155,7 @@ trait Defaults {
     "loss" -> List("squaredError", "huber")
   )
   def _logisticRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
-    "elasticNetParam" -> Tuple2(0.0, 1.0),
+    "elasticNetParams" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
     "tol" -> Tuple2(1E-9, 1E-5)

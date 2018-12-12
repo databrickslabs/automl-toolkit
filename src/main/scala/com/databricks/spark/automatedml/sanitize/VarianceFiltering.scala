@@ -40,9 +40,9 @@ class VarianceFiltering(data: DataFrame) {
     fieldSchema.map { x => x.split("_si$")(0) }
   }
 
-  def filterZeroVariance(fieldsToIgnore: Array[String]=Array("")): DataFrame = {
+  def filterZeroVariance(fieldsToIgnore: Array[String]=Array.empty[String]): DataFrame = {
 
-    val (featurizedData, fields) = new FeaturePipeline(data)
+    val (featurizedData, fields, allFields) = new FeaturePipeline(data)
       .setLabelCol(_labelCol)
       .setFeatureCol(_featureCol)
       .setDateTimeConversionType(_dateTimeConversionType)
@@ -59,15 +59,9 @@ class VarianceFiltering(data: DataFrame) {
       if (x._2.toString.toDouble != 0.0) preserveColumns += x._1
     }
 
-    preserveColumns += _labelCol
+    val finalFields = preserveColumns.result ++ Array(_labelCol) ++ fieldsToIgnore
 
-    // not needed any more
-    // TODO: remove this after validation.
-    //val selectableColumns = regenerateSchema(preserveColumns.toArray)
-
-    //data.select(selectableColumns map col: _*)
-
-    data.select(preserveColumns map col:_*)
+    data.select(finalFields map col:_*)
 
   }
 }

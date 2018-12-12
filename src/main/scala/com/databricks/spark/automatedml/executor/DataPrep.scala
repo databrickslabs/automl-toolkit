@@ -13,30 +13,21 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  private var _dataPrepFlags = _dataPrepConfigDefaults
-
-  def setDataPrepFlags(value: DataPrepConfig): this.type = {
-    _dataPrepFlags = value
-    this
-  }
-
-  def getDataPrepFlags: DataPrepConfig = _dataPrepFlags
-
   private def logConfig(): Unit = {
 
-    val configString = s"Configuration setting flags: \n NA Fill Flag: ${_dataPrepFlags.naFillFlag.toString}" +
-      s"\n Zero Variance Filter Flag: ${_dataPrepFlags.varianceFilterFlag.toString}" +
-      s"\n Outlier Filter Flag: ${_dataPrepFlags.outlierFilterFlag.toString}" +
-      s"\n Covariance Filter Flag: ${_dataPrepFlags.covarianceFilterFlag.toString}" +
-      s"\n Pearson Filter Flag: ${_dataPrepFlags.pearsonFilterFlag.toString}" +
-      s"\n Scaling Flag: ${_dataPrepFlags.scalingFlag.toString}"
+    val configString = s"Configuration setting flags: \n NA Fill Flag: ${_mainConfig.naFillFlag.toString}" +
+      s"\n Zero Variance Filter Flag: ${_mainConfig.varianceFilterFlag.toString}" +
+      s"\n Outlier Filter Flag: ${_mainConfig.outlierFilterFlag.toString}" +
+      s"\n Covariance Filter Flag: ${_mainConfig.covarianceFilteringFlag.toString}" +
+      s"\n Pearson Filter Flag: ${_mainConfig.pearsonFilteringFlag.toString}" +
+      s"\n Scaling Flag: ${_mainConfig.scalingFlag.toString}"
 
     println(configString)
     logger.log(Level.INFO, configString)
 
   }
 
-  private def vectorPipeline(data: DataFrame): (DataFrame, Array[String]) = {
+  private def vectorPipeline(data: DataFrame): (DataFrame, Array[String], Array[String]) = {
 
     // Creates the feature vector and returns the fields that go into the vector
 
@@ -58,15 +49,15 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setModelSelectionDistinctThreshold(_mainConfig.fillConfig.modelSelectionDistinctThreshold)
       .setNumericFillStat(_mainConfig.fillConfig.numericFillStat)
       .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
-      .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
+      .setFieldsToIgnoreInVector(_mainConfig.fieldsToIgnoreInVector)
 
-    val (naFilledDataFrame, detectedModelType) = if (_dataPrepFlags.naFillFlag) {
+    val (naFilledDataFrame, detectedModelType) = if (_mainConfig.naFillFlag) {
       naConfig.generateCleanData()
     } else {
       (data, naConfig.decideModel())
     }
 
-    val naLog: String = if (_dataPrepFlags.naFillFlag) {
+    val naLog: String = if (_mainConfig.naFillFlag) {
       s"NA values filled on Dataframe. Detected Model Type: $detectedModelType"
     } else {
       s"Detected Model Type: $detectedModelType"
@@ -111,7 +102,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setContinuousDataThreshold(_mainConfig.outlierConfig.continuousDataThreshold)
 
     val (outlierCleanedData, outlierRemovedData) = outlierFiltering.filterContinuousOutliers(
-      _mainConfig.outlierConfig.fieldsToIgnore
+      _mainConfig.fieldsToIgnoreInVector, _mainConfig.outlierConfig.fieldsToIgnore
     )
 
     val outlierRemovalInfo = s"Removed outlier data.  Total rows removed = ${outlierRemovedData.count()}"
@@ -156,7 +147,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setFilterManualValue(_mainConfig.pearsonConfig.filterManualValue)
       .setFilterMode(_mainConfig.pearsonConfig.filterMode)
       .setAutoFilterNTile(_mainConfig.pearsonConfig.autoFilterNTile)
-      .filterFields()
+      .filterFields(_mainConfig.fieldsToIgnoreInVector)
 
     val removedFields = fieldRemovalCompare(fields, pearsonFiltering.schema.fieldNames)
 
@@ -192,14 +183,34 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
-  def printSchema(df: DataFrame, dataName: String): Unit = {
 
-    println(s"Schema for $dataName is: \n  ${df.schema.fieldNames.mkString(", ")}")
-
-  }
 
   def prepData(): (DataFrame, Array[String], String) = {
 
+
+    /**
+      * REFACTOR
+      *
+      *
+      * get the initial schema
+      *
+      * get the added fields by string indexing and datetime conversions.
+      *
+      * as each stage goes, if there are adds / filters, continue to add to or remove from the buffer of field names
+      *
+      * maintain a:
+      * 1. Master field listing
+      * 2. Fields to include in vectorization
+      *
+      */
+
+
+    val includeFieldsFinalData = _mainConfig.fieldsToIgnoreInVector
+
+    println(s"Fields Set To Ignore: ${_mainConfig.fieldsToIgnoreInVector.mkString(", ")}")
+
+    //TODO: to add in the ability to 'ignore fields' that will stay in the data set, couriering that array to every
+    // select statement in each of the class main methods will be required.
 
     //TODO: make these persist/cache statement configurable based on the size of the training set.
     val cacheLevel = StorageLevel.MEMORY_AND_DISK
@@ -215,12 +226,18 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     printSchema(df, "input")
 
     // Start by converting fields
-    val (entryPointDf, entryPointFields) = vectorPipeline(df)
+    val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
 
-    val restrictFields = entryPointFields ++ List(_mainConfig.labelCol)
+    // up to here behaves correctly.
 
-    val entryPointDataRestrict = entryPointDf.select(restrictFields map col:_*)
+    printSchema(entryPointDf, "entryPoint")
 
+    //val restrictFields = entryPointFields ++ List(_mainConfig.labelCol)
+
+    val entryPointDataRestrict = entryPointDf.select(selectFields map col:_*)
+
+
+    // this ignores the fieldsToIgnore and reparses the date and time fields.  FIXED.
     val (dataStage1, detectedModelType) = fillNA(entryPointDataRestrict)
 
     // uncache the main DataFrame, force the GC
@@ -228,18 +245,20 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     //DEBUG
     printSchema(dataStage1, "stage1")
+    printSchema(selectFields, "stage1_full")
 
 
     // Variance Filtering
-    val dataStage2 = if (_dataPrepFlags.varianceFilterFlag) varianceFilter(dataStage1) else dataStage1
+    val dataStage2 = if (_mainConfig.varianceFilterFlag) varianceFilter(dataStage1) else dataStage1
 
     dataPersist(dataStage1, dataStage2, cacheLevel, unpersistBlock)
 
     //DEBUG
     printSchema(dataStage2, "stage2")
 
+
     // Outlier Filtering
-    val dataStage3 = if (_dataPrepFlags.outlierFilterFlag) outlierFilter(dataStage2) else dataStage2
+    val dataStage3 = if (_mainConfig.outlierFilterFlag) outlierFilter(dataStage2) else dataStage2
 
     dataPersist(dataStage2, dataStage3, cacheLevel, unpersistBlock)
 
@@ -247,10 +266,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     printSchema(dataStage3, "stage3")
 
     // Next stages require a feature vector
-    val (featurizedData, initialFields) = vectorPipeline(dataStage3)
+    val (featurizedData, initialFields, initialFullFields) = vectorPipeline(dataStage3)
 
-    // Ensure that the only fields in the DataFrame are the Individual Feature Columns and the Label Column
-    val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol)
+    // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
+    val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol) ++ includeFieldsFinalData
 
     val featurizedDataCleaned = featurizedData.select(featureFieldCleanup map col: _*)
 
@@ -260,7 +279,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     printSchema(featurizedDataCleaned, "featurizedDataCleaned")
 
     // Covariance Filtering
-    val dataStage4 = if (_dataPrepFlags.covarianceFilterFlag) {
+    val dataStage4 = if (_mainConfig.covarianceFilteringFlag) {
       covarianceFilter(featurizedDataCleaned, initialFields)
     } else featurizedDataCleaned
 
@@ -270,7 +289,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     printSchema(dataStage4, "stage4")
 
     // All stages after this point require a feature vector.
-    val (dataStage5, stage5Fields) = vectorPipeline(dataStage4)
+    val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(dataStage4)
 
     dataPersist(dataStage4, dataStage5, cacheLevel, unpersistBlock)
 
@@ -278,22 +297,26 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     printSchema(dataStage5, "stage5")
 
     // Pearson Filtering (generates a vector features Field)
-    val (dataStage6, stage6Fields) = if (_dataPrepFlags.pearsonFilterFlag) {
+    val (dataStage6, stage6Fields, stage6FullFields) = if (_mainConfig.pearsonFilteringFlag) {
       vectorPipeline(pearsonFilter(dataStage5, stage5Fields))
-    } else (dataStage5, stage5Fields)
+    } else (dataStage5, stage5Fields, stage5FullFields)
 
     //DEBUG
     printSchema(dataStage6, "stage6")
 
     // Scaler
-    val dataStage7 = if (_dataPrepFlags.scalingFlag) scaler(dataStage6) else dataStage6
+    val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage6) else dataStage6
 
     dataPersist(dataStage5, dataStage7, cacheLevel, unpersistBlock)
 
     val finalSchema = s"Final Schema: \n    ${stage6Fields.mkString(", ")}"
+    val finalFullSchema = s"Final Full Schema: \n    ${stage6FullFields.mkString(", ")}"
 
     logger.log(Level.INFO, finalSchema)
     println(finalSchema)
+
+    logger.log(Level.INFO, finalFullSchema)
+    println(finalFullSchema)
 
     val finalStatement = s"Data Prep complete.  Final Dataframe cached."
 
