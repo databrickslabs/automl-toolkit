@@ -347,10 +347,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     }
 
     val genericResultData = genericResults.result.toArray
+
+    //TODO: MLFlow logging here.
+
     val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
       _mainConfig.modelFamily, modelSelection)
 
-  (genericResults.result.toArray, generationalData, modelStats, generationDataFrameReport(generationalData,
+  (genericResultData, generationalData, modelStats, generationDataFrameReport(generationalData,
     _mainConfig.scoringOptimizationStrategy))
   }
 
