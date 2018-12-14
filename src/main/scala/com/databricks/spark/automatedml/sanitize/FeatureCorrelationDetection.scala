@@ -2,11 +2,13 @@ package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.params.FeatureCorrelationStats
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
-import org.apache.log4j.{Logger, Level}
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) extends SparkSessionWrapper {
 
@@ -15,6 +17,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
   private var _correlationCutoffHigh: Double = 0.0
   private var _correlationCutoffLow: Double = 0.0
   private var _labelCol: String = "label"
+  private var _parallelism: Int = 20
 
   final private val _dataFieldNames = data.schema.fieldNames
 
@@ -36,16 +39,29 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
     this
   }
 
+  def setParallelism(value: Int): this.type = {
+    _parallelism = value
+    this
+  }
+
   def getCorrelationCutoffHigh: Double = _correlationCutoffHigh
 
   def getCorrelationCutoffLow: Double = _correlationCutoffLow
 
   def getLabelCol: String = _labelCol
+  def getParallelism: Int = _parallelism
 
   private def computeFeatureCorrelation(): Array[FeatureCorrelationStats] = {
 
     val correlationInteractions = new ArrayBuffer[FeatureCorrelationStats]
     val redundantRecursionEliminator = new ArrayBuffer[String]
+
+//    Attempted parallelization here but it removes all the columns every time
+//    TODO: This function is EXTREMELY time consuming. Any way to improve?
+//    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+//    val fieldListingPar = fieldListing.par
+//    fieldListingPar.tasksupport = taskSupport
+
 
     fieldListing.foreach{ x =>
       val leftFields = fieldListing.filterNot(_.contains(x)).filterNot(f => redundantRecursionEliminator.contains(f))

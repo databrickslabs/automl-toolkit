@@ -89,8 +89,9 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
     @volatile var results = new ArrayBuffer[SVMModelsWithResults]
     @volatile var modelCnt = 0
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
     val runs = battery.par
-    runs.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+    runs.tasksupport = taskSupport
 
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
       calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"

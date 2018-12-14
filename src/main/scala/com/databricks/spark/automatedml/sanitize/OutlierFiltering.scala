@@ -2,10 +2,12 @@ package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.params.{FilterData, ManualFilters}
 import com.databricks.spark.automatedml.utils.{DataValidation, SparkSessionWrapper}
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions._
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 /**
   *
@@ -20,6 +22,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
   private var _upperFilterNTile: Double = 0.98
   private var _filterPrecision: Double = 0.01
   private var _continuousDataThreshold: Int = 50
+  private var _parallelism: Int = 20
 
   final private val _filterBoundaryAllowances: Array[String] = Array("lower", "upper", "both")
   final private val _dfSchema = df.schema.fieldNames
@@ -62,27 +65,54 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     this
   }
 
+  def setParallelism(value: Int): this.type = {
+    _parallelism = value
+    this
+  }
+
   def getLabelCol: String = _labelCol
   def getFilterBounds: String = _filterBounds
   def getLowerFilterNTile: Double = _lowerFilterNTile
   def getUpperFilterNTile: Double = _upperFilterNTile
   def getFilterPrecision: Double = _filterPrecision
   def getContinuousDataThreshold: Int = _continuousDataThreshold
+  def getParallelism: Int = _parallelism
 
   private def filterBoundaries(field: String, ntile: Double): Double = {
     df.stat.approxQuantile(field, Array(ntile), _filterPrecision)(0)
   }
 
-  private def numericUniqueness(field: String): Long = {
-    df.select(field).distinct().count()
+//  Removing this as I changed the logic here
+//  private def numericUniqueness(field: String): Long = {
+//    df.select(approx_count_distinct(field, rsd = _filterPrecision))
+//      .rdd.map(row => row.getLong(0)).take(1)(0)
+//  }
+
+  private def getBatches(items: List[String]): Array[List[String]] = {
+    val batches = ArrayBuffer[List[String]]()
+    val batchSize = items.length / _parallelism
+    for (i <- 0 to items.length by batchSize) {
+      batches.append(items.slice(i, i + batchSize))
+    }
+    batches.toArray
   }
 
   private def validateNumericFields(ignoreList: Array[String]): (List[FilterData], List[String]) = {
 
     val numericFieldReport = new ListBuffer[FilterData]
     val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol, ignoreList)
-    numericFields.foreach{x =>
-      numericFieldReport += FilterData(x, numericUniqueness(x))
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+    val numericFieldBatches = getBatches(numericFields).par
+    numericFieldBatches.tasksupport = taskSupport
+
+    numericFieldBatches.foreach{ batch =>
+      val countFields = ArrayBuffer[Column]()
+      batch.foreach( batchCol => {
+        countFields.append(approx_count_distinct(batchCol, _filterPrecision))
+      })
+      val countsByCol = batch zip df.select(countFields:_*)
+        .collect()(0).toSeq.toArray.map(_.asInstanceOf[Long])
+      numericFieldReport += FilterData(countsByCol.head._1, countsByCol.head._2)
     }
     val totalFields = numericFields ::: characterFields
     (numericFieldReport.result(), totalFields)
@@ -102,13 +132,21 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     val filteredNumericPayload = new ListBuffer[String]
     val (numericPayload, totalFeatureFields) = validateNumericFields(vectorIgnoreList)
     val totalFields = totalFeatureFields ++ List(_labelCol) ++ vectorIgnoreList.toList
-    numericPayload.foreach{x =>
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+    val numericPayloadPar = numericPayload.par
+    numericPayloadPar.tasksupport = taskSupport
+
+    numericPayloadPar.foreach{x =>
       if(!ignoreList.contains(x.field) & x.uniqueValues >= _continuousDataThreshold)
         filteredNumericPayload += x.field
     }
     var mutatedDF = df
     var outlierDF = df
-    filteredNumericPayload.foreach{x =>
+
+    val filteredNumericPayloadPar = filteredNumericPayload.par
+    filteredNumericPayloadPar.tasksupport = taskSupport
+
+    filteredNumericPayloadPar.foreach{x =>
       _filterBounds match {
         case "lower" =>
           mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
