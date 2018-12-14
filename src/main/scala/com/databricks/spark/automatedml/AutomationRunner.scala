@@ -349,6 +349,23 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     val genericResultData = genericResults.result.toArray
 
     //TODO: MLFlow logging here.
+    /**
+      * // put this in a method above and  only call it if the config is set to log to mlflow.
+      *
+      * val mlFlowLogger = new MLFlowTracker()
+      *   .setMlFlowTrackingURI(_mainConfig.mlflowConfig.mlFlowTrackingURI)
+      *   .setMlFlowHostedAPIToken(_mainConfig.mlflowConfig.mlFlowHostedAPIToken)
+      *   .setMlFlowExperimentName(_mainConfig.mlflowConfig.mlFlowExperimentName)
+      *   .setModelSaveDirectory(_mainConfig.modelSaveDirectory)
+      *
+      * mlFlowLogger.logMlFlowDataAndModels(genericResultData, _mainConfig.modelFamily, modelSelection)
+      *
+      * val mlflowLoggingStatus =
+      *
+      */
+
+
+
 
     val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
       _mainConfig.modelFamily, modelSelection)
@@ -361,20 +378,3 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
   //TODO: this will require a new configuration methodology (generationalRunnerConfig) that has all of the families
   //TODO: default configs within it. with setters to override individual parts.  Might want to make it its own class.
 }
-
-
-//object AutomationRunner {
-//
-//}
-
-/**
-  * Import Config (which elements to do) and their settings
-  * Run pipeline
-  * Extract Fields
-  * Filter / Sanitize
-  * Run chosen Model
-  * Extract Best
-  * Run Report for Feature Importances
-  * Run Report for Decision Tree
-  * Export Reports + Importances + Models + Final DataFrame
-  */

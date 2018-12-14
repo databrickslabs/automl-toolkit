@@ -183,27 +183,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
-
-
   def prepData(): (DataFrame, Array[String], String) = {
-
-
-    /**
-      * REFACTOR
-      *
-      *
-      * get the initial schema
-      *
-      * get the added fields by string indexing and datetime conversions.
-      *
-      * as each stage goes, if there are adds / filters, continue to add to or remove from the buffer of field names
-      *
-      * maintain a:
-      * 1. Master field listing
-      * 2. Fields to include in vectorization
-      *
-      */
-
 
     val includeFieldsFinalData = _mainConfig.fieldsToIgnoreInVector
 
@@ -221,6 +201,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     // cache the main DataFrame
     df.persist(cacheLevel)
+    // force the cache
+    df.count()
 
     //DEBUG
     printSchema(df, "input")
@@ -241,7 +223,11 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val (dataStage1, detectedModelType) = fillNA(entryPointDataRestrict)
 
     // uncache the main DataFrame, force the GC
-    dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
+    val dataStage1RowCount = dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
+
+    // TODO: add logging flag switch for this
+    println(dataStage1RowCount)
+    logger.log(Level.INFO, dataStage1RowCount)
 
     //DEBUG
     printSchema(dataStage1, "stage1")
@@ -251,7 +237,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Variance Filtering
     val dataStage2 = if (_mainConfig.varianceFilterFlag) varianceFilter(dataStage1) else dataStage1
 
-    dataPersist(dataStage1, dataStage2, cacheLevel, unpersistBlock)
+    val dataStage2RowCount = dataPersist(dataStage1, dataStage2, cacheLevel, unpersistBlock)
+
+    println(dataStage2RowCount)
+    logger.log(Level.INFO, dataStage2RowCount)
 
     //DEBUG
     printSchema(dataStage2, "stage2")
@@ -260,7 +249,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Outlier Filtering
     val dataStage3 = if (_mainConfig.outlierFilterFlag) outlierFilter(dataStage2) else dataStage2
 
-    dataPersist(dataStage2, dataStage3, cacheLevel, unpersistBlock)
+    val dataStage3RowCount = dataPersist(dataStage2, dataStage3, cacheLevel, unpersistBlock)
+
+    println(dataStage2RowCount)
+    logger.log(Level.INFO, dataStage3RowCount)
 
     //DEBUG
     printSchema(dataStage3, "stage3")
@@ -273,7 +265,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val featurizedDataCleaned = featurizedData.select(featureFieldCleanup map col: _*)
 
-    dataPersist(dataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
+    val featurizedDataCleanedRowCount = dataPersist(dataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
+
+    println(featurizedDataCleanedRowCount)
+    logger.log(Level.INFO, featurizedDataCleanedRowCount)
 
     //DEBUG
     printSchema(featurizedDataCleaned, "featurizedDataCleaned")
@@ -283,7 +278,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       covarianceFilter(featurizedDataCleaned, initialFields)
     } else featurizedDataCleaned
 
-    dataPersist(featurizedDataCleaned, dataStage4, cacheLevel, unpersistBlock)
+    val dataStage4RowCount = dataPersist(featurizedDataCleaned, dataStage4, cacheLevel, unpersistBlock)
+
+    println(dataStage4RowCount)
+    logger.log(Level.INFO, dataStage4RowCount)
 
     //DEBUG
     printSchema(dataStage4, "stage4")
@@ -291,7 +289,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // All stages after this point require a feature vector.
     val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(dataStage4)
 
-    dataPersist(dataStage4, dataStage5, cacheLevel, unpersistBlock)
+    val dataStage5RowCount = dataPersist(dataStage4, dataStage5, cacheLevel, unpersistBlock)
+
+    println(dataStage5RowCount)
+    logger.log(Level.INFO, dataStage5RowCount)
 
     //DEBUG
     printSchema(dataStage5, "stage5")
@@ -307,7 +308,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Scaler
     val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage6) else dataStage6
 
-    dataPersist(dataStage5, dataStage7, cacheLevel, unpersistBlock)
+    val dataStage7RowCount = dataPersist(dataStage5, dataStage7, cacheLevel, unpersistBlock)
+
+    println(dataStage7RowCount)
+    logger.log(Level.INFO, dataStage7RowCount)
 
     val finalSchema = s"Final Schema: \n    ${stage6Fields.mkString(", ")}"
     val finalFullSchema = s"Final Full Schema: \n    ${stage6FullFields.mkString(", ")}"
