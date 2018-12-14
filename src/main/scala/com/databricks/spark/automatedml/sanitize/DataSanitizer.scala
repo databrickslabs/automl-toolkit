@@ -8,9 +8,12 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 object DataSanitizerPythonHelper {
   var _decision: String = _
+
   def generateCleanData(sanitizer: DataSanitizer, dfName: String): Unit = {
     val (cleanDf, decision) = sanitizer.generateCleanData()
     _decision = decision
@@ -32,6 +35,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
   private var _characterFillStat = "max"
   private var _modelSelectionDistinctThreshold = 10
   private var _fieldsToIgnoreInVector = Array.empty[String]
+  private var _filterPrecision: Double = 0.01
+  private var _parallelism: Int = 20
 
   def setLabelCol(value: String): this.type = {
     this._labelCol = value
@@ -63,12 +68,32 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     this
   }
 
+  def setParallelism(value: Int): this.type = {
+    _parallelism = value
+    this
+  }
+
+  def setFilterPrecision(value: Double): this.type = {
+    if (value == 0.0) println("Warning! Precision of 0 is an exact calculation of quantiles and may not be performant!")
+    this._filterPrecision = value
+    this
+  }
+
   def getLabel: String = _labelCol
+
   def getFeatureCol: String = _featureCol
+
   def getNumericFillStat: String = _numericFillStat
+
   def getCharacterFillStat: String = _characterFillStat
+
   def getModelSelectionDistinctThreshold: Int = _modelSelectionDistinctThreshold
+
   def getFieldsToIgnoreInVector: Array[String] = _fieldsToIgnoreInVector
+
+  def getParallelism: Int = _parallelism
+
+  def getFilterPrecision: Double = _filterPrecision
 
   private def convertLabel(df: DataFrame): DataFrame = {
 
@@ -115,15 +140,35 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     summaryMetric
   }
 
-  private def getFieldsAndFillable(df: DataFrame, columnList: List[String]): DataFrame = {
+  private def getBatches(items: List[String]): Array[List[String]] = {
+    val batches = ArrayBuffer[List[String]]()
+    val batchSize = items.length / _parallelism
+    for (i <- 0 to items.length by batchSize) {
+      batches.append(items.slice(i, i + batchSize))
+    }
+    batches.toArray
+  }
+
+  private def getFieldsAndFillable(df: DataFrame, columnList: List[String], statistics: String): DataFrame = {
+
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
     val selectionColumns = "Summary" +: columnList
-    df.summary().select(selectionColumns map col:_*)
+    val x = if (statistics.isEmpty) {
+      val colBatches = getBatches(columnList).par
+      colBatches.tasksupport = taskSupport
+      colBatches.map { batch =>
+        df.select(batch map col: _*).summary().select("Summary" +: batch map col: _*)
+      }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
+
+    } else {
+      df.summary(statistics.replaceAll(" ", "").split(","): _*).select(selectionColumns map col: _*)
+    }
+    x
   }
 
   private def assemblePayload(df: DataFrame, fieldList: List[String], filterCondition: String): Array[(String, Any)] = {
 
-    val summaryStats = getFieldsAndFillable(df, fieldList)
-      .filter(col("Summary") === filterCondition)
+    val summaryStats = getFieldsAndFillable(df, fieldList, filterCondition)
       .drop(col("Summary"))
     val summaryColumns = summaryStats.columns
     val summaryValues = summaryStats.collect()(0).toSeq.toArray
@@ -141,17 +186,19 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     val characterFilterBuffer = new ArrayBuffer[(String, String)]
 
     numericPayload.map(x => x._1 match {
-      case x._1 if x._1 != _labelCol => try{numericFilterBuffer += ((x._1, x._2.toString.toDouble))
+      case x._1 if x._1 != _labelCol => try {
+        numericFilterBuffer += ((x._1, x._2.toString.toDouble))
       } catch {
-        case _:Exception => None
+        case _: Exception => None
       }
       case _ => None
     })
 
     characterPayload.map(x => x._1 match {
-      case x._1 if x._1 != _labelCol => try{characterFilterBuffer += ((x._1, x._2.toString))
+      case x._1 if x._1 != _labelCol => try {
+        characterFilterBuffer += ((x._1, x._2.toString))
       } catch {
-        case _:Exception => None
+        case _: Exception => None
       }
       case _ => None
     })
@@ -164,7 +211,9 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
   }
 
   def decideModel(): String = {
-    val uniqueLabelCounts = data.select(_labelCol).distinct.count
+    val uniqueLabelCounts = data.
+      select(approx_count_distinct(_labelCol, rsd = _filterPrecision))
+      .rdd.map(row => row.getLong(0)).take(1)(0)
     val decision = uniqueLabelCounts match {
       case x if x <= _modelSelectionDistinctThreshold => "classifier"
       case _ => "regressor"

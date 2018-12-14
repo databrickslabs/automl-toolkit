@@ -5,7 +5,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
-
+import org.apache.spark.sql.Column
 class VarianceFiltering(data: DataFrame) {
 
   private var _labelCol = "label"
@@ -43,12 +43,12 @@ class VarianceFiltering(data: DataFrame) {
   def filterZeroVariance(fieldsToIgnore: Array[String]=Array.empty[String]): DataFrame = {
 
     val (featurizedData, fields, allFields) = new FeaturePipeline(data)
-      .setLabelCol(_labelCol)
-      .setFeatureCol(_featureCol)
-      .setDateTimeConversionType(_dateTimeConversionType)
-      .makeFeaturePipeline(fieldsToIgnore)
+              .setLabelCol(_labelCol)
+              .setFeatureCol(_featureCol)
+              .setDateTimeConversionType(_dateTimeConversionType)
+              .makeFeaturePipeline(fieldsToIgnore)
 
-    val stddevInformation = featurizedData.summary().filter(col("summary") === "stddev")
+    val stddevInformation = featurizedData.summary("stddev")
       .select(fields map col: _*).collect()(0).toSeq.toArray
 
     val stddevData = fields.zip(stddevInformation)
