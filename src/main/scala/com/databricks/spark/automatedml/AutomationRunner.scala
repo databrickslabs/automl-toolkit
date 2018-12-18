@@ -348,6 +348,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val genericResultData = genericResults.result.toArray
 
+
+    //TODO: Set Logging Configs as part of MainConfig
+
+
     //TODO: MLFlow logging here.
     /**
       * // put this in a method above and  only call it if the config is set to log to mlflow.

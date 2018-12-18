@@ -21,7 +21,9 @@ case class MainConfig(
                        pearsonConfig: PearsonConfig,
                        covarianceConfig: CovarianceConfig,
                        scalingConfig: ScalingConfig,
-                       geneticConfig: GeneticConfig
+                       geneticConfig: GeneticConfig,
+                       mlFlowLoggingFlag: Boolean,
+                       mlFlowConfig: MLFlowConfig
                      )
 
 // TODO: Change MainConfig to use this case class definition.
@@ -33,6 +35,13 @@ case class DataPrepConfig(
                          covarianceFilterFlag: Boolean,
                          scalingFlag: Boolean
                          )
+
+case class MLFlowConfig(
+                        mlFlowTrackingURI: String,
+                        mlFlowExperimentName: String,
+                        mlFlowAPIToken: String,
+                        mlFlowModelSaveDirectory: String
+                       )
 
 case class FillConfig(
                        numericFillStat: String,

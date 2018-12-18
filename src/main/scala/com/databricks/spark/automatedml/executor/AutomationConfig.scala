@@ -122,6 +122,39 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _treeSplitsConfig: MainConfig = _treeSplitDefaults
 
+  var _mlFlowConfig: MLFlowConfig = _mlFlowConfigDefaults
+
+  var _mlFlowLoggingFlag: Boolean = _defaultMlFlowLoggingFlag
+
+  var _mlFlowTrackingURI: String = _mlFlowConfigDefaults.mlFlowTrackingURI
+
+  var _mlFlowExperimentName: String = _mlFlowConfigDefaults.mlFlowExperimentName
+
+  var _mlFlowAPIToken: String = _mlFlowConfigDefaults.mlFlowAPIToken
+
+  var _mlFlowModelSaveDirectory: String = _mlFlowConfigDefaults.mlFlowModelSaveDirectory
+
+  def setMlFlowConfig(value: MLFlowConfig): this.type = {
+    _mlFlowConfig = value
+    setMainConfig()
+    this
+  }
+
+  def mlFlowLoggingOn(): this.type = {
+    _mlFlowLoggingFlag = true
+    setMainConfig()
+    this
+  }
+
+  def mlFlowLoggingOff(): this.type = {
+    _mlFlowLoggingFlag = false
+    setMainConfig()
+    this
+  }
+
+  
+
+
   def setModelingFamily(value: String): this.type = {
     _modelingFamily = value
     _numericBoundaries = value match {

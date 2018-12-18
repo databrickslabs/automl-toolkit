@@ -92,6 +92,15 @@ class MLFlowTracker {
     path.replace("dbfs:", "/dbfs")
   }
 
+  /**
+    * Private method for saving an individual model, creating a Fuse mount for it, and registering the artifact.
+    * @param client MlFlow client that has been registered.
+    * @param path Path in blob store for saving the SparkML Model
+    * @param runId Unique runID for the run to log model artifacts to.
+    * @param modelReturn Modeling payload for the run in order to extract the specific model type
+    * @param modelDescriptor Text Assignment for the model family + type of model that was run
+    * @param modelId Unique uuid identifier for the model.
+    */
   private def saveModel(client: MlflowClient, path: String, runId: String, modelReturn: GenericModelReturn,
                         modelDescriptor: String, modelId: String): Unit = {
 
@@ -141,7 +150,12 @@ class MLFlowTracker {
     }
   }
 
-
+  /**
+    * Public method for logging a model, parameters, and metrics to MlFlow
+    * @param runData Full collection parameters, results, and models for the automatedML experiment
+    * @param modelFamily Type of Model Family used (e.g. "RandomForest")
+    * @param modelType Type of Model used (e.g. "regression")
+    */
   def logMlFlowDataAndModels(runData: Array[GenericModelReturn], modelFamily: String, modelType: String): Unit = {
 
     val mlflowLoggingClient = createHostedMlFlowClient()
