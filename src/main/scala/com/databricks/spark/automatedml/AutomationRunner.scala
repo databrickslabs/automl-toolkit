@@ -38,6 +38,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
       .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+      //TODO: REMOVE THIS AND SET THE VALUE THROUGH CONFIG!!!
+      .setEarlyStoppingScore(0.95)
       .evolveWithScoringDF()
 
     (modelResults, modelStats, modelSelection)

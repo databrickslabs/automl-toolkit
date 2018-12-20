@@ -27,6 +27,7 @@ trait Evolution extends DataValidation {
   var _generationalMutationStrategy = "linear"
   var _mutationMagnitudeMode = "random"
   var _fixedMutationValue = 1
+  var _earlyStoppingScore: Double = 0.95
 
   final val allowableStrategies = Seq("minimize", "maximize")
   final val allowableMutationStrategies = Seq("linear", "fixed")
@@ -34,41 +35,40 @@ trait Evolution extends DataValidation {
   final val regressionMetrics: List[String] = List("rmse", "mse", "r2", "mae")
   final val classificationMetrics: List[String] = List("f1", "weightedPrecision", "weightedRecall", "accuracy")
 
-
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
 
   def setLabelCol(value: String): this.type = {
-    this._labelCol = value
+    _labelCol = value
     this
   }
 
   def setFeaturesCol(value: String): this.type = {
-    this._featureCol = value
+    _featureCol = value
     this
   }
 
   def setTrainPortion(value: Double): this.type = {
     require(value < 1.0 & value > 0.0, "Training portion must be in the range > 0 and < 1")
-    this._trainPortion = value
+    _trainPortion = value
     this
   }
 
   def setParallelism(value: Int): this.type = {
     //TODO: SET PARALLELISM VALIDATION CORRECTLY
     require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
-    this._parallelism = value
+    _parallelism = value
     this
   }
 
   def setKFold(value: Int): this.type = {
-    this._kFold = value
-    this._kFoldIteratorRange = Range(0, _kFold).par
+    _kFold = value
+    _kFoldIteratorRange = Range(0, _kFold).par
     this
   }
 
   def setSeed(value: Long): this.type = {
-    this._seed = value
+    _seed = value
     this
   }
 
@@ -78,38 +78,38 @@ trait Evolution extends DataValidation {
       s"Optimization Strategy '$valueLC' is not a member of ${
         invalidateSelection(valueLC, allowableStrategies)
       }")
-    this._optimizationStrategy = valueLC
+    _optimizationStrategy = valueLC
     this
   }
 
   def setFirstGenerationGenePool(value: Int): this.type = {
     require(value > 5, s"Values less than 5 for firstGenerationGenePool will require excessive generational mutation to converge")
-    this._firstGenerationGenePool = value
+    _firstGenerationGenePool = value
     this
   }
 
   def setNumberOfMutationGenerations(value: Int): this.type = {
     require(value > 0, s"Number of Generations must be greater than 0")
-    this._numberOfMutationGenerations = value
+    _numberOfMutationGenerations = value
     this
   }
 
   def setNumberOfParentsToRetain(value: Int): this.type = {
     require(value > 0, s"Number of Parents must be greater than 0. '$value' is not a valid number.")
-    this._numberOfParentsToRetain = value
+    _numberOfParentsToRetain = value
     this
   }
 
   def setNumberOfMutationsPerGeneration(value: Int): this.type = {
     require(value > 0, s"Number of Mutations per generation must be greater than 0. '$value' is not a valid number.")
-    this._numberOfMutationsPerGeneration = value
+    _numberOfMutationsPerGeneration = value
     this
   }
 
   def setGeneticMixing(value: Double): this.type = {
     require(value < 1.0 & value > 0.0,
       s"Mutation Aggressiveness must be in range (0,1). Current Setting of $value is not permitted.")
-    this._geneticMixing = value
+    _geneticMixing = value
     this
   }
 
@@ -119,7 +119,7 @@ trait Evolution extends DataValidation {
       s"Generational Mutation Strategy '$valueLC' is not a member of ${
         invalidateSelection(valueLC, allowableMutationStrategies)
       }")
-    this._generationalMutationStrategy = valueLC
+    _generationalMutationStrategy = valueLC
     this
   }
 
@@ -129,7 +129,7 @@ trait Evolution extends DataValidation {
       s"Mutation Magnitude Mode '$valueLC' is not a member of ${
         invalidateSelection(valueLC, allowableMutationMagnitudeMode)
       }")
-    this._mutationMagnitudeMode = valueLC
+    _mutationMagnitudeMode = valueLC
     this
   }
 
@@ -138,7 +138,12 @@ trait Evolution extends DataValidation {
     require(value <= maxMutationCount,
       s"Mutation count '$value' cannot exceed number of hyperparameters ($maxMutationCount)")
     require(value > 0, s"Mutation count '$value' must be greater than 0")
-    this._fixedMutationValue = value
+    _fixedMutationValue = value
+    this
+  }
+
+  def setEarlyStoppingScore(value: Double): this.type = {
+    _earlyStoppingScore = value
     this
   }
 
@@ -171,6 +176,8 @@ trait Evolution extends DataValidation {
   def getMutationMagnitudeMode: String = _mutationMagnitudeMode
 
   def getFixedMutationValue: Int = _fixedMutationValue
+
+  def getEarlyStoppingScore: Double = _earlyStoppingScore
 
   def totalModels: Int = (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool
 
