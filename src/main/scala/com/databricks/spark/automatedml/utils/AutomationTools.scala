@@ -35,12 +35,12 @@ trait AutomationTools extends SparkSessionWrapper {
   }
 
   def dataPersist(preDF: DataFrame, postDF: DataFrame, cacheLevel: StorageLevel,
-                  blockUnpersist: Boolean): String = {
+                  blockUnpersist: Boolean): (DataFrame, String) = {
 
     postDF.persist(cacheLevel)
     val newDFRowCount = s"Row count of data: ${postDF.count()}"
     preDF.unpersist(blockUnpersist)
-    newDFRowCount
+    (postDF, newDFRowCount)
   }
 
   def fieldRemovalCompare(preFilterFields: Array[String], postFilterFields: Array[String]): List[String] = {
