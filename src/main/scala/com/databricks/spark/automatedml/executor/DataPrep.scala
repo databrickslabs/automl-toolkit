@@ -8,8 +8,14 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
+
 class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
+  //    TODO: parallelism config for non genetic parallel control should be added
   private val logger: Logger = Logger.getLogger(this.getClass)
 
   private def logConfig(): Unit = {
@@ -49,6 +55,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setModelSelectionDistinctThreshold(_mainConfig.fillConfig.modelSelectionDistinctThreshold)
       .setNumericFillStat(_mainConfig.fillConfig.numericFillStat)
       .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setFieldsToIgnoreInVector(_mainConfig.fieldsToIgnoreInVector)
 
     val (naFilledDataFrame, detectedModelType) = if (_mainConfig.naFillFlag) {
@@ -92,13 +99,13 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
   private def outlierFilter(data: DataFrame): DataFrame = {
 
     // Output has no feature vector
-
     val outlierFiltering = new OutlierFiltering(data)
       .setLabelCol(_mainConfig.labelCol)
       .setFilterBounds(_mainConfig.outlierConfig.filterBounds)
       .setLowerFilterNTile(_mainConfig.outlierConfig.lowerFilterNTile)
       .setUpperFilterNTile(_mainConfig.outlierConfig.upperFilterNTile)
       .setFilterPrecision(_mainConfig.outlierConfig.filterPrecision)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setContinuousDataThreshold(_mainConfig.outlierConfig.continuousDataThreshold)
 
     val (outlierCleanedData, outlierRemovedData) = outlierFiltering.filterContinuousOutliers(
