@@ -4,12 +4,14 @@ import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{DataType, StructType}
 import org.apache.spark.sql.functions._
+import org.apache.log4j.{Level, Logger}
 
 import scala.collection.mutable.ListBuffer
 
 trait DataValidation {
 
   def _allowableDateTimeConversions = List("unix", "split")
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   def invalidateSelection(value: String, allowances: Seq[String]): String = {
     s"${allowances.foldLeft("")((a, b) => a + " " + b)}"
@@ -30,7 +32,8 @@ trait DataValidation {
     val fieldExtraction = extractSchema(data.schema).filterNot(x => ignoreFields.contains(x._2))
 
     //DEBUG
-    println(s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
+    //println(s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
+    logger.log(Level.DEBUG, s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
 
     var conversionFields = new ListBuffer[String]
     var dateFields = new ListBuffer[String]

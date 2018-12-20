@@ -85,9 +85,13 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setFeatureCol(_mainConfig.featuresCol)
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
 
-    val varianceFilteredData = varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
+    val (varianceFilteredData, removedColumns) = varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
 
-    val varianceFilterLog = "Zero Variance fields have been removed from the data."
+    val varianceFilterLog = if (removedColumns.length == 0) {
+      "Zero Variance fields have been removed from the data."
+    } else {
+      s"The following columns were removed due to zero variance: ${removedColumns.mkString(", ")}"
+    }
 
     logger.log(Level.INFO, varianceFilterLog)
     println(varianceFilterLog)
@@ -228,14 +232,15 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     df.persist(cacheLevel)
 
     //DEBUG
-    printSchema(df, "input")
+    logger.log(Level.DEBUG, printSchema(df, "input").toString)
+
 
     // Start by converting fields
     val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
 
     // up to here behaves correctly.
 
-    printSchema(entryPointDf, "entryPoint")
+    logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
 
     //val restrictFields = entryPointFields ++ List(_mainConfig.labelCol)
 
@@ -249,8 +254,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
 
     //DEBUG
-    printSchema(dataStage1, "stage1")
-    printSchema(selectFields, "stage1_full")
+    logger.log(Level.DEBUG, printSchema(dataStage1, "stage1").toString)
+    logger.log(Level.DEBUG, printSchema(selectFields, "stage1_full").toString)
 
 
     // Variance Filtering
@@ -259,7 +264,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     dataPersist(dataStage1, dataStage2, cacheLevel, unpersistBlock)
 
     //DEBUG
-    printSchema(dataStage2, "stage2")
+    logger.log(Level.DEBUG, printSchema(dataStage2, "stage2").toString)
 
 
     // Outlier Filtering
@@ -268,7 +273,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     dataPersist(dataStage2, dataStage3, cacheLevel, unpersistBlock)
 
     //DEBUG
-    printSchema(dataStage3, "stage3")
+    logger.log(Level.DEBUG, printSchema(dataStage3, "stage3").toString)
 
     // Next stages require a feature vector
     val (featurizedData, initialFields, initialFullFields) = vectorPipeline(dataStage3)
@@ -281,7 +286,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     dataPersist(dataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
 
     //DEBUG
-    printSchema(featurizedDataCleaned, "featurizedDataCleaned")
+    logger.log(Level.DEBUG, printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString)
 
     // Covariance Filtering
     val dataStage4 = if (_mainConfig.covarianceFilteringFlag) {
@@ -291,7 +296,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     dataPersist(featurizedDataCleaned, dataStage4, cacheLevel, unpersistBlock)
 
     //DEBUG
-    printSchema(dataStage4, "stage4")
+    logger.log(Level.DEBUG, printSchema(dataStage4, "stage4").toString)
 
     // All stages after this point require a feature vector.
     val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(dataStage4)
@@ -299,7 +304,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     dataPersist(dataStage4, dataStage5, cacheLevel, unpersistBlock)
 
     //DEBUG
-    printSchema(dataStage5, "stage5")
+    logger.log(Level.DEBUG, printSchema(dataStage5, "stage5").toString)
 
     // Pearson Filtering (generates a vector features Field)
     val (dataStage6, stage6Fields, stage6FullFields) = if (_mainConfig.pearsonFilteringFlag) {
@@ -307,21 +312,23 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     } else (dataStage5, stage5Fields, stage5FullFields)
 
     //DEBUG
-    printSchema(dataStage6, "stage6")
+    logger.log(Level.DEBUG, printSchema(dataStage6, "stage6").toString)
 
     // Scaler
     val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage6) else dataStage6
 
     dataPersist(dataStage5, dataStage7, cacheLevel, unpersistBlock)
 
+    // This is making a mess in the output. Commenting out for now.
+    // TODO: Determine if schema getter is necessary outside of logging
     val finalSchema = s"Final Schema: \n    ${stage6Fields.mkString(", ")}"
     val finalFullSchema = s"Final Full Schema: \n    ${stage6FullFields.mkString(", ")}"
 
     logger.log(Level.INFO, finalSchema)
-    println(finalSchema)
+//    println(finalSchema)
 
     logger.log(Level.INFO, finalFullSchema)
-    println(finalFullSchema)
+//    println(finalFullSchema)
 
     val finalStatement = s"Data Prep complete.  Final Dataframe cached."
 

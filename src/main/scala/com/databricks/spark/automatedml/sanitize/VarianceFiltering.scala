@@ -1,6 +1,7 @@
 package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
+import org.apache.log4j.{Logger, Level}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -11,6 +12,8 @@ class VarianceFiltering(data: DataFrame) {
   private var _labelCol = "label"
   private var _featureCol = "features"
   private var _dateTimeConversionType = "split"
+
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   private final val dfSchema = data.schema.fieldNames
 
@@ -40,7 +43,7 @@ class VarianceFiltering(data: DataFrame) {
     fieldSchema.map { x => x.split("_si$")(0) }
   }
 
-  def filterZeroVariance(fieldsToIgnore: Array[String]=Array.empty[String]): DataFrame = {
+  def filterZeroVariance(fieldsToIgnore: Array[String]=Array.empty[String]): (DataFrame, Array[String]) = {
 
     val (featurizedData, fields, allFields) = new FeaturePipeline(data)
               .setLabelCol(_labelCol)
@@ -54,14 +57,23 @@ class VarianceFiltering(data: DataFrame) {
     val stddevData = fields.zip(stddevInformation)
 
     val preserveColumns = new ArrayBuffer[String]
+    val removedColumns = new ArrayBuffer[String]
 
     stddevData.foreach { x =>
-      if (x._2.toString.toDouble != 0.0) preserveColumns += x._1
+      if (x._2.toString.toDouble != 0.0){
+        preserveColumns.append(x._1)
+      } else {
+        removedColumns.append(x._1)
+      }
     }
 
+//    val removedColumnsString = removedColumns.toArray.mkString(", ")
+//    println(s"The following columns were removed due to zero variance: $removedColumnsString")
+//
+//    logger.log(Level.WARN, s"The following columns were removed due to zero variance: $removedColumnsString")
     val finalFields = preserveColumns.result ++ Array(_labelCol) ++ fieldsToIgnore
 
-    data.select(finalFields map col:_*)
+    (data.select(finalFields map col:_*), removedColumns.toArray)
 
   }
 }
