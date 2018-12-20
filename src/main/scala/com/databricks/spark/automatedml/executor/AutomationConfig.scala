@@ -134,6 +134,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _mlFlowModelSaveDirectory: String = _mlFlowConfigDefaults.mlFlowModelSaveDirectory
 
+  private def setConfigs(): this.type = {
+    setMainConfig()
+    setTreeSplitsConfig()
+    setFeatConfig()
+  }
+
   def setModelingFamily(value: String): this.type = {
     _modelingFamily = value
     _numericBoundaries = value match {
@@ -156,136 +162,136 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       case "SVM" => _svmDefaultStringBoundaries
       case _ => throw new IllegalArgumentException(s"$value is an unsupported Model Type")
     }
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setLabelCol(value: String): this.type = {
     _labelCol = value
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setFeaturesCol(value: String): this.type = {
     _featuresCol = value
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def naFillOn(): this.type = {
     _naFillFlag = true
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def naFillOff(): this.type = {
     _naFillFlag = false
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def varianceFilterOn(): this.type = {
     _varianceFilterFlag = true
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def varianceFilterOff(): this.type = {
     _varianceFilterFlag = false
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def outlierFilterOn(): this.type = {
     _outlierFilterFlag = true
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def outlierFilterOff(): this.type = {
     _outlierFilterFlag = false
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def pearsonFilterOn(): this.type = {
     _pearsonFilterFlag = true
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def pearsonFilterOff(): this.type = {
     _pearsonFilterFlag = false
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def covarianceFilterOn(): this.type = {
     _covarianceFilterFlag = true
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def covarianceFilterOff(): this.type = {
     _covarianceFilterFlag = false
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def scalingOn(): this.type = {
     _scalingFlag = true
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def scalingOff(): this.type = {
     _scalingFlag = false
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
     _numericBoundaries = value
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setStringBoundaries(value: Map[String, List[String]]): this.type = {
     _stringBoundaries = value
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setNumericFillStat(value: String): this.type = {
     _numericFillStat = value
     setFillConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setCharacterFillStat(value: String): this.type = {
     _characterFillStat = value
     setFillConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setDateTimeConversionType(value: String): this.type = {
     _dateTimeConversionType = value
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setFieldsToIgnoreInVector(value: Array[String]): this.type = {
     _fieldsToIgnoreInVector = value
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setModelSelectionDistinctThreshold(value: Int): this.type = {
     _modelSelectionDistinctThreshold = value
     setFillConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
@@ -301,42 +307,42 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def setFilterBounds(value: String): this.type = {
     _filterBounds = value
     setOutlierConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setLowerFilterNTile(value: Double): this.type = {
     _lowerFilterNTile = value
     setOutlierConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setUpperFilterNTile(value: Double): this.type = {
     _upperFilterNTile = value
     setOutlierConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setFilterPrecision(value: Double): this.type = {
     _filterPrecision = value
     setOutlierConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setContinuousDataThreshold(value: Int): this.type = {
     _continuousDataThreshold = value
     setOutlierConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setFieldsToIgnore(value: Array[String]): this.type = {
     _fieldsToIgnore = value
     setOutlierConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
@@ -355,35 +361,35 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def setPearsonFilterStatistic(value: String): this.type = {
     _pearsonFilterStatistic = value
     setPearsonConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setPearsonFilterDirection(value: String): this.type = {
     _pearsonFilterDirection = value
     setPearsonConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setPearsonFilterManualValue(value: Double): this.type = {
     _pearsonFilterManualValue = value
     setPearsonConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setPearsonFilterMode(value: String): this.type = {
     _pearsonFilterMode = value
     setPearsonConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setPearsonAutoFilterNTile(value: Double): this.type = {
     _pearsonAutoFilterNTile = value
     setPearsonConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
@@ -401,14 +407,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def setCorrelationCutoffLow(value: Double): this.type = {
     _correlationCutoffLow = value
     setCovarianceConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setCorrelationCutoffHigh(value: Double): this.type = {
     _correlationCutoffHigh = value
     setCovarianceConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
@@ -423,56 +429,56 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def setScalerType(value: String): this.type = {
     _scalerType = value
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setScalerMin(value: Double): this.type = {
     _scalerMin = value
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setScalerMax(value: Double): this.type = {
     _scalerMax = value
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setStandardScalerMeanFlagOn(): this.type = {
     _standardScalerMeanFlag = true
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setStandardScalerMeanFlagOff(): this.type = {
     _standardScalerMeanFlag = false
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setStandardScalerStdDevFlagOn(): this.type = {
     _standardScalerStdDevFlag = true
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setStandardScalerStdDevFlagOff(): this.type = {
     _standardScalerStdDevFlag = false
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setPNorm(value: Double): this.type = {
     _pNorm = value
     setScalerConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
@@ -493,126 +499,130 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
     _parallelism = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setKFold(value: Integer): this.type = {
     _kFold = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setTrainPortion(value: Double): this.type = {
     _trainPortion = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setSeed(value: Long): this.type = {
     _seed = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setFirstGenerationGenePool(value: Int): this.type = {
     _firstGenerationGenePool = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setNumberOfGenerations(value: Int): this.type = {
     _numberOfGenerations = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setNumberOfParentsToRetain(value: Int): this.type = {
     _numberOfParentsToRetain = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setNumberOfMutationsPerGeneration(value: Int): this.type = {
     _numberOfMutationsPerGeneration = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setGeneticMixing(value: Double): this.type = {
     _geneticMixing = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setGenerationalMutationStrategy(value: String): this.type = {
     _generationalMutationStrategy = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setFixedMutationValue(value: Int): this.type = {
     _fixedMutationValue = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setMutationMagnitudeMode(value: String): this.type = {
     _mutationMagnitudeMode = value
     setGeneticConfig()
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setMlFlowConfig(value: MLFlowConfig): this.type = {
     _mlFlowConfig = value
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def mlFlowLoggingOn(): this.type = {
     _mlFlowLoggingFlag = true
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def mlFlowLoggingOff(): this.type = {
     _mlFlowLoggingFlag = false
-    setMainConfig()
+    setConfigs()
     this
   }
 
   def setMlFlowTrackingURI(value: String): this.type = {
     _mlFlowTrackingURI = value
     setMlFlowConfig()
+    setConfigs()
     this
   }
 
   def setMlFlowExperimentName(value: String): this.type = {
     _mlFlowExperimentName = value
     setMlFlowConfig()
+    setConfigs()
     this
   }
 
   def setMlFlowAPIToken(value: String): this.type = {
     _mlFlowAPIToken = value
     setMlFlowConfig()
+    setConfigs()
     this
   }
 
   def setMlFlowModelSaveDirectory(value: String): this.type = {
     _mlFlowModelSaveDirectory = value
     setMlFlowConfig()
+    setConfigs()
     this
   }
 
@@ -678,13 +688,77 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setFeatConfig(): this.type = {
+    _featureImportancesConfig = MainConfig(
+      modelFamily = "RandomForest",
+      labelCol = _labelCol,
+      featuresCol = _featuresCol,
+      naFillFlag = _naFillFlag,
+      varianceFilterFlag = _varianceFilterFlag,
+      outlierFilterFlag = _outlierFilterFlag,
+      pearsonFilteringFlag = _pearsonFilterFlag,
+      covarianceFilteringFlag = _covarianceFilterFlag,
+      scalingFlag = _scalingFlag,
+      dateTimeConversionType = _dateTimeConversionType,
+      fieldsToIgnoreInVector = _fieldsToIgnoreInVector,
+      numericBoundaries = _numericBoundaries,
+      stringBoundaries = _stringBoundaries,
+      scoringMetric = _scoringMetric,
+      scoringOptimizationStrategy = _scoringOptimizationStrategy,
+      fillConfig = _fillConfig,
+      outlierConfig = _outlierConfig,
+      pearsonConfig = _pearsonConfig,
+      covarianceConfig = _covarianceConfig,
+      scalingConfig = _scalingConfig,
+      geneticConfig = _geneticConfig,
+      mlFlowLoggingFlag = _mlFlowLoggingFlag,
+      mlFlowConfig = _mlFlowConfig
+    )
+    this
+  }
+
   def setFeatConfig(value: MainConfig): this.type = {
     _featureImportancesConfig = value
+    require(value.modelFamily == "RandomForest",
+      s"Model Family for Feature Importances must be 'RandomForest'. ${value.modelFamily} is not supported.")
+    setConfigs()
+    this
+  }
+
+  def setTreeSplitsConfig(): this.type = {
+    _treeSplitsConfig = MainConfig(
+      modelFamily = "Trees",
+      labelCol = _labelCol,
+      featuresCol = _featuresCol,
+      naFillFlag = _naFillFlag,
+      varianceFilterFlag = _varianceFilterFlag,
+      outlierFilterFlag = _outlierFilterFlag,
+      pearsonFilteringFlag = _pearsonFilterFlag,
+      covarianceFilteringFlag = _covarianceFilterFlag,
+      scalingFlag = _scalingFlag,
+      dateTimeConversionType = _dateTimeConversionType,
+      fieldsToIgnoreInVector = _fieldsToIgnoreInVector,
+      numericBoundaries = _numericBoundaries,
+      stringBoundaries = _stringBoundaries,
+      scoringMetric = _scoringMetric,
+      scoringOptimizationStrategy = _scoringOptimizationStrategy,
+      fillConfig = _fillConfig,
+      outlierConfig = _outlierConfig,
+      pearsonConfig = _pearsonConfig,
+      covarianceConfig = _covarianceConfig,
+      scalingConfig = _scalingConfig,
+      geneticConfig = _geneticConfig,
+      mlFlowLoggingFlag = _mlFlowLoggingFlag,
+      mlFlowConfig = _mlFlowConfig
+    )
     this
   }
 
   def setTreeSplitsConfig(value: MainConfig): this.type = {
     _treeSplitsConfig = value
+    require(value.modelFamily == "Trees",
+      s"Model Family for Trees Splits must be 'Trees'. ${value.modelFamily} is not supported.")
+    setConfigs()
     this
   }
 
