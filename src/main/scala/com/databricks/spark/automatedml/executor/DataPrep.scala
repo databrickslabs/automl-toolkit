@@ -1,6 +1,5 @@
 package com.databricks.spark.automatedml.executor
 
-import com.databricks.spark.automatedml.params.DataPrepConfig
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize._
 import com.databricks.spark.automatedml.utils.AutomationTools
@@ -26,7 +25,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       s"\n Outlier Filter Flag: ${_mainConfig.outlierFilterFlag.toString}" +
       s"\n Covariance Filter Flag: ${_mainConfig.covarianceFilteringFlag.toString}" +
       s"\n Pearson Filter Flag: ${_mainConfig.pearsonFilteringFlag.toString}" +
-      s"\n Scaling Flag: ${_mainConfig.scalingFlag.toString}"
+      s"\n Scaling Flag: ${_mainConfig.scalingFlag.toString}" +
+      s"\n MlFlow Logging Flag: ${_mainConfig.mlFlowLoggingFlag.toString}"
 
     println(configString)
     logger.log(Level.INFO, configString)
@@ -197,31 +197,13 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
   def prepData(): (DataFrame, Array[String], String) = {
 
 
-    /**
-      * REFACTOR
-      *
-      *
-      * get the initial schema
-      *
-      * get the added fields by string indexing and datetime conversions.
-      *
-      * as each stage goes, if there are adds / filters, continue to add to or remove from the buffer of field names
-      *
-      * maintain a:
-      * 1. Master field listing
-      * 2. Fields to include in vectorization
-      *
-      */
-
+    //TODO: add in a verbosity toggle to print / log certain elements
+    // TODO: should have "full logging", "standard logging" and "log4j only"
 
     val includeFieldsFinalData = _mainConfig.fieldsToIgnoreInVector
 
     println(s"Fields Set To Ignore: ${_mainConfig.fieldsToIgnoreInVector.mkString(", ")}")
 
-    //TODO: to add in the ability to 'ignore fields' that will stay in the data set, couriering that array to every
-    // select statement in each of the class main methods will be required.
-
-    //TODO: make these persist/cache statement configurable based on the size of the training set.
     val cacheLevel = StorageLevel.MEMORY_AND_DISK
     val unpersistBlock = true
 
@@ -230,6 +212,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     // cache the main DataFrame
     df.persist(cacheLevel)
+    // force the cache
+    df.count()
 
     //DEBUG
     logger.log(Level.DEBUG, printSchema(df, "input").toString)
@@ -251,65 +235,87 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val (dataStage1, detectedModelType) = fillNA(entryPointDataRestrict)
 
     // uncache the main DataFrame, force the GC
-    dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
+    val (persistDataStage1, dataStage1RowCount) = dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
+
+    // TODO: add logging flag switch for this
+    println(dataStage1RowCount)
+    logger.log(Level.INFO, dataStage1RowCount)
 
     //DEBUG
     logger.log(Level.DEBUG, printSchema(dataStage1, "stage1").toString)
     logger.log(Level.DEBUG, printSchema(selectFields, "stage1_full").toString)
 
-
     // Variance Filtering
-    val dataStage2 = if (_mainConfig.varianceFilterFlag) varianceFilter(dataStage1) else dataStage1
+    val dataStage2 = if (_mainConfig.varianceFilterFlag) varianceFilter(persistDataStage1) else persistDataStage1
 
-    dataPersist(dataStage1, dataStage2, cacheLevel, unpersistBlock)
+    val (persistDataStage2, dataStage2RowCount) = dataPersist(persistDataStage1, dataStage2, cacheLevel, unpersistBlock)
+
+    println(dataStage2RowCount)
+    logger.log(Level.INFO, dataStage2RowCount)
 
     //DEBUG
+
     logger.log(Level.DEBUG, printSchema(dataStage2, "stage2").toString)
 
-
     // Outlier Filtering
-    val dataStage3 = if (_mainConfig.outlierFilterFlag) outlierFilter(dataStage2) else dataStage2
+    val dataStage3 = if (_mainConfig.outlierFilterFlag) outlierFilter(persistDataStage2) else persistDataStage2
 
-    dataPersist(dataStage2, dataStage3, cacheLevel, unpersistBlock)
+    val (persistDataStage3, dataStage3RowCount) = dataPersist(persistDataStage2, dataStage3, cacheLevel, unpersistBlock)
+
+    println(dataStage2RowCount)
+    logger.log(Level.INFO, dataStage3RowCount)
 
     //DEBUG
+
     logger.log(Level.DEBUG, printSchema(dataStage3, "stage3").toString)
 
     // Next stages require a feature vector
-    val (featurizedData, initialFields, initialFullFields) = vectorPipeline(dataStage3)
+    val (featurizedData, initialFields, initialFullFields) = vectorPipeline(persistDataStage3)
 
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
     val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol) ++ includeFieldsFinalData
 
     val featurizedDataCleaned = featurizedData.select(featureFieldCleanup map col: _*)
 
-    dataPersist(dataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
+    val (persistFeaturizedDataCleaned, featurizedDataCleanedRowCount) = dataPersist(persistDataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
+
+    println(featurizedDataCleanedRowCount)
+    logger.log(Level.INFO, featurizedDataCleanedRowCount)
 
     //DEBUG
+
     logger.log(Level.DEBUG, printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString)
 
     // Covariance Filtering
     val dataStage4 = if (_mainConfig.covarianceFilteringFlag) {
-      covarianceFilter(featurizedDataCleaned, initialFields)
-    } else featurizedDataCleaned
+      covarianceFilter(persistFeaturizedDataCleaned, initialFields)
+    } else persistFeaturizedDataCleaned
 
-    dataPersist(featurizedDataCleaned, dataStage4, cacheLevel, unpersistBlock)
+    val (persistDataStage4, dataStage4RowCount) = dataPersist(persistFeaturizedDataCleaned, dataStage4, cacheLevel, unpersistBlock)
+
+    println(dataStage4RowCount)
+    logger.log(Level.INFO, dataStage4RowCount)
 
     //DEBUG
+
     logger.log(Level.DEBUG, printSchema(dataStage4, "stage4").toString)
 
     // All stages after this point require a feature vector.
-    val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(dataStage4)
+    val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(persistDataStage4)
 
-    dataPersist(dataStage4, dataStage5, cacheLevel, unpersistBlock)
+    val (persistDataStage5, dataStage5RowCount) = dataPersist(persistDataStage4, dataStage5, cacheLevel, unpersistBlock)
+
+    println(dataStage5RowCount)
+    logger.log(Level.INFO, dataStage5RowCount)
 
     //DEBUG
+
     logger.log(Level.DEBUG, printSchema(dataStage5, "stage5").toString)
 
     // Pearson Filtering (generates a vector features Field)
     val (dataStage6, stage6Fields, stage6FullFields) = if (_mainConfig.pearsonFilteringFlag) {
-      vectorPipeline(pearsonFilter(dataStage5, stage5Fields))
-    } else (dataStage5, stage5Fields, stage5FullFields)
+      vectorPipeline(pearsonFilter(persistDataStage5, stage5Fields))
+    } else (persistDataStage5, stage5Fields, stage5FullFields)
 
     //DEBUG
     logger.log(Level.DEBUG, printSchema(dataStage6, "stage6").toString)
@@ -317,7 +323,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Scaler
     val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage6) else dataStage6
 
-    dataPersist(dataStage5, dataStage7, cacheLevel, unpersistBlock)
+    val (persistDataStage7, dataStage7RowCount) = dataPersist(persistDataStage5, dataStage7, cacheLevel, unpersistBlock)
+
+    println(dataStage7RowCount)
+    logger.log(Level.INFO, dataStage7RowCount)
 
     // This is making a mess in the output. Commenting out for now.
     // TODO: Determine if schema getter is necessary outside of logging
@@ -335,7 +344,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     logger.log(Level.INFO, finalStatement)
     println(finalStatement)
 
-    (dataStage7, stage6Fields, detectedModelType)
+    (persistDataStage7, stage6Fields, detectedModelType)
 
   }
 

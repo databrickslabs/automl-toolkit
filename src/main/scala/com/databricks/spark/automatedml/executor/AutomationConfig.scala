@@ -122,6 +122,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _treeSplitsConfig: MainConfig = _treeSplitDefaults
 
+  var _mlFlowConfig: MLFlowConfig = _mlFlowConfigDefaults
+
+  var _mlFlowLoggingFlag: Boolean = _defaultMlFlowLoggingFlag
+
+  var _mlFlowTrackingURI: String = _mlFlowConfigDefaults.mlFlowTrackingURI
+
+  var _mlFlowExperimentName: String = _mlFlowConfigDefaults.mlFlowExperimentName
+
+  var _mlFlowAPIToken: String = _mlFlowConfigDefaults.mlFlowAPIToken
+
+  var _mlFlowModelSaveDirectory: String = _mlFlowConfigDefaults.mlFlowModelSaveDirectory
+
   def setModelingFamily(value: String): this.type = {
     _modelingFamily = value
     _numericBoundaries = value match {
@@ -562,6 +574,58 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setMlFlowConfig(value: MLFlowConfig): this.type = {
+    _mlFlowConfig = value
+    setMainConfig()
+    this
+  }
+
+  def mlFlowLoggingOn(): this.type = {
+    _mlFlowLoggingFlag = true
+    setMainConfig()
+    this
+  }
+
+  def mlFlowLoggingOff(): this.type = {
+    _mlFlowLoggingFlag = false
+    setMainConfig()
+    this
+  }
+
+  def setMlFlowTrackingURI(value: String): this.type = {
+    _mlFlowTrackingURI = value
+    setMlFlowConfig()
+    this
+  }
+
+  def setMlFlowExperimentName(value: String): this.type = {
+    _mlFlowExperimentName = value
+    setMlFlowConfig()
+    this
+  }
+
+  def setMlFlowAPIToken(value: String): this.type = {
+    _mlFlowAPIToken = value
+    setMlFlowConfig()
+    this
+  }
+
+  def setMlFlowModelSaveDirectory(value: String): this.type = {
+    _mlFlowModelSaveDirectory = value
+    setMlFlowConfig()
+    this
+  }
+
+  private def setMlFlowConfig(): this.type = {
+    _mlFlowConfig = MLFlowConfig(
+      mlFlowTrackingURI = _mlFlowTrackingURI,
+      mlFlowExperimentName = _mlFlowExperimentName,
+      mlFlowAPIToken = _mlFlowTrackingURI,
+      mlFlowModelSaveDirectory = _mlFlowModelSaveDirectory
+    )
+    this
+  }
+
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
       parallelism = _parallelism,
@@ -602,7 +666,9 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonConfig = _pearsonConfig,
       covarianceConfig = _covarianceConfig,
       scalingConfig = _scalingConfig,
-      geneticConfig = _geneticConfig
+      geneticConfig = _geneticConfig,
+      mlFlowLoggingFlag = _mlFlowLoggingFlag,
+      mlFlowConfig = _mlFlowConfig
     )
     this
   }
@@ -723,6 +789,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getFixedMutationValue: Int = _fixedMutationValue
 
   def getMutationMagnitudeMode: String = _mutationMagnitudeMode
+
+  def getMlFlowLoggingFlag: Boolean = _mlFlowLoggingFlag
+
+  def getMlFlowTrackingURI: String = _mlFlowTrackingURI
+
+  def getMlFlowExperimentName: String = _mlFlowExperimentName
+
+  def getMlFlowModelSaveDirectory: String = _mlFlowModelSaveDirectory
 
   def getGeneticConfig: GeneticConfig = _geneticConfig
 
