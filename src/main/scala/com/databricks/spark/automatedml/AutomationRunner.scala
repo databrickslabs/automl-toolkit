@@ -8,6 +8,7 @@ import com.databricks.spark.automatedml.tracking.MLFlowTracker
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -286,8 +287,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val dataSubset = df.select(selectableFields.map(col):_*)
 
-    new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
+    dataSubset.persist(StorageLevel.MEMORY_AND_DISK)
 
+    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
+
+    dataSubset.unpersist()
+
+    runResults
   }
 
   // TODO: add a chained feature importance -> full modeling method (run explore Feature Importances, then restrict
