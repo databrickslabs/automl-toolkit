@@ -4,11 +4,15 @@ import com.databricks.spark.automatedml.executor.DataPrep
 import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
+import com.databricks.spark.automatedml.tracking.MLFlowTracker
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
 class AutomationRunner(df: DataFrame) extends DataPrep(df) {
+
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String) = {
 
@@ -237,7 +241,26 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
    (modelResults, modelStats, modelSelection)
  }
 
-  //TODO: have all of the return types return a case class instance to allow for single variable returns and positional notation to extract the data!!
+  private def logResultsToMlFlow(runData: Array[GenericModelReturn], modelFamily: String, modelType: String): String = {
+
+    val mlFlowLogger = new MLFlowTracker()
+      .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
+      .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
+      .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
+      .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
+
+    try {
+      mlFlowLogger.logMlFlowDataAndModels(runData, modelFamily, modelType)
+      "Logged to MlFlow Successful"
+    } catch {
+      case e: Exception =>
+        val stackTrace : String = e.getStackTrace.mkString("\n")
+        println(s"Failed to log to mlflow. Check configuration. \n  $stackTrace")
+        logger.log(Level.INFO, stackTrace)
+        "Failed to Log to MlFlow"
+    }
+
+  }
 
   def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame) = {
 
@@ -347,31 +370,25 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     }
 
     val genericResultData = genericResults.result.toArray
+
+    if(_mainConfig.mlFlowLoggingFlag) {
+      val mlFlowResult = logResultsToMlFlow(genericResultData, _mainConfig.modelFamily, modelSelection)
+      println(mlFlowResult)
+      logger.log(Level.INFO, mlFlowResult)
+    }
+
     val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
       _mainConfig.modelFamily, modelSelection)
 
-  (genericResults.result.toArray, generationalData, modelStats, generationDataFrameReport(generationalData,
+  (genericResultData, generationalData, modelStats, generationDataFrameReport(generationalData,
     _mainConfig.scoringOptimizationStrategy))
   }
+
+
+
+
 
   //TODO: add a generational runner to find the best model in a modelType (classification / regression)
   //TODO: this will require a new configuration methodology (generationalRunnerConfig) that has all of the families
   //TODO: default configs within it. with setters to override individual parts.  Might want to make it its own class.
 }
-
-
-//object AutomationRunner {
-//
-//}
-
-/**
-  * Import Config (which elements to do) and their settings
-  * Run pipeline
-  * Extract Fields
-  * Filter / Sanitize
-  * Run chosen Model
-  * Extract Best
-  * Run Report for Feature Importances
-  * Run Report for Decision Tree
-  * Export Reports + Importances + Models + Final DataFrame
-  */

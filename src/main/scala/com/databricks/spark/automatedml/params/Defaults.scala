@@ -179,6 +179,15 @@ trait Defaults {
 
   def _modelTypeDefault = "RandomForest"
 
+  def _mlFlowConfigDefaults: MLFlowConfig = MLFlowConfig(
+    mlFlowTrackingURI = "hosted",
+    mlFlowExperimentName = "default",
+    mlFlowAPIToken = "default",
+    mlFlowModelSaveDirectory = "s3://mlflow/experiments/"
+  )
+
+  def _defaultMlFlowLoggingFlag: Boolean = true
+
   def _mainConfigDefaults = MainConfig(
     modelFamily = _modelTypeDefault,
     labelCol = "label",
@@ -200,7 +209,9 @@ trait Defaults {
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
     scalingConfig = _scalingConfigDefaults,
-    geneticConfig = _geneticTunerDefaults
+    geneticConfig = _geneticTunerDefaults,
+    mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
+    mlFlowConfig = _mlFlowConfigDefaults
   )
 
   def _featureImportancesDefaults = MainConfig(
@@ -237,7 +248,9 @@ trait Defaults {
       generationalMutationStrategy = "linear",
       fixedMutationValue = 1,
       mutationMagnitudeMode = "fixed"
-    )
+    ),
+    mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
+    mlFlowConfig = _mlFlowConfigDefaults
   )
 
   def _treeSplitDefaults =  MainConfig(
@@ -274,7 +287,9 @@ trait Defaults {
       generationalMutationStrategy = "linear",
       fixedMutationValue = 1,
       mutationMagnitudeMode = "fixed"
-    )
+    ),
+    mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
+    mlFlowConfig = _mlFlowConfigDefaults
   )
 
 }
