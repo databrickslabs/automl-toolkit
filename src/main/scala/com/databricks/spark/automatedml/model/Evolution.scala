@@ -27,7 +27,7 @@ trait Evolution extends DataValidation {
   var _generationalMutationStrategy = "linear"
   var _mutationMagnitudeMode = "random"
   var _fixedMutationValue = 1
-  var _earlyStoppingScore: Double = 0.95
+  var _earlyStoppingScore = 0.95
   var _earlyStoppingFlag = true
 
   final val allowableStrategies = Seq("minimize", "maximize")

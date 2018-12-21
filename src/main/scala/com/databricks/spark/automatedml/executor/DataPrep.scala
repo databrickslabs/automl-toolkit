@@ -26,7 +26,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       s"\n Covariance Filter Flag: ${_mainConfig.covarianceFilteringFlag.toString}" +
       s"\n Pearson Filter Flag: ${_mainConfig.pearsonFilteringFlag.toString}" +
       s"\n Scaling Flag: ${_mainConfig.scalingFlag.toString}" +
-      s"\n MlFlow Logging Flag: ${_mainConfig.mlFlowLoggingFlag.toString}"
+      s"\n MlFlow Logging Flag: ${_mainConfig.mlFlowLoggingFlag.toString}" +
+      s"\n Early Stopping Flag: ${_mainConfig.autoStoppingFlag.toString}"
 
     println(configString)
     logger.log(Level.INFO, configString)

@@ -27,10 +27,6 @@ Simplest implementation will be:
 
 */
 
-//TODO: Add standard scaling for numerical features as an option. PRIORITY 1!!!
-
-//TODO: feature flag for logging to MLFlow, retain all the scoring and metrics.
-
 class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
   with Evolution with Defaults {
 
@@ -387,7 +383,6 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
               if (postRunBestScore > currentBestResult) currentBestResult = postRunBestScore
 
               currentIteration += 1
-              generation += 1
 
             }
             fossilRecord.result.toArray.sortWith(_.score > _.score)

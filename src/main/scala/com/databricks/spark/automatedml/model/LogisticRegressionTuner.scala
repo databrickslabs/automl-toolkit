@@ -287,7 +287,6 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
               if (postRunBestScore > currentBestResult) currentBestResult = postRunBestScore
 
               currentIteration += 1
-              generation += 1
 
             }
             fossilRecord.result.toArray.sortWith(_.score > _.score)

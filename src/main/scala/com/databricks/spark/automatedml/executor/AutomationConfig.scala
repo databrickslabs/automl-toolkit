@@ -646,16 +646,19 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def autoStoppingOn(): this.type = {
     _autoStoppingFlag = true
+    setConfigs()
     this
   }
 
   def autoStoppingOff(): this.type = {
     _autoStoppingFlag = false
+    setConfigs()
     this
   }
 
   def setAutoStoppingScore(value: Double): this.type = {
     _autoStoppingScore = value
+    setConfigs()
     this
   }
 
@@ -665,11 +668,13 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       s"Feature Importance Cutoff Type '$value' is not supported.  Allowable values: " +
         s"${_supportedFeatureImportanceCutoffTypes.mkString(" ,")}")
     _featureImportanceCutoffType = value
+    setConfigs()
     this
   }
 
   def setFeatureImportanceCutoffValue(value: Double): this.type = {
     _featureImportanceCutoffValue = value
+    setConfigs()
     this
   }
 
