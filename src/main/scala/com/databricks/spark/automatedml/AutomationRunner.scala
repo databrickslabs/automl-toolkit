@@ -7,6 +7,7 @@ import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomFores
 import com.databricks.spark.automatedml.tracking.MLFlowTracker
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -38,8 +39,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
       .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
-      //TODO: REMOVE THIS AND SET THE VALUE THROUGH CONFIG!!!
-      .setEarlyStoppingScore(0.95)
+      .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
+      .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
       .evolveWithScoringDF()
 
     (modelResults, modelStats, modelSelection)
@@ -264,13 +265,33 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   }
 
-  def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame) = {
+  def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
 
     val (data, fields, modelType) = prepData()
 
-    new RandomForestFeatureImportance(data, _featureImportancesConfig, modelType).runFeatureImportances(fields)
+    new RandomForestFeatureImportance(data, _featureImportancesConfig, modelType)
+      .setCutoffType(_mainConfig.featureImportanceCutoffType)
+      .setCutoffValue(_mainConfig.featureImportanceCutoffValue)
+      .runFeatureImportances(fields)
 
   }
+
+  def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+
+    // Get the Feature Importances
+
+    val (modelResults, importanceDF, culledFields) = exploreFeatureImportances()
+
+    val selectableFields = culledFields :+ _mainConfig.labelCol
+
+    val dataSubset = df.select(selectableFields.map(col):_*)
+
+    new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
+
+  }
+
+  // TODO: add a chained feature importance -> full modeling method (run explore Feature Importances, then restrict
+  // The Dataframe fields, and
 
   def generateDecisionSplits(): (String, DataFrame, Any) = {
 

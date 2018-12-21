@@ -285,30 +285,107 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     fossilRecord ++= primordial
     generation += 1
 
-    (1 to _numberOfMutationGenerations).map(i => {
+    var currentIteration = 1
 
-      val mutationAggressiveness = _generationalMutationStrategy match {
-        case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
-        case _ => _fixedMutationValue
+    if(_earlyStoppingFlag) {
+
+      _optimizationStrategy match {
+        case "minimize" =>
+
+          var currentBestResult: Double = fossilRecord.result.toArray.sortWith(_.score < _.score).head.score
+
+          if (currentBestResult > _earlyStoppingScore) {
+            while (currentIteration <= _numberOfMutationGenerations && currentBestResult > _earlyStoppingScore) {
+
+              val mutationAggressiveness = _generationalMutationStrategy match {
+                case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else totalConfigs - (currentIteration + 1)
+                case _ => _fixedMutationValue
+              }
+
+              // Get the sorted state
+              val currentState = fossilRecord.result.toArray.sortWith(_.score < _.score)
+
+              val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
+                mutationAggressiveness, _geneticMixing)
+
+              var evolve = runBattery(evolution, generation)
+              generation += 1
+              fossilRecord ++= evolve
+
+              val postRunBestScore = fossilRecord.result.toArray.sortWith(_.score < _.score).head.score
+
+              if (postRunBestScore < currentBestResult) currentBestResult = postRunBestScore
+
+              currentIteration += 1
+
+            }
+
+            fossilRecord.result.toArray.sortWith(_.score < _.score)
+          } else {
+            fossilRecord.result.toArray.sortWith(_.score < _.score)
+          }
+        case _ =>
+
+          var currentBestResult: Double = fossilRecord.result.toArray.sortWith(_.score > _.score).head.score
+
+          if (currentBestResult < _earlyStoppingScore) {
+            while (currentIteration <= _numberOfMutationGenerations && currentBestResult < _earlyStoppingScore) {
+
+              val mutationAggressiveness = _generationalMutationStrategy match {
+                case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else totalConfigs - (currentIteration + 1)
+                case _ => _fixedMutationValue
+              }
+
+              // Get the sorted state
+              val currentState = fossilRecord.result.toArray.sortWith(_.score > _.score)
+
+              val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
+                mutationAggressiveness, _geneticMixing)
+
+              var evolve = runBattery(evolution, generation)
+              generation += 1
+              fossilRecord ++= evolve
+
+              val postRunBestScore = fossilRecord.result.toArray.sortWith(_.score > _.score).head.score
+
+              if (postRunBestScore > currentBestResult) currentBestResult = postRunBestScore
+
+              currentIteration += 1
+              generation += 1
+
+            }
+            fossilRecord.result.toArray.sortWith(_.score > _.score)
+          } else {
+            fossilRecord.result.toArray.sortWith(_.score > _.score)
+          }
       }
+    } else {
 
-      val currentState = _optimizationStrategy match {
+      (1 to _numberOfMutationGenerations).map(i => {
+
+        val mutationAggressiveness = _generationalMutationStrategy match {
+          case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
+          case _ => _fixedMutationValue
+        }
+
+        val currentState = _optimizationStrategy match {
+          case "minimize" => fossilRecord.result.toArray.sortWith(_.score < _.score)
+          case _ => fossilRecord.result.toArray.sortWith(_.score > _.score)
+        }
+
+        val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
+          mutationAggressiveness, _geneticMixing)
+
+        var evolve = runBattery(evolution, generation)
+        generation += 1
+        fossilRecord ++= evolve
+
+      })
+
+      _optimizationStrategy match {
         case "minimize" => fossilRecord.result.toArray.sortWith(_.score < _.score)
         case _ => fossilRecord.result.toArray.sortWith(_.score > _.score)
       }
-
-      val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-        mutationAggressiveness, _geneticMixing)
-
-      var evolve = runBattery(evolution, generation)
-      generation += 1
-      fossilRecord ++= evolve
-
-    })
-
-    _optimizationStrategy match {
-      case "minimize" => fossilRecord.result.toArray.sortWith(_.score < _.score)
-      case _ => fossilRecord.result.toArray.sortWith(_.score > _.score)
     }
   }
 

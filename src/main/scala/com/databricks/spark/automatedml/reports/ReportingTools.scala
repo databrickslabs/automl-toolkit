@@ -2,7 +2,7 @@ package com.databricks.spark.automatedml.reports
 
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, split}
+import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -42,6 +42,22 @@ trait ReportingTools extends SparkSessionWrapper {
       stringConstructor += s"Column ${x._1} is feature ${x._2}"
     })
     stringConstructor.result.mkString("\n")
+  }
+
+  def extractTopFeaturesByCount(featureFrame: DataFrame, topNCutoff: Int): Array[String] = {
+    // Ensure the DataFrame is sorted and take the top N rows
+    val sortedData = featureFrame.sort(col("Importance").desc).collect()
+
+    sortedData.map(x => x(0).toString)
+
+  }
+
+  def extractTopFeaturesByImportance(featureFrame: DataFrame, importancePercentageCutoff: Double): Array[String] = {
+
+    val sortedData = featureFrame.filter(col("Importance") >= importancePercentageCutoff)
+      .sort(col("Importance").desc).collect()
+
+    sortedData.map(x => x(0).toString)
   }
 
 

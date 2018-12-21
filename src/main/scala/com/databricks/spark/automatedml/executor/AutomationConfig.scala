@@ -134,6 +134,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _mlFlowModelSaveDirectory: String = _mlFlowConfigDefaults.mlFlowModelSaveDirectory
 
+  var _autoStoppingFlag: Boolean = _defaultAutoStoppingFlag
+
+  var _autoStoppingScore: Double = _defaultAutoStoppingScore
+
+  var _featureImportanceCutoffType: String = _defaultFeatureImportanceCutoffType
+
+  var _featureImportanceCutoffValue: Double = _defaultFeatureImportanceCutoffValue
+
   private def setConfigs(): this.type = {
     setMainConfig()
     setTreeSplitsConfig()
@@ -636,6 +644,35 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def autoStoppingOn(): this.type = {
+    _autoStoppingFlag = true
+    this
+  }
+
+  def autoStoppingOff(): this.type = {
+    _autoStoppingFlag = false
+    this
+  }
+
+  def setAutoStoppingScore(value: Double): this.type = {
+    _autoStoppingScore = value
+    this
+  }
+
+  def setFeatureImportanceCutoffType(value: String): this.type = {
+
+    require(_supportedFeatureImportanceCutoffTypes.contains(value),
+      s"Feature Importance Cutoff Type '$value' is not supported.  Allowable values: " +
+        s"${_supportedFeatureImportanceCutoffTypes.mkString(" ,")}")
+    _featureImportanceCutoffType = value
+    this
+  }
+
+  def setFeatureImportanceCutoffValue(value: Double): this.type = {
+    _featureImportanceCutoffValue = value
+    this
+  }
+
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
       parallelism = _parallelism,
@@ -665,6 +702,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
       scalingFlag = _scalingFlag,
+      autoStoppingFlag = _autoStoppingFlag,
+      autoStoppingScore = _autoStoppingScore,
+      featureImportanceCutoffType = _featureImportanceCutoffType,
+      featureImportanceCutoffValue = _featureImportanceCutoffValue,
       dateTimeConversionType = _dateTimeConversionType,
       fieldsToIgnoreInVector = _fieldsToIgnoreInVector,
       numericBoundaries = _numericBoundaries,
@@ -699,6 +740,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
       scalingFlag = _scalingFlag,
+      autoStoppingFlag = _autoStoppingFlag,
+      autoStoppingScore = _autoStoppingScore,
+      featureImportanceCutoffType = _featureImportanceCutoffType,
+      featureImportanceCutoffValue = _featureImportanceCutoffValue,
       dateTimeConversionType = _dateTimeConversionType,
       fieldsToIgnoreInVector = _fieldsToIgnoreInVector,
       numericBoundaries = _numericBoundaries,
@@ -736,6 +781,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
       scalingFlag = _scalingFlag,
+      autoStoppingFlag = _autoStoppingFlag,
+      autoStoppingScore = _autoStoppingScore,
+      featureImportanceCutoffType = _featureImportanceCutoffType,
+      featureImportanceCutoffValue = _featureImportanceCutoffValue,
       dateTimeConversionType = _dateTimeConversionType,
       fieldsToIgnoreInVector = _fieldsToIgnoreInVector,
       numericBoundaries = _numericBoundaries,
@@ -879,4 +928,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getFeatConfig: MainConfig = _featureImportancesConfig
 
   def getTreeSplitsConfig: MainConfig = _treeSplitsConfig
+
+  def getAutoStoppingFlag: Boolean = _autoStoppingFlag
+
+  def getAutoStoppingScore: Double = _autoStoppingScore
+
+  def getFeatureImportanceCutoffType: String = _featureImportanceCutoffType
+
+  def getFeatureImportanceCutoffValue: Double = _featureImportanceCutoffValue
 }

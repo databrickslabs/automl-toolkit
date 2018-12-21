@@ -28,6 +28,7 @@ trait Evolution extends DataValidation {
   var _mutationMagnitudeMode = "random"
   var _fixedMutationValue = 1
   var _earlyStoppingScore: Double = 0.95
+  var _earlyStoppingFlag = true
 
   final val allowableStrategies = Seq("minimize", "maximize")
   final val allowableMutationStrategies = Seq("linear", "fixed")
@@ -147,6 +148,11 @@ trait Evolution extends DataValidation {
     this
   }
 
+  def setEarlyStoppingFlag(value: Boolean): this.type = {
+    _earlyStoppingFlag = value
+    this
+  }
+
   def getLabelCol: String = _labelCol
 
   def getFeaturesCol: String = _featureCol
@@ -178,6 +184,8 @@ trait Evolution extends DataValidation {
   def getFixedMutationValue: Int = _fixedMutationValue
 
   def getEarlyStoppingScore: Double = _earlyStoppingScore
+
+  def getEarlyStoppingFlag: Boolean = _earlyStoppingFlag
 
   def totalModels: Int = (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool
 
