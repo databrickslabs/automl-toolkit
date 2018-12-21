@@ -107,15 +107,15 @@ trait AutomationTools extends SparkSessionWrapper {
 
   }
 
-  def printSchema(df: DataFrame, dataName: String): Unit = {
+  def printSchema(df: DataFrame, dataName: String): String = {
 
-    println(s"Schema for $dataName is: \n  ${df.schema.fieldNames.mkString(", ")}")
+    s"Schema for $dataName is: \n  ${df.schema.fieldNames.mkString(", ")}"
 
   }
 
-  def printSchema(schema: Array[String], dataName: String): Unit = {
+  def printSchema(schema: Array[String], dataName: String): String = {
 
-    println(s"Schema for $dataName is: \n  ${schema.mkString(", ")}")
+    s"Schema for $dataName is: \n  ${schema.mkString(", ")}"
 
   }
 

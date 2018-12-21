@@ -7,6 +7,7 @@ import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomFores
 import com.databricks.spark.automatedml.tracking.MLFlowTracker
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -18,7 +19,12 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val (data, fields, modelSelection) = prepData()
 
-    val (modelResults, modelStats) = new RandomForestTuner(data, modelSelection)
+    //  TODO: Enable Config for Storage Level Override
+    //  TODO: Implement this for all model types
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
+    val (modelResults, modelStats) = new RandomForestTuner(cachedData, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
@@ -33,12 +39,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
       .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
       .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
-      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
       .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
       .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
       .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
       .evolveWithScoringDF()
+
+    cachedData.unpersist()
 
     (modelResults, modelStats, modelSelection)
   }
@@ -231,7 +238,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
-     .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
@@ -266,7 +272,14 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val (data, fields, modelType) = prepData()
 
-    new RandomForestFeatureImportance(data, _featureImportancesConfig, modelType).runFeatureImportances(fields)
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
+    val (rfWithResults, importancesDF) = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, modelType).runFeatureImportances(fields)
+
+    cachedData.unpersist()
+
+    (rfWithResults, importancesDF)
 
   }
 
