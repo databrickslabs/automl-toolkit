@@ -79,6 +79,8 @@ case class GeneticConfig(
                           parallelism: Int,
                           kFold: Int,
                           trainPortion: Double,
+                          trainSplitMethod: String,
+                          trainSplitChronologicalColumn: String,
                           seed: Long,
                           firstGenerationGenePool: Int,
                           numberOfGenerations: Int,

@@ -3,6 +3,8 @@ package com.databricks.spark.automatedml.model
 import com.databricks.spark.automatedml.params.RandomForestConfig
 import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe._
@@ -13,6 +15,8 @@ trait Evolution extends DataValidation {
   var _labelCol = "label"
   var _featureCol = "features"
   var _trainPortion = 0.8
+  var _trainSplitMethod = "random"
+  var _trainSplitChronologicalColumn = "datetime"
   var _parallelism = 20
   var _kFold = 3
   var _seed = 42L
@@ -35,6 +39,7 @@ trait Evolution extends DataValidation {
   final val allowableMutationMagnitudeMode = Seq("random", "fixed")
   final val regressionMetrics: List[String] = List("rmse", "mse", "r2", "mae")
   final val classificationMetrics: List[String] = List("f1", "weightedPrecision", "weightedRecall", "accuracy")
+  final val allowableTrainSplitMethod: List[String] = List("random", "chronological")
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
@@ -52,6 +57,18 @@ trait Evolution extends DataValidation {
   def setTrainPortion(value: Double): this.type = {
     require(value < 1.0 & value > 0.0, "Training portion must be in the range > 0 and < 1")
     _trainPortion = value
+    this
+  }
+
+  def setTrainSplitMethod(value: String): this.type = {
+    require(allowableTrainSplitMethod.contains(value),
+      s"TrainSplitMethod $value must be one of: ${allowableTrainSplitMethod.mkString(", ")}")
+    _trainSplitMethod = value
+    this
+  }
+
+  def setTrainSplitChronologicalColumn(value: String): this.type = {
+    _trainSplitChronologicalColumn = value
     this
   }
 
@@ -159,6 +176,10 @@ trait Evolution extends DataValidation {
 
   def getTrainPortion: Double = _trainPortion
 
+  def getTrainSplitMethod: String = _trainSplitMethod
+
+  def getTrainSplitChronologicalColumn: String = _trainSplitChronologicalColumn
+
   def getParallelism: Int = _parallelism
 
   def getKFold: Int = _kFold
@@ -196,7 +217,36 @@ trait Evolution extends DataValidation {
   }
 
   def genTestTrain(data: DataFrame, seed: Long): Array[DataFrame] = {
-    data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+
+    _trainSplitMethod match {
+      case "random" => data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+      case "chronological" =>
+        require(data.schema.fieldNames.contains(_trainSplitChronologicalColumn),
+          s"Chronological Split Field ${_trainSplitChronologicalColumn} is not in schema: " +
+            s"${data.schema.fieldNames.mkString(", ")}")
+
+        // Get the row number estimation for conduction the split at
+        val splitRow = scala.math.round(data.count.toDouble * _trainPortion).toInt
+
+        // Define the window partition
+        val uniqueCol = "chron_grp_autoML_" + java.util.UUID.randomUUID().toString
+
+        // Define temporary non-colliding columns for the window partition
+        val uniqueRow = "row_" + java.util.UUID.randomUUID().toString
+        val windowDefintion = Window.partitionBy(uniqueCol).orderBy(_trainSplitChronologicalColumn)
+
+        // Generate a new Dataframe that has the row number partition, sorted by the chronological field
+        val preSplitData = data.withColumn(uniqueCol, lit("grp"))
+          .withColumn(uniqueRow, row_number() over windowDefintion)
+          .drop(uniqueCol)
+
+        // Generate the test/train split data based on sorted chronological column
+        Array(preSplitData.filter(col(uniqueRow) <= splitRow).drop(uniqueRow),
+          preSplitData.filter(col(uniqueRow) > splitRow).drop(uniqueRow))
+
+      case _ => throw new IllegalArgumentException(s"Cannot conduct train test split in mode: '${_trainSplitMethod}'")
+    }
+
   }
 
   def extractBoundaryDouble(param: String, boundaryMap: Map[String, (AnyVal, AnyVal)]): (Double, Double) = {

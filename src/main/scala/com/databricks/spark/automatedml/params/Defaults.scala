@@ -12,6 +12,8 @@ trait Defaults {
     "SVM"
   )
 
+  final val trainSplitMethods: List[String] = List("random", "chronological")
+
   final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
 
   def _defaultModelingFamily: String = "RandomForest"
@@ -40,6 +42,8 @@ trait Defaults {
     parallelism = 20,
     kFold = 5,
     trainPortion = 0.8,
+    trainSplitMethod = "random",
+    trainSplitChronologicalColumn = "datetime",
     seed = 42L,
     firstGenerationGenePool = 20,
     numberOfGenerations = 10,
@@ -257,6 +261,8 @@ trait Defaults {
       parallelism = 20,
       kFold = 1,
       trainPortion = 0.8,
+      trainSplitMethod = "random",
+      trainSplitChronologicalColumn = "datetime",
       seed = 42L,
       firstGenerationGenePool = 25,
       numberOfGenerations = 20,
@@ -300,6 +306,8 @@ trait Defaults {
       parallelism = 20,
       kFold = 1,
       trainPortion = 0.8,
+      trainSplitMethod = "random",
+      trainSplitChronologicalColumn = "datetime",
       seed = 42L,
       firstGenerationGenePool = 25,
       numberOfGenerations = 20,

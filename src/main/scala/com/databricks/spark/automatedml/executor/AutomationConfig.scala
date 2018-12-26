@@ -96,6 +96,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _trainPortion: Double = _geneticTunerDefaults.trainPortion
 
+  var _trainSplitMethod: String = _geneticTunerDefaults.trainSplitMethod
+
+  var _trainSplitChronologicalColumn: String = _geneticTunerDefaults.trainSplitChronologicalColumn
+
+  var _trainSplitColumnSet: Boolean = false
+
   var _seed: Long = _geneticTunerDefaults.seed
 
   var _firstGenerationGenePool: Int = _geneticTunerDefaults.firstGenerationGenePool
@@ -292,6 +298,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setFieldsToIgnoreInVector(value: Array[String]): this.type = {
     _fieldsToIgnoreInVector = value
+    if (_trainSplitColumnSet)
+      _fieldsToIgnoreInVector = _fieldsToIgnoreInVector :+ _trainSplitChronologicalColumn
     setConfigs()
     this
   }
@@ -525,6 +533,28 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setTrainSplitMethod(value: String): this.type = {
+    require(trainSplitMethods.contains(value),
+      s"TrainSplitMethod $value must be one of: ${trainSplitMethods.mkString(", ")}")
+    _trainSplitMethod = value
+    if (value == "chronological")
+      println("[WARNING] setTrainSplitMethod() -> Chronological splits is shuffle-intensive and will increase " +
+        "runtime significantly.  Only use if necessary for modeling scenario!")
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setTrainSplitChronologicalColumn(value: String): this.type = {
+    _trainSplitChronologicalColumn = value
+    val ignoredFields: Array[String] = _fieldsToIgnoreInVector ++: Array(value)
+    setFieldsToIgnoreInVector(ignoredFields)
+    _trainSplitColumnSet = true
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
   def setSeed(value: Long): this.type = {
     _seed = value
     setGeneticConfig()
@@ -683,6 +713,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       parallelism = _parallelism,
       kFold = _kFold,
       trainPortion = _trainPortion,
+      trainSplitMethod = _trainSplitMethod,
+      trainSplitChronologicalColumn = _trainSplitChronologicalColumn,
       seed = _seed,
       firstGenerationGenePool = _firstGenerationGenePool,
       numberOfGenerations = _numberOfGenerations,
@@ -899,6 +931,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getKFold: Int = _kFold
 
   def getTrainPortion: Double = _trainPortion
+
+  def getTrainSplitMethod: String = _trainSplitMethod
+
+  def getTrainSplitChronologicalColumn: String = _trainSplitChronologicalColumn
 
   def getSeed: Long = _seed
 

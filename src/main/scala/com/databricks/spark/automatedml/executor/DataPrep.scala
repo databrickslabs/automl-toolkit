@@ -8,11 +8,6 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-
 class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   //    TODO: parallelism config for non genetic parallel control should be added
