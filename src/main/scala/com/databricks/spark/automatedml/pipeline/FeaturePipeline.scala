@@ -1,6 +1,7 @@
 package com.databricks.spark.automatedml.pipeline
 
 import com.databricks.spark.automatedml.utils.DataValidation
+import org.apache.log4j.{Logger, Level}
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -11,6 +12,7 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
   private var _labelCol = "label"
   private var _featureCol = "features"
   private var _dateTimeConversionType = "split"
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   final private val _dataFieldNames = data.schema.fieldNames
 
@@ -72,7 +74,8 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
     val fieldsToInclude = assembledColumns ++ Array(_featureCol, _labelCol) ++ ignoreList
 
     //DEBUG
-    println(s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")
+//    println(s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")
+    logger.log(Level.DEBUG, s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")
 
     val transformedData = createPipe.fit(dateTimeModData).transform(dateTimeModData).select(fieldsToInclude map col:_*)
 

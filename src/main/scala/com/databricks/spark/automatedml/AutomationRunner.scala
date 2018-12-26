@@ -20,7 +20,12 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val (data, fields, modelSelection) = prepData()
 
-    val (modelResults, modelStats) = new RandomForestTuner(data, modelSelection)
+    //  TODO: Enable Config for Storage Level Override
+    //  TODO: Implement this for all model types
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
+    val (modelResults, modelStats) = new RandomForestTuner(cachedData, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
@@ -35,7 +40,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
       .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
       .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
-      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
       .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
       .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
       .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
@@ -43,6 +47,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
       .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
       .evolveWithScoringDF()
+
+    cachedData.unpersist()
 
     (modelResults, modelStats, modelSelection)
   }
@@ -235,7 +241,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
-     .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
@@ -270,11 +275,16 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val (data, fields, modelType) = prepData()
 
-    new RandomForestFeatureImportance(data, _featureImportancesConfig, modelType)
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
+    val featureResults = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, modelType)
       .setCutoffType(_mainConfig.featureImportanceCutoffType)
       .setCutoffValue(_mainConfig.featureImportanceCutoffValue)
       .runFeatureImportances(fields)
+    cachedData.unpersist()
 
+    featureResults
   }
 
   def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
@@ -285,10 +295,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val selectableFields = culledFields :+ _mainConfig.labelCol
 
-    val dataSubset = df.select(selectableFields.map(col):_*)
-
-    dataSubset.persist(StorageLevel.MEMORY_AND_DISK)
-
+    val dataSubset = df.select(selectableFields.map(col):_*).persist(StorageLevel.MEMORY_AND_DISK)
+    dataSubset.count
+    
     val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
 
     dataSubset.unpersist()
