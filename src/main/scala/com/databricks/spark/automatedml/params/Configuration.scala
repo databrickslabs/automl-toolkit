@@ -81,6 +81,7 @@ case class GeneticConfig(
                           trainPortion: Double,
                           trainSplitMethod: String,
                           trainSplitChronologicalColumn: String,
+                          trainSplitChronologicalRandomPercentage: Double,
                           seed: Long,
                           firstGenerationGenePool: Int,
                           numberOfGenerations: Int,

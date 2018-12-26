@@ -17,6 +17,7 @@ trait Evolution extends DataValidation {
   var _trainPortion = 0.8
   var _trainSplitMethod = "random"
   var _trainSplitChronologicalColumn = "datetime"
+  var _trainSplitChronologicalRandomPercentage = 0.0
   var _parallelism = 20
   var _kFold = 3
   var _seed = 42L
@@ -72,6 +73,14 @@ trait Evolution extends DataValidation {
     this
   }
 
+  def setTrainSplitChronologicalRandomPercentage(value: Double): this.type = {
+    _trainSplitChronologicalRandomPercentage = value
+    if(value > 10) println("[WARNING] setTrainSplitChronologicalRandomPercentage() setting this value above 10 " +
+      "percent will cause significant per-run train/test skew and variability in row counts during training.  " +
+      "Use higher values only if this is desired.")
+    this
+  }
+
   def setParallelism(value: Int): this.type = {
     //TODO: SET PARALLELISM VALIDATION CORRECTLY
     require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
@@ -101,7 +110,8 @@ trait Evolution extends DataValidation {
   }
 
   def setFirstGenerationGenePool(value: Int): this.type = {
-    require(value > 5, s"Values less than 5 for firstGenerationGenePool will require excessive generational mutation to converge")
+    require(value > 5,
+      s"Values less than 5 for firstGenerationGenePool will require excessive generational mutation to converge")
     _firstGenerationGenePool = value
     this
   }
@@ -180,6 +190,8 @@ trait Evolution extends DataValidation {
 
   def getTrainSplitChronologicalColumn: String = _trainSplitChronologicalColumn
 
+  def getTrainSplitChronologicalRandomPercentage : Double = _trainSplitChronologicalRandomPercentage
+
   def getParallelism: Int = _parallelism
 
   def getKFold: Int = _kFold
@@ -225,8 +237,28 @@ trait Evolution extends DataValidation {
           s"Chronological Split Field ${_trainSplitChronologicalColumn} is not in schema: " +
             s"${data.schema.fieldNames.mkString(", ")}")
 
+        // Validation check for the random 'wiggle value' if it's set that it won't risk creating zero rows in train set.
+        if(_trainSplitChronologicalRandomPercentage > 0.0)
+          require((1 - _trainPortion) * _trainSplitChronologicalRandomPercentage / 100 < 0.5,
+            s"With trainSplitChronologicalRandomPercentage set at '${_trainSplitChronologicalRandomPercentage}' " +
+              s"and a train test ratio of ${_trainPortion} there is a high probability of train data set being empty." +
+              s"  \n\tAdjust lower to prevent non-deterministic split levels that could break training.")
+
+        // Get the row count
+        val rawDataCount = data.count.toDouble
+
+        val splitValue = scala.math.round(rawDataCount * _trainPortion).toInt
+
         // Get the row number estimation for conduction the split at
-        val splitRow = scala.math.round(data.count.toDouble * _trainPortion).toInt
+        val splitRow: Int = if(_trainSplitChronologicalRandomPercentage <= 0.0) {
+          splitValue
+        }
+        else {
+          // randomly mutate the size of the test validation set
+          val splitWiggle = scala.math.round(rawDataCount * (1 - _trainPortion) *
+            _trainSplitChronologicalRandomPercentage / 100).toInt
+          splitValue - _randomizer.nextInt(splitWiggle)
+        }
 
         // Define the window partition
         val uniqueCol = "chron_grp_autoML_" + java.util.UUID.randomUUID().toString

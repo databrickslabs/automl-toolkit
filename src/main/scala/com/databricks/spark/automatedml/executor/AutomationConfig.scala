@@ -100,6 +100,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _trainSplitChronologicalColumn: String = _geneticTunerDefaults.trainSplitChronologicalColumn
 
+  var _trainSplitChronologicalRandomPercentage: Double = _geneticTunerDefaults.trainSplitChronologicalRandomPercentage
+
   var _trainSplitColumnSet: Boolean = false
 
   var _seed: Long = _geneticTunerDefaults.seed
@@ -555,6 +557,16 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setTrainSplitChronologicalRandomPercentage(value: Double): this.type = {
+    _trainSplitChronologicalRandomPercentage = value
+    if(value > 10) println("[WARNING] setTrainSplitChronologicalRandomPercentage() setting this value above 10 " +
+      "percent will cause significant per-run train/test skew and variability in row counts during training.  " +
+      "Use higher values only if this is desired.")
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
   def setSeed(value: Long): this.type = {
     _seed = value
     setGeneticConfig()
@@ -715,6 +727,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       trainPortion = _trainPortion,
       trainSplitMethod = _trainSplitMethod,
       trainSplitChronologicalColumn = _trainSplitChronologicalColumn,
+      trainSplitChronologicalRandomPercentage = _trainSplitChronologicalRandomPercentage,
       seed = _seed,
       firstGenerationGenePool = _firstGenerationGenePool,
       numberOfGenerations = _numberOfGenerations,
@@ -935,6 +948,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getTrainSplitMethod: String = _trainSplitMethod
 
   def getTrainSplitChronologicalColumn: String = _trainSplitChronologicalColumn
+
+  def getTrainSplitChronologicalRandomPercentage: Double = _trainSplitChronologicalRandomPercentage
 
   def getSeed: Long = _seed
 
