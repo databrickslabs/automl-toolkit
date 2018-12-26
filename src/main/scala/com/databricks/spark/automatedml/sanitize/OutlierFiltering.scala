@@ -112,7 +112,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
       })
       val countsByCol = batch zip df.select(countFields:_*)
         .collect()(0).toSeq.toArray.map(_.asInstanceOf[Long])
-      numericFieldReport += FilterData(countsByCol.head._1, countsByCol.head._2)
+      if (countsByCol.nonEmpty) numericFieldReport += FilterData(countsByCol.head._1, countsByCol.head._2)
     }
     val totalFields = numericFields ::: characterFields
     (numericFieldReport.result(), totalFields)
