@@ -10,10 +10,10 @@ import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
-
 import scala.concurrent.forkjoin.ForkJoinPool
-
 import org.apache.log4j.{Level, Logger}
+
+import scala.collection.parallel.mutable.ParHashSet
 
 //TODO: investigate possibility of ring-compute (a la Horovod) for asynch hyper parameter tuning
 // i.e. : start with 20, as a return occurs, generate best from that to continue the thread pool.
@@ -287,6 +287,90 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     mutationPayload.result.toArray
   }
 
+  /**
+    * Attempt at building a continuous processing mode for hyper parameter tuning
+    * @return
+    */
+
+  private def returnBestHyperParameters(collection: ArrayBuffer[RandomForestModelsWithResults]):
+  (RandomForestConfig, Double) = {
+
+    val bestEntry = collection.result.toArray.sortWith(_.score > _.score).head
+    (bestEntry.modelHyperParams, bestEntry.score)
+  }
+
+  private def continuousEvolution(): Array[RandomForestModelsWithResults] = {
+
+    // These need to be parameters
+    val maximumIter = 200
+    val maxScore = 0.95
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(4))
+
+
+    var runResults = new ArrayBuffer[RandomForestModelsWithResults]
+
+    var iter: Int = 1
+    var bestScore: Double = 0.0
+
+    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool):_*)
+
+    runSet.tasksupport = taskSupport
+
+
+    //TODO's:
+
+    //1. Add another type of early stopping -> if iter > 10, check delta change in last n results
+    //      if no change, then stop
+    //      if minimal percent change improvement, then stop (configurable)
+
+    //2. Change the reporting status (the generational printout is obnoxious) percentages and generation...
+
+    //3. Get the maximumIter value to be the target value - parallel execution value so that we stop at the right time.
+
+    do {
+
+      runSet.foreach(x => {
+
+        try {
+          // Pull the config out of the HashSet
+          runSet -= x
+
+          // Run the model config
+          val run = runBattery(Array(x), iter)
+
+          runResults += run.head
+
+          val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+
+          bestScore = currentBestScore
+
+          //TODO: this needs to be parameterized!!!
+          // Add a mutated version of the current best model to the ParHashSet
+          runSet += irradiateGeneration(Array(bestConfig), 1, 3, 0.6).head
+
+          println(s"Current Best Score: $bestScore on iteration $iter")
+          iter += 1
+
+        } catch {
+          case e: java.lang.NullPointerException =>
+            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(Array(bestConfig), 1, 3, 0.6).head
+          case f: java.lang.ArrayIndexOutOfBoundsException =>
+            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(Array(bestConfig), 1, 3, 0.6).head
+        }
+      })
+
+
+
+    } while (iter < maximumIter && bestScore < maxScore)
+
+
+    runResults.result.toArray.sortWith(_.score  > _.score)
+
+
+  }
+
   def generateIdealParents(results: Array[RandomForestModelsWithResults]): Array[RandomForestConfig] = {
     val bestParents = new ArrayBuffer[RandomForestConfig]
     results.take(_numberOfParentsToRetain).map(x => {
@@ -437,7 +521,11 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   def evolveWithScoringDF(startingSeed: Option[RandomForestConfig] = None):
   (Array[RandomForestModelsWithResults], DataFrame) = {
-    val evolutionResults = evolveParameters(startingSeed)
+
+    // TODO: DEBUG TESTING!!!!
+    //val evolutionResults = evolveParameters(startingSeed)
+    val evolutionResults = continuousEvolution()
+
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
 
