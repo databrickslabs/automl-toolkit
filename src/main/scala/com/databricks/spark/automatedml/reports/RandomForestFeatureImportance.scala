@@ -9,7 +9,29 @@ import org.apache.spark.sql.DataFrame
 class RandomForestFeatureImportance(data: DataFrame, featConfig: MainConfig, modelType: String)
   extends ReportingTools {
 
-  def runFeatureImportances(fields: Array[String]): (RandomForestModelsWithResults, DataFrame) = {
+  final private val allowableCutoffTypes = List("none", "value", "count")
+
+  private var _cutoffType = "count"
+
+  private var _cutoffValue = 15.0
+
+  def setCutoffType(value: String): this.type = {
+    require(allowableCutoffTypes.contains(value),
+      s"Cutoff type $value is not in ${allowableCutoffTypes.mkString(", ")}")
+    _cutoffType = value
+    this
+  }
+
+  def setCutoffValue(value: Double): this.type = {
+    _cutoffValue = value
+    this
+  }
+
+  def getCutoffType: String = _cutoffType
+
+  def getCutoffValue: Double = _cutoffValue
+
+  def runFeatureImportances(fields: Array[String]): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
 
     val (modelResults, modelStats) = new RandomForestTuner(data, modelType)
       .setLabelCol(featConfig.labelCol)
@@ -30,6 +52,8 @@ class RandomForestFeatureImportance(data: DataFrame, featConfig: MainConfig, mod
       .setGenerationalMutationStrategy(featConfig.geneticConfig.generationalMutationStrategy)
       .setMutationMagnitudeMode(featConfig.geneticConfig.mutationMagnitudeMode)
       .setFixedMutationValue(featConfig.geneticConfig.fixedMutationValue)
+      .setEarlyStoppingScore(featConfig.autoStoppingScore)
+      .setEarlyStoppingFlag(featConfig.autoStoppingFlag)
       .evolveWithScoringDF()
 
     val bestModelData = modelResults.head
@@ -42,7 +66,15 @@ class RandomForestFeatureImportance(data: DataFrame, featConfig: MainConfig, mod
 
     val importances = generateFrameReport(fields, bestModelFeatureImportances)
 
-    (bestModelData, importances)
+    val extractedFields = _cutoffType match {
+      case "none" => fields
+      case "value" => extractTopFeaturesByImportance(importances, _cutoffValue)
+      case "count" => extractTopFeaturesByCount(importances, _cutoffValue.toInt)
+      case _ => throw new UnsupportedOperationException(
+        s"Extraction mode ${_cutoffType} is not supported for feature importance reduction")
+    }
+
+    (bestModelData, importances, extractedFields)
 
   }
 

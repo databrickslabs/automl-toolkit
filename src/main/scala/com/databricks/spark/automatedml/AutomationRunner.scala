@@ -7,6 +7,7 @@ import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomFores
 import com.databricks.spark.automatedml.tracking.MLFlowTracker
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.ArrayBuffer
@@ -43,6 +44,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
       .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
       .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+      .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
+      .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
       .evolveWithScoringDF()
 
     cachedData.unpersist()
@@ -268,20 +271,42 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   }
 
-  def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame) = {
+  def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
 
     val (data, fields, modelType) = prepData()
 
     val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
     cachedData.count
 
-    val (rfWithResults, importancesDF) = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, modelType).runFeatureImportances(fields)
-
+    val featureResults = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, modelType)
+      .setCutoffType(_mainConfig.featureImportanceCutoffType)
+      .setCutoffValue(_mainConfig.featureImportanceCutoffValue)
+      .runFeatureImportances(fields)
     cachedData.unpersist()
 
-    (rfWithResults, importancesDF)
-
+    featureResults
   }
+
+  def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+
+    // Get the Feature Importances
+
+    val (modelResults, importanceDF, culledFields) = exploreFeatureImportances()
+
+    val selectableFields = culledFields :+ _mainConfig.labelCol
+
+    val dataSubset = df.select(selectableFields.map(col):_*).persist(StorageLevel.MEMORY_AND_DISK)
+    dataSubset.count
+    
+    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
+
+    dataSubset.unpersist()
+
+    runResults
+  }
+
+  // TODO: add a chained feature importance -> full modeling method (run explore Feature Importances, then restrict
+  // The Dataframe fields, and
 
   def generateDecisionSplits(): (String, DataFrame, Any) = {
 

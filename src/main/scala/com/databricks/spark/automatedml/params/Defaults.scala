@@ -12,6 +12,8 @@ trait Defaults {
     "SVM"
   )
 
+  final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
+
   def _defaultModelingFamily: String = "RandomForest"
 
   def _defaultLabelCol: String = "label"
@@ -105,7 +107,7 @@ trait Defaults {
 
   def _rfDefaultStringBoundaries = Map(
     "impurity" -> List("gini", "entropy"),
-    "featureSubsetStrategy" -> List("all", "sqrt", "log2", "onethird")
+    "featureSubsetStrategy" -> List("auto")
   )
 
   def _treesDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
@@ -188,6 +190,14 @@ trait Defaults {
 
   def _defaultMlFlowLoggingFlag: Boolean = true
 
+  def _defaultAutoStoppingFlag: Boolean = true
+
+  def _defaultAutoStoppingScore: Double = 0.95
+
+  def _defaultFeatureImportanceCutoffType: String = "count"
+
+  def _defaultFeatureImportanceCutoffValue: Double = 15.0
+
   def _mainConfigDefaults = MainConfig(
     modelFamily = _modelTypeDefault,
     labelCol = "label",
@@ -198,6 +208,10 @@ trait Defaults {
     pearsonFilteringFlag = true,
     covarianceFilteringFlag = true,
     scalingFlag = false,
+    autoStoppingFlag = _defaultAutoStoppingFlag,
+    autoStoppingScore = _defaultAutoStoppingScore,
+    featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
+    featureImportanceCutoffValue = _defaultFeatureImportanceCutoffValue,
     dateTimeConversionType = "split",
     fieldsToIgnoreInVector = _defaultFieldsToIgnoreInVector,
     numericBoundaries = _rfDefaultNumBoundaries,
@@ -224,6 +238,10 @@ trait Defaults {
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
     scalingFlag = false,
+    autoStoppingFlag = _defaultAutoStoppingFlag,
+    autoStoppingScore = _defaultAutoStoppingScore,
+    featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
+    featureImportanceCutoffValue = _defaultFeatureImportanceCutoffValue,
     dateTimeConversionType = "split",
     fieldsToIgnoreInVector = _defaultFieldsToIgnoreInVector,
     numericBoundaries = _rfDefaultNumBoundaries,
@@ -264,6 +282,10 @@ trait Defaults {
     covarianceFilteringFlag = false,
     scalingFlag = false,
     dateTimeConversionType = "split",
+    autoStoppingFlag = _defaultAutoStoppingFlag,
+    autoStoppingScore = _defaultAutoStoppingScore,
+    featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
+    featureImportanceCutoffValue = _defaultFeatureImportanceCutoffValue,
     fieldsToIgnoreInVector = _defaultFieldsToIgnoreInVector,
     numericBoundaries = _treesDefaultNumBoundaries,
     stringBoundaries = _treesDefaultStringBoundaries,
