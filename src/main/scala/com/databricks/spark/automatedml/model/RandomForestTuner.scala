@@ -2,6 +2,7 @@ package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig, RandomForestModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.RandomForestRegressor
@@ -10,22 +11,20 @@ import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-import org.apache.log4j.{Level, Logger}
-
 import scala.collection.parallel.mutable.ParHashSet
+import scala.concurrent.forkjoin.ForkJoinPool
 
 //TODO: investigate possibility of ring-compute (a la Horovod) for asynch hyper parameter tuning
 // i.e. : start with 20, as a return occurs, generate best from that to continue the thread pool.
 
 /**
-Simplest implementation will be:
-1. Run initial epoch of random search parameters
-2. Create an empty stack / queue
-3. take top 1 best run, mutate randomly, then add to stack and pop from the stack in parallel.
-4. When each return comes, resort the Final ListBuffer that contains the run results, take the best value
-
-*/
+  * Simplest implementation will be:
+  *1. Run initial epoch of random search parameters
+  *2. Create an empty stack / queue
+  *3. take top 1 best run, mutate randomly, then add to stack and pop from the stack in parallel.
+  *4. When each return comes, resort the Final ListBuffer that contains the run results, take the best value
+  *
+  */
 
 class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper
   with Evolution with Defaults {
@@ -188,7 +187,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     runs.tasksupport = taskSupport
 
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    }%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -232,7 +232,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       modelCnt += 1
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+        calculateModelingFamilyRemainingTime(generation, modelCnt)
+      }%2.4f%%"
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -245,7 +246,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
   private def irradiateGeneration(parents: Array[RandomForestConfig], mutationCount: Int,
-                          mutationAggression: Int, mutationMagnitude: Double): Array[RandomForestConfig] = {
+                                  mutationAggression: Int, mutationMagnitude: Double): Array[RandomForestConfig] = {
 
     val mutationPayload = new ArrayBuffer[RandomForestConfig]
     val totalConfigs = modelConfigLength[RandomForestConfig]
@@ -289,86 +290,180 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   /**
     * Attempt at building a continuous processing mode for hyper parameter tuning
+    *
     * @return
     */
 
   private def returnBestHyperParameters(collection: ArrayBuffer[RandomForestModelsWithResults]):
   (RandomForestConfig, Double) = {
 
-    val bestEntry = collection.result.toArray.sortWith(_.score > _.score).head
+    val bestEntry = _optimizationStrategy match {
+      case "minimize" => collection.result.toArray.sortWith(_.score < _.score).head
+      case _ => collection.result.toArray.sortWith(_.score > _.score).head
+    }
     (bestEntry.modelHyperParams, bestEntry.score)
   }
 
   private def continuousEvolution(): Array[RandomForestModelsWithResults] = {
 
-    // These need to be parameters
-    val maximumIter = 200
-    val maxScore = 0.95
-    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(4))
-
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
     var runResults = new ArrayBuffer[RandomForestModelsWithResults]
 
+    var scoreHistory = new ArrayBuffer[Double]
+
+    // Set the beginning of the loop and instantiate a place holder for holdling the current best score
     var iter: Int = 1
     var bestScore: Double = 0.0
+    var rollingImprovement: Boolean = true
+    var incrementalImprovementCount: Int = 0
 
-    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool):_*)
+    //TODO: evaluate this and see if this should be an early stopping signature!!!
+    val earlyStoppingImprovementThreshold: Int = -10
 
+    // Generate the first pool of attempts to seed the hyperparameter space
+    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+
+    // Apply ForkJoin ThreadPool parallelism
     runSet.tasksupport = taskSupport
 
+    //TODO:
+    //Change the reporting status (the generational printout is obnoxious) percentages and generation...
 
-    //TODO's:
+    val endResult = _optimizationStrategy match {
+      case "minimize" =>
+        do {
 
-    //1. Add another type of early stopping -> if iter > 10, check delta change in last n results
-    //      if no change, then stop
-    //      if minimal percent change improvement, then stop (configurable)
+          runSet.foreach(x => {
 
-    //2. Change the reporting status (the generational printout is obnoxious) percentages and generation...
+            try {
+              // Pull the config out of the HashSet
+              runSet -= x
 
-    //3. Get the maximumIter value to be the target value - parallel execution value so that we stop at the right time.
+              // Run the model config
+              val run = runBattery(Array(x), iter)
 
-    do {
+              runResults += run.head
+              scoreHistory += run.head.score
 
-      runSet.foreach(x => {
+              val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
 
-        try {
-          // Pull the config out of the HashSet
-          runSet -= x
+              bestScore = currentBestScore
 
-          // Run the model config
-          val run = runBattery(Array(x), iter)
+              // Add a mutated version of the current best model to the ParHashSet
+              runSet += irradiateGeneration(Array(bestConfig), 1,
+                _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
 
-          runResults += run.head
+              // Evaluate whether the scores are staying static over the last configured rolling window.
+              // Get the rolling window
+              val currentWindowValues = scoreHistory.slice(
+                scoreHistory.length - _continuousEvolutionRollingImprovementCount, scoreHistory.length)
 
-          val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+              // Check for static values
+              val staticCheck = currentWindowValues.toSet.size
 
-          bestScore = currentBestScore
+              // If there is more than one value, proceed with validation check on whether the model is improving over time.
+              if (staticCheck > 1) {
+                val (early, later) = currentWindowValues.splitAt(scala.math.round(currentWindowValues.size / 2))
+                if (later.sum / later.length < early.sum / early.length) {
+                  incrementalImprovementCount += 1
+                }
+                else {
+                  incrementalImprovementCount -= 1
+                }
+              } else {
+                rollingImprovement = false
+              }
 
-          //TODO: this needs to be parameterized!!!
-          // Add a mutated version of the current best model to the ParHashSet
-          runSet += irradiateGeneration(Array(bestConfig), 1, 3, 0.6).head
+              println(s"Current Best Score: $bestScore on run: $iter with cumulative improvement count of: " +
+                s"$incrementalImprovementCount")
+              iter += 1
 
-          println(s"Current Best Score: $bestScore on iteration $iter")
-          iter += 1
+            } catch {
+              case e: java.lang.NullPointerException =>
+                val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+                runSet += irradiateGeneration(Array(bestConfig), 1,
+                  _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+                bestScore = currentBestScore
+              case f: java.lang.ArrayIndexOutOfBoundsException =>
+                val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+                runSet += irradiateGeneration(Array(bestConfig), 1,
+                  _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+                bestScore = currentBestScore
+            }
+          })
+        } while (iter < _continuousEvolutionMaxIterations && bestScore > _continuousEvolutionStoppingScore
+          && rollingImprovement && incrementalImprovementCount > earlyStoppingImprovementThreshold)
 
-        } catch {
-          case e: java.lang.NullPointerException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1, 3, 0.6).head
-          case f: java.lang.ArrayIndexOutOfBoundsException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1, 3, 0.6).head
-        }
-      })
+        runResults.result.toArray.sortWith(_.score < _.score)
 
+      case _ =>
+        do {
 
+          runSet.foreach(x => {
 
-    } while (iter < maximumIter && bestScore < maxScore)
+            try {
+              // Pull the config out of the HashSet
+              runSet -= x
 
+              // Run the model config
+              val run = runBattery(Array(x), iter)
 
-    runResults.result.toArray.sortWith(_.score  > _.score)
+              runResults += run.head
+              scoreHistory += run.head.score
 
+              val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
 
+              bestScore = currentBestScore
+
+              // Add a mutated version of the current best model to the ParHashSet
+              runSet += irradiateGeneration(Array(bestConfig), 1,
+                _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+
+              // Evaluate whether the scores are staying static over the last configured rolling window.
+              // Get the rolling window
+              val currentWindowValues = scoreHistory.slice(
+                scoreHistory.length - _continuousEvolutionRollingImprovementCount, scoreHistory.length)
+
+              // Check for static values
+              val staticCheck = currentWindowValues.toSet.size
+
+              // If there is more than one value, proceed with validation check on whether the model is improving over time.
+              if (staticCheck > 1) {
+                val (early, later) = currentWindowValues.splitAt(scala.math.round(currentWindowValues.size / 2))
+                if (later.sum / later.length > early.sum / early.length) {
+                  incrementalImprovementCount += 1
+                }
+                else {
+                  incrementalImprovementCount -= 1
+                }
+              } else {
+                rollingImprovement = false
+              }
+
+              println(s"Current Best Score: $bestScore on run: $iter with cumulative improvement count of: " +
+                s"$incrementalImprovementCount")
+              iter += 1
+
+            } catch {
+              case e: java.lang.NullPointerException =>
+                val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+                runSet += irradiateGeneration(Array(bestConfig), 1,
+                  _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+                bestScore = currentBestScore
+              case f: java.lang.ArrayIndexOutOfBoundsException =>
+                val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+                runSet += irradiateGeneration(Array(bestConfig), 1,
+                  _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+                bestScore = currentBestScore
+            }
+          })
+        } while (iter < _continuousEvolutionMaxIterations && bestScore < _continuousEvolutionStoppingScore
+          && rollingImprovement && incrementalImprovementCount > earlyStoppingImprovementThreshold)
+
+        runResults.result.toArray.sortWith(_.score > _.score)
+    }
+    endResult
   }
 
   def generateIdealParents(results: Array[RandomForestModelsWithResults]): Array[RandomForestConfig] = {
@@ -403,7 +498,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     var currentIteration = 1
 
-    if(_earlyStoppingFlag) {
+    if (_earlyStoppingFlag) {
 
       _optimizationStrategy match {
         case "minimize" =>
@@ -475,31 +570,31 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
           }
       }
     } else {
-    (1 to _numberOfMutationGenerations).map(i => {
+      (1 to _numberOfMutationGenerations).map(i => {
 
-      val mutationAggressiveness = _generationalMutationStrategy match {
-        case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
-        case _ => _fixedMutationValue
-      }
+        val mutationAggressiveness = _generationalMutationStrategy match {
+          case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
+          case _ => _fixedMutationValue
+        }
 
-      val currentState = _optimizationStrategy match {
+        val currentState = _optimizationStrategy match {
+          case "minimize" => fossilRecord.result.toArray.sortWith(_.score < _.score)
+          case _ => fossilRecord.result.toArray.sortWith(_.score > _.score)
+        }
+
+        val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
+          mutationAggressiveness, _geneticMixing)
+
+        var evolve = runBattery(evolution, generation)
+        generation += 1
+        fossilRecord ++= evolve
+
+      })
+
+      _optimizationStrategy match {
         case "minimize" => fossilRecord.result.toArray.sortWith(_.score < _.score)
         case _ => fossilRecord.result.toArray.sortWith(_.score > _.score)
       }
-
-      val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-        mutationAggressiveness, _geneticMixing)
-
-      var evolve = runBattery(evolution, generation)
-      generation += 1
-      fossilRecord ++= evolve
-
-    })
-
-    _optimizationStrategy match {
-      case "minimize" => fossilRecord.result.toArray.sortWith(_.score < _.score)
-      case _ => fossilRecord.result.toArray.sortWith(_.score > _.score)
-    }
 
     }
   }
@@ -522,9 +617,10 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   def evolveWithScoringDF(startingSeed: Option[RandomForestConfig] = None):
   (Array[RandomForestModelsWithResults], DataFrame) = {
 
-    // TODO: DEBUG TESTING!!!!
-    //val evolutionResults = evolveParameters(startingSeed)
-    val evolutionResults = continuousEvolution()
+    val evolutionResults = _evolutionStrategy match {
+      case "batch" => evolveParameters(startingSeed)
+      case "continuous" => continuousEvolution()
+    }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
