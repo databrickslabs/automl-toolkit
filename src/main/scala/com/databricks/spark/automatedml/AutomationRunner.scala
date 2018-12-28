@@ -32,6 +32,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+      .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+      .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setKFold(_mainConfig.geneticConfig.kFold)
       .setSeed(_mainConfig.geneticConfig.seed)
@@ -66,6 +69,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+          .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
@@ -98,6 +104,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setGBTStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+      .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+      .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setKFold(_mainConfig.geneticConfig.kFold)
       .setSeed(_mainConfig.geneticConfig.seed)
@@ -130,6 +139,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+          .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
@@ -165,6 +177,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+          .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
@@ -200,6 +215,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+          .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
           .setKFold(_mainConfig.geneticConfig.kFold)
           .setSeed(_mainConfig.geneticConfig.seed)
@@ -233,6 +251,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
      .setScoringMetric(_mainConfig.scoringMetric)
      .setScoringMetric(_mainConfig.scoringMetric)
      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+     .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+     .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+     .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
      .setParallelism(_mainConfig.geneticConfig.parallelism)
      .setKFold(_mainConfig.geneticConfig.kFold)
      .setSeed(_mainConfig.geneticConfig.seed)
@@ -304,9 +325,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     runResults
   }
-
-  // TODO: add a chained feature importance -> full modeling method (run explore Feature Importances, then restrict
-  // The Dataframe fields, and
 
   def generateDecisionSplits(): (String, DataFrame, Any) = {
 
