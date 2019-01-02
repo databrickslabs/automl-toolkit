@@ -58,6 +58,13 @@ class RandomForestFeatureImportance(data: DataFrame, featConfig: MainConfig, mod
       .setFixedMutationValue(featConfig.geneticConfig.fixedMutationValue)
       .setEarlyStoppingScore(featConfig.autoStoppingScore)
       .setEarlyStoppingFlag(featConfig.autoStoppingFlag)
+      .setEvolutionStrategy(featConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionMaxIterations(featConfig.geneticConfig.continuousEvolutionMaxIterations)
+      .setContinuousEvolutionStoppingScore(featConfig.geneticConfig.continuousEvolutionStoppingScore)
+      .setContinuousEvolutionParallelism(featConfig.geneticConfig.continuousEvolutionParallelism)
+      .setContinuousEvolutionMutationAggressiveness(featConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
+      .setContinuousEvolutionGeneticMixing(featConfig.geneticConfig.continuousEvolutionGeneticMixing)
+      .setContinuousEvolutionRollingImporvementCount(featConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
       .evolveWithScoringDF()
 
     val bestModelData = modelResults.head

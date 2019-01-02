@@ -146,9 +146,6 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     sortAndReturnAll(results).head.score
   }
 
-
-
-
   private def generateThresholdedParams(iterationCount: Int): Array[RandomForestConfig] = {
 
     val iterations = new ArrayBuffer[RandomForestConfig]
@@ -253,7 +250,6 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
-
       val runAvg = RandomForestModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
@@ -267,10 +263,9 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       logger.log(Level.INFO, runScoreStatement)
       logger.log(Level.INFO, progressStatement)
     }
-    _optimizationStrategy match {
-      case "minimize" => results.toArray.sortWith(_.score < _.score)
-      case _ => results.toArray.sortWith(_.score > _.score)
-    }
+
+    sortAndReturnAll(results)
+
   }
 
   private def irradiateGeneration(parents: Array[RandomForestConfig], mutationCount: Int,
@@ -317,7 +312,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
 
-  private def continuousEvolution(): Array[RandomForestModelsWithResults] = {
+  private def continuousEvolution(startingSeed: Option[RandomForestConfig] = None): Array[RandomForestModelsWithResults] = {
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -335,7 +330,19 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     val earlyStoppingImprovementThreshold: Int = -10
 
     // Generate the first pool of attempts to seed the hyperparameter space
-    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+//    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+
+    val totalConfigs = modelConfigLength[RandomForestConfig]
+
+    var runSet = startingSeed match {
+      case Some(`startingSeed`) =>
+        val genArray = new ArrayBuffer[RandomForestConfig]
+        genArray += startingSeed.asInstanceOf[RandomForestConfig]
+        genArray ++= irradiateGeneration(Array(startingSeed.asInstanceOf[RandomForestConfig]),
+          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
+        ParHashSet(genArray.result.toArray: _*)
+      case _ => ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    }
 
     // Apply ForkJoin ThreadPool parallelism
     runSet.tasksupport = taskSupport
@@ -445,41 +452,41 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     if (_earlyStoppingFlag) {
 
-          var currentBestResult = sortAndReturnBestScore(fossilRecord)
+      var currentBestResult = sortAndReturnBestScore(fossilRecord)
 
-          if (evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
-            while (currentIteration <= _numberOfMutationGenerations &&
-              evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
+      if (evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
+        while (currentIteration <= _numberOfMutationGenerations &&
+          evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
 
-              val mutationAggressiveness = _generationalMutationStrategy match {
-                case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else
-                  totalConfigs - (currentIteration + 1)
-                case _ => _fixedMutationValue
-              }
-
-              // Get the sorted state
-              val currentState = sortAndReturnAll(fossilRecord)
-
-              val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-                mutationAggressiveness, _geneticMixing)
-
-              var evolve = runBattery(evolution, generation)
-              generation += 1
-              fossilRecord ++= evolve
-
-              val postRunBestScore = sortAndReturnBestScore(fossilRecord)
-
-              if (evaluateBestScore(postRunBestScore, currentBestResult)) currentBestResult = postRunBestScore
-
-              currentIteration += 1
-
-            }
-
-            sortAndReturnAll(fossilRecord)
-
-          } else {
-            sortAndReturnAll(fossilRecord)
+          val mutationAggressiveness = _generationalMutationStrategy match {
+            case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else
+              totalConfigs - (currentIteration + 1)
+            case _ => _fixedMutationValue
           }
+
+          // Get the sorted state
+          val currentState = sortAndReturnAll(fossilRecord)
+
+          val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
+            mutationAggressiveness, _geneticMixing)
+
+          var evolve = runBattery(evolution, generation)
+          generation += 1
+          fossilRecord ++= evolve
+
+          val postRunBestScore = sortAndReturnBestScore(fossilRecord)
+
+          if (evaluateBestScore(postRunBestScore, currentBestResult)) currentBestResult = postRunBestScore
+
+          currentIteration += 1
+
+        }
+
+        sortAndReturnAll(fossilRecord)
+
+      } else {
+        sortAndReturnAll(fossilRecord)
+      }
     } else {
       (1 to _numberOfMutationGenerations).map(i => {
 
@@ -524,7 +531,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     val evolutionResults = _evolutionStrategy match {
       case "batch" => evolveParameters(startingSeed)
-      case "continuous" => continuousEvolution()
+      case "continuous" => continuousEvolution(startingSeed)
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))

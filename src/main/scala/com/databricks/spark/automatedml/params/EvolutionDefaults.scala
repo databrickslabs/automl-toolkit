@@ -50,9 +50,6 @@ trait EvolutionDefaults {
 
   def _defaultEarlyStoppingFlag: Boolean = true
 
-
-
-  // NEW
   def _defaultEvolutionStrategy: String = "batch"
 
   def _defaultContinuousEvolutionMaxIterations: Int = 200
