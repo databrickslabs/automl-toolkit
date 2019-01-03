@@ -90,7 +90,14 @@ case class GeneticConfig(
                           geneticMixing: Double,
                           generationalMutationStrategy: String,
                           fixedMutationValue: Int,
-                          mutationMagnitudeMode: String
+                          mutationMagnitudeMode: String,
+                          evolutionStrategy: String,
+                          continuousEvolutionMaxIterations: Int,
+                          continuousEvolutionStoppingScore: Double,
+                          continuousEvolutionParallelism: Int,
+                          continuousEvolutionMutationAggressiveness: Int,
+                          continuousEvolutionGeneticMixing: Double,
+                          continuousEvolutionRollingImprovementCount: Int
                         )
 
 case class ScalingConfig(

@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.RandomForestConfig
+import com.databricks.spark.automatedml.params.{EvolutionDefaults, RandomForestConfig}
 import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.Window
@@ -9,38 +9,38 @@ import org.apache.spark.sql.functions._
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe._
 
-trait Evolution extends DataValidation {
+trait Evolution extends DataValidation with EvolutionDefaults {
 
-  // TODO: move all / most of these over to configuration defaults?
-  var _labelCol = "label"
-  var _featureCol = "features"
-  var _trainPortion = 0.8
-  var _trainSplitMethod = "random"
-  var _trainSplitChronologicalColumn = "datetime"
-  var _trainSplitChronologicalRandomPercentage = 0.0
-  var _parallelism = 20
-  var _kFold = 3
-  var _seed = 42L
+  var _labelCol: String = _defaultLabel
+  var _featureCol: String = _defaultFeature
+  var _trainPortion: Double = _defaultTrainPortion
+  var _trainSplitMethod: String = _defaultTrainSplitMethod
+  var _trainSplitChronologicalColumn: String = _defaultTrainSplitChronologicalColumn
+  var _trainSplitChronologicalRandomPercentage: Double = _defaultTrainSplitChronologicalRandomPercentage
+  var _parallelism: Int = _defaultParallelism
+  var _kFold: Int = _defaultKFold
+  var _seed: Long = _defaultSeed
   var _kFoldIteratorRange: scala.collection.parallel.immutable.ParRange = Range(0, _kFold).par
 
-  var _optimizationStrategy = "maximize"
-  var _firstGenerationGenePool = 20
-  var _numberOfMutationGenerations = 10
-  var _numberOfParentsToRetain = 3
-  var _numberOfMutationsPerGeneration = 10
-  var _geneticMixing = 0.7
-  var _generationalMutationStrategy = "linear"
-  var _mutationMagnitudeMode = "random"
-  var _fixedMutationValue = 1
-  var _earlyStoppingScore = 0.95
-  var _earlyStoppingFlag = true
+  var _optimizationStrategy: String = _defaultOptimizationStrategy
+  var _firstGenerationGenePool: Int = _defaultFirstGenerationGenePool
+  var _numberOfMutationGenerations: Int = _defaultNumberOfMutationGenerations
+  var _numberOfParentsToRetain: Int = _defaultNumberOfParentsToRetain
+  var _numberOfMutationsPerGeneration: Int = _defaultNumberOfMutationsPerGeneration
+  var _geneticMixing: Double = _defaultGeneticMixing
+  var _generationalMutationStrategy: String = _defaultGenerationalMutationStrategy
+  var _mutationMagnitudeMode: String = _defaultMutationMagnitudeMode
+  var _fixedMutationValue: Int = _defaultFixedMutationValue
+  var _earlyStoppingScore: Double = _defaultEarlyStoppingScore
+  var _earlyStoppingFlag: Boolean = _defaultEarlyStoppingFlag
 
-  final val allowableStrategies = Seq("minimize", "maximize")
-  final val allowableMutationStrategies = Seq("linear", "fixed")
-  final val allowableMutationMagnitudeMode = Seq("random", "fixed")
-  final val regressionMetrics: List[String] = List("rmse", "mse", "r2", "mae")
-  final val classificationMetrics: List[String] = List("f1", "weightedPrecision", "weightedRecall", "accuracy")
-  final val allowableTrainSplitMethod: List[String] = List("random", "chronological")
+  var _evolutionStrategy: String = _defaultEvolutionStrategy
+  var _continuousEvolutionMaxIterations: Int = _defaultContinuousEvolutionMaxIterations
+  var _continuousEvolutionStoppingScore: Double = _defaultContinuousEvolutionStoppingScore
+  var _continuousEvolutionParallelism: Int = _defaultContinuousEvolutionParallelism
+  var _continuousEvolutionMutationAggressiveness: Int = _defaultContinuousEvolutionMutationAggressiveness
+  var _continuousEvolutionGeneticMixing: Double = _defaultContinuousEvolutionGeneticMixing
+  var _continuousEvolutionRollingImprovementCount: Int = _defaultContinuousEvolutionRollingImprovementCount
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
@@ -75,7 +75,7 @@ trait Evolution extends DataValidation {
 
   def setTrainSplitChronologicalRandomPercentage(value: Double): this.type = {
     _trainSplitChronologicalRandomPercentage = value
-    if(value > 10) println("[WARNING] setTrainSplitChronologicalRandomPercentage() setting this value above 10 " +
+    if (value > 10) println("[WARNING] setTrainSplitChronologicalRandomPercentage() setting this value above 10 " +
       "percent will cause significant per-run train/test skew and variability in row counts during training.  " +
       "Use higher values only if this is desired.")
     this
@@ -101,9 +101,9 @@ trait Evolution extends DataValidation {
 
   def setOptimizationStrategy(value: String): this.type = {
     val valueLC = value.toLowerCase
-    require(allowableStrategies.contains(valueLC),
+    require(allowableOptimizationStrategies.contains(valueLC),
       s"Optimization Strategy '$valueLC' is not a member of ${
-        invalidateSelection(valueLC, allowableStrategies)
+        invalidateSelection(valueLC, allowableOptimizationStrategies)
       }")
     _optimizationStrategy = valueLC
     this
@@ -180,6 +180,58 @@ trait Evolution extends DataValidation {
     this
   }
 
+  def setEvolutionStrategy(value: String): this.type = {
+    require(allowableEvolutionStrategies.contains(value),
+      s"Evolution Strategy '$value' is not a supported mode.  Must be one of: ${
+        invalidateSelection(value, allowableEvolutionStrategies)
+      }")
+    _evolutionStrategy = value
+    this
+  }
+
+  def setContinuousEvolutionMaxIterations(value: Int): this.type = {
+    if (value > 500) println(s"[WARNING] Total Modeling count $value is higher than recommended limit of 500.  " +
+      s"This tuning will take a long time to run.")
+    _continuousEvolutionMaxIterations = value
+    this
+  }
+
+  def setContinuousEvolutionStoppingScore(value: Double): this.type = {
+    _continuousEvolutionStoppingScore = value
+    this
+  }
+
+  def setContinuousEvolutionParallelism(value: Int): this.type = {
+    if (value > 10) println(s"[WARNING] ContinuousEvolutionParallelism -> $value is higher than recommended " +
+      s"concurrency for efficient optimization for convergence." +
+      s"\n  Setting this value below 11 will converge faster in most cases.")
+    _continuousEvolutionParallelism = value
+    this
+  }
+
+  def setContinuousEvolutionMutationAggressiveness(value: Int): this.type = {
+    if (value > 4) println(s"[WARNING] ContinuousEvolutionMutationAggressiveness -> $value. " +
+      s"\n  Setting this higher than 4 will result in extensive random search and will take longer to converge " +
+      s"to optimal hyperparameters.")
+    _continuousEvolutionMutationAggressiveness = value
+    this
+  }
+
+  def setContinuousEvolutionGeneticMixing(value: Double): this.type = {
+    require(value < 1.0 & value > 0.0,
+      s"Mutation Aggressiveness must be in range (0,1). Current Setting of $value is not permitted.")
+    _continuousEvolutionGeneticMixing = value
+    this
+  }
+
+  def setContinuousEvolutionRollingImporvementCount(value: Int): this.type = {
+    require(value > 0, s"ContinuousEvolutionRollingImprovementCount must be > 0. $value is invalid.")
+    if (value < 10) println(s"[WARNING] ContinuousEvolutionRollingImprovementCount -> $value setting is low.  " +
+      s"Optimal Convergence may not occur due to early stopping.")
+    _continuousEvolutionRollingImprovementCount = value
+    this
+  }
+
   def getLabelCol: String = _labelCol
 
   def getFeaturesCol: String = _featureCol
@@ -190,7 +242,7 @@ trait Evolution extends DataValidation {
 
   def getTrainSplitChronologicalColumn: String = _trainSplitChronologicalColumn
 
-  def getTrainSplitChronologicalRandomPercentage : Double = _trainSplitChronologicalRandomPercentage
+  def getTrainSplitChronologicalRandomPercentage: Double = _trainSplitChronologicalRandomPercentage
 
   def getParallelism: Int = _parallelism
 
@@ -220,7 +272,26 @@ trait Evolution extends DataValidation {
 
   def getEarlyStoppingFlag: Boolean = _earlyStoppingFlag
 
-  def totalModels: Int = (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool
+  def getEvolutionStrategy: String = _evolutionStrategy
+
+  def getContinuousEvolutionMaxIterations: Int = _continuousEvolutionMaxIterations
+
+  def getContinuousEvolutionStoppingScore: Double = _continuousEvolutionStoppingScore
+
+  def getContinuousEvolutionParallelism: Int = _continuousEvolutionParallelism
+
+  def getContinuousEvolutionMutationAggressiveness: Int = _continuousEvolutionMutationAggressiveness
+
+  def getContinuousEvolutionGeneticMixing: Double = _continuousEvolutionGeneticMixing
+
+  def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
+
+  def totalModels: Int = _evolutionStrategy match {
+    case "batch" => (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool
+    case "continuous" => _continuousEvolutionMaxIterations - _continuousEvolutionParallelism + _firstGenerationGenePool
+    case _ => throw new MatchError(s"EvolutionStrategy mode ${_evolutionStrategy} is not supported." +
+      s"\n  Choose one of: ${allowableEvolutionStrategies.mkString(", ")}")
+  }
 
   def modelConfigLength[T: TypeTag]: Int = {
     typeOf[T].members.collect {
@@ -238,7 +309,7 @@ trait Evolution extends DataValidation {
             s"${data.schema.fieldNames.mkString(", ")}")
 
         // Validation check for the random 'wiggle value' if it's set that it won't risk creating zero rows in train set.
-        if(_trainSplitChronologicalRandomPercentage > 0.0)
+        if (_trainSplitChronologicalRandomPercentage > 0.0)
           require((1 - _trainPortion) * _trainSplitChronologicalRandomPercentage / 100 < 0.5,
             s"With trainSplitChronologicalRandomPercentage set at '${_trainSplitChronologicalRandomPercentage}' " +
               s"and a train test ratio of ${_trainPortion} there is a high probability of train data set being empty." +
@@ -250,7 +321,7 @@ trait Evolution extends DataValidation {
         val splitValue = scala.math.round(rawDataCount * _trainPortion).toInt
 
         // Get the row number estimation for conduction the split at
-        val splitRow: Int = if(_trainSplitChronologicalRandomPercentage <= 0.0) {
+        val splitRow: Int = if (_trainSplitChronologicalRandomPercentage <= 0.0) {
           splitValue
         }
         else {
@@ -402,10 +473,14 @@ trait Evolution extends DataValidation {
 
   def calculateModelingFamilyRemainingTime(currentGen: Int, currentModel: Int): Double = {
 
-    val modelsComplete = if (currentGen == 1) {
-      currentModel
-    } else {
-      _firstGenerationGenePool + (_numberOfMutationsPerGeneration * (currentGen - 2) + currentModel)
+    val modelsComplete = _evolutionStrategy match {
+      case "batch" =>
+        if (currentGen == 1) {
+          currentModel
+        } else {
+          _firstGenerationGenePool + (_numberOfMutationsPerGeneration * (currentGen - 2) + currentModel)
+        }
+      case _ => currentGen + _firstGenerationGenePool
     }
 
     (modelsComplete.toDouble / totalModels.toDouble) * 100

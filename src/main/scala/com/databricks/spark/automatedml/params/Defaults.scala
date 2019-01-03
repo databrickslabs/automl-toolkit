@@ -16,6 +16,8 @@ trait Defaults {
 
   final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
 
+  final val _allowableEvolutionStrategies = List("batch", "continuous")
+
   def _defaultModelingFamily: String = "RandomForest"
 
   def _defaultLabelCol: String = "label"
@@ -53,7 +55,14 @@ trait Defaults {
     geneticMixing = 0.7,
     generationalMutationStrategy = "linear",
     fixedMutationValue = 1,
-    mutationMagnitudeMode = "fixed"
+    mutationMagnitudeMode = "fixed",
+    evolutionStrategy = "batch",
+    continuousEvolutionMaxIterations = 200,
+    continuousEvolutionStoppingScore = 1.0,
+    continuousEvolutionParallelism = 4,
+    continuousEvolutionMutationAggressiveness = 3,
+    continuousEvolutionGeneticMixing = 0.7,
+    continuousEvolutionRollingImprovementCount = 20
   )
 
   def _fillConfigDefaults = FillConfig(
@@ -273,7 +282,14 @@ trait Defaults {
       geneticMixing = 0.7,
       generationalMutationStrategy = "linear",
       fixedMutationValue = 1,
-      mutationMagnitudeMode = "fixed"
+      mutationMagnitudeMode = "fixed",
+      evolutionStrategy = "batch",
+      continuousEvolutionMaxIterations = 200,
+      continuousEvolutionStoppingScore = 1.0,
+      continuousEvolutionParallelism = 4,
+      continuousEvolutionMutationAggressiveness = 3,
+      continuousEvolutionGeneticMixing = 0.7,
+      continuousEvolutionRollingImprovementCount = 20
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowConfig = _mlFlowConfigDefaults
@@ -319,7 +335,14 @@ trait Defaults {
       geneticMixing = 0.7,
       generationalMutationStrategy = "linear",
       fixedMutationValue = 1,
-      mutationMagnitudeMode = "fixed"
+      mutationMagnitudeMode = "fixed",
+      evolutionStrategy = "batch",
+      continuousEvolutionMaxIterations = 200,
+      continuousEvolutionStoppingScore = 1.0,
+      continuousEvolutionParallelism = 4,
+      continuousEvolutionMutationAggressiveness = 3,
+      continuousEvolutionGeneticMixing = 0.7,
+      continuousEvolutionRollingImprovementCount = 20
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowConfig = _mlFlowConfigDefaults

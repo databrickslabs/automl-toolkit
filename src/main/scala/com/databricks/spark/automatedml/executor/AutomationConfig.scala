@@ -150,6 +150,20 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _featureImportanceCutoffValue: Double = _defaultFeatureImportanceCutoffValue
 
+  var _evolutionStrategy: String = _geneticTunerDefaults.evolutionStrategy
+
+  var _continuousEvolutionMaxIterations: Int = _geneticTunerDefaults.continuousEvolutionMaxIterations
+
+  var _continuousEvolutionStoppingScore: Double = _geneticTunerDefaults.continuousEvolutionStoppingScore
+
+  var _continuousEvolutionParallelism: Int = _geneticTunerDefaults.continuousEvolutionParallelism
+
+  var _continuousEvolutionMutationAggressiveness: Int = _geneticTunerDefaults.continuousEvolutionMutationAggressiveness
+
+  var _continuousEvolutionGeneticMixing: Double = _geneticTunerDefaults.continuousEvolutionGeneticMixing
+
+  var _continuousEvolutionRollingImprovementCount: Int = _geneticTunerDefaults.continuousEvolutionRollingImprovementCount
+
   private def setConfigs(): this.type = {
     setMainConfig()
     setTreeSplitsConfig()
@@ -720,6 +734,72 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setEvolutionStrategy(value: String): this.type = {
+    require(_allowableEvolutionStrategies.contains(value),
+      s"Evolution Strategy '$value' is not a supported mode.  Must be one of: ${
+        _allowableEvolutionStrategies.mkString(", ")
+      }")
+    _evolutionStrategy = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setContinuousEvolutionMaxIterations(value: Int): this.type = {
+    if (value > 500) println(s"[WARNING] Total Modeling count $value is higher than recommended limit of 500.  " +
+      s"This tuning will take a long time to run.")
+    _continuousEvolutionMaxIterations = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setContinuousEvolutionStoppingScore(value: Double): this.type = {
+    _continuousEvolutionStoppingScore = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setContinuousEvolutionParallelism(value: Int): this.type = {
+    if (value > 10) println(s"[WARNING] ContinuousEvolutionParallelism -> $value is higher than recommended " +
+      s"concurrency for efficient optimization for convergence." +
+      s"\n  Setting this value below 11 will converge faster in most cases.")
+    _continuousEvolutionParallelism = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setContinuousEvolutionMutationAggressiveness(value: Int): this.type = {
+    if (value > 4) println(s"[WARNING] ContinuousEvolutionMutationAggressiveness -> $value. " +
+      s"\n  Setting this higher than 4 will result in extensive random search and will take longer to converge " +
+      s"to optimal hyperparameters.")
+    _continuousEvolutionMutationAggressiveness = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setContinuousEvolutionGeneticMixing(value: Double): this.type = {
+    require(value < 1.0 & value > 0.0,
+      s"Mutation Aggressiveness must be in range (0,1). Current Setting of $value is not permitted.")
+    _continuousEvolutionGeneticMixing = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setContinuousEvolutionRollingImporvementCount(value: Int): this.type = {
+    require(value > 0, s"ContinuousEvolutionRollingImprovementCount must be > 0. $value is invalid.")
+    if (value < 10) println(s"[WARNING] ContinuousEvolutionRollingImprovementCount -> $value setting is low.  " +
+      s"Optimal Convergence may not occur due to early stopping.")
+    _continuousEvolutionRollingImprovementCount = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
       parallelism = _parallelism,
@@ -736,7 +816,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       geneticMixing = _geneticMixing,
       generationalMutationStrategy = _generationalMutationStrategy,
       fixedMutationValue = _fixedMutationValue,
-      mutationMagnitudeMode = _mutationMagnitudeMode
+      mutationMagnitudeMode = _mutationMagnitudeMode,
+      evolutionStrategy = _evolutionStrategy,
+      continuousEvolutionMaxIterations = _continuousEvolutionMaxIterations,
+      continuousEvolutionStoppingScore = _continuousEvolutionStoppingScore,
+      continuousEvolutionParallelism = _continuousEvolutionParallelism,
+      continuousEvolutionMutationAggressiveness = _continuousEvolutionMutationAggressiveness,
+      continuousEvolutionGeneticMixing = _continuousEvolutionGeneticMixing,
+      continuousEvolutionRollingImprovementCount = _continuousEvolutionRollingImprovementCount
     )
     this
   }
@@ -992,4 +1079,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getFeatureImportanceCutoffType: String = _featureImportanceCutoffType
 
   def getFeatureImportanceCutoffValue: Double = _featureImportanceCutoffValue
+
+  def getEvolutionStrategy: String = _evolutionStrategy
+
+  def getContinuousEvolutionMaxIterations: Int = _continuousEvolutionMaxIterations
+
+  def getContinuousEvolutionStoppingScore: Double = _continuousEvolutionStoppingScore
+
+  def getContinuousEvolutionParallelism: Int = _continuousEvolutionParallelism
+
+  def getContinuousEvolutionMutationAggressiveness: Int = _continuousEvolutionMutationAggressiveness
+
+  def getContinuousEvolutionGeneticMixing: Double = _continuousEvolutionGeneticMixing
+
+  def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
 }
