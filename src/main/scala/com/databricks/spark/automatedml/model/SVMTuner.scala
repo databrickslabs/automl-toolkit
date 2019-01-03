@@ -2,6 +2,7 @@ package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{Defaults, SVMConfig, SVMModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.LinearSVC
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.sql.DataFrame
@@ -9,10 +10,8 @@ import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-import org.apache.log4j.{Level, Logger}
-
 import scala.collection.parallel.mutable.ParHashSet
+import scala.concurrent.forkjoin.ForkJoinPool
 
 class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
 
@@ -133,7 +132,8 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     runs.tasksupport = taskSupport
 
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    }%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -165,7 +165,8 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       modelCnt += 1
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+        calculateModelingFamilyRemainingTime(generation, modelCnt)
+      }%2.4f%%"
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -428,7 +429,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
   def evolveWithScoringDF(startingSeed: Option[SVMConfig] = None):
   (Array[SVMModelsWithResults], DataFrame) = {
-    
+
     val evolutionResults = _evolutionStrategy match {
       case "batch" => evolveParameters(startingSeed)
       case "continuous" => continuousEvolution(startingSeed)
@@ -436,8 +437,6 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
-
-
 
 
 }
