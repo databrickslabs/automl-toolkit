@@ -28,11 +28,11 @@ trait Defaults {
 
   def _defaultVarianceFilterFlag: Boolean = true
 
-  def _defaultOutlierFilterFlag: Boolean = true
+  def _defaultOutlierFilterFlag: Boolean = false
 
-  def _defaultPearsonFilterFlag: Boolean = true
+  def _defaultPearsonFilterFlag: Boolean = false
 
-  def _defaultCovarianceFilterFlag: Boolean = true
+  def _defaultCovarianceFilterFlag: Boolean = false
 
   def _defaultScalingFlag: Boolean = false
 

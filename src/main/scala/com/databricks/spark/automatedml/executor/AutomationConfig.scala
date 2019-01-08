@@ -790,7 +790,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setContinuousEvolutionRollingImporvementCount(value: Int): this.type = {
+  def setContinuousEvolutionRollingImprovementCount(value: Int): this.type = {
     require(value > 0, s"ContinuousEvolutionRollingImprovementCount must be > 0. $value is invalid.")
     if (value < 10) println(s"[WARNING] ContinuousEvolutionRollingImprovementCount -> $value setting is low.  " +
       s"Optimal Convergence may not occur due to early stopping.")
