@@ -9,7 +9,7 @@ Providentia is a multi-layer API that can be used in several different ways:
 2. Mid-level Automation through use of individual component API's (DataPrep / AutomationRunner public methods)
 3. Low-level API's for Hyper-parameter tuning
 
-### Full Automation
+## Full Automation
 
 At the highest level of the API, the AutomationRunner, using defaults, requires only a Spark Dataframe to be supplied to the class instantiation.  Running the main method .run() will return 4 objects within a tuple:
 
@@ -329,6 +329,7 @@ This module allows for filling both numeric values and categorical & string valu
 ##### Options
 ```text
 Member of configuration case class FillConfig()
+
 setters: 
 .setNumericFillStat(<String>)
 .setCharacterFillStat(<String>) 
@@ -390,6 +391,7 @@ Including outliers in some families of machine learning models will result in dr
 ##### Options
 ```text
 Member of configuration case class OutlierConfig()
+
 setters:
 .setFilterBounds(<String>)
 .setLowerFilterNTile(<Double>)
@@ -517,6 +519,7 @@ The resultant data set from this module would be, after filtering:
 ##### Options
 ```text
 Member of configuration case class CovarianceConfig()
+
 setters:
 .setCorrelationCutoffLow(<Double>)
 .setCorrelationCutoffHigh(<Double>)
@@ -560,6 +563,7 @@ The mechanism for comparison is a ChiSquareTest that utilizes one of three curre
 ##### Options
 ```text
 Member of configuration case class PearsonConfig()
+
 setters:
 .setPearsonFilterStatistic(<String>)
 .setPearsonFilterDirection(<String>)
@@ -645,6 +649,100 @@ important predictive-power features of the vector.
 
 ### Scaling
 
+The Scaling Module provides for an automated way to set scaling on the feature vector prior to modeling.  
+There are a number of ML algorithms that dramatically benefit from scaling of the features to prevent overfitting.  
+Although tree-based algorithms are generally resilient to this issue, if using any other family of model, it is 
+**highly recommended** to use some form of scaling.
+
+The available scaling modes are:
+* [minMax](http://spark.apache.org/docs/latest/ml-features.html#minmaxscaler)
+   * Scales the feature vector to the specified min and max.  
+   * Creates a Dense Vector.
+* [standard](http://spark.apache.org/docs/latest/ml-features.html#standardscaler)
+    * Scales the feature vector to the unit standard deviation of the feature (has options for centering around mean) 
+    * If centering around mean, creates a Dense Vector.  Otherwise, it can maintain sparsity.
+* [normalize](http://spark.apache.org/docs/latest/ml-features.html#normalizer)
+    * Scales the feature vector to a p-norm normalization value.
+* [maxAbs](http://spark.apache.org/docs/latest/ml-features.html#maxabsscaler)
+    * Scales the feature vector to a range of {-1, 1} by dividing each value by the Max Absolute Value of the feature.
+    * Retains Vector type.
+
+
+##### Options
+```text
+member of configuration case class ScalingConfig()
+
+setters:
+.setScalerType("normalize")
+.setScalerMin(0.0)                 
+.setScalerMax(1.0)
+.setPNorm(3)        
+.setStandardScalerMeanFlagOff()   |  .setStandardScalerMeanFlagOn()  
+.setStandardScalerStdDevFlagOff() |  .setStandardScalerStdDevFlagOn()
+```
+
+###### Scaler Type
+```text
+Default: "minMax"
+
+allowable values: "minMax", "standard", "normalize", or "maxAbs"
+```
+
+Sets the scaling library to be employed in scaling the feature vector.
+
+###### Scaler Min
+```text
+Default: 0.0
+
+Only used in "minMax" mode
+```
+
+Used to set the scaling lower threshold for MinMax Scaler 
+(normalizes all features in the vector to set the minimum post-processed value specified in this setter)
+
+###### Scaler Max
+```text
+Default: 1.0
+
+Only used in "minMax" mode
+```
+
+Used to set the scaling upper threshold for MinMax Scaler
+(normalizes all features in the vector to set the maximum post-processed value specified in this setter)
+
+###### P Norm
+```text
+Default: 2.0
+
+Only used in "normalize" mode.
+```
+
+> NOTE: value must be >=1.0 for proper functionality in a finite vector space.
+
+Sets the level of "smoothing" for scaling the noise out of the vector.  
+
+Further Reading: [P-Norm](https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm), [L<sup>p</sup> Space](https://en.wikipedia.org/wiki/Lp_space)
+
+###### Standard Scaler Mean Flag
+```text
+Default: false
+
+Only used in "standard" mode
+```
+
+With this flag set to `true`, The features within the vector are centered around mean (0 adjusted) before scaling.
+> Read the [docs](http://spark.apache.org/docs/latest/ml-features.html#standardscaler) before switching this on.
+> > Setting to 'on' will create a dense vector, which will increase memory footprint of the data set.
+###### Standard Scaler StdDev Flag
+```text
+Default: true
+
+Only used in "standard" mode
+```
+
+Scales the data to the unit standard deviation. [Explanation](https://en.wikipedia.org/wiki/Standard_deviation#Corrected_sample_standard_deviation)
+
+
 
 ## AutoML (Hyper-parameter concurrent genetic tuning)
 
@@ -652,7 +750,7 @@ important predictive-power features of the vector.
 
 ### Continuous Mode
 
-pNorm [explanation](https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm)
+
 
 This API is split into two main portions:
 * Feature Engineering / Data Prep / Vectorization
