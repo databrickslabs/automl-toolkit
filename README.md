@@ -14,7 +14,9 @@ Providentia is a multi-layer API that can be used in several different ways:
 At the highest level of the API, the AutomationRunner, using defaults, requires only a Spark Dataframe to be supplied to the class instantiation.  Running the main method .run() will return 4 objects within a tuple:
 
 #### Automation Return Values
-#####The Generic Run Results, consisting of type: `Array[GenericModelReturn]`
+
+##### The Generic Run Results, consisting of type: `Array[GenericModelReturn]`
+
 ```scala
 case class GenericModelReturn(
                                hyperParams: Map[String, Any],
@@ -26,21 +28,26 @@ case class GenericModelReturn(
 ```
 These elements are: 
 * hyperParams -> The elements that were utilized in the hyper-parameter tuning run, based on the type of model that was trained and validated.
-* model -> The model artifact of the run, stored as an [Any] type.  Accessing this directly from this return element will require casting to the appropriate instance type (e.g. ```val myBestModel = modelReturn(0).model.asInstanceOf[RandomForestRegressionModel]```)
+* model -> The model artifact of the run, stored as an `[Any]` type.  Accessing this directly from this return element will require casting to the appropriate instance type 
+  (e.g. ```val myBestModel = modelReturn(0).model.asInstanceOf[RandomForestRegressionModel]```)
 * score -> The specified optimization score for the experiment run (i.e. default for classification is 'f1')
 * metrics -> All available scores for the detected or specified model type (regression or classification). (i.e. for classification tasks, the metrics are: "f1", "weightedPrecision", "weightedRecall", and "accuracy")
 * generation -> For batch configuration mode, the generation of evolution that the training and validation took place.  For continuous configuration mode, the iteration number of the individual run.
 
-#####The Generational Average Scores as: 
+##### The Generational Average Scores as: 
+
 * `Map[Int, (Double, Double)]`
+
 <p>This data corresponds to Map[Generation, (Average Optimization Score for the Generation, Stddev of the Optimization Score for the Generation)]
 </p>
 
-#####A Spark Dataframe representation of the Generational Average Scores, consisting of 2 columns: 
+##### A Spark Dataframe representation of the Generational Average Scores, consisting of 2 columns: 
+
 * `Generation[Int]` 
 * `Score[Double]`
 
-#####A Spark Dataframe representation of the Generational Run Results, consisting of 5 columns: 
+##### A Spark Dataframe representation of the Generational Run Results, consisting of 5 columns: 
+
 * model_family[String]
 * model_type[String]
 * generation[Int] 
@@ -51,7 +58,8 @@ These elements are:
 NOTE: If using MLFlow integration, all of this data, in raw format, will be recorded and stored automatically.
 ```
 
-####Example usage of the full AutomationRunner API (Basic)
+#### Example usage of the full AutomationRunner API (Basic)
+
 ```scala
 import com.databricks.spark.automatedml.AutomationRunner
 
@@ -63,7 +71,8 @@ val (fullReport, generationalReport, generationalScoreDF, generationalReportDF) 
 ```
 This will extract the default configuration set in Providentia, run through feature engineering tasks, data cleanup, categorical data conversion, vectorization, modeling, and scoring.  However, in most cases, overriding these default values is desirable.  Overriding is done through setters, like other aspects of SparkMllib.
 
-####Example overriding of defaults
+#### Example overriding of defaults
+
 ```scala
 import com.databricks.spark.automatedml.AutomationRunner
 
@@ -131,47 +140,47 @@ case class MainConfig(
                                                     fieldsToIgnore: Array[String]
                                                    ),
                        pearsonConfig: PearsonConfig(
-                                                     filterStatistic: String,
-                                                     filterDirection: String,
-                                                     filterManualValue: Double,
-                                                     filterMode: String,
-                                                     autoFilterNTile: Double
+                                                    filterStatistic: String,
+                                                    filterDirection: String,
+                                                    filterManualValue: Double,
+                                                    filterMode: String,
+                                                    autoFilterNTile: Double
                                                    ),
                        covarianceConfig: CovarianceConfig(
-                                                           correlationCutoffLow: Double,
-                                                           correlationCutoffHigh: Double
+                                                          correlationCutoffLow: Double,
+                                                          correlationCutoffHigh: Double
                                                          ),
                        scalingConfig: ScalingConfig(
-                                                     scalerType: String,
-                                                     scalerMin: Double,
-                                                     scalerMax: Double,
-                                                     standardScalerMeanFlag: Boolean,
-                                                     standardScalerStdDevFlag: Boolean,
-                                                     pNorm: Double
+                                                    scalerType: String,
+                                                    scalerMin: Double,
+                                                    scalerMax: Double,
+                                                    standardScalerMeanFlag: Boolean,
+                                                    standardScalerStdDevFlag: Boolean,
+                                                    pNorm: Double
                                                    ),
                        geneticConfig: GeneticConfig(
-                                                     parallelism: Int,
-                                                     kFold: Int,
-                                                     trainPortion: Double,
-                                                     trainSplitMethod: String,
-                                                     trainSplitChronologicalColumn: String,
-                                                     trainSplitChronologicalRandomPercentage: Double,
-                                                     seed: Long,
-                                                     firstGenerationGenePool: Int,
-                                                     numberOfGenerations: Int,
-                                                     numberOfParentsToRetain: Int,
-                                                     numberOfMutationsPerGeneration: Int,
-                                                     geneticMixing: Double,
-                                                     generationalMutationStrategy: String,
-                                                     fixedMutationValue: Int,
-                                                     mutationMagnitudeMode: String,
-                                                     evolutionStrategy: String,
-                                                     continuousEvolutionMaxIterations: Int,
-                                                     continuousEvolutionStoppingScore: Double,
-                                                     continuousEvolutionParallelism: Int,
-                                                     continuousEvolutionMutationAggressiveness: Int,
-                                                     continuousEvolutionGeneticMixing: Double,
-                                                     continuousEvolutionRollingImprovementCount: Int
+                                                    parallelism: Int,
+                                                    kFold: Int,
+                                                    trainPortion: Double,
+                                                    trainSplitMethod: String,
+                                                    trainSplitChronologicalColumn: String,
+                                                    trainSplitChronologicalRandomPercentage: Double,
+                                                    seed: Long,
+                                                    firstGenerationGenePool: Int,
+                                                    numberOfGenerations: Int,
+                                                    numberOfParentsToRetain: Int,
+                                                    numberOfMutationsPerGeneration: Int,
+                                                    geneticMixing: Double,
+                                                    generationalMutationStrategy: String,
+                                                    fixedMutationValue: Int,
+                                                    mutationMagnitudeMode: String,
+                                                    evolutionStrategy: String,
+                                                    continuousEvolutionMaxIterations: Int,
+                                                    continuousEvolutionStoppingScore: Double,
+                                                    continuousEvolutionParallelism: Int,
+                                                    continuousEvolutionMutationAggressiveness: Int,
+                                                    continuousEvolutionGeneticMixing: Double,
+                                                    continuousEvolutionRollingImprovementCount: Int
                                                    ),
                        mlFlowLoggingFlag: Boolean,
                        mlFlowConfig: MLFlowConfig(
@@ -184,11 +193,14 @@ case class MainConfig(
 ```
 Access to override each of the defaults that are provided is done through getters and setters that are shown below 
 ```text
-(note that all configs avilable to override are shown here.  Some demonstrated values below override other setters' behaviors 
-(i.e. setting scaler type to 'normalize' ignores the scalerMin and scalerMax setter values - the below example is simply 
-used to expose all available options and would not be an optimal end-use config))
+(note that all configs avilable to override are shown here.  
+Some demonstrated values below override other setters' behaviors.
+(i.e. setting scaler type to 'normalize' ignores the scalerMin and scalerMax setter values;
+the below example is simply used to expose all available options and would not be an optimal end-use config))
 ```
+
 ##### Setters
+
 ```scala
 
 import com.databricks.spark.automatedml.AutomationRunner
@@ -206,6 +218,10 @@ val fullConfig = new AutomationRunner(myData)
     .pearsonFilterOff()                 // alternative: .pearsonFilterOn()
     .covarianceFilterOn()               // alternative: .covarianceFilterOff()
     .scalingOn()                        // alternative: .scalingOff()
+    .setStandardScalerMeanFlagOff()     // alternative: .setStandardScalerMeanFlagOn()
+    .setStandardScalerStdDevFlagOff()   // alternative: .setStandardScalerMeanFlagOn()  
+    .mlFlowLoggingOn()                  // alternative: .mlFlowLoggingOff()  
+    .autoStoppingOff()                  // alternative: .autoStoppingOn()
     .setNumericBoundaries(Map(
                               "layers" -> Tuple2(4.0, 20.0),
                               "maxIter" -> Tuple2(10.0, 200.0),
@@ -237,8 +253,6 @@ val fullConfig = new AutomationRunner(myData)
     .setScalerType("normalize")
     .setScalerMin(0.0)                 
     .setScalerMax(1.0)
-    .setStandardScalerMeanFlagOff()     // alternative: .setStandardScalerMeanFlagOn()
-    .setStandardScalerStdDevFlagOff()   // alternative: .setStandardScalerMeanFlagOff()  
     .setPNorm(3)                        
     .setParallelism(8)
     .setKFold(4)
@@ -253,12 +267,10 @@ val fullConfig = new AutomationRunner(myData)
     .setNumberOfMutationsPerGeneration(10)
     .setGeneticMixing(0.5)
     .setGenerationalMutationStrategy("fixed")
-    .mlFlowLoggingOn()                  // alternative: .mlFlowLoggingOff()   
     .setMlFlowTrackingURI("https://mydatabrickscluster.cloud.databricks.com")
     .setMlFlowExperimentName("testing")
     .setMlFlowAPIToken(dbutils.notebook.getContext().apiToken.get)
     .setMlFlowModelSaveDirectory("/ml/mymodels/testModel")
-    .autoStoppingOff()                  // alternative: .autoStoppingOn()
     .setAutoStoppingScore(0.88)
     .setFeatureImportanceCutoffType("count")
     .setFeatureImportanceCutoffValue(20.0)
@@ -357,6 +369,7 @@ setting of `.setCharacterFillStat()`
 ```text
 Default: ON
 Turned off via setter .varianceFilterOff()
+
 NOTE: It is HIGHLY recommended to leave this turned on.
 Feature fields with zero information gain increase overall processing time and provide no real value to the model.
 ```
@@ -536,8 +549,13 @@ Turned on via setter .pearsonFilterOn()
 ```
 This module will perform validation of each field of the data set (excluding fields that have been added to 
 `.setFieldsToIgnoreInVector(<Array[String]>])` and any fields that have been culled by any previous optional DataPrep 
-feature engineering module) to the label column that has been set (`.setLabelCol()`)
+feature engineering module) to the label column that has been set (`.setLabelCol()`).
 
+The mechanism for comparison is a ChiSquareTest that utilizes one of three currently supported modes (listed below)
+
+[Spark Doc - ChiSquaredTest](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.stat.ChiSquareTest$)
+
+[Pearson's Chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test)
 
 ##### Options
 ```text
@@ -550,6 +568,80 @@ setters:
 .setPearsonAutoFilterNTile(<Double>)
 ```
 
+###### Pearson Filter Statistic
+```text
+Default: "pearsonStat"
+
+allowable values: "pvalue", "pearsonStat", or "degreesFreedom"
+```
+
+Correlation Detection between a feature value and the label value is capable of 3 supported modes:
+* Pearson Correlation ("pearsonStat")
+> > Calculates the Pearson Correlation Coefficient in range of {-1.0, 1.0}
+* Degrees Freedom ("degreesFreedom") 
+
+    Additional Reading: 
+
+    [Reduced Chi-squared statistic](https://en.wikipedia.org/wiki/Reduced_chi-squared_statistic)
+
+    [Generalized Chi-squared distribution](https://en.wikipedia.org/wiki/Generalized_chi-squared_distribution)
+    
+    [Degrees Of Freedom](https://en.wikipedia.org/wiki/Degrees_of_freedom_(statistics)#Of_random_vectors)
+  
+> > Calculates the Degrees of Freedom of the underlying linear subspace, in unbounded range {0, n} 
+> > where n is the feature vector size.
+
+*Before Overriding this value, ensure that a thorough understanding of this statistic is achieved.*
+
+* p-value ("pvalue")
+
+> > Calculates the p-value of independence from the Pearson chi-squared test in range of {0.0, 1.0}
+
+###### Pearson Filter Direction
+```text
+Default: "greater"
+
+allowable values: "greater" or "lesser"
+```
+
+Specifies whether to filter values out that are higher or lower than the target cutoff value.
+
+###### Pearson Filter Manual Value
+```text
+Default: 0.0
+
+(placeholder value)
+```
+
+Allows for manually filtering based on a hard-defined limit.
+
+> Note: if using "manual" mode on this module, it is *imperative* to provide a valid value through this setter.
+
+###### Pearson Filter Mode
+```text
+Default: "auto"
+
+allowable values: "auto" or "manual"
+```
+Determines whether a manual filter value is used as a threshold, or whether a quantile-based approach (automated) 
+based on the distribution of Chi-squared test results will be used to determine the threshold.
+
+> The automated approach (using a specified N Tile) will adapt to more general problems and is recommended for getting 
+measures of modeling feasibility (exploratory phase of modeling).  However, if utilizing the high-level API with a 
+well-understood data set, it is recommended to override the mode, setting it to manual, and utilizing a known
+acceptable threshold value for the test that is deemed acceptable.
+
+###### Pearson Auto Filter N Tile
+```text
+Default: 0.75
+
+allowable range: 0.0 > x > 1.0
+```
+([Q3 / Upper IQR value](https://en.wikipedia.org/wiki/Interquartile_range))
+
+
+When in "auto" mode, this will reduce the feature vector by 75% of its total size, retaining only the 25% most 
+important predictive-power features of the vector.
 
 ### Scaling
 
