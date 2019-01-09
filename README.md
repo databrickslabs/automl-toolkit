@@ -307,10 +307,85 @@ fullConfig.getAutoStoppingScore
 
 # Module Functionality
 
+This API is split into two main portions:
+* Feature Engineering / Data Prep / Vectorization
+* Automated HyperParameter Tuning
+
+Both modules use a few common variables among them that require consistency for the chained sequence of events to function correctly.
+Aside from those, all others are specific to those main modules (discussed in detail below).
+
 ### Common Module Settings
 ###### Label Column Name
 
+Setter: `.setLabelCol(<String>)`
+
+```text
+Default: "label"
+
+This is the 'predicted value' for use in supervised learning.  
+    If this field does not exist within the dataframe supplied, an assertion exception will be thrown 
+    once a method (other than setters/getters) is called on the AutomationRunner() object.
+```
 ###### Feature Column Name
+
+Setter: `.setFeaturesCol(<String>)`
+
+```text
+Default: "features"
+
+Purely cosmetic setting that ensures consistency throughout all of the modules within Providentia.  
+    
+[Future Feature] In a future planned release, new accessor methods will make this setting more relevant, 
+    as a validated prediction data set will be returned along with run statistics.
+```
+###### Fields to ignore in vector
+
+Setter: `.setFieldsToIgnoreInVector(<Array[String]>)`
+
+```text
+Default: Array.empty[String]
+
+Provides a means for ignoring specific fields in the Dataframe from being included in any DataPrep feature 
+engineering tasks, filtering, and exlusion from the feature vector for model tuning.
+
+This is particularly useful if there is a need to perform follow-on joins to other data sets after model 
+training and prediction is complete.
+```
+###### Model Family
+
+Setter: `.setModelingFamily(<String>)`
+
+```text
+Default: "RandomForest"
+
+Sets the modeling family (Spark Mllib) to be used to train / validate.
+```
+
+> For model families that support both Regression and Classification, the parameter value 
+`.setModelDistinctThreshold(<Int>)` is used to determine which to use.  Distinct values in the label column, 
+if below the `modelDistinctThreshold`, will use a Classifier flavor of the Model Family.  Otherwise, it will use the Regression Type.
+
+Currently supported models:
+* "RandomForest" - [Random Forest Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#random-forest-classifier) or [Random Forest Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#random-forest-regression)
+* "GBT" - [Gradient Boosted Trees Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#gradient-boosted-tree-classifier) or [Gradient Boosted Trees Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#gradient-boosted-tree-regression)
+* "Trees" - [Decision Tree Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#decision-tree-classifier) or [Decision Tree Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#decision-tree-regression)
+* "LinearRegression" - [Linear Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#linear-regression)
+* "LogisticRegression" - [Logistic Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#logistic-regression) (supports both Binomial and Multinomial)
+* "MLPC" - [Multi-Layer Perceptron Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#multilayer-perceptron-classifier)
+* "SVM" - [Linear Support Vector Machines](http://spark.apache.org/docs/latest/ml-classification-regression.html#linear-support-vector-machine)
+
+###### Date Time Conversion Type
+```text
+Default: "split"
+
+Available options: "split", "unix"
+```
+This setting determines how to handle DateTime type fields.  
+* In the "unix" setting mode, the datetime type is converted to `[Double]` type of the `[Long]` Unix timestamp in seconds.
+
+* In the "split" setting mode, the date is transformed into its constituent parts and adding each part to seperate fields.
+> By default, extraction is at maximum precision -> (year, month, day, hour, minute, second)
+
 
 ## Data Prep
 The Data Prep Module is intended to automate many of the typical feature engineering tasks involved in prototyping of Machine Learning models.
@@ -743,22 +818,342 @@ Only used in "standard" mode
 Scales the data to the unit standard deviation. [Explanation](https://en.wikipedia.org/wiki/Standard_deviation#Corrected_sample_standard_deviation)
 
 
-
 ## AutoML (Hyper-parameter concurrent genetic tuning)
 
+The implementation for hyper parameter tuning in Providentia is through the use of a genetic algorithm.  
+There are currently two different modes: **Batch Mode** and **Continuous Mode**.
+
+#### Generic Configurations
+
+###### K Fold
+
+This setting determines the number of splits that are done with the train / test data sets, minimizing the chance of 
+overfitting during training and validation.
+```text
+Default: 5
+```
+> It is highly advised to not set this lower than 3.
+
+> [WARNING] If using "chronological" mode with `.setTrainSplitMethod()`, ensure that 
+`.setTrainSplitChronologicalRandomPercentage()` is overridden from its default of 0.0.
+
+###### Train Portion
+
+Sets the proportion of the input DataFrame to be used for Train (the value of this variable) and Test 
+(1 - the value of this variable)
+```text
+Default: 0.8
+```
+
+###### Train Split Method
+
+This setting allows for specifying how to split the provided data set into test/training sets for scoring validation.
+Some ML use cases are highly time-dependent, even in traditional ML algorithms (i.e. predicting customer churn).  
+As such, it is important to be able to predict on apriori data and synthetically 'predict the future' by doing validation
+testing on a holdout data set that is more recent than the training data used to build the model.
+
+Setter: `.setTrainSplitMethod(<String>)`
+```text
+Default: "random"
+
+Available options: "random" or "chronological"
+```
+> Chronological split method **does not require** a date type or datetime type field. Any sort-able / continuous distributed field will work.
+
+> Leaving the default value of "random" will randomly shuffle the train and test data sets each k-fold iteration.
+
+###### Train Split Chronological Column
+
+Specify the field to be used in restricting the train / test split based on sort order and percentage of data set to conduct the split.
+> As specified above, there is no requirement that this field be a date or datetime type.  However, it *is recommended*.
+
+Setter: `.setTrainSplitChronologicalColumn(<String>)`
+
+```text
+Default: "datetime"
+
+This is a placeholder value.
+Validation will occur when modeling begins (post data-prep) to ensure that this field exists in the data set.
+```
+> It is ***imperative*** that this field exists in the raw DataFrame being supplied to the main class. ***CASE SENSITIVE MATCH***
+> > Failing to ensure this setting is correctly applied could result in an exception being thrown mid-run, wasting time and resources.
+
+###### Train Split Chronological Random Percentage
+
+Due to the fact that a Chronological split, when done by a sort and percentage 'take' of the DataFrame, each k-fold 
+generation would extract an identical train and test data set each iteration if the split were left static.  This
+setting allows for a 'jitter' to the train / test boundary to ensure that k-fold validation provides more useful results.
+
+Setter: `.setTrainSplitChronologicalRandomPercentage(<Double>)` representing the ***percentage value*** (fractional * 100)
+```text
+Default: 0.0
+
+This is a placeholder value.
+```
+> [WARNING] Failing to override this value if using "chronological" mode on `.setTrainSplitMethod()` is equivalent to setting 
+`.setKFold(1)` for efficacy purposes, and will simply waste resources by fitting multiple copies of the same hyper 
+parameters on the exact same data set.
+
+###### First Generation Gene Pool
+Determines the random search seed pool for the genetic algorithm to operate from.  
+There are space constraints on numeric hyper parameters, character, and boolean that are distinct for each modeling 
+family and model type.
+Setting this value higher increases the chances of minimizing convergence, at the expense of a longer run time.
+
+> Setting this value below 10 is ***not recommended***.  Values less than 6 are not permitted and will throw an assertion exception.
+
+Setter: `.setFirstGenerationGenePool(<Int>)`
+
+```text
+Default: 20
+```
+
+###### Seed
+
+Sets the seed for both random selection generation for the initial random pool of values, as well as initializing 
+another randomizer for random train/test splits.
+
+Setter: `.setSeed(<Long>)`
+
+```text
+Default: 42L
+
+```
+
+###### Evolution Strategy
+Determining the mode (batch vs. continuous) is done through setting the parameter `.setEvolutionStrategy(<String>)`
+
+```text
+Default: "batch"
+
+Available options: "batch" or "continuous"
+```
+> Sets the mutation methodology used for optimizing the hyper parameters for the model.
+
 ### Batch Mode
+
+In batch mode, the hyper parameter space is explored with an initial seed pool (based on Random Search with constraints).
+
+After this initial pool is evaluated (in parallel), the best n parents from this seed generation are used to 'sire' a new generation.
+
+This continues for as many generations are specified through the config `.setNumberOfGenerations(<Int>)`, 
+*or until a stopping threshold is reached at the conclusion of a concurrent generation batch run.*
+
+#### Batch-Specific Configurations
+
+###### Parallelism
+Sets the number of concurrent models that will be evaluated in parallel through Futures.  
+This creates a new [ForkJoinPool](https://java-8-tips.readthedocs.io/en/stable/forkjoin.html), and as such, it is important to not set it too high, in order to prevent overloading
+the driver JVM with too many elements in the `Array[DEqueue[task]]` ForkJoinPool.  
+NOTE: There is a global limit of 32767 threads on the JVM, as well.
+However, in practice, running too many models in parallel will likely OOM the workers anyway.  
+
+>Recommended is in the {4, 500} range, depending on the model and size of the test/training sets.
+
+Setter: `.setParallelism(<Int>)`
+
+```text
+Default: 20
+```
+
+###### Number of Generations
+
+This setting, applied only to batch processing mode, sets the number of mutation generations that will occur.
+
+> The higher this number, the better the exploration of the hyper parameter space will occur, although it comes at the 
+expense of longer run-time.  This is a *sequential blocking* setting.  Parallelism does not effect this.
+
+Setter: `.setNumberOfGenerations(<Int>)`
+
+```text
+Default: 10
+```
+
+###### Number of Parents To Retain
+
+This setting will restrict the number of candidate 'best' results of the previous generation of hyper parameter tuning,
+using these result's configuration to mutate the next generation of attempts.
+
+> The higher this setting, the more 'space exploration' that will occur.  However, it may slow the possibility of 
+converging to an optimal condition.
+
+Setter: `.setNumberOfParentsToRetain(<Int>)`
+
+```text
+Default: 3
+```
+
+###### Number of Mutations Per Generation
+
+This setting specifies the size of each evolution batch pool per generation (other than the first seed generation).
+
+> The higher this setting is set, the more alternative spaces are checked, however, if this value is higher than
+what is set by `.setParallelism()`, it will add to the run-time.
+
+Setter: `.setNumberOfMutationsPerGeneration(<Int>)`
+
+```text
+Default: 10
+```
+
+###### Genetic Mixing
+
+Setter
+
+```text
+Default: 
+```
+
+###### Generational Mutation Strategy
+
+Setter
+
+```text
+Default: 
+```
+
+###### Fixed Mutation Value
+
+Setter
+
+```text
+Default: 
+```
+
+###### Mutation Magnitude Mode
+
+Setter
+
+```text
+Default: 
+```
+
+###### Auto Stopping Flag
+
+Setter
+
+```text
+Default: 
+```
+
+###### Auto Stopping Score
+
+Setter
+
+```text
+Default: 
+```
 
 ### Continuous Mode
 
 
+#### Continuous-Specific Configurations
 
-This API is split into two main portions:
-* Feature Engineering / Data Prep / Vectorization
-* Automated HyperParameter Tuning
+###### Continuous Evolution Max Iterations
+
+Setter
+
+```text
+Default: 
+```
+
+###### Continuous Evolution Stopping Score
+
+Setter
+
+```text
+Default: 
+```
+
+###### Continuous Evolution Parallelism
+
+Setter
+
+```text
+Default: 
+```
+
+###### Continuous Evolution Mutation Aggressiveness
+
+Setter
+
+```text
+Default: 
+```
+
+###### Continuous Evolution Genetic Mixing
+
+Setter
+
+```text
+Default: 
+```
+
+###### Continuous Evolution Rolling Improvement Count
+
+[EXPERIMENTAL]
+This is an early stopping criteria that measures the cumulative gain of the score as the job is running.  
+If improvements ***stop happening***, then the continuous iteration of tuning will stop to prevent useless continuation.
+
+Setter: `.`
+
+```text
+Default: 
+```
+
+### Model Family Specific Settings
+
+
+Setters (for all numeric boundaries): `.setNumericBoundaries(<Map[String, Tuple2[Double, Double]]>)`
+
+Setters (for all string boundaries): `.setStringBoundaries(<Map[String, List[String]]>)`
+
+#### Random Forest
+
+###### Default Numeric Boundaries
+
+###### Default String Boundaries
+
+#### Gradient Boosted Trees
+
+###### Default Numeric Boundaries
+
+###### Default String Boundaries
+
+#### Decision Trees
+
+###### Default Numeric Boundaries
+
+###### Default String Boundaries
+
+#### Linear Regression
+
+###### Default Numeric Boundaries
+
+###### Default String Boundaries
+
+#### Logistic Regression 
+
+###### Default Numeric Boundaries
+
+###### Default String Boundaries
+
+#### Multilayer Perceptron Classifier
+
+###### Default Numeric Boundaries
+
+###### Default String Boundaries
+
+#### Linear Support Vector Machines
+
+###### Default Numeric Boundaries
+
+###### Default String Boundaries
 
 
 
-### Mid-level API's
 
-### Low-level API's
+## Feature Importance
+
+## Decision Splits
 
