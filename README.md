@@ -199,6 +199,105 @@ Some demonstrated values below override other setters' behaviors.
 the below example is simply used to expose all available options and would not be an optimal end-use config))
 ```
 
+#### Full Main Config Defaults
+
+```scala
+val defaultSettings = MainConfig(
+                          modelFamily = "RandomForest",
+                          labelCol = "label",
+                          featuresCol = "features",
+                          naFillFlag = true,
+                          varianceFilterFlag = true,
+                          outlierFilterFlag = false,
+                          pearsonFilteringFlag = false,
+                          covarianceFilteringFlag = false,
+                          scalingFlag = false,
+                          autoStoppingFlag = true,
+                          autoStoppingScore = 0.95,
+                          featureImportanceCutoffType = "count",
+                          featureImportanceCutoffValue = 15.0,
+                          dateTimeConversionType = "split",
+                          fieldsToIgnoreInVector = Array(""),
+                          numericBoundaries = Map(
+                                                  "numTrees" -> Tuple2(50.0, 1000.0),
+                                                  "maxBins" -> Tuple2(10.0, 100.0),
+                                                  "maxDepth" -> Tuple2(2.0, 20.0),
+                                                  "minInfoGain" -> Tuple2(0.0, 1.0),
+                                                  "subSamplingRate" -> Tuple2(0.5, 1.0)
+                                                ),
+                          stringBoundaries = Map(
+                                                 "impurity" -> List("gini", "entropy"),
+                                                 "featureSubsetStrategy" -> List("auto")
+                                               ),
+                          scoringMetric = "f1",
+                          scoringOptimizationStrategy = "maximize",
+                          fillConfig = FillConfig(
+                                           numericFillStat = "mean",
+                                           characterFillStat = "max",
+                                           modelSelectionDistinctThreshold = 10
+                                         ),
+                          outlierConfig = OutlierConfig(
+                                              filterBounds = "both",
+                                              lowerFilterNTile = 0.02,
+                                              upperFilterNTile = 0.98,
+                                              filterPrecision = 0.01,
+                                              continuousDataThreshold = 50,
+                                              fieldsToIgnore = Array("")
+                                            ),
+                          pearsonConfig = PearsonConfig(
+                                              filterStatistic = "pearsonStat",
+                                              filterDirection = "greater",
+                                              filterManualValue = 0.0,
+                                              filterMode = "auto",
+                                              autoFilterNTile = 0.75
+                                            ),
+                          covarianceConfig = CovarianceConfig(
+                                                 correlationCutoffLow = -0.8,
+                                                 correlationCutoffHigh = 0.8
+                                               ),
+                          scalingConfig = ScalingConfig(
+                                              scalerType = "minMax",
+                                              scalerMin = 0.0,
+                                              scalerMax = 1.0,
+                                              standardScalerMeanFlag = false,
+                                              standardScalerStdDevFlag = true,
+                                              pNorm = 2.0
+                                            ),
+                          geneticConfig = GeneticConfig(
+                                              parallelism = 20,
+                                              kFold = 5,
+                                              trainPortion = 0.8,
+                                              trainSplitMethod = "random",
+                                              trainSplitChronologicalColumn = "datetime",
+                                              trainSplitChronologicalRandomPercentage = 0.0,
+                                              seed = 42L,
+                                              firstGenerationGenePool = 20,
+                                              numberOfGenerations = 10,
+                                              numberOfParentsToRetain = 3,
+                                              numberOfMutationsPerGeneration = 10,
+                                              geneticMixing = 0.7,
+                                              generationalMutationStrategy = "linear",
+                                              fixedMutationValue = 1,
+                                              mutationMagnitudeMode = "fixed",
+                                              evolutionStrategy = "batch",
+                                              continuousEvolutionMaxIterations = 200,
+                                              continuousEvolutionStoppingScore = 1.0,
+                                              continuousEvolutionParallelism = 4,
+                                              continuousEvolutionMutationAggressiveness = 3,
+                                              continuousEvolutionGeneticMixing = 0.7,
+                                              continuousEvolutionRollingImprovementCount = 20
+                                            ),
+                          mlFlowLoggingFlag = false,
+                          mlFlowConfig = MLFlowConfig(
+                                             mlFlowTrackingURI = "hosted",
+                                             mlFlowExperimentName = "default",
+                                             mlFlowAPIToken = "default",
+                                             mlFlowModelSaveDirectory = "s3://mlflow/experiments/"
+                                           )
+                        )
+```
+
+
 ##### Setters
 
 ```scala
@@ -288,7 +387,8 @@ There are public setters exposed to set the entire config
 (i.e. defining a MainConfig case class object, which can then be used through the public setter 
 .setMainConfig(myMainConfig: MainConfig) )
 ```
-
+> For MLFlow config, ensure to check the model save directory carefully. The example above will write to the dbfs root location.
+>> It is advised to ***specify a blob storage path directly***.
 
 If at any time the current configuration is needed to be exposed, each setter, as well as the overall main Config and 
 the individual module configs can be acquired by using the appropriate getter.  For example:
@@ -1260,10 +1360,10 @@ Defines the name of the experiment run that is being conducted.
 To prevent collisions / overwriting of data in MLFlow, a unique identifier is appended to this String.  It applies to 
 all hyper parameter modeling runs that occur within the execution of `.run()`
 
-Setter: `.setMlFlowExperimentName`
+Setter: `.setMlFlowExperimentName(<String>)`
 
 ```text
-Default: 
+Default: "default"
 ```
 
 ###### MLFlow API Token
