@@ -998,18 +998,48 @@ Default: 10
 
 ###### Genetic Mixing
 
-Setter
+This setting defines the ratio of impact that the 'best parent' that is used to mutate with a new randomly generated 
+child will have upon the mixed-inheritance hyper parameter.  The higher this number, the more effect from the parent the parameter will have.
+
+> Setting this value < 0.1 is effectively using random parameter replacement.  
+Conversely, setting the value > 0.9 will not mutate the next generation strongly enough to effectively search the parameter space.
+
+Setter: `.setGeneticMixing(<Double>)`
 
 ```text
-Default: 
+Default: 0.7
+
+Recommended range: {0.3, 0.8}
 ```
 
 ###### Generational Mutation Strategy
 
-Setter
+Provides for one of two modes:
+* Linear
+> This mode will decrease the number of selected hyper parameters that will be mutated each generation.
+It is set to utilize the fixed mutation value as a decrement reducer.
+        
+        Example: 
+        
+        A model family is selected that has 10 total hyper parameters.
+        
+        In "linear" mode for the generational mutation strategy, with a fixed mutation value of 1, 
+        the number of available mutation parameters for the first mutation generation would be
+        set to a maximum value of 9 (randomly selected in range of {1, 9}).
+        At generation #2, the maximum mutation count for hyper parameters in the vector space
+        will decrememt, leaving a range of randomly selected random hyper parameters of {1, 8}.
+        This behavior continues until either the decrement value is 1 or the generations are exhausted.
+
+* Fixed
+> This mode sets a static mutation count for each generation.  The setting of Fixed Mutation Value
+determines how many of the hyper parameters will be mutated each generation.  There is no decrementing.
+
+Setter: `.setGenerationalMutationStrategy(<Double>)`
 
 ```text
-Default: 
+Default: "linear"
+
+Available options: "linear" or "fixed"
 ```
 
 ###### Fixed Mutation Value
@@ -1022,44 +1052,94 @@ Default:
 
 ###### Mutation Magnitude Mode
 
-Setter
+This setting determines the number of hyper parameter values that will be mutated during each mutation iteration.
+
+There are two modes:
+* "random"
+
+> In random mode, the setting of `.setGenerationalMutationStrategy()` is used, in conjunction with 
+the current generation count, to provide a bounded restriction on the number of hyper parameters
+per model configuration that will be mutated.  A Random number of indeces will be selected for
+mutation in this range.
+
+* "fixed"
+
+> In fixed mode, a constant count of hyper parameters will be mutated, used in conjunction with 
+the setting of .`setGenerationalMutationStrategy()`.
+>> i.e. With fixed mode, and a generational mutation strategy of "fixed", each mutation generation
+would be static (e.g. fixedMutationValue of 3 would mean that each model of each generation would
+always mutate 3 hyper parameters).  Variations of the mixing of these configurations will result in
+varying degrees of mutation aggressiveness.
+
+Setter: `.setMutationMagnitudeMode(<String>)`
 
 ```text
-Default: 
+Default: "fixed"
+
+Available options: "fixed" or "random"
 ```
 
 ###### Auto Stopping Flag
 
-Setter
+Provides a means, when paired with an auto stopping score threshold value, to early-terminate
+a run once a model score result hits the desired threshold.
+
+> NOTE: In batch mode, the entire batch will complete before evaluation of stopping will occur.
+There is not a mechanism for stopping immediately upon reaching a successful score.  If 
+functionality like this is desired, please use "continuous" mode.
+
+Setter: `.autoStoppingOn()` and `.autoStoppingOff()`
 
 ```text
-Default: 
+Default: on
+
+Available options: on or off
 ```
 
 ###### Auto Stopping Score
 
-Setter
+Setting for specifying the early stopping value.  
+
+> NOTE: Ensure that the value specified matches the optimization score set in `.setScoringMetric(<String>)`
+>> i.e. if using f1 score for a classification problem, an appropriate early stopping score might be in the range of {0.92, 0.98}
+
+Setter: `.setAutoStoppingScore(<Double>)`
 
 ```text
-Default: 
+Default: 0.95
 ```
+
+[WARNING] This value is set as a placeholder for a default classification problem.  If using 
+regression, this will ***need to be changed***
 
 ### Continuous Mode
 
+Continuous mode uses the concept of micro-batching of hyper parameter tuning, running *n* models
+in parallel.  When each Future is returned, the evaluation of its performance is made, compared to
+the current best results, and a new hyper parameter run is constructed.  Since this is effectively
+a queue/dequeue process utilizing concurrency, there is a certain degree of out-of-order process
+and return.  Even if an early stopping criteria is met, the thread pool will await for all committed
+Futures to return their values before exiting the parallel concurrent execution context.
+
+Please see the below descriptions about the settings and adhere to the warnings to get optimal performance.
 
 #### Continuous-Specific Configurations
 
 ###### Continuous Evolution Max Iterations
 
-Setter
+This parameter sets the total maximum cap on the number of hyper parameter tuning models that are 
+created and set to run.  The higher the value, the better the chances for convergence to optimum 
+tuning criteria, at the expense of runtime.
+
+Setter: `.setContinuousEvolutionMaxIterations(<Int>)`
 
 ```text
-Default: 
+Default: 200
 ```
 
 ###### Continuous Evolution Stopping Score
 
-Setter
+Setter: `.setContinuousEvolutionStoppingScore(<Double>)`
 
 ```text
 Default: 
