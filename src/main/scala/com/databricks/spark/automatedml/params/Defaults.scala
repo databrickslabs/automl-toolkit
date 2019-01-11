@@ -202,7 +202,7 @@ trait Defaults {
     mlFlowModelSaveDirectory = "s3://mlflow/experiments/"
   )
 
-  def _defaultMlFlowLoggingFlag: Boolean = true
+  def _defaultMlFlowLoggingFlag: Boolean = false
 
   def _defaultAutoStoppingFlag: Boolean = true
 
@@ -218,9 +218,9 @@ trait Defaults {
     featuresCol = "features",
     naFillFlag = true,
     varianceFilterFlag = true,
-    outlierFilterFlag = true,
-    pearsonFilteringFlag = true,
-    covarianceFilteringFlag = true,
+    outlierFilterFlag = false,
+    pearsonFilteringFlag = false,
+    covarianceFilteringFlag = false,
     scalingFlag = false,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,

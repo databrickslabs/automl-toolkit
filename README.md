@@ -1139,34 +1139,67 @@ Default: 200
 
 ###### Continuous Evolution Stopping Score
 
+Setting for early stopping.  When matched with the score type, this target is used to terminate the hyper parameter
+tuning run so that when the threshold has been passed, no additional Futures runs will be submitted to the concurrent
+queue for parallel processing.
+
+> NOTE: The asynchronous nature of this algorithm will have additional results potentially return after a stopping 
+criteria is met, since Futures may have been submitted before the result of a 'winning' run has returned.  
+> > This is intentional by design and does not constitute a bug.
+
 Setter: `.setContinuousEvolutionStoppingScore(<Double>)`
 
+**NOTE**: ***This value MUST be overridden in regression problems***
+
 ```text
-Default: 
+Default: 1.0
+
+This is a placeholder value.  Ensure it is overriden for early stopping to function in classification problems.
 ```
 
 ###### Continuous Evolution Parallelism
 
-Setter
+This setting defines the number of concurrent Futures that are submitted in continuous mode.  Setting this number too
+high (i.e. > 5) will minimize / remove the functionality of continuous processing mode, as it will begin to behave
+more like a batch mode operation.
+
+> TIP: **Recommended value range is {2, 5}** to see the greatest exploration benefit of the n-dimensional hyper 
+parameter space, with the benefit of run-time optimization by parallel async execution.
+
+Setter: `.setContinuousEvolutionParallelism(<Int>)`
 
 ```text
-Default: 
+Default: 4
 ```
 
 ###### Continuous Evolution Mutation Aggressiveness
 
-Setter
+Similar to the batch mode setting `.setFixedMutationValue()`; however, there is no concept of a 'linear' vs 'fixed' 
+setting.  There is only a fixed mode for continuous processing.  This sets the number of hyper parameters that will
+be mutated during each async model execution.
+
+> The higher the setting of this value, the more the feature space will be explored; however, the longer it may take to 
+converge to a 'best' tuned parameter set.
+
+> The recommendation is, for **exploration of a modeling task**, to set this value ***higher***.  If trying to fine-tune a model,
+or to automate the **re-tuning of a production model** on a scheduled basis, setting this value ***lower*** is preferred.
+
+Setter: `.setContinousEvolutionMutationAggressiveness(<Int>)`
 
 ```text
-Default: 
+Default: 3
 ```
 
 ###### Continuous Evolution Genetic Mixing
 
-Setter
+This mirrors the batch mode genetic mixing parameter.  Refer to description above.
+
+Setter: `.setContinuousEvolutionGeneticMixing(<Double>)`
 
 ```text
-Default: 
+Default: 0.7
+
+Restricted to range {0, 1}
 ```
 
 ###### Continuous Evolution Rolling Improvement Count
@@ -1175,18 +1208,90 @@ Default:
 This is an early stopping criteria that measures the cumulative gain of the score as the job is running.  
 If improvements ***stop happening***, then the continuous iteration of tuning will stop to prevent useless continuation.
 
-Setter: `.`
+Setter: `.setContinuousEvolutionRollingImprovementCount(<Int>)`
+
+```text
+Default: 20
+```
+
+### MLFlow Settings
+
+MLFlow integration in Providentia allows for logging and tracking of not only the best model returned by a particular run,
+but also a tracked history of all hyper parameters, scoring results for validation, and a location path to the actual
+model artifacts that are generated for each iteration.
+
+More information: [MLFlow](https://mlflow.org/docs/latest/index.html), [API Docs](https://mlflow.org/docs/latest/java_api/index.html)
+
+The implementation in Providentia leverages the JavaAPI and can support both remote and Databricks-hosted MLFlow deployments.
+
+##### Options
+```text
+member of configuration case class MLFlowConfig()
+```
+
+###### MLFlow Logging Flag
+
+Provides for either logging the results of the hyper parameter tuning run to MLFlow or not.
+
+Setters: `.mlFlowLoggingOn()` and `.mlFlowLoggingOff()`
+
+```text
+Default: on
+```
+###### MLFlow Tracking URI
+
+Defines the host address for where MLFlow is running.
+
+For ***Databricks hosted MLFlow***, the URI is the shard address (e.g. "https://myshard.cloud.databricks.com")
+
+> This setting ***must be overriden***
+
+Setter: `.setMlFlowTrackingURI(<String>)`
+
+```text
+Default: "hosted"
+
+NOTE: This is a placeholder value.
+```
+
+###### MLFlow Experiment Name
+
+Defines the name of the experiment run that is being conducted.  
+To prevent collisions / overwriting of data in MLFlow, a unique identifier is appended to this String.  It applies to 
+all hyper parameter modeling runs that occur within the execution of `.run()`
+
+Setter: `.setMlFlowExperimentName`
 
 ```text
 Default: 
 ```
 
-### Model Family Specific Settings
+###### MLFlow API Token
 
+Setter: ``
+
+```text
+Default: 
+```
+
+###### MLFlow Model Save Directory
+
+Setter: ``
+
+```text
+Default: 
+```
+
+
+
+### Model Family Specific Settings
 
 Setters (for all numeric boundaries): `.setNumericBoundaries(<Map[String, Tuple2[Double, Double]]>)`
 
 Setters (for all string boundaries): `.setStringBoundaries(<Map[String, List[String]]>)`
+
+> To override any of the features space exploration constraints, pick the correct Map configuration for the family
+that is being used, define the Map values, and override with the common setters.
 
 #### Random Forest
 
@@ -1235,5 +1340,8 @@ Setters (for all string boundaries): `.setStringBoundaries(<Map[String, List[Str
 
 ## Feature Importance
 
+DOCS COMING SOON
+
 ## Decision Splits
 
+DOCS COMING SOON
