@@ -204,7 +204,7 @@ trait Defaults {
 
   def _defaultMlFlowLoggingFlag: Boolean = false
 
-  def _defaultMlFlowArtifactsFlag: Boolean = true
+  def _defaultMlFlowArtifactsFlag: Boolean = false
 
   def _defaultAutoStoppingFlag: Boolean = true
 

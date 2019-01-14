@@ -2,12 +2,9 @@ package com.databricks.spark.automatedml.tracking
 
 import java.io.File
 
-
-
-import org.mlflow.tracking.MlflowClient
-//import org.mlflow.tracking.creds.BasicMlflowHostCreds
 import org.mlflow.tracking.creds._
-import scala.collection.JavaConversions._
+import org.mlflow.api.proto.Service.CreateRun
+import org.mlflow.tracking.MlflowClient
 
 import com.databricks.spark.automatedml.params.GenericModelReturn
 import org.apache.spark.ml.classification._
@@ -101,9 +98,6 @@ class MLFlowTracker {
     runId
 
   }
-
-  import org.mlflow.api.proto.Service.CreateRun
-  import org.mlflow.tracking.MlflowClient
 
   private def generateMlFlowRun(client: MlflowClient, experimentID: Long, runIdentifier: String,
                                 runName: String, sourceVer: String): String = {
