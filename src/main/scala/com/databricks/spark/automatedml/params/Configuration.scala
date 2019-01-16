@@ -97,7 +97,8 @@ case class GeneticConfig(
                           continuousEvolutionParallelism: Int,
                           continuousEvolutionMutationAggressiveness: Int,
                           continuousEvolutionGeneticMixing: Double,
-                          continuousEvolutionRollingImprovementCount: Int
+                          continuousEvolutionRollingImprovementCount: Int,
+                          modelSeed: Map[String, Any]
                         )
 
 case class ScalingConfig(

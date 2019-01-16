@@ -312,7 +312,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
 
-  private def continuousEvolution(startingSeed: Option[RandomForestConfig] = None): Array[RandomForestModelsWithResults] = {
+  private def continuousEvolution(): Array[RandomForestModelsWithResults] = {
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -334,14 +334,15 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     val totalConfigs = modelConfigLength[RandomForestConfig]
 
-    var runSet = startingSeed match {
-      case Some(`startingSeed`) =>
-        val genArray = new ArrayBuffer[RandomForestConfig]
-        genArray += startingSeed.asInstanceOf[RandomForestConfig]
-        genArray ++= irradiateGeneration(Array(startingSeed.asInstanceOf[RandomForestConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        ParHashSet(genArray.result.toArray: _*)
-      case _ => ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = if(_modelSeedSet) {
+      val genArray = new ArrayBuffer[RandomForestConfig]
+      val startingModelSeed = generateRandomForestConfig(_modelSeed)
+      genArray += startingModelSeed
+      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      ParHashSet(genArray.result.toArray: _*)
+    } else {
+      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -426,7 +427,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[RandomForestConfig] = None): Array[RandomForestModelsWithResults] = {
+  def evolveParameters(): Array[RandomForestModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
@@ -434,15 +435,15 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     val totalConfigs = modelConfigLength[RandomForestConfig]
 
-    val primordial = startingSeed match {
-      case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[RandomForestConfig]
-        generativeArray += startingSeed.asInstanceOf[RandomForestConfig]
-        generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[RandomForestConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        runBattery(generativeArray.result.toArray, generation)
-      case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = if (_modelSeedSet) {
+      val generativeArray = new ArrayBuffer[RandomForestConfig]
+      val startingModelSeed = generateRandomForestConfig(_modelSeed)
+      generativeArray += startingModelSeed
+      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      runBattery(generativeArray.result.toArray, generation)
+    } else {
+      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
     }
 
     fossilRecord ++= primordial
@@ -511,8 +512,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     }
   }
 
-  def evolveBest(startingSeed: Option[RandomForestConfig] = None): RandomForestModelsWithResults = {
-    evolveParameters(startingSeed).head
+  def evolveBest(): RandomForestModelsWithResults = {
+    evolveParameters().head
   }
 
   def generateScoredDataFrame(results: Array[RandomForestModelsWithResults]): DataFrame = {
@@ -526,12 +527,11 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[RandomForestConfig] = None):
-  (Array[RandomForestModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(): (Array[RandomForestModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters(startingSeed)
-      case "continuous" => continuousEvolution(startingSeed)
+      case "batch" => evolveParameters()
+      case "continuous" => continuousEvolution()
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))

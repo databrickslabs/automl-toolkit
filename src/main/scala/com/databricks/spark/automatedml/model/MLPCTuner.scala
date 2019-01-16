@@ -231,7 +231,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     mutationPayload.result.toArray
   }
 
-  private def continuousEvolution(startingSeed: Option[MLPCConfig] = None): Array[MLPCModelsWithResults] = {
+  private def continuousEvolution(): Array[MLPCModelsWithResults] = {
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -245,22 +245,19 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
 
-    //TODO: evaluate this and see if this should be an early stopping signature!!!
     val earlyStoppingImprovementThreshold: Int = -10
-
-    // Generate the first pool of attempts to seed the hyperparameter space
-    //    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
 
     val totalConfigs = modelConfigLength[MLPCConfig]
 
-    var runSet = startingSeed match {
-      case Some(`startingSeed`) =>
-        val genArray = new ArrayBuffer[MLPCConfig]
-        genArray += startingSeed.asInstanceOf[MLPCConfig]
-        genArray ++= irradiateGeneration(Array(startingSeed.asInstanceOf[MLPCConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        ParHashSet(genArray.result.toArray: _*)
-      case _ => ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = if(_modelSeedSet) {
+      val genArray = new ArrayBuffer[MLPCConfig]
+      val startingModelSeed = generateMLPCConfig(_modelSeed)
+      genArray += startingModelSeed
+      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      ParHashSet(genArray.result.toArray: _*)
+    } else {
+      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -345,7 +342,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[MLPCConfig] = None): Array[MLPCModelsWithResults] = {
+  def evolveParameters(): Array[MLPCModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
@@ -353,15 +350,15 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
     val totalConfigs = modelConfigLength[MLPCConfig]
 
-    val primordial = startingSeed match {
-      case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[MLPCConfig]
-        generativeArray += startingSeed.asInstanceOf[MLPCConfig]
-        generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[MLPCConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        runBattery(generativeArray.result.toArray, generation)
-      case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = if (_modelSeedSet) {
+      val generativeArray = new ArrayBuffer[MLPCConfig]
+      val startingModelSeed = generateMLPCConfig(_modelSeed)
+      generativeArray += startingModelSeed
+      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      runBattery(generativeArray.result.toArray, generation)
+    } else {
+      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
     }
 
     fossilRecord ++= primordial
@@ -430,8 +427,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     }
   }
 
-  def evolveBest(startingSeed: Option[MLPCConfig] = None): MLPCModelsWithResults = {
-    evolveParameters(startingSeed).head
+  def evolveBest(): MLPCModelsWithResults = {
+    evolveParameters().head
   }
 
   def generateScoredDataFrame(results: Array[MLPCModelsWithResults]): DataFrame = {
@@ -445,12 +442,11 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[MLPCConfig] = None):
-  (Array[MLPCModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(): (Array[MLPCModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters(startingSeed)
-      case "continuous" => continuousEvolution(startingSeed)
+      case "batch" => evolveParameters()
+      case "continuous" => continuousEvolution()
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))

@@ -1,7 +1,7 @@
 package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{EvolutionDefaults, RandomForestConfig}
-import com.databricks.spark.automatedml.utils.DataValidation
+import com.databricks.spark.automatedml.utils.{DataValidation, SeedConverters}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
@@ -9,7 +9,7 @@ import org.apache.spark.sql.functions._
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe._
 
-trait Evolution extends DataValidation with EvolutionDefaults {
+trait Evolution extends DataValidation with EvolutionDefaults with SeedConverters {
 
   var _labelCol: String = _defaultLabel
   var _featureCol: String = _defaultFeature
@@ -41,6 +41,9 @@ trait Evolution extends DataValidation with EvolutionDefaults {
   var _continuousEvolutionMutationAggressiveness: Int = _defaultContinuousEvolutionMutationAggressiveness
   var _continuousEvolutionGeneticMixing: Double = _defaultContinuousEvolutionGeneticMixing
   var _continuousEvolutionRollingImprovementCount: Int = _defaultContinuousEvolutionRollingImprovementCount
+
+  var _modelSeedSet: Boolean = false
+  var _modelSeed: Map[String, Any] = Map.empty
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
@@ -232,6 +235,12 @@ trait Evolution extends DataValidation with EvolutionDefaults {
     this
   }
 
+  def setModelSeed(value: Map[String, Any]): this.type = {
+    _modelSeed = value
+    _modelSeedSet = true
+    this
+  }
+
   def getLabelCol: String = _labelCol
 
   def getFeaturesCol: String = _featureCol
@@ -285,6 +294,8 @@ trait Evolution extends DataValidation with EvolutionDefaults {
   def getContinuousEvolutionGeneticMixing: Double = _continuousEvolutionGeneticMixing
 
   def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
+
+  def getModelSeed: Map[String, Any] = _modelSeed
 
   def totalModels: Int = _evolutionStrategy match {
     case "batch" => (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool

@@ -16,8 +16,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  private def runRandomForest(startingSeed: Option[RandomForestConfig]=None):
-  (Array[RandomForestModelsWithResults], DataFrame, String) = {
+  private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String) = {
 
     val (data, fields, modelSelection) = prepData()
 
@@ -26,7 +25,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
     cachedData.count
 
-    val (modelResults, modelStats) = new RandomForestTuner(cachedData, modelSelection)
+    val initialize = new RandomForestTuner(cachedData, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
@@ -57,7 +56,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-      .evolveWithScoringDF(startingSeed)
+
+    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
     cachedData.unpersist()
 
@@ -70,7 +72,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     modelSelection match {
       case "classifier" =>
-        val (modelResults, modelStats) = new MLPCTuner(data)
+        val initialize = new MLPCTuner(data)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
@@ -102,7 +104,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-          .evolveWithScoringDF()
+
+        if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
         (modelResults, modelStats, modelSelection)
       case _ => throw new UnsupportedOperationException(
@@ -114,7 +119,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val (data, fields, modelSelection) = prepData()
 
-    val (modelResults, modelStats) = new GBTreesTuner(data, modelSelection)
+     val initialize = new GBTreesTuner(data, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
@@ -146,7 +151,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-      .evolveWithScoringDF()
+
+    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
     (modelResults, modelStats, modelSelection)
   }
@@ -157,7 +165,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     modelSelection match {
       case "regressor" =>
-        val (modelResults, modelStats) = new LinearRegressionTuner(data)
+        val initialize = new LinearRegressionTuner(data)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setLinearRegressionNumericBoundaries(_mainConfig.numericBoundaries)
@@ -190,7 +198,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-          .evolveWithScoringDF()
+
+        if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
         (modelResults, modelStats, modelSelection)
       case _ => throw new UnsupportedOperationException(
@@ -205,7 +216,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     modelSelection match {
       case "classifier" =>
-        val (modelResults, modelStats) = new LogisticRegressionTuner(data)
+        val initialize = new LogisticRegressionTuner(data)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setLogisticRegressionNumericBoundaries(_mainConfig.numericBoundaries)
@@ -237,7 +248,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-          .evolveWithScoringDF()
+
+        if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
         (modelResults, modelStats, modelSelection)
       case _ => throw new UnsupportedOperationException(
@@ -252,7 +266,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     modelSelection match {
       case "classifier" =>
-        val (modelResults, modelStats) = new SVMTuner(data)
+        val initialize = new SVMTuner(data)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setSvmNumericBoundaries(_mainConfig.numericBoundaries)
@@ -284,7 +298,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-          .evolveWithScoringDF()
+
+        if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
         (modelResults, modelStats, modelSelection)
       case _ => throw new UnsupportedOperationException(
@@ -296,7 +313,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
    val (data, fields, modelSelection) = prepData()
 
-   val (modelResults, modelStats) = new DecisionTreeTuner(data, modelSelection)
+   val initialize = new DecisionTreeTuner(data, modelSelection)
      .setLabelCol(_mainConfig.labelCol)
      .setFeaturesCol(_mainConfig.featuresCol)
      .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
@@ -328,7 +345,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
      .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
      .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
      .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-     .evolveWithScoringDF()
+
+   if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+   val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
    (modelResults, modelStats, modelSelection)
  }
@@ -370,8 +390,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     featureResults
   }
 
-  def runWithFeatureCulling(startingSeed: Option[Map[String, Any]]=None):
-  (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+  def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
 
     // Get the Feature Importances
 
@@ -382,7 +401,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     val dataSubset = df.select(selectableFields.map(col):_*).persist(StorageLevel.MEMORY_AND_DISK)
     dataSubset.count
     
-    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).runModels(startingSeed)
+    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
 
     dataSubset.unpersist()
 
@@ -397,51 +416,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   }
 
-
-
-
-
-  // TODO: TEST THIS and then move it to Automation Tools.
-
-
-  def generateRandomForestConfig(configMap: Map[String, Any]): RandomForestConfig = {
-    RandomForestConfig(
-      numTrees=configMap("numTrees").asInstanceOf[Int],
-      impurity=configMap("impurity").asInstanceOf[String],
-      maxBins=configMap("maxBins").asInstanceOf[Int],
-      maxDepth=configMap("maxDepth").asInstanceOf[Int],
-      minInfoGain=configMap("minInfoGain").asInstanceOf[Double],
-      subSamplingRate=configMap("subSamplingRate").asInstanceOf[Double],
-      featureSubsetStrategy=configMap("featureSubsetStrategy").asInstanceOf[String]
-    )
-  }
-
-
-// TODO: add a setter that allows for a Map to be submitted to 'jump start' a training run with a seed value?
-
-  //TODO: log the Generic Return result for each run to Mlflow as a tagged value string. (tag = g)
-
-
-  def run(seedString: Option[String]=None):
-  (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
-
-    if(seedString.nonEmpty) runModels(Option(extractGenericModelReturnMap(seedString.asInstanceOf[String])))
-    else runModels()
-
-  }
-
-  def runModels(startingSeed: Option[Map[String, Any]]=None):
-  (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+  def run(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
 
     val (resultArray, modelStats, modelSelection) = _mainConfig.modelFamily match {
       case "RandomForest" =>
-        val (results, stats, selection) = startingSeed match {
-          case Some(`startingSeed`) =>
-            runRandomForest(Option(generateRandomForestConfig(startingSeed.asInstanceOf[Map[String, Any]])))
-          case _ => runRandomForest()
-        }
+        val (results, stats, selection) = runRandomForest()
         results.foreach{ x=>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
