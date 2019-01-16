@@ -397,7 +397,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   }
 
+
+
+
+
   // TODO: TEST THIS and then move it to Automation Tools.
+
+
   def generateRandomForestConfig(configMap: Map[String, Any]): RandomForestConfig = {
     RandomForestConfig(
       numTrees=configMap("numTrees").asInstanceOf[Int],
@@ -411,7 +417,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
   }
 
 
+// TODO: add a setter that allows for a Map to be submitted to 'jump start' a training run with a seed value?
 
+  //TODO: log the Generic Return result for each run to Mlflow as a tagged value string. (tag = g)
 
 
   def run(seedString: Option[String]=None):
