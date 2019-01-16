@@ -16,7 +16,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String) = {
+  private def runRandomForest(startingSeed: Option[RandomForestConfig]=None):
+  (Array[RandomForestModelsWithResults], DataFrame, String) = {
 
     val (data, fields, modelSelection) = prepData()
 
@@ -56,7 +57,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
-      .evolveWithScoringDF()
+      .evolveWithScoringDF(startingSeed)
 
     cachedData.unpersist()
 
@@ -369,7 +370,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     featureResults
   }
 
-  def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+  def runWithFeatureCulling(startingSeed: Option[Map[String, Any]]=None):
+  (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
 
     // Get the Feature Importances
 
@@ -380,7 +382,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     val dataSubset = df.select(selectableFields.map(col):_*).persist(StorageLevel.MEMORY_AND_DISK)
     dataSubset.count
     
-    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
+    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).runModels(startingSeed)
 
     dataSubset.unpersist()
 
@@ -395,13 +397,43 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   }
 
-  def run(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+  // TODO: TEST THIS and then move it to Automation Tools.
+  def generateRandomForestConfig(configMap: Map[String, Any]): RandomForestConfig = {
+    RandomForestConfig(
+      numTrees=configMap("numTrees").asInstanceOf[Int],
+      impurity=configMap("impurity").asInstanceOf[String],
+      maxBins=configMap("maxBins").asInstanceOf[Int],
+      maxDepth=configMap("maxDepth").asInstanceOf[Int],
+      minInfoGain=configMap("minInfoGain").asInstanceOf[Double],
+      subSamplingRate=configMap("subSamplingRate").asInstanceOf[Double],
+      featureSubsetStrategy=configMap("featureSubsetStrategy").asInstanceOf[String]
+    )
+  }
+
+
+
+
+
+  def run(seedString: Option[String]=None):
+  (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+
+    if(seedString.nonEmpty) runModels(Option(extractGenericModelReturnMap(seedString.asInstanceOf[String])))
+    else runModels()
+
+  }
+
+  def runModels(startingSeed: Option[Map[String, Any]]=None):
+  (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
 
     val (resultArray, modelStats, modelSelection) = _mainConfig.modelFamily match {
       case "RandomForest" =>
-        val (results, stats, selection) = runRandomForest()
+        val (results, stats, selection) = startingSeed match {
+          case Some(`startingSeed`) =>
+            runRandomForest(Option(generateRandomForestConfig(startingSeed.asInstanceOf[Map[String, Any]])))
+          case _ => runRandomForest()
+        }
         results.foreach{ x=>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
