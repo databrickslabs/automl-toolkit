@@ -368,9 +368,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       "Logged to MlFlow Successful"
     } catch {
       case e: Exception =>
-        val stackTrace : String = e.getStackTrace.mkString("\n")
-        println(s"Failed to log to mlflow. Check configuration. \n  $stackTrace")
-        logger.log(Level.INFO, stackTrace)
+        val stack = e.toString
+        val topStackTrace : String = e.getStackTrace.mkString("\n")
+        println(s"Failed to log to mlflow. Check configuration. \n  $stack \n Top trace: \t $stack")
+        logger.log(Level.INFO, stack)
         "Failed to Log to MlFlow"
     }
 
