@@ -110,7 +110,7 @@ trait Evolution extends DataValidation with EvolutionDefaults {
   }
 
   def setFirstGenerationGenePool(value: Int): this.type = {
-    require(value > 5,
+    require(value >= 5,
       s"Values less than 5 for firstGenerationGenePool will require excessive generational mutation to converge")
     _firstGenerationGenePool = value
     this

@@ -27,6 +27,7 @@ case class MainConfig(
                        scalingConfig: ScalingConfig,
                        geneticConfig: GeneticConfig,
                        mlFlowLoggingFlag: Boolean,
+                       mlFlowLogArtifactsFlag: Boolean,
                        mlFlowConfig: MLFlowConfig
                      )
 

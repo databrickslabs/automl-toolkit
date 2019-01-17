@@ -204,6 +204,8 @@ trait Defaults {
 
   def _defaultMlFlowLoggingFlag: Boolean = false
 
+  def _defaultMlFlowArtifactsFlag: Boolean = false
+
   def _defaultAutoStoppingFlag: Boolean = true
 
   def _defaultAutoStoppingScore: Double = 0.95
@@ -239,6 +241,7 @@ trait Defaults {
     scalingConfig = _scalingConfigDefaults,
     geneticConfig = _geneticTunerDefaults,
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
+    mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults
   )
 
@@ -292,6 +295,7 @@ trait Defaults {
       continuousEvolutionRollingImprovementCount = 20
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
+    mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults
   )
 
@@ -345,6 +349,7 @@ trait Defaults {
       continuousEvolutionRollingImprovementCount = 20
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
+    mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults
   )
 

@@ -2,8 +2,9 @@ package com.databricks.spark.automatedml.tracking
 
 import java.io.File
 
+import org.mlflow.tracking.creds._
+import org.mlflow.api.proto.Service.CreateRun
 import org.mlflow.tracking.MlflowClient
-import org.mlflow.tracking.creds.BasicMlflowHostCreds
 
 import com.databricks.spark.automatedml.params.GenericModelReturn
 import org.apache.spark.ml.classification._
@@ -18,6 +19,7 @@ class MLFlowTracker {
   private var _mlFlowExperimentName: String = "default"
   private var _mlFlowHostedAPIToken: String = _
   private var _modelSaveDirectory: String = _
+  private var _logArtifacts: Boolean = false
 
 
   def setMlFlowTrackingURI(value: String): this.type = {
@@ -40,11 +42,22 @@ class MLFlowTracker {
     this
   }
 
+  def logArtifactsOn(): this.type = {
+    _logArtifacts = true
+    this
+  }
+
+  def logArtifactsOff(): this.type = {
+    _logArtifacts = false
+    this
+  }
+
   //Intentionally not providing a getter for an API token.
 
   def getMlFlowTrackingURI: String = _mlFlowTrackingURI
   def getMlFlowExperimentName: String = _mlFlowExperimentName
   def getModelSaveDirectory: String = _modelSaveDirectory
+  def getArtifactLogSetting: Boolean = _logArtifacts
 
   /**
     * Method for either getting an existing experiment by name, or creating a new one by name and returning the id
@@ -65,8 +78,6 @@ class MLFlowTracker {
     val hosted: Boolean = _mlFlowTrackingURI.contains("databricks.com")
 
     if (hosted) {
-      //TODO: if we can get the API token from here automatically, do it.
-      //val token = dbutils.notebook.getContext()
       new MlflowClient(new BasicMlflowHostCreds(_mlFlowTrackingURI, _mlFlowHostedAPIToken))
     } else {
       new MlflowClient(_mlFlowTrackingURI)
@@ -88,6 +99,21 @@ class MLFlowTracker {
 
   }
 
+  private def generateMlFlowRun(client: MlflowClient, experimentID: Long, runIdentifier: String,
+                                runName: String, sourceVer: String): String = {
+
+    val request: CreateRun.Builder = CreateRun.newBuilder()
+      .setExperimentId(experimentID)
+      .setRunName(runName)
+      .setSourceVersion(sourceVer)
+      .setSourceName(runIdentifier)
+      .setStartTime(System.currentTimeMillis())
+
+    val run = client.createRun(request.build())
+
+    run.getRunUuid
+  }
+
   private def createFusePath(path: String): String = {
     path.replace("dbfs:", "/dbfs")
   }
@@ -105,49 +131,49 @@ class MLFlowTracker {
                         modelDescriptor: String, modelId: String): Unit = {
 
     modelDescriptor match {
-      case "regressor_RandomForest" =>
-        modelReturn.model.asInstanceOf[RandomForestRegressionModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "classifier_RandomForest" =>
-        modelReturn.model.asInstanceOf[RandomForestClassificationModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "regressor_GBT" =>
-        modelReturn.model.asInstanceOf[GBTRegressionModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "classifier_GBT" =>
-        modelReturn.model.asInstanceOf[GBTClassificationModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "classifier_MLPC" =>
-        modelReturn.model.asInstanceOf[MultilayerPerceptronClassificationModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "regressor_LinearRegression" =>
-        modelReturn.model.asInstanceOf[LinearRegressionModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "classifer_LogisticRegression" =>
-        modelReturn.model.asInstanceOf[LogisticRegressionModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "regressor_SVM" =>
-        modelReturn.model.asInstanceOf[LinearSVCModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "regressor_Trees" =>
-        modelReturn.model.asInstanceOf[DecisionTreeRegressionModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case "classifier_Trees" =>
-        modelReturn.model.asInstanceOf[DecisionTreeClassificationModel].write.overwrite().save(path)
-        client.logArtifacts(runId, new File(createFusePath(path)))
-        client.setTag(runId, s"SparkModel_$modelId", path)
-      case _ => throw new UnsupportedOperationException(
-        s"Model Type $modelDescriptor is not supported for mlflow logging.")
-    }
+            case "regressor_RandomForest" =>
+              modelReturn.model.asInstanceOf[RandomForestRegressionModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "classifier_RandomForest" =>
+              modelReturn.model.asInstanceOf[RandomForestClassificationModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "regressor_GBT" =>
+              modelReturn.model.asInstanceOf[GBTRegressionModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "classifier_GBT" =>
+              modelReturn.model.asInstanceOf[GBTClassificationModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "classifier_MLPC" =>
+              modelReturn.model.asInstanceOf[MultilayerPerceptronClassificationModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "regressor_LinearRegression" =>
+              modelReturn.model.asInstanceOf[LinearRegressionModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "classifer_LogisticRegression" =>
+              modelReturn.model.asInstanceOf[LogisticRegressionModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "regressor_SVM" =>
+              modelReturn.model.asInstanceOf[LinearSVCModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "regressor_Trees" =>
+              modelReturn.model.asInstanceOf[DecisionTreeRegressionModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case "classifier_Trees" =>
+              modelReturn.model.asInstanceOf[DecisionTreeClassificationModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+            case _ => throw new UnsupportedOperationException(
+              s"Model Type $modelDescriptor is not supported for mlflow logging.")
+          }
   }
 
   /**
@@ -160,14 +186,18 @@ class MLFlowTracker {
 
     val mlflowLoggingClient = createHostedMlFlowClient()
 
+    val experimentId = getOrCreateExperimentId(mlflowLoggingClient)
+
+    var totalVersion = mlflowLoggingClient.getExperiment(experimentId).getRunsCount
+
     val generationSet = mutable.Set[Int]()
     runData.map(x => generationSet += x.generation)
     val uniqueGenerations = generationSet.result.toArray.sortWith(_<_)
 
     // set the model save directory
     val baseDirectory = _modelSaveDirectory.takeRight(1) match {
-      case "/" => s"${_modelSaveDirectory}/${_mlFlowExperimentName}/"
-      case _ => s"${_modelSaveDirectory}${_mlFlowExperimentName}/"
+      case "/" => s"${_modelSaveDirectory}${_mlFlowExperimentName}/"
+      case _ => s"${_modelSaveDirectory}/${_mlFlowExperimentName}/"
     }
 
     val modelDescriptor = s"${modelType}_$modelFamily"
@@ -175,38 +205,52 @@ class MLFlowTracker {
     // loop through each generation and log the data
     uniqueGenerations.foreach{g =>
 
-      // create a new MlFlowRun
-      val runId = generateMlFlowRun(mlflowLoggingClient, g.toString)
-
       // get the runs from this generation
       val currentGen = runData.filter(x => x.generation == g)
 
+      var withinRunId = 0
+
       currentGen.foreach{x =>
+
+        // create a new MlFlowRun
+        //val runId = generateMlFlowRun(mlflowLoggingClient, g.toString)
+
+        totalVersion += 1
+
+        val uniqueRunIdent = s"${modelFamily}_${modelType}_${x.generation.toString}_${withinRunId.toString}_${
+          x.score.toString}"
+
+        val runName = "run_" + x.generation.toString + "_" + withinRunId.toString
+
+        val runId = generateMlFlowRun(mlflowLoggingClient, experimentId, uniqueRunIdent, runName,
+          totalVersion.toString)
 
         val hyperParamKeys = x.hyperParams.keys
 
         hyperParamKeys.foreach{k =>
-          val valueData = x.hyperParams.get(k)
+          val valueData = x.hyperParams(k)
           mlflowLoggingClient.logParam(runId, k, valueData.toString)
         }
         val metricKeys = x.metrics.keys
 
         metricKeys.foreach{k =>
-          val valueData = x.metrics.get(k)
+          val valueData = x.metrics(k)
           mlflowLoggingClient.logMetric(runId, k, valueData.toString.toDouble)
         }
 
         // Generate a new unique uuid for the model to ensure there are no overwrites.
-        val uniqueModelId = java.util.UUID.fromString(x.hyperParams.toString())
+        val uniqueModelId = java.util.UUID.randomUUID().toString.replace("-", "")
 
         // Set a location to write the model to
-        val modelDir = s"$baseDirectory/${modelDescriptor}_$runId/$uniqueModelId"
+        val modelDir = s"$baseDirectory${modelDescriptor}_$runId/$uniqueModelId"
 
         // log the model artifact
-        saveModel(mlflowLoggingClient, modelDir, runId, x, modelDescriptor, uniqueModelId.toString)
+        saveModel(mlflowLoggingClient, modelDir, runId, x, modelDescriptor, uniqueModelId)
 
         // log the generation
-        mlflowLoggingClient.logParam(runId, "generation", x.toString)
+        mlflowLoggingClient.logParam(runId, "generation", x.generation.toString)
+
+        withinRunId += 1
 
       }
     }

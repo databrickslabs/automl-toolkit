@@ -340,6 +340,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
       .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
 
+    if(_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn() else mlFlowLogger.logArtifactsOff()
+
     try {
       mlFlowLogger.logMlFlowDataAndModels(runData, modelFamily, modelType)
       "Logged to MlFlow Successful"
