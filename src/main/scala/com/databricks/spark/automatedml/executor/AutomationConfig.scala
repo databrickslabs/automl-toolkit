@@ -138,6 +138,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _mlFlowLoggingFlag: Boolean = _defaultMlFlowLoggingFlag
 
+  var _mlFlowArtifactsFlag: Boolean = _defaultMlFlowArtifactsFlag
+
   var _mlFlowTrackingURI: String = _mlFlowConfigDefaults.mlFlowTrackingURI
 
   var _mlFlowExperimentName: String = _mlFlowConfigDefaults.mlFlowExperimentName
@@ -682,6 +684,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def mlFlowLogArtifactsOn(): this.type = {
+    _mlFlowArtifactsFlag = true
+    setConfigs()
+    this
+  }
+
+  def mlFlowLogArtifactsOff(): this.type = {
+    _mlFlowArtifactsFlag = false
+    setConfigs()
+    this
+  }
+
   def setMlFlowTrackingURI(value: String): this.type = {
     _mlFlowTrackingURI = value
     setMlFlowConfig()
@@ -877,6 +891,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       scalingConfig = _scalingConfig,
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
+      mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig
     )
     this
@@ -915,6 +930,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       scalingConfig = _scalingConfig,
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
+      mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig
     )
     this
@@ -956,6 +972,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       scalingConfig = _scalingConfig,
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
+      mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig
     )
     this
@@ -1082,6 +1099,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getModelSeedMap: Map[String, Any] = _modelSeedMap
 
   def getMlFlowLoggingFlag: Boolean = _mlFlowLoggingFlag
+
+  def getMlFlowLogArtifactsFlag: Boolean = _mlFlowArtifactsFlag
 
   def getMlFlowTrackingURI: String = _mlFlowTrackingURI
 

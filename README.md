@@ -184,6 +184,7 @@ case class MainConfig(
                                                     modelSeed = Map[String, Any]
                                                    ),
                        mlFlowLoggingFlag: Boolean,
+                       mlFlowLogArtifactsFlag: Boolean,
                        mlFlowConfig: MLFlowConfig(
                                                   mlFlowTrackingURI: String,
                                                   mlFlowExperimentName: String,
@@ -290,6 +291,7 @@ val defaultSettings = MainConfig(
                                               modelSeed = Map.empty
                                             ),
                           mlFlowLoggingFlag = false,
+                          mlFlowLogArtifactsFlag = false,
                           mlFlowConfig = MLFlowConfig(
                                              mlFlowTrackingURI = "hosted",
                                              mlFlowExperimentName = "default",
@@ -322,6 +324,7 @@ val fullConfig = new AutomationRunner(myData)
     .setStandardScalerMeanFlagOff()     // alternative: .setStandardScalerMeanFlagOn()
     .setStandardScalerStdDevFlagOff()   // alternative: .setStandardScalerMeanFlagOn()  
     .mlFlowLoggingOn()                  // alternative: .mlFlowLoggingOff()  
+    .mlFlowLogArtifactsOn()             // alternative: .mlFlowLogArtifactsOff()
     .autoStoppingOff()                  // alternative: .autoStoppingOn()
     .setNumericBoundaries(Map(
                               "layers" -> Tuple2(4.0, 20.0),
@@ -1360,6 +1363,20 @@ Setters: `.mlFlowLoggingOn()` and `.mlFlowLoggingOff()`
 ```text
 Default: on
 ```
+
+###### MLFlow Log Artifacts Flag
+
+When in the course of experimentation, it is not neccessary to log the model artifacts of each iteration to MLFlow.
+This process of logging artifacts, while useful, is resource-intensive and can lead to long wait times to record all
+of the data associated with the run to the tracking server.
+However, for CI/CD purposes, as well as re-run-ability, the option is provided to log the artifacts.
+
+Setters: `.mlFlowLogArtifactsOn()` and `.mlFlowLogArtifactsOff()`
+
+```text
+Default: off
+```
+
 ###### MLFlow Tracking URI
 
 Defines the host address for where MLFlow is running.
