@@ -239,8 +239,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
     mutationPayload.result.toArray
   }
 
-  private def continuousEvolution(startingSeed: Option[LinearRegressionConfig] = None):
-  Array[LinearRegressionModelsWithResults] = {
+  private def continuousEvolution(): Array[LinearRegressionModelsWithResults] = {
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -262,14 +261,15 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
 
     val totalConfigs = modelConfigLength[LinearRegressionConfig]
 
-    var runSet = startingSeed match {
-      case Some(`startingSeed`) =>
-        val genArray = new ArrayBuffer[LinearRegressionConfig]
-        genArray += startingSeed.asInstanceOf[LinearRegressionConfig]
-        genArray ++= irradiateGeneration(Array(startingSeed.asInstanceOf[LinearRegressionConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        ParHashSet(genArray.result.toArray: _*)
-      case _ => ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = if(_modelSeedSet) {
+      val genArray = new ArrayBuffer[LinearRegressionConfig]
+      val startingModelSeed = generateLinearRegressionConfig(_modelSeed)
+      genArray += startingModelSeed
+      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      ParHashSet(genArray.result.toArray: _*)
+    } else {
+      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -354,7 +354,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[LinearRegressionConfig] = None): Array[LinearRegressionModelsWithResults] = {
+  def evolveParameters(): Array[LinearRegressionModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
@@ -362,15 +362,15 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
 
     val totalConfigs = modelConfigLength[LinearRegressionConfig]
 
-    val primordial = startingSeed match {
-      case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[LinearRegressionConfig]
-        generativeArray += startingSeed.asInstanceOf[LinearRegressionConfig]
-        generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[LinearRegressionConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        runBattery(generativeArray.result.toArray, generation)
-      case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = if (_modelSeedSet) {
+      val generativeArray = new ArrayBuffer[LinearRegressionConfig]
+      val startingModelSeed = generateLinearRegressionConfig(_modelSeed)
+      generativeArray += startingModelSeed
+      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      runBattery(generativeArray.result.toArray, generation)
+    } else {
+      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
     }
 
     fossilRecord ++= primordial
@@ -439,8 +439,8 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
     }
   }
 
-  def evolveBest(startingSeed: Option[LinearRegressionConfig] = None): LinearRegressionModelsWithResults = {
-    evolveParameters(startingSeed).head
+  def evolveBest(): LinearRegressionModelsWithResults = {
+    evolveParameters().head
   }
 
   def generateScoredDataFrame(results: Array[LinearRegressionModelsWithResults]): DataFrame = {
@@ -454,12 +454,12 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[LinearRegressionConfig] = None):
+  def evolveWithScoringDF():
   (Array[LinearRegressionModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters(startingSeed)
-      case "continuous" => continuousEvolution(startingSeed)
+      case "batch" => evolveParameters()
+      case "continuous" => continuousEvolution()
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))

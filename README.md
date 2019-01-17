@@ -180,7 +180,8 @@ case class MainConfig(
                                                     continuousEvolutionParallelism: Int,
                                                     continuousEvolutionMutationAggressiveness: Int,
                                                     continuousEvolutionGeneticMixing: Double,
-                                                    continuousEvolutionRollingImprovementCount: Int
+                                                    continuousEvolutionRollingImprovementCount: Int,
+                                                    modelSeed = Map[String, Any]
                                                    ),
                        mlFlowLoggingFlag: Boolean,
                        mlFlowLogArtifactsFlag: Boolean,
@@ -286,7 +287,8 @@ val defaultSettings = MainConfig(
                                               continuousEvolutionParallelism = 4,
                                               continuousEvolutionMutationAggressiveness = 3,
                                               continuousEvolutionGeneticMixing = 0.7,
-                                              continuousEvolutionRollingImprovementCount = 20
+                                              continuousEvolutionRollingImprovementCount = 20,
+                                              modelSeed = Map.empty
                                             ),
                           mlFlowLoggingFlag = false,
                           mlFlowLogArtifactsFlag = false,
@@ -383,6 +385,11 @@ val fullConfig = new AutomationRunner(myData)
     .setContinuousEvolutionMutationAggressiveness(3)
     .setContinuousEvolutionGeneticMixing(0.4)
     .setContinuousEvolutionRollingImprovementCount(15)
+    .setModelSeedMap(Map("layers" -> Array(5), 
+    "maxIter" -> 80, 
+    "stepSize" -> 0.05, 
+    "tol" -> 1E-8, 
+    "hiddenLayersSizeAdjust" -> 14))       // alternative: .setModelSeedString(<Paste Generic Model Return payload>)
 ```
 ##### Note
 ```text
@@ -1022,6 +1029,21 @@ Setter: `.setSeed(<Long>)`
 Default: 42L
 
 ```
+
+###### Model Seed
+
+There are two setters that allow for 'jump-starting' a model tuning run, primarily for the purpose of 
+fine-tuning after a previous run, or for retraining a previously trained model.
+
+> ***CAUTION*** : using a model Seed from an initial starting point on a data set (during exploratory phase) **may** 
+result in poor hyper parameter tuning performance.  *It is always best to not seed a new model*.
+
+Setters: 
+1. `.setModelSeedString(<String>)` - this is designed to take a GenericModelReturn String from a previous run (either
+from stdout, log4j, or MLFlow tags) and use it as the basis for the first-round "best model" seed for the algorithm.
+2. `.setModelSeedMap(<Map[String, Any]>)` - this is the more 'scala-esque' way of submitting a configuration.  
+> See example in the top section of this README for guidance on syntax. ***Ensure that the Map configuration matches the
+model family that is being tuned***.
 
 ###### Evolution Strategy
 Determining the mode (batch vs. continuous) is done through setting the parameter `.setEvolutionStrategy(<String>)`

@@ -213,7 +213,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     mutationPayload.result.toArray
   }
 
-  private def continuousEvolution(startingSeed: Option[SVMConfig] = None): Array[SVMModelsWithResults] = {
+  private def continuousEvolution(): Array[SVMModelsWithResults] = {
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -235,14 +235,15 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
     val totalConfigs = modelConfigLength[SVMConfig]
 
-    var runSet = startingSeed match {
-      case Some(`startingSeed`) =>
-        val genArray = new ArrayBuffer[SVMConfig]
-        genArray += startingSeed.asInstanceOf[SVMConfig]
-        genArray ++= irradiateGeneration(Array(startingSeed.asInstanceOf[SVMConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        ParHashSet(genArray.result.toArray: _*)
-      case _ => ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = if(_modelSeedSet) {
+      val genArray = new ArrayBuffer[SVMConfig]
+      val startingModelSeed = generateSVMConfig(_modelSeed)
+      genArray += startingModelSeed
+      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      ParHashSet(genArray.result.toArray: _*)
+    } else {
+      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -327,7 +328,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[SVMConfig] = None): Array[SVMModelsWithResults] = {
+  def evolveParameters(): Array[SVMModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
@@ -335,15 +336,15 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
     val totalConfigs = modelConfigLength[SVMConfig]
 
-    val primordial = startingSeed match {
-      case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[SVMConfig]
-        generativeArray += startingSeed.asInstanceOf[SVMConfig]
-        generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[SVMConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        runBattery(generativeArray.result.toArray, generation)
-      case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = if (_modelSeedSet) {
+      val generativeArray = new ArrayBuffer[SVMConfig]
+      val startingModelSeed = generateSVMConfig(_modelSeed)
+      generativeArray += startingModelSeed
+      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      runBattery(generativeArray.result.toArray, generation)
+    } else {
+      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
     }
 
     fossilRecord ++= primordial
@@ -412,8 +413,8 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     }
   }
 
-  def evolveBest(startingSeed: Option[SVMConfig] = None): SVMModelsWithResults = {
-    evolveParameters(startingSeed).head
+  def evolveBest(): SVMModelsWithResults = {
+    evolveParameters().head
   }
 
   def generateScoredDataFrame(results: Array[SVMModelsWithResults]): DataFrame = {
@@ -427,12 +428,11 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[SVMConfig] = None):
-  (Array[SVMModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(): (Array[SVMModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters(startingSeed)
-      case "continuous" => continuousEvolution(startingSeed)
+      case "batch" => evolveParameters()
+      case "continuous" => continuousEvolution()
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))

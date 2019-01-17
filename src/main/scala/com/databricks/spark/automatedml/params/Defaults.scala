@@ -62,7 +62,8 @@ trait Defaults {
     continuousEvolutionParallelism = 4,
     continuousEvolutionMutationAggressiveness = 3,
     continuousEvolutionGeneticMixing = 0.7,
-    continuousEvolutionRollingImprovementCount = 20
+    continuousEvolutionRollingImprovementCount = 20,
+    modelSeed = Map.empty
   )
 
   def _fillConfigDefaults = FillConfig(
@@ -292,7 +293,8 @@ trait Defaults {
       continuousEvolutionParallelism = 4,
       continuousEvolutionMutationAggressiveness = 3,
       continuousEvolutionGeneticMixing = 0.7,
-      continuousEvolutionRollingImprovementCount = 20
+      continuousEvolutionRollingImprovementCount = 20,
+      modelSeed = Map.empty
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
@@ -346,7 +348,8 @@ trait Defaults {
       continuousEvolutionParallelism = 4,
       continuousEvolutionMutationAggressiveness = 3,
       continuousEvolutionGeneticMixing = 0.7,
-      continuousEvolutionRollingImprovementCount = 20
+      continuousEvolutionRollingImprovementCount = 20,
+      modelSeed = Map.empty
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,

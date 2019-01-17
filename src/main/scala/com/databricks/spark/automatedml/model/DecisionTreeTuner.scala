@@ -294,7 +294,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
 
-  private def continuousEvolution(startingSeed: Option[TreesConfig]): Array[TreesModelsWithResults] = {
+  private def continuousEvolution(): Array[TreesModelsWithResults] = {
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -313,14 +313,16 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     val totalConfigs = modelConfigLength[TreesConfig]
     // Generate the first pool of attempts to seed the hyperparameter space
-    var runSet = startingSeed match {
-      case Some(`startingSeed`) =>
-        val genArray = new ArrayBuffer[TreesConfig]
-        genArray += startingSeed.asInstanceOf[TreesConfig]
-        genArray ++= irradiateGeneration(Array(startingSeed.asInstanceOf[TreesConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        ParHashSet(genArray.result.toArray: _*)
-      case _ => ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+
+    var runSet = if(_modelSeedSet) {
+      val genArray = new ArrayBuffer[TreesConfig]
+      val startingModelSeed = generateTreesConfig(_modelSeed)
+      genArray += startingModelSeed
+      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      ParHashSet(genArray.result.toArray: _*)
+    } else {
+      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -405,7 +407,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     bestParents.result.toArray
   }
 
-  def evolveParameters(startingSeed: Option[TreesConfig] = None): Array[TreesModelsWithResults] = {
+  def evolveParameters(): Array[TreesModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
@@ -413,15 +415,15 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     val totalConfigs = modelConfigLength[TreesConfig]
 
-    val primordial = startingSeed match {
-      case Some(`startingSeed`) =>
-        val generativeArray = new ArrayBuffer[TreesConfig]
-        generativeArray += startingSeed.asInstanceOf[TreesConfig]
-        generativeArray ++= irradiateGeneration(
-          Array(startingSeed.asInstanceOf[TreesConfig]),
-          _firstGenerationGenePool, totalConfigs - 1, _geneticMixing)
-        runBattery(generativeArray.result.toArray, generation)
-      case _ => runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = if (_modelSeedSet) {
+      val generativeArray = new ArrayBuffer[TreesConfig]
+      val startingModelSeed = generateTreesConfig(_modelSeed)
+      generativeArray += startingModelSeed
+      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+        _geneticMixing)
+      runBattery(generativeArray.result.toArray, generation)
+    } else {
+      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
     }
 
     fossilRecord ++= primordial
@@ -490,8 +492,8 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     }
   }
 
-  def evolveBest(startingSeed: Option[TreesConfig] = None): TreesModelsWithResults = {
-    evolveParameters(startingSeed).head
+  def evolveBest(): TreesModelsWithResults = {
+    evolveParameters().head
   }
 
   def generateScoredDataFrame(results: Array[TreesModelsWithResults]): DataFrame = {
@@ -505,12 +507,11 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(startingSeed: Option[TreesConfig] = None):
-  (Array[TreesModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(): (Array[TreesModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters(startingSeed)
-      case "continuous" => continuousEvolution(startingSeed)
+      case "batch" => evolveParameters()
+      case "continuous" => continuousEvolution()
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))

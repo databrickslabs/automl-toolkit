@@ -122,6 +122,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _mutationMagnitudeMode: String = _geneticTunerDefaults.mutationMagnitudeMode
 
+  var _modelSeedMap: Map[String, Any] = Map.empty
+
+  var _modelSeedSetStatus: Boolean = false
+
   var _geneticConfig: GeneticConfig = _geneticTunerDefaults
 
   var _mainConfig: MainConfig = _mainConfigDefaults
@@ -646,6 +650,22 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setModelSeedString(value: String): this.type = {
+    _modelSeedMap = extractGenericModelReturnMap(value)
+    _modelSeedSetStatus = true
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setModelSeedMap(value: Map[String, Any]): this.type = {
+    _modelSeedMap = value
+    _modelSeedSetStatus = true
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
   def setMlFlowConfig(value: MLFlowConfig): this.type = {
     _mlFlowConfig = value
     setConfigs()
@@ -837,7 +857,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       continuousEvolutionParallelism = _continuousEvolutionParallelism,
       continuousEvolutionMutationAggressiveness = _continuousEvolutionMutationAggressiveness,
       continuousEvolutionGeneticMixing = _continuousEvolutionGeneticMixing,
-      continuousEvolutionRollingImprovementCount = _continuousEvolutionRollingImprovementCount
+      continuousEvolutionRollingImprovementCount = _continuousEvolutionRollingImprovementCount,
+      modelSeed = _modelSeedMap
     )
     this
   }
@@ -1073,6 +1094,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def getMutationMagnitudeMode: String = _mutationMagnitudeMode
 
+  def getModelSeedSetStatus: Boolean = _modelSeedSetStatus
+
+  def getModelSeedMap: Map[String, Any] = _modelSeedMap
+
   def getMlFlowLoggingFlag: Boolean = _mlFlowLoggingFlag
 
   def getMlFlowLogArtifactsFlag: Boolean = _mlFlowArtifactsFlag
@@ -1112,4 +1137,30 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getContinuousEvolutionGeneticMixing: Double = _continuousEvolutionGeneticMixing
 
   def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
+
+
+  /**
+    * Helper method for extracting the config from a run's GenericModelReturn payload
+    * This is designed to handle "lazy" copy/paste from either stdout or the mlflow ui.
+    * The alternative (preferred method of seeding a run start) is to submit a Map() for the run configuration seed.
+    * @param fullModelReturn: String The Generic Model Config of a run, to be used as a starting point for further
+    *                       tuning or refinement.
+    * @return A Map Object that can be parsed into the requisite case class definition to set a seed for a particular
+    *         type of model run.
+    */
+  private def extractGenericModelReturnMap(fullModelReturn: String): Map[String, Any] = {
+
+    val patternToMatch = "(?<=\\()[^()]*".r
+
+    val configElements = patternToMatch.findAllIn(fullModelReturn).toList(1).split(",")
+
+    var configMap = Map[String, Any]()
+
+    configElements.foreach{x =>
+      val components = x.trim.split(" -> ")
+      configMap += (components(0) -> components(1))
+    }
+    configMap
+  }
+
 }
