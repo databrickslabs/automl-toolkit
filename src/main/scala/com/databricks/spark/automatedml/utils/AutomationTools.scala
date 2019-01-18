@@ -119,4 +119,19 @@ trait AutomationTools extends SparkSessionWrapper {
 
   }
 
+  def trainSplitValidation(trainSplitMethod: String, modelSelection: String): String = {
+
+    modelSelection match {
+      case "regressor" =>
+        trainSplitMethod match {
+          case "stratified" => println("[WARNING] Stratified Method is NOT ALLOWED on Regressors. Setting to Random.")
+            "random"
+          case _ => trainSplitMethod
+        }
+      case _ => trainSplitMethod
+
+    }
+
+  }
+
 }

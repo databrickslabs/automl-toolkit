@@ -1,15 +1,15 @@
 package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{EvolutionDefaults, RandomForestConfig}
-import com.databricks.spark.automatedml.utils.{DataValidation, SeedConverters}
-import org.apache.spark.sql.DataFrame
+import com.databricks.spark.automatedml.utils.{DataValidation, SeedConverters, SparkSessionWrapper}
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe._
 
-trait Evolution extends DataValidation with EvolutionDefaults with SeedConverters {
+trait Evolution extends DataValidation with EvolutionDefaults with SeedConverters with SparkSessionWrapper {
 
   var _labelCol: String = _defaultLabel
   var _featureCol: String = _defaultFeature
@@ -310,6 +310,37 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     }.toList.length
   }
 
+  private def toDoubleType(x: Any): Option[Double] = x match {
+    case i: Int => Some(i)
+    case d: Double => Some(d)
+    case _ => None
+  }
+
+  def stratifiedSplit(data: DataFrame, seed: Long): Array[DataFrame] = {
+
+    val rawSchema = data.schema
+
+    val uniqueLabels = data.select(_labelCol).distinct().collect()
+
+    // Create the empty DataFrame objects that will be used to add the unique labelCol value splits into
+    var trainData = spark.createDataFrame(sc.emptyRDD[Row], rawSchema)
+    var testData = spark.createDataFrame(sc.emptyRDD[Row], rawSchema)
+
+    uniqueLabels.foreach{ x =>
+
+      val conversionValue = toDoubleType(x(0)).get
+
+      val Array(trainSplit, testSplit) = data.filter(
+        col(_labelCol) === conversionValue).randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+
+      trainData = trainData.union(trainSplit)
+      testData = testData.union(testSplit)
+
+    }
+
+    Array(trainData, testData)
+  }
+
   def genTestTrain(data: DataFrame, seed: Long): Array[DataFrame] = {
 
     _trainSplitMethod match {
@@ -357,7 +388,7 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
         // Generate the test/train split data based on sorted chronological column
         Array(preSplitData.filter(col(uniqueRow) <= splitRow).drop(uniqueRow),
           preSplitData.filter(col(uniqueRow) > splitRow).drop(uniqueRow))
-
+      case "stratified" => stratifiedSplit(data, seed)
       case _ => throw new IllegalArgumentException(s"Cannot conduct train test split in mode: '${_trainSplitMethod}'")
     }
 

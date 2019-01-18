@@ -966,11 +966,19 @@ Setter: `.setTrainSplitMethod(<String>)`
 ```text
 Default: "random"
 
-Available options: "random" or "chronological"
+Available options: "random" or "chronological" or "stratified"
 ```
 > Chronological split method **does not require** a date type or datetime type field. Any sort-able / continuous distributed field will work.
 
 > Leaving the default value of "random" will randomly shuffle the train and test data sets each k-fold iteration.
+
+> Stratified mode will balance all of the values present in the label column of a classification algorithm so that there
+is adequate coverage of all available labels in both train and test for each kfold split step.
+
+***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column.***
+
+>> [NOTE]: attempting to run stratified splits on a regression problem will not work.  Default behavior
+will reset the trainSplitMethod to "random" if this is selected on a regression problem.
 
 ###### Train Split Chronological Column
 

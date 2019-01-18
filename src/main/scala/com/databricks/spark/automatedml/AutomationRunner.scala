@@ -32,7 +32,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-      .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
       .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
       .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -79,7 +79,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -126,7 +126,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       .setGBTStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-      .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
       .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
       .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -173,7 +173,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -223,7 +223,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -273,7 +273,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -321,7 +321,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
      .setScoringMetric(_mainConfig.scoringMetric)
      .setScoringMetric(_mainConfig.scoringMetric)
      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-     .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
+     .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
      .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
      .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
      .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -393,7 +393,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     featureResults
   }
 
-  def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+  def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame, DataFrame) = {
 
     // Get the Feature Importances
 
@@ -408,7 +408,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     dataSubset.unpersist()
 
-    runResults
+    (runResults._1, runResults._2, runResults._3, runResults._4, importanceDF)
   }
 
   def generateDecisionSplits(): (String, DataFrame, Any) = {
@@ -520,6 +520,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
       _mainConfig.modelFamily, modelSelection)
+
+    //TODO: return the transformed data set
+
+    //TODO: return a pipeline object that will allow for transforming the original data set to mimic the model's
+    // expected input.
 
   (genericResultData, generationalData, modelStats, generationDataFrameReport(generationalData,
     _mainConfig.scoringOptimizationStrategy))
