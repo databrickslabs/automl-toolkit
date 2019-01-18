@@ -12,7 +12,7 @@ trait Defaults {
     "SVM"
   )
 
-  final val trainSplitMethods: List[String] = List("random", "chronological", "stratified")
+  final val trainSplitMethods: List[String] = List("random", "chronological", "stratified", "overSample", "underSample")
 
   final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
 

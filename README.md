@@ -966,19 +966,43 @@ Setter: `.setTrainSplitMethod(<String>)`
 ```text
 Default: "random"
 
-Available options: "random" or "chronological" or "stratified"
+Available options: "random" or "chronological" or "stratified" or "underSample" or "overSample"
 ```
+Chronological Split Mode
+- Splits train / test between a sortable field (date, datetime, unixtime, etc.)
 > Chronological split method **does not require** a date type or datetime type field. Any sort-able / continuous distributed field will work.
 
-> Leaving the default value of "random" will randomly shuffle the train and test data sets each k-fold iteration.
+Random Split Mode
+- Leaving the default value of "random" will randomly shuffle the train and test data sets each k-fold iteration.
 
-> Stratified mode will balance all of the values present in the label column of a classification algorithm so that there
+***This is only recommended for classification data sets where there is relatively balanced counts of unique classes in the label column***
+> [NOTE]: attempting to run any mode other than "random" or "chronological" on a regression problem will not work.  Default behavior
+will reset the trainSplitMethod to "random" if they are selected on a regression problem.
+
+Stratified Mode
+
+- Stratified mode will balance all of the values present in the label column of a classification algorithm so that there
 is adequate coverage of all available labels in both train and test for each kfold split step.
 
-***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column.***
+***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column and there is a need for 
+training on the full, unmanipulated data set.***
 
->> [NOTE]: attempting to run stratified splits on a regression problem will not work.  Default behavior
-will reset the trainSplitMethod to "random" if this is selected on a regression problem.
+UnderSampling Mode
+
+- Under sampling will evaluate the classes within the label column and sample all classes within each kfold / model run
+to target the row count of the smallest class. (Only recommended for moderate skew cases)
+
+***If using this mode, ensure that the smallest class has sufficient row counts to make training effective!***
+
+OverSampling Mode
+
+- Over sampling will evaluate the class with the highest count of entries and during splitting, will replicate all 
+other classes' data to *generally match* the counts of the most frequent class. (**this is not exact and can vary from 
+run to run**)
+
+***WARNING*** - using this mode will dramatically increase the training and test data set sizes.  
+***Small count classes' data will be copied multiple times to eliminate skew***
+
 
 ###### Train Split Chronological Column
 
