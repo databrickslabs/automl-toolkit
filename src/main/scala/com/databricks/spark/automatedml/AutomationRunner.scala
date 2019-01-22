@@ -6,6 +6,8 @@ import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
 import com.databricks.spark.automatedml.tracking.MLFlowTracker
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.ml.classification._
+import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
@@ -16,12 +18,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String) = {
+  private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String, DataFrame) = {
 
     val (data, fields, modelSelection) = prepData()
 
-    //  TODO: Enable Config for Storage Level Override
-    //  TODO: Implement this for all model types
     val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
     cachedData.count
 
@@ -61,18 +61,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-    cachedData.unpersist()
-
-    (modelResults, modelStats, modelSelection)
+    (modelResults, modelStats, modelSelection, cachedData)
   }
 
-  private def runMLPC(): (Array[MLPCModelsWithResults], DataFrame, String) = {
+  private def runMLPC(): (Array[MLPCModelsWithResults], DataFrame, String, DataFrame) = {
 
     val (data, fields, modelSelection) = prepData()
 
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
     modelSelection match {
       case "classifier" =>
-        val initialize = new MLPCTuner(data)
+        val initialize = new MLPCTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
@@ -109,17 +110,20 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection)
+        (modelResults, modelStats, modelSelection, cachedData)
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type $modelSelection is not supported by MultiLayer Perceptron Classifier")
     }
   }
 
-  private def runGBT(): (Array[GBTModelsWithResults], DataFrame, String) = {
+  private def runGBT(): (Array[GBTModelsWithResults], DataFrame, String, DataFrame) = {
 
     val (data, fields, modelSelection) = prepData()
 
-     val initialize = new GBTreesTuner(data, modelSelection)
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
+     val initialize = new GBTreesTuner(cachedData, modelSelection)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
@@ -156,16 +160,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-    (modelResults, modelStats, modelSelection)
+    (modelResults, modelStats, modelSelection, cachedData)
   }
 
-  private def runLinearRegression(): (Array[LinearRegressionModelsWithResults], DataFrame, String) = {
+  private def runLinearRegression(): (Array[LinearRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
     val (data, fields, modelSelection) = prepData()
 
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
     modelSelection match {
       case "regressor" =>
-        val initialize = new LinearRegressionTuner(data)
+        val initialize = new LinearRegressionTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setLinearRegressionNumericBoundaries(_mainConfig.numericBoundaries)
@@ -203,20 +210,23 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection)
+        (modelResults, modelStats, modelSelection, cachedData)
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type $modelSelection is not supported by Linear Regression")
     }
 
   }
 
-  private def runLogisticRegression(): (Array[LogisticRegressionModelsWithResults], DataFrame,  String) = {
+  private def runLogisticRegression(): (Array[LogisticRegressionModelsWithResults], DataFrame,  String, DataFrame) = {
 
     val (data, fields, modelSelection) = prepData()
 
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
     modelSelection match {
       case "classifier" =>
-        val initialize = new LogisticRegressionTuner(data)
+        val initialize = new LogisticRegressionTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setLogisticRegressionNumericBoundaries(_mainConfig.numericBoundaries)
@@ -253,20 +263,23 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection)
+        (modelResults, modelStats, modelSelection, cachedData)
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type $modelSelection is not supported by Logistic Regression")
     }
 
   }
 
-  private def runSVM(): (Array[SVMModelsWithResults], DataFrame, String) = {
+  private def runSVM(): (Array[SVMModelsWithResults], DataFrame, String, DataFrame) = {
 
     val (data, fields, modelSelection) = prepData()
 
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
     modelSelection match {
       case "classifier" =>
-        val initialize = new SVMTuner(data)
+        val initialize = new SVMTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setSvmNumericBoundaries(_mainConfig.numericBoundaries)
@@ -303,15 +316,18 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection)
+        (modelResults, modelStats, modelSelection, cachedData)
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type $modelSelection is not supported by Support Vector Machines")
     }
   }
 
- private def runTrees(): (Array[TreesModelsWithResults], DataFrame, String) = {
+ private def runTrees(): (Array[TreesModelsWithResults], DataFrame, String, DataFrame) = {
 
    val (data, fields, modelSelection) = prepData()
+
+   val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+   cachedData.count
 
    val initialize = new DecisionTreeTuner(data, modelSelection)
      .setLabelCol(_mainConfig.labelCol)
@@ -350,7 +366,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-   (modelResults, modelStats, modelSelection)
+   (modelResults, modelStats, modelSelection, cachedData)
  }
 
   private def logResultsToMlFlow(runData: Array[GenericModelReturn], modelFamily: String, modelType: String): String = {
@@ -377,7 +393,169 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   }
 
-  def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
+
+  private def executeTuning(): TunerOutput = {
+
+    val genericResults = new ArrayBuffer[GenericModelReturn]
+
+    val (resultArray, modelStats, modelSelection, dataframe) = _mainConfig.modelFamily match {
+      case "RandomForest" =>
+        val (results, stats, selection, data) = runRandomForest()
+        results.foreach{ x=>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
+      case "GBT" =>
+        val (results, stats, selection, data) = runGBT()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
+      case "MLPC" =>
+        val (results, stats, selection, data) = runMLPC()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
+      case "LinearRegression" =>
+        val (results, stats, selection, data) = runLinearRegression()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
+      case "LogisticRegression" =>
+        val (results, stats, selection, data) = runLogisticRegression()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
+      case "SVM" =>
+        val (results, stats, selection, data) = runSVM()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
+      case "Trees" =>
+        val (results, stats, selection, data) = runTrees()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
+    }
+
+    val genericResultData = genericResults.result.toArray
+
+    if(_mainConfig.mlFlowLoggingFlag) {
+      val mlFlowResult = logResultsToMlFlow(genericResultData, _mainConfig.modelFamily, modelSelection)
+      println(mlFlowResult)
+      logger.log(Level.INFO, mlFlowResult)
+    }
+
+    val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
+      _mainConfig.modelFamily, modelSelection)
+
+    new TunerOutput(rawData = dataframe, modelSelection = modelSelection){
+      override def modelReport: Array[GenericModelReturn] = genericResultData
+      override def generationReport: Array[GenerationalReport] = generationalData
+      override def modelReportDataFrame: DataFrame = modelStats
+      override def generationReportDataFrame: DataFrame =
+        generationDataFrameReport(generationalData, _mainConfig.scoringOptimizationStrategy)
+    }
+
+  }
+
+  private def predictFromBestModel(resultPayload: Array[GenericModelReturn], rawData: DataFrame,
+                                   modelSelection: String): DataFrame = {
+
+    val bestModel = resultPayload(0)
+
+    _mainConfig.modelFamily match {
+      case "RandomForest" =>
+        modelSelection match {
+          case "regressor" =>
+            val model = bestModel.model.asInstanceOf[RandomForestRegressionModel]
+            model.transform(rawData)
+          case "classifier" =>
+            val model = bestModel.model.asInstanceOf[RandomForestClassificationModel]
+            model.transform(rawData)
+        }
+      case "GBT" =>
+        modelSelection match {
+          case "regressor" =>
+            val model = bestModel.model.asInstanceOf[GBTRegressionModel]
+            model.transform(rawData)
+          case "classifier" =>
+            val model = bestModel.model.asInstanceOf[GBTClassificationModel]
+            model.transform(rawData)
+        }
+      case "MLPC" =>
+        val model = bestModel.model.asInstanceOf[MultilayerPerceptronClassificationModel]
+        model.transform(rawData)
+      case "LinearRegression" =>
+        val model = bestModel.model.asInstanceOf[LinearRegressionModel]
+        model.transform(rawData)
+      case "LogisticRegression" =>
+        val model = bestModel.model.asInstanceOf[LogisticRegressionModel]
+        model.transform(rawData)
+      case "SVM" =>
+        val model = bestModel.model.asInstanceOf[LinearSVCModel]
+        model.transform(rawData)
+      case "Trees" =>
+        modelSelection match {
+          case "regressor" =>
+            val model = bestModel.model.asInstanceOf[DecisionTreeClassificationModel]
+            model.transform(rawData)
+          case "classifier" =>
+            val model = bestModel.model.asInstanceOf[DecisionTreeRegressionModel]
+            model.transform(rawData)
+        }
+    }
+
+  }
+
+  private def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
 
     val (data, fields, modelType) = prepData()
 
@@ -393,7 +571,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     featureResults
   }
 
-  def runWithFeatureCulling(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame, DataFrame) = {
+  def runWithFeatureCulling(): FeatureImportanceOutput = {
 
     // Get the Feature Importances
 
@@ -408,10 +586,45 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
     dataSubset.unpersist()
 
-    (runResults._1, runResults._2, runResults._3, runResults._4, importanceDF)
+    new FeatureImportanceOutput(importanceDF) {
+      override def modelReport: Array[GenericModelReturn] = runResults.modelReport
+      override def generationReport: Array[GenerationalReport] = runResults.generationReport
+      override def modelReportDataFrame: DataFrame = runResults.modelReportDataFrame
+      override def generationReportDataFrame: DataFrame = runResults.generationReportDataFrame
+    }
+
   }
 
-  def generateDecisionSplits(): (String, DataFrame, Any) = {
+  def runFeatureCullingWithPrediction(): FeatureImportancePredictionOutput = {
+
+    val (modelResults, importanceDF, culledFields) = exploreFeatureImportances()
+
+    val selectableFields = culledFields :+ _mainConfig.labelCol
+
+    val dataSubset = df.select(selectableFields.map(col):_*).persist(StorageLevel.MEMORY_AND_DISK)
+    dataSubset.count
+
+    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning()
+
+    dataSubset.unpersist()
+
+    val predictedData = predictFromBestModel(runResults.modelReport, runResults.rawData, runResults.modelSelection)
+
+    runResults.rawData.unpersist()
+
+    new FeatureImportancePredictionOutput(
+      featureImportances = importanceDF,
+      predictionData = predictedData
+    ) {
+      override def modelReport: Array[GenericModelReturn] = runResults.modelReport
+      override def generationReport: Array[GenerationalReport] = runResults.generationReport
+      override def modelReportDataFrame: DataFrame = runResults.modelReportDataFrame
+      override def generationReportDataFrame: DataFrame = runResults.generationReportDataFrame
+    }
+
+  }
+
+  def generateDecisionSplits(): TreeSplitReport = {
 
     val (data, fields, modelType) = prepData()
 
@@ -419,118 +632,62 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
 
   }
 
-  def run(): (Array[GenericModelReturn], Array[GenerationalReport], DataFrame, DataFrame) = {
+  def run(): AutomationOutput = {
 
-    val genericResults = new ArrayBuffer[GenericModelReturn]
+    val tunerResult = executeTuning()
 
-    val (resultArray, modelStats, modelSelection) = _mainConfig.modelFamily match {
-      case "RandomForest" =>
-        val (results, stats, selection) = runRandomForest()
-        results.foreach{ x=>
-          genericResults += GenericModelReturn(
-            hyperParams = extractPayload(x.modelHyperParams),
-            model = x.model,
-            score = x.score,
-            metrics = x.evalMetrics,
-            generation = x.generation
-          )
-        }
-        (genericResults, stats, selection)
-      case "GBT" =>
-        val (results, stats, selection) = runGBT()
-        results.foreach{x =>
-          genericResults += GenericModelReturn(
-            hyperParams = extractPayload(x.modelHyperParams),
-            model = x.model,
-            score = x.score,
-            metrics = x.evalMetrics,
-            generation = x.generation
-          )
-        }
-        (genericResults, stats, selection)
-      case "MLPC" =>
-        val (results, stats, selection) = runMLPC()
-        results.foreach{x =>
-          genericResults += GenericModelReturn(
-            hyperParams = extractPayload(x.modelHyperParams),
-            model = x.model,
-            score = x.score,
-            metrics = x.evalMetrics,
-            generation = x.generation
-          )
-        }
-        (genericResults, stats, selection)
-      case "LinearRegression" =>
-        val (results, stats, selection) = runLinearRegression()
-        results.foreach{x =>
-          genericResults += GenericModelReturn(
-            hyperParams = extractPayload(x.modelHyperParams),
-            model = x.model,
-            score = x.score,
-            metrics = x.evalMetrics,
-            generation = x.generation
-          )
-        }
-        (genericResults, stats, selection)
-      case "LogisticRegression" =>
-        val (results, stats, selection) = runLogisticRegression()
-        results.foreach{x =>
-          genericResults += GenericModelReturn(
-            hyperParams = extractPayload(x.modelHyperParams),
-            model = x.model,
-            score = x.score,
-            metrics = x.evalMetrics,
-            generation = x.generation
-          )
-        }
-        (genericResults, stats, selection)
-      case "SVM" =>
-        val (results, stats, selection) = runSVM()
-        results.foreach{x =>
-          genericResults += GenericModelReturn(
-            hyperParams = extractPayload(x.modelHyperParams),
-            model = x.model,
-            score = x.score,
-            metrics = x.evalMetrics,
-            generation = x.generation
-          )
-        }
-        (genericResults, stats, selection)
-      case "Trees" =>
-        val (results, stats, selection) = runTrees()
-        results.foreach{x =>
-          genericResults += GenericModelReturn(
-            hyperParams = extractPayload(x.modelHyperParams),
-            model = x.model,
-            score = x.score,
-            metrics = x.evalMetrics,
-            generation = x.generation
-          )
-        }
-        (genericResults, stats, selection)
+    new AutomationOutput {
+      override def modelReport: Array[GenericModelReturn] = tunerResult.modelReport
+      override def generationReport: Array[GenerationalReport] = tunerResult.generationReport
+      override def modelReportDataFrame: DataFrame = tunerResult.modelReportDataFrame
+      override def generationReportDataFrame: DataFrame = tunerResult.generationReportDataFrame
     }
+//
+//    AutomationOutput(
+//      modelReport = tunerResult.modelReport,
+//      generationReport = tunerResult.generationReport,
+//      modelReportDataFrame = tunerResult.modelReportDataFrame,
+//      generationReportDataFrame = tunerResult.generationReportDataFrame
+//    )
 
-    val genericResultData = genericResults.result.toArray
-
-    if(_mainConfig.mlFlowLoggingFlag) {
-      val mlFlowResult = logResultsToMlFlow(genericResultData, _mainConfig.modelFamily, modelSelection)
-      println(mlFlowResult)
-      logger.log(Level.INFO, mlFlowResult)
-    }
-
-    val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
-      _mainConfig.modelFamily, modelSelection)
-
-    //TODO: return the transformed data set
-
-    //TODO: return a pipeline object that will allow for transforming the original data set to mimic the model's
-    // expected input.
-
-  (genericResultData, generationalData, modelStats, generationDataFrameReport(generationalData,
-    _mainConfig.scoringOptimizationStrategy))
   }
 
+  def runWithPrediction(): PredictionOutput = {
 
+    val tunerResult = executeTuning()
+
+    val predictedData = predictFromBestModel(tunerResult.modelReport, tunerResult.rawData, tunerResult.modelSelection)
+
+    tunerResult.rawData.unpersist()
+
+    new PredictionOutput(dataWithPredictions = predictedData) {
+      override def modelReport: Array[GenericModelReturn] = tunerResult.modelReport
+      override def generationReport: Array[GenerationalReport] = tunerResult.generationReport
+      override def modelReportDataFrame: DataFrame = tunerResult.modelReportDataFrame
+      override def generationReportDataFrame: DataFrame = tunerResult.generationReportDataFrame
+    }
+
+  }
+
+ def runWithConfusionReport(): ConfusionOutput = {
+   val predictionPayload = runWithPrediction()
+
+   val confusionData = predictionPayload.dataWithPredictions
+     .select("prediction", _labelCol)
+     .groupBy("prediction", _labelCol)
+     .agg(count("*").alias("count"))
+
+   new ConfusionOutput(
+     predictionData = predictionPayload.dataWithPredictions,
+     confusionData = confusionData
+   ) {
+     override def modelReport: Array[GenericModelReturn] = predictionPayload.modelReport
+     override def generationReport: Array[GenerationalReport] = predictionPayload.generationReport
+     override def modelReportDataFrame: DataFrame = predictionPayload.modelReportDataFrame
+     override def generationReportDataFrame: DataFrame = predictionPayload.generationReportDataFrame
+   }
+
+ }
 
 
 
