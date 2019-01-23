@@ -76,4 +76,5 @@ class VarianceFiltering(data: DataFrame) {
     (data.select(finalFields map col:_*), removedColumns.toArray)
 
   }
+
 }
