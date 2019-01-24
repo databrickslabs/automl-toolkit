@@ -22,6 +22,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _covarianceFilterFlag: Boolean = _defaultCovarianceFilterFlag
 
+  var _oneHotEncodeFlag: Boolean = _defaultOneHotEncodeFlag
+
   var _scalingFlag: Boolean = _defaultScalingFlag
 
   var _numericBoundaries: Map[String, (Double, Double)] = _rfDefaultNumBoundaries
@@ -270,6 +272,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def covarianceFilterOff(): this.type = {
     _covarianceFilterFlag = false
+    setConfigs()
+    this
+  }
+
+  def oneHotEncodingOn(): this.type = {
+    _oneHotEncodeFlag = true
+    setConfigs()
+    this
+  }
+
+  def oneHotEncodingOff(): this.type = {
+    _oneHotEncodeFlag = false
     setConfigs()
     this
   }
@@ -873,6 +887,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       outlierFilterFlag = _outlierFilterFlag,
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
+      oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
@@ -912,6 +927,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       outlierFilterFlag = _outlierFilterFlag,
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
+      oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
@@ -954,6 +970,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       outlierFilterFlag = _outlierFilterFlag,
       pearsonFilteringFlag = _pearsonFilterFlag,
       covarianceFilteringFlag = _covarianceFilterFlag,
+      oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
@@ -1001,6 +1018,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getPearsonFilterStatus: Boolean = _pearsonFilterFlag
 
   def getCovarianceFilterStatus: Boolean = _covarianceFilterFlag
+
+  def getOneHotEncodingStatus: Boolean = _oneHotEncodeFlag
+
+  def getScalingStatus: Boolean = _scalingFlag
 
   def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
 

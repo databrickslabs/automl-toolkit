@@ -2,7 +2,7 @@ name := "AutomatedML"
 
 organization := "com.databricks"
 
-version := "0.4.1"
+version := "0.4.3"
 
 scalaVersion := "2.11.12"
 

@@ -1,8 +1,9 @@
 package com.databricks.spark.automatedml.pipeline
 
 import com.databricks.spark.automatedml.utils.DataValidation
-import org.apache.log4j.{Logger, Level}
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -41,7 +42,6 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
 
   def getDateTimeConversionType: String = _dateTimeConversionType
 
-  //TODO: allow for restricted fields to not be included in the featurization vector.
   def makeFeaturePipeline(ignoreList: Array[String]): (DataFrame, Array[String], Array[String]) = {
 
     val dfSchema = data.schema
@@ -74,7 +74,6 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
     val fieldsToInclude = assembledColumns ++ Array(_featureCol, _labelCol) ++ ignoreList
 
     //DEBUG
-//    println(s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")
     logger.log(Level.DEBUG, s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")
 
     val transformedData = createPipe.fit(dateTimeModData).transform(dateTimeModData).select(fieldsToInclude map col:_*)
@@ -83,5 +82,62 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
 
   }
 
+  def applyOneHotEncoding(featureColumns: Array[String], totalFields: Array[String]):
+  (DataFrame, Array[String], Array[String]) = {
+
+    // From the featureColumns collection, get the string indexed fields.
+    val stringIndexedFields = featureColumns.filter(x => x.takeRight(3) == "_si")
+
+    // Get the fields that are not String Indexed.
+    val remainingFeatureFields = featureColumns.filterNot(x => x.takeRight(3) == "_si")
+
+    // Drop the feature field that has already been created.
+    val adjustedData = if (data.schema.fieldNames.contains(_featureCol)) data.drop(_featureCol) else data
+
+    // One hot encode the StringIndexed fields, if present and generate the feature vector.
+    val (outputData, featureFields) = if(stringIndexedFields.length > 0){
+
+      val (encoder, encodedColumns) = oneHotEncodeStrings(stringIndexedFields.toList)
+
+      val fullFeatureColumns = remainingFeatureFields ++ encodedColumns
+
+      val assembler = new VectorAssembler()
+        .setInputCols(fullFeatureColumns)
+        .setOutputCol(_featureCol)
+
+      val pipe = new Pipeline()
+        .setStages(Array(encoder) :+ assembler)
+
+      val transformedData = pipe.fit(adjustedData).transform(adjustedData)
+
+      (transformedData, fullFeatureColumns)
+
+    } else {
+
+      val assembler = new VectorAssembler()
+        .setInputCols(featureColumns)
+        .setOutputCol(_featureCol)
+
+      val pipe = new Pipeline()
+        .setStages(Array(assembler))
+
+      val transformedData = pipe.fit(adjustedData).transform(adjustedData)
+
+      (transformedData, featureColumns)
+
+    }
+
+    val fullFinalSchema = outputData.schema.fieldNames.diff(stringIndexedFields)
+
+    val dataReturn = outputData.select(fullFinalSchema map col:_*)
+
+    val dataSchema = fullFinalSchema.filterNot(_.contains(_featureCol))
+
+    //DEBUG
+    logger.log(Level.DEBUG, s" Post OneHotEncoding Fields: ${fullFinalSchema.mkString(", ")}")
+
+    (dataReturn, featureFields, dataSchema)
+
+  }
 
 }

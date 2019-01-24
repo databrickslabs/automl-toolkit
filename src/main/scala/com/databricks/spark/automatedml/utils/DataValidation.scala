@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.utils
 
-import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import org.apache.spark.ml.feature.{OneHotEncoderEstimator, StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{DataType, StructType}
 import org.apache.spark.sql.functions._
@@ -62,6 +62,24 @@ trait DataValidation {
     vectorizableFields -= labelColumn
 
     (vectorizableFields.result, conversionFields.result, dateFields.result, timeFields.result)
+
+  }
+
+  def oneHotEncodeStrings(stringIndexedFields: List[String]): (OneHotEncoderEstimator, Array[String]) = {
+
+    var encodedColumns = new ListBuffer[String]
+    var oneHotEncoders = new ListBuffer[OneHotEncoderEstimator]
+
+    stringIndexedFields.foreach { x =>
+      encodedColumns += x.dropRight(3) + "_oh"
+    }
+
+    val oneHotEncodeObj = new OneHotEncoderEstimator()
+        .setHandleInvalid("keep")
+        .setInputCols(stringIndexedFields.toArray)
+        .setOutputCols(encodedColumns.result.toArray)
+
+    (oneHotEncodeObj, encodedColumns.result.toArray)
 
   }
 

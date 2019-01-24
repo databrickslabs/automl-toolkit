@@ -9,6 +9,7 @@ case class MainConfig(
                        outlierFilterFlag: Boolean,
                        pearsonFilteringFlag: Boolean,
                        covarianceFilteringFlag: Boolean,
+                       oneHotEncodeFlag: Boolean,
                        scalingFlag: Boolean,
                        autoStoppingFlag: Boolean,
                        autoStoppingScore: Double,
