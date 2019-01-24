@@ -86,7 +86,7 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
   }
 
 private def outlierFilterConstructor(data: DataFrame, codeGen: String): OutlierFilterConstructor = {
-  
+
 }
 
   /** OutlierFiltering */
