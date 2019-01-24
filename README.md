@@ -143,6 +143,8 @@ val automationConf = new AutomationRunner(myData)
   .setNumberOfParentsToRetain(2)
   .setGeneticMixing(0.6)
   .pearsonFilterOff()
+  .scalingOn()
+  .oneHotEncodingOn()
   .mlFlowLoggingOff()
   .setFeatureImportanceCutoffType("count")
   .setFeatureImportanceCutoffValue(0.2)
@@ -169,6 +171,7 @@ case class MainConfig(
                        outlierFilterFlag: Boolean,
                        pearsonFilteringFlag: Boolean,
                        covarianceFilteringFlag: Boolean,
+                       oneHotEncodeFlag: Boolean,
                        scalingFlag: Boolean,
                        autoStoppingFlag: Boolean,
                        autoStoppingScore: Double,
@@ -267,6 +270,7 @@ val defaultSettings = MainConfig(
                           outlierFilterFlag = false,
                           pearsonFilteringFlag = false,
                           covarianceFilteringFlag = false,
+                          oneHotEncodeFlag = false,
                           scalingFlag = false,
                           autoStoppingFlag = true,
                           autoStoppingScore = 0.95,
@@ -374,6 +378,7 @@ val fullConfig = new AutomationRunner(myData)
     .outlierFilterOff()                 // alternative: .outlierFilterOn()
     .pearsonFilterOff()                 // alternative: .pearsonFilterOn()
     .covarianceFilterOn()               // alternative: .covarianceFilterOff()
+    .oneHotEncodingOn()                 // alternative: .oneHotEncodingOff()
     .scalingOn()                        // alternative: .scalingOff()
     .setStandardScalerMeanFlagOff()     // alternative: .setStandardScalerMeanFlagOn()
     .setStandardScalerStdDevFlagOff()   // alternative: .setStandardScalerMeanFlagOn()  
@@ -885,6 +890,22 @@ allowable range: 0.0 > x > 1.0
 
 When in "auto" mode, this will reduce the feature vector by 75% of its total size, retaining only the 25% most 
 important predictive-power features of the vector.
+
+### OneHotEncoding 
+```text
+Default: OFF
+Turned on via setter .oneHotEncodingOn()
+```
+Useful for all non-tree-based models (e.g. LinearRegression) for converting categorical features into a vector boolean 
+space.
+
+Details: [OneHotEncoderEstimator](http://spark.apache.org/docs/latest/ml-features.html#onehotencoderestimator)
+
+Implementation here follows the general recommendation: Categorical (text) fields will be StringIndexed first, then 
+OneHotEncoded.
+
+> There are no options for this setting.  It either encodes the categorical features, or leaves them StringIndexed.
+
 
 ### Scaling
 

@@ -103,7 +103,7 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       val maxIter = generateRandomInteger("maxIter", _logisticRegressionNumericBoundaries)
       val regParam = generateRandomDouble("regParam", _logisticRegressionNumericBoundaries)
       val standardization = coinFlip()
-      val tolerance = generateRandomDouble("tolerance", _logisticRegressionNumericBoundaries)
+      val tolerance = generateRandomDouble("tol", _logisticRegressionNumericBoundaries)
       iterations += LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter, regParam, standardization,
         tolerance)
       i += 1
