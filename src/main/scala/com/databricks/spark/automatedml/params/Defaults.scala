@@ -34,6 +34,8 @@ trait Defaults {
 
   def _defaultCovarianceFilterFlag: Boolean = false
 
+  def _defaultOneHotEncodeFlag: Boolean = false
+
   def _defaultScalingFlag: Boolean = false
 
   def _defaultDateTimeConversionType: String = "split"
@@ -224,6 +226,7 @@ trait Defaults {
     outlierFilterFlag = false,
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
+    oneHotEncodeFlag = false,
     scalingFlag = false,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
@@ -255,6 +258,7 @@ trait Defaults {
     outlierFilterFlag = false,
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
+    oneHotEncodeFlag = false,
     scalingFlag = false,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
@@ -310,6 +314,7 @@ trait Defaults {
     outlierFilterFlag = false,
     pearsonFilteringFlag = false,
     covarianceFilteringFlag = false,
+    oneHotEncodeFlag = false,
     scalingFlag = false,
     dateTimeConversionType = "split",
     autoStoppingFlag = _defaultAutoStoppingFlag,

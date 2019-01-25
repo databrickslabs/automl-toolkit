@@ -20,6 +20,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       s"\n Outlier Filter Flag: ${_mainConfig.outlierFilterFlag.toString}" +
       s"\n Covariance Filter Flag: ${_mainConfig.covarianceFilteringFlag.toString}" +
       s"\n Pearson Filter Flag: ${_mainConfig.pearsonFilteringFlag.toString}" +
+      s"\n OneHotEncoding Flag: ${_mainConfig.oneHotEncodeFlag.toString}" +
       s"\n Scaling Flag: ${_mainConfig.scalingFlag.toString}" +
       s"\n MlFlow Logging Flag: ${_mainConfig.mlFlowLoggingFlag.toString}" +
       s"\n Early Stopping Flag: ${_mainConfig.autoStoppingFlag.toString}"
@@ -38,6 +39,16 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setFeatureCol(_mainConfig.featuresCol)
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
       .makeFeaturePipeline(_mainConfig.fieldsToIgnoreInVector)
+
+  }
+
+  private def oneHotEncodeVector(data: DataFrame, featureColumns: Array[String], totalFields: Array[String]):
+  (DataFrame, Array[String], Array[String]) = {
+
+    new FeaturePipeline(data)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeatureCol(_mainConfig.featuresCol)
+      .applyOneHotEncoding(featureColumns, totalFields)
 
   }
 
@@ -192,7 +203,6 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   def prepData(): (DataFrame, Array[String], String) = {
 
-
     //TODO: add in a verbosity toggle to print / log certain elements
     // TODO: should have "full logging", "standard logging" and "log4j only"
 
@@ -214,7 +224,6 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     //DEBUG
     logger.log(Level.DEBUG, printSchema(df, "input").toString)
 
-
     // Start by converting fields
     val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
 
@@ -226,7 +235,6 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val entryPointDataRestrict = entryPointDf.select(selectFields map col:_*)
 
-
     // this ignores the fieldsToIgnore and reparses the date and time fields.  FIXED.
     val (dataStage1, detectedModelType) = fillNA(entryPointDataRestrict)
 
@@ -234,8 +242,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val (persistDataStage1, dataStage1RowCount) = dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
 
     // TODO: add logging flag switch for this
-    println(dataStage1RowCount)
-    logger.log(Level.INFO, dataStage1RowCount)
+    if(_mainConfig.naFillFlag) {
+      println(dataStage1RowCount)
+      logger.log(Level.INFO, dataStage1RowCount)
+    }
 
     //DEBUG
     logger.log(Level.DEBUG, printSchema(dataStage1, "stage1").toString)
@@ -246,11 +256,12 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val (persistDataStage2, dataStage2RowCount) = dataPersist(persistDataStage1, dataStage2, cacheLevel, unpersistBlock)
 
-    println(dataStage2RowCount)
-    logger.log(Level.INFO, dataStage2RowCount)
+    if(_mainConfig.varianceFilterFlag) {
+      println(dataStage2RowCount)
+      logger.log(Level.INFO, dataStage2RowCount)
+    }
 
     //DEBUG
-
     logger.log(Level.DEBUG, printSchema(dataStage2, "stage2").toString)
 
     // Outlier Filtering
@@ -258,11 +269,12 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val (persistDataStage3, dataStage3RowCount) = dataPersist(persistDataStage2, dataStage3, cacheLevel, unpersistBlock)
 
-    println(dataStage2RowCount)
-    logger.log(Level.INFO, dataStage3RowCount)
+    if(_mainConfig.outlierFilterFlag) {
+      println(dataStage2RowCount)
+      logger.log(Level.INFO, dataStage3RowCount)
+    }
 
     //DEBUG
-
     logger.log(Level.DEBUG, printSchema(dataStage3, "stage3").toString)
 
     // Next stages require a feature vector
@@ -275,11 +287,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val (persistFeaturizedDataCleaned, featurizedDataCleanedRowCount) = dataPersist(persistDataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
 
-    println(featurizedDataCleanedRowCount)
-    logger.log(Level.INFO, featurizedDataCleanedRowCount)
-
     //DEBUG
-
     logger.log(Level.DEBUG, printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString)
 
     // Covariance Filtering
@@ -289,9 +297,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val (persistDataStage4, dataStage4RowCount) = dataPersist(persistFeaturizedDataCleaned, dataStage4, cacheLevel, unpersistBlock)
 
-    println(dataStage4RowCount)
-    logger.log(Level.INFO, dataStage4RowCount)
-
+    if(_mainConfig.covarianceFilteringFlag) {
+      println(dataStage4RowCount)
+      logger.log(Level.INFO, dataStage4RowCount)
+    }
     //DEBUG
 
     logger.log(Level.DEBUG, printSchema(dataStage4, "stage4").toString)
@@ -301,13 +310,6 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val (persistDataStage5, dataStage5RowCount) = dataPersist(persistDataStage4, dataStage5, cacheLevel, unpersistBlock)
 
-    println(dataStage5RowCount)
-    logger.log(Level.INFO, dataStage5RowCount)
-
-    //DEBUG
-
-    logger.log(Level.DEBUG, printSchema(dataStage5, "stage5").toString)
-
     // Pearson Filtering (generates a vector features Field)
     val (dataStage6, stage6Fields, stage6FullFields) = if (_mainConfig.pearsonFilteringFlag) {
       vectorPipeline(pearsonFilter(persistDataStage5, stage5Fields))
@@ -316,31 +318,35 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     //DEBUG
     logger.log(Level.DEBUG, printSchema(dataStage6, "stage6").toString)
 
+    // OneHotEncoding Option
+    val (dataStage65, stage65Fields, stage65FullFields) = if(_mainConfig.oneHotEncodeFlag) {
+      oneHotEncodeVector(dataStage6, stage6Fields, stage6FullFields)
+    } else (dataStage6, stage6Fields, stage6FullFields)
+
+    //DEBUG
+    logger.log(Level.DEBUG, printSchema(dataStage65, "stage65").toString)
+
     // Scaler
-    val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage6) else dataStage6
+    val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage65) else dataStage65
 
     val (persistDataStage7, dataStage7RowCount) = dataPersist(persistDataStage5, dataStage7, cacheLevel, unpersistBlock)
 
-    println(dataStage7RowCount)
-    logger.log(Level.INFO, dataStage7RowCount)
+    if(_mainConfig.scalingFlag) {
+      println(dataStage7RowCount)
+      logger.log(Level.INFO, dataStage7RowCount)
+    }
 
-    // This is making a mess in the output. Commenting out for now.
-    // TODO: Determine if schema getter is necessary outside of logging
-    val finalSchema = s"Final Schema: \n    ${stage6Fields.mkString(", ")}"
-    val finalFullSchema = s"Final Full Schema: \n    ${stage6FullFields.mkString(", ")}"
-
-    logger.log(Level.INFO, finalSchema)
-//    println(finalSchema)
-
-    logger.log(Level.INFO, finalFullSchema)
-//    println(finalFullSchema)
+    val finalSchema = s"Final Schema: \n    ${stage65Fields.mkString(", ")}"
+    val finalFullSchema = s"Final Full Schema: \n    ${stage65FullFields.mkString(", ")}"
 
     val finalStatement = s"Data Prep complete.  Final Dataframe cached."
-
+    // DEBUG
+    logger.log(Level.INFO, finalSchema)
+    logger.log(Level.INFO, finalFullSchema)
     logger.log(Level.INFO, finalStatement)
     println(finalStatement)
 
-    (persistDataStage7, stage6Fields, detectedModelType)
+    (persistDataStage7, stage65Fields, detectedModelType)
 
   }
 
