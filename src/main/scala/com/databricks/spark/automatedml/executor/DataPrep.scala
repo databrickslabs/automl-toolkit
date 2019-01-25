@@ -227,11 +227,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Start by converting fields
     val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
 
-    // up to here behaves correctly.
-
     logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
-
-    //val restrictFields = entryPointFields ++ List(_mainConfig.labelCol)
 
     val entryPointDataRestrict = entryPointDf.select(selectFields map col:_*)
 
