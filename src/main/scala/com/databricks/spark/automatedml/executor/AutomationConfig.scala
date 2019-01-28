@@ -742,7 +742,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _mlFlowConfig = MLFlowConfig(
       mlFlowTrackingURI = _mlFlowTrackingURI,
       mlFlowExperimentName = _mlFlowExperimentName,
-      mlFlowAPIToken = _mlFlowTrackingURI,
+      mlFlowAPIToken = _mlFlowAPIToken,
       mlFlowModelSaveDirectory = _mlFlowModelSaveDirectory
     )
     this

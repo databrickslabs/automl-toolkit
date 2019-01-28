@@ -13,9 +13,9 @@ case class InferenceSwitchSettings(
                                   )
 
 case class InferenceDataConfig(
-                                 labelCol: String,
-                                 featuresCol: String
-                               )
+                                labelCol: String,
+                                featuresCol: String
+                              )
 
 case class InferenceModelConfig(
                                  modelFamily: String,
@@ -57,8 +57,8 @@ case class FeatureEngineeringConfig(
                                    )
 
 case class InferenceMainConfig(
-                            inferenceDataConfig: InferenceDataConfig,
-                            inferenceSwitchSettings: InferenceSwitchSettings,
-                            inferenceModelConfig: InferenceModelConfig,
-                            featureEngineeringConfig: FeatureEngineeringConfig
-                          )
+                                inferenceDataConfig: InferenceDataConfig,
+                                inferenceSwitchSettings: InferenceSwitchSettings,
+                                inferenceModelConfig: InferenceModelConfig,
+                                featureEngineeringConfig: FeatureEngineeringConfig
+                              )
