@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.sanitize
 
-import com.databricks.spark.automatedml.inference.{NAFillInference, NAFillMaps}
+import com.databricks.spark.automatedml.inference.NaFillConfig
 import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.ml.feature.StringIndexer
@@ -179,7 +179,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     summaryColumns.zip(summaryValues)
   }
 
-  private def fillMissing(df: DataFrame): NAFillMaps = {
+  private def fillMissing(df: DataFrame): NaFillConfig = {
 
     val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
 
@@ -211,10 +211,10 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val characterMapping = characterFilterBuffer.toArray.toMap
 
-    new NAFillMaps {
-      override def numericFillMap: Map[String, Double] = numericMapping
-      override def characterFillMap: Map[String, String] = characterMapping
-    }
+    NaFillConfig(
+      numericColumns = numericMapping,
+      categoricalColumns = characterMapping
+    )
 
   }
 
@@ -229,29 +229,15 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     decision
   }
 
-  def generateCleanData(): (DataFrame, String) = {
+  def generateCleanData(): (DataFrame, NaFillConfig, String) = {
 
     val preFilter = refactorLabel(data, _labelCol)
 
     val fillMap = fillMissing(preFilter)
-    val filledData = preFilter.na.fill(fillMap.numericFillMap).na.fill(fillMap.characterFillMap)
+    val filledData = preFilter.na.fill(fillMap.numericColumns).na.fill(fillMap.categoricalColumns)
 
-    (filledData, decideModel())
+    (filledData, fillMap, decideModel())
 
-  }
-
-  def generateNAFillConditions(): NAFillInference = {
-
-    val preFilter = refactorLabel(data, _labelCol)
-
-    val fillMap = fillMissing(preFilter)
-
-    val filledData = preFilter.na.fill(fillMap.numericFillMap).na.fill(fillMap.characterFillMap)
-
-    new NAFillInference(_labelValidation, filledData) {
-      override def numericFillMap: Map[String, Double] = fillMap.numericFillMap
-      override def characterFillMap: Map[String, String] = fillMap.characterFillMap
-    }
   }
 
 }

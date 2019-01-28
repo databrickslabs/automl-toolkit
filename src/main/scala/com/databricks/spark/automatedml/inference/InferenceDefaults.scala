@@ -17,7 +17,10 @@ trait InferenceDefaults extends Defaults {
 
   def _defaultInferenceDataConfig: InferenceDataConfig = InferenceDataConfig(
     labelCol = "label",
-    featuresCol = "features"
+    featuresCol = "features",
+    startingColumns = Array.empty[String],
+    fieldsToIgnore = Array.empty[String],
+    dateTimeConversionType = "split"
   )
 
   def _defaultInferenceModelConfig: InferenceModelConfig = InferenceModelConfig(
@@ -63,7 +66,8 @@ trait InferenceDefaults extends Defaults {
     inferenceDataConfig = _defaultInferenceDataConfig,
     inferenceSwitchSettings = _defaultInferenceSwitchSettings,
     inferenceModelConfig = _defaultInferenceModelConfig,
-    featureEngineeringConfig = _defaultFeatureEngineeringConfig
+    featureEngineeringConfig = _defaultFeatureEngineeringConfig,
+    inferenceConfigStorageLocation = ""
   )
 
 }

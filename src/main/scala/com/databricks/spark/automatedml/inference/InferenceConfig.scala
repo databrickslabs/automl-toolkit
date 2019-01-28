@@ -7,9 +7,13 @@ trait InferenceConfig extends InferenceDefaults {
   final val allowableModelLoads: Array[String] = Array("path", "mlflow")
   final val allowableOutlierFilteringDirections: Array[String] = Array("greater", "lesser")
 
+  var _inferenceConfigStorageLocation: String = ""
   var _inferenceDataConfig: InferenceDataConfig = _defaultInferenceDataConfig
   var _inferenceDataConfigLabelCol: String = _defaultInferenceDataConfig.labelCol
   var _inferenceDataConfigFeaturesCol: String = _defaultInferenceDataConfig.featuresCol
+  var _inferenceDataConfigStartingColumns: Array[String] = _defaultInferenceDataConfig.startingColumns
+  var _inferenceDataConfigFieldsToIgnore: Array[String] = _defaultInferenceDataConfig.fieldsToIgnore
+  var _inferenceDataConfigDateTimeConversionType: String = _defaultInferenceDataConfig.dateTimeConversionType
   var _inferenceSwitchSettings: InferenceSwitchSettings = _defaultInferenceSwitchSettings
   var _inferenceModelConfig: InferenceModelConfig = _defaultInferenceModelConfig
   var _featureEngineeringConfig: FeatureEngineeringConfig = _defaultFeatureEngineeringConfig
@@ -37,6 +41,11 @@ trait InferenceConfig extends InferenceDefaults {
   var _inferenceStandardScalerStdDevFlag: Boolean = _scalingConfigDefaults.standardScalerStdDevFlag
   var _inferenceScalerPNorm: Double = _scalingConfigDefaults.pNorm
 
+  def setInferenceConfigStorageLocation(value: String): this.type = {
+    _inferenceConfigStorageLocation = value
+    setInferenceConfig()
+    this
+  }
 
   def setInferenceConfig(value: InferenceMainConfig): this.type = {
     _inferenceConfig = value
@@ -48,7 +57,8 @@ trait InferenceConfig extends InferenceDefaults {
       inferenceDataConfig = _inferenceDataConfig,
       inferenceSwitchSettings = _inferenceSwitchSettings,
       inferenceModelConfig = _inferenceModelConfig,
-      featureEngineeringConfig = _featureEngineeringConfig
+      featureEngineeringConfig = _featureEngineeringConfig,
+      inferenceConfigStorageLocation = _inferenceConfigStorageLocation
     )
     this
   }
@@ -67,7 +77,10 @@ trait InferenceConfig extends InferenceDefaults {
   private def setInferenceDataConfig(): this.type = {
     _inferenceDataConfig = InferenceDataConfig(
       labelCol = _inferenceDataConfigLabelCol,
-      featuresCol = _inferenceDataConfigFeaturesCol
+      featuresCol = _inferenceDataConfigFeaturesCol,
+      startingColumns = _inferenceDataConfigStartingColumns,
+      fieldsToIgnore = _inferenceDataConfigFieldsToIgnore,
+      dateTimeConversionType = _inferenceDataConfigDateTimeConversionType
     )
     setInferenceConfig()
     this
@@ -84,6 +97,26 @@ trait InferenceConfig extends InferenceDefaults {
     setInferenceDataConfig()
     this
   }
+
+  def setInferenceDataConfigStartingColumns(value: Array[String]): this.type = {
+    _inferenceDataConfigStartingColumns = value
+    setInferenceDataConfig()
+    this
+  }
+
+  def setInferenceDataConfigFieldsToIgnore(value: Array[String]): this.type = {
+    _inferenceDataConfigFieldsToIgnore = value
+    setInferenceDataConfig()
+    this
+  }
+
+  def setInferenceDataConfigDateTimeConversionType(value: String): this.type = {
+    _inferenceDataConfigDateTimeConversionType = value
+    setInferenceDataConfig()
+    this
+  }
+
+
 
   def setInferenceModelConfig(value: InferenceModelConfig): this.type = {
     _inferenceModelConfig = value
@@ -305,6 +338,7 @@ trait InferenceConfig extends InferenceDefaults {
     this
   }
 
+  def getInferenceConfigStorageLocation: String = _inferenceConfigStorageLocation
 
   def getInferenceConfig: InferenceMainConfig = _inferenceConfig
 
@@ -315,6 +349,12 @@ trait InferenceConfig extends InferenceDefaults {
   def getInferenceDataConfigLabelCol: String = _inferenceDataConfigLabelCol
 
   def getInferenceDataConfigFeaturesCol: String = _inferenceDataConfigFeaturesCol
+
+  def getInferenceDataConfigStartingColumns: Array[String] = _inferenceDataConfigStartingColumns
+
+  def getInferenceDataConfigFieldsToIgnore: Array[String] = _inferenceDataConfigFieldsToIgnore
+
+  def getInferenceDataConfigDateTimeConversionType: String = _inferenceDataConfigDateTimeConversionType
 
   def getInferenceModelConfig: InferenceModelConfig = _inferenceModelConfig
 

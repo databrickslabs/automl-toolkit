@@ -1,5 +1,6 @@
 package com.databricks.spark.automatedml.executor
 
+import com.databricks.spark.automatedml.inference.{InferenceConfig, NaFillConfig}
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize._
 import com.databricks.spark.automatedml.utils.AutomationTools
@@ -8,7 +9,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 
-class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
+class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with InferenceConfig{
 
   //    TODO: parallelism config for non genetic parallel control should be added
   private val logger: Logger = Logger.getLogger(this.getClass)
@@ -52,7 +53,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
-  private def fillNA(data: DataFrame): (DataFrame, String) = {
+  private def fillNA(data: DataFrame): (DataFrame, NaFillConfig, String) = {
 
     // Output has no feature vector
 
@@ -65,10 +66,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setFieldsToIgnoreInVector(_mainConfig.fieldsToIgnoreInVector)
 
-    val (naFilledDataFrame, detectedModelType) = if (_mainConfig.naFillFlag) {
+    val (naFilledDataFrame, fillMap, detectedModelType) = if (_mainConfig.naFillFlag) {
       naConfig.generateCleanData()
     } else {
-      (data, naConfig.decideModel())
+      (data, NaFillConfig(Map("" -> ""), Map("" -> 0.0)), naConfig.decideModel())
     }
 
     val naLog: String = if (_mainConfig.naFillFlag) {
@@ -80,7 +81,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     logger.log(Level.INFO, naLog)
     println(naLog)
 
-    (naFilledDataFrame, detectedModelType)
+    (naFilledDataFrame, fillMap, detectedModelType)
 
   }
 
@@ -227,12 +228,19 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Start by converting fields
     val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
 
+    // Log schema information
+    setInferenceDataConfigStartingColumns(selectFields)
+    setInferenceDataConfigFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
+
     logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
 
     val entryPointDataRestrict = entryPointDf.select(selectFields map col:_*)
 
-    // this ignores the fieldsToIgnore and reparses the date and time fields.  FIXED.
-    val (dataStage1, detectedModelType) = fillNA(entryPointDataRestrict)
+    // this ignores the fieldsToIgnore and reparses the date and time fields.
+    val (dataStage1, fillMap, detectedModelType) = fillNA(entryPointDataRestrict)
+
+    // Log the NaFill conditions
+    setInferenceNaFillConfig(fillMap.categoricalColumns, fillMap.numericColumns)
 
     // uncache the main DataFrame, force the GC
     val (persistDataStage1, dataStage1RowCount) = dataPersist(df, dataStage1, cacheLevel, unpersistBlock)

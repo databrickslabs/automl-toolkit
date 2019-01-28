@@ -1,6 +1,7 @@
 package com.databricks.spark.automatedml.inference
 
 import com.databricks.spark.automatedml.params.{MLFlowConfig, ScalingConfig}
+import org.apache.spark.sql.DataFrame
 
 case class InferenceSwitchSettings(
                                     naFillFlag: Boolean,
@@ -14,7 +15,10 @@ case class InferenceSwitchSettings(
 
 case class InferenceDataConfig(
                                 labelCol: String,
-                                featuresCol: String
+                                featuresCol: String,
+                                startingColumns: Array[String],
+                                fieldsToIgnore: Array[String],
+                                dateTimeConversionType: String
                               )
 
 case class InferenceModelConfig(
@@ -60,5 +64,15 @@ case class InferenceMainConfig(
                                 inferenceDataConfig: InferenceDataConfig,
                                 inferenceSwitchSettings: InferenceSwitchSettings,
                                 inferenceModelConfig: InferenceModelConfig,
-                                featureEngineeringConfig: FeatureEngineeringConfig
+                                featureEngineeringConfig: FeatureEngineeringConfig,
+                                inferenceConfigStorageLocation: String
                               )
+
+
+trait InferenceBaseConstructor{
+  def data: DataFrame
+  def modelingColumns: Array[String]
+  def allColumns: Array[String]
+}
+
+abstract case class InferencePayload() extends InferenceBaseConstructor
