@@ -1,14 +1,14 @@
 package com.databricks.spark.automatedml.reports
 
 import com.databricks.spark.automatedml.model.DecisionTreeTuner
-import com.databricks.spark.automatedml.params.MainConfig
+import com.databricks.spark.automatedml.params.{MainConfig, TreeSplitReport}
 import org.apache.spark.ml.classification.DecisionTreeClassificationModel
 import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 import org.apache.spark.sql.DataFrame
 
 class DecisionTreeSplits(data: DataFrame, featConfig: MainConfig, modelType: String) extends ReportingTools {
 
-  def runTreeSplitAnalysis(fields: Array[String]): (String, DataFrame, Any) = {
+  def runTreeSplitAnalysis(fields: Array[String]): TreeSplitReport = {
 
     val indexedFields = cleanupFieldArray(fields.zipWithIndex)
 
@@ -57,7 +57,7 @@ class DecisionTreeSplits(data: DataFrame, featConfig: MainConfig, modelType: Str
 
     val mappedModelString = generateDecisionTextReport(treeModelString, indexedFields)
 
-    (mappedModelString,  importances, treeModelBest)
+    TreeSplitReport(mappedModelString,  importances, treeModelBest)
 
 
   }

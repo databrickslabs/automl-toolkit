@@ -58,6 +58,60 @@ These elements are:
 NOTE: If using MLFlow integration, all of this data, in raw format, will be recorded and stored automatically.
 ```
 
+## Alternate Main Accessor Methods
+
+### `.runWithFeatureCulling()`
+
+This method will run a RandomForest Model initially, extract the feature importances, and, depending on the culling 
+settings (discussed below in this guide), will filter fields that do not meet the required threshold.  It will then 
+build the model family type specified in the class instantiation and return the same elements of `.run()`.
+
+### `.runFeatureCullingWithPrediction()`
+
+This method, similar to the one above, will run feature culling, but in addition, the output payload will also have an
+object called 'predictionData'.  
+
+Example:
+```scala
+val results = new AutomationRunner(myData).runFeatureCullingWithPrediction()
+
+display(results.predictionData)
+
+```
+
+This Dataframe will have the full data set that was used as an input to the training cycle (with the feature vector), 
+a probability column (for classification) and a prediction column for both regressors and classifiers.
+
+### `.generateDecisionSplits()`
+This method will run a simply DecisionTree model with the sole purpose of providing the ability to extract
+the decision path that the tree algorithm made graphically.  The String return will give a human-readable text block
+that will show the if/elif/else block of decisions, a DataFrame of the Importances of each feature, and a tuned model.
+This model can be cast appropriately within a notebook to get the visualization of the tree.
+
+Example:
+```scala
+val treeSplits = new AutomationRunner(myData).generateDecisionSplits()
+
+val model = treeSplits.model.asInstanceOf[DecisionTreeClassificationModel]
+```
+
+### `.runWithPrediction()`
+
+This method will add an additional step to the standard `.run()` mode.  After tuning, the model will perform a 
+`.transform()` on the ***full data set*** that was passed into the modeling run (after feature engineering / data 
+cleanup tasks are completed).  This will add one or two additional fields: a prediction column (what the model predicted
+based on the feature vector) and probability (for classification tasks).
+
+### `.runWithConfusionReport()`
+
+> WARNING - select this method ONLY if you are sure you are performing a classification task!
+
+This method will return the same as `.runWithPrediction()`, with the addition of a Dataframe that
+calculates a row-wise confusion report of all of the possible permutations of label and predicted values, 
+giving a count of their pairwise combinations.
+
+From this Dataframe, an efficient means of visualizing the true and false rates of classification can be done.
+
 #### Example usage of the full AutomationRunner API (Basic)
 
 ```scala
@@ -962,15 +1016,49 @@ Some ML use cases are highly time-dependent, even in traditional ML algorithms (
 As such, it is important to be able to predict on apriori data and synthetically 'predict the future' by doing validation
 testing on a holdout data set that is more recent than the training data used to build the model.
 
+Additional reading: [Sampling in Machine Learning](https://en.wikipedia.org/wiki/Oversampling_and_undersampling_in_data_analysis)
+
 Setter: `.setTrainSplitMethod(<String>)`
 ```text
 Default: "random"
 
-Available options: "random" or "chronological"
+Available options: "random" or "chronological" or "stratified" or "underSample" or "overSample"
 ```
+Chronological Split Mode
+- Splits train / test between a sortable field (date, datetime, unixtime, etc.)
 > Chronological split method **does not require** a date type or datetime type field. Any sort-able / continuous distributed field will work.
 
-> Leaving the default value of "random" will randomly shuffle the train and test data sets each k-fold iteration.
+Random Split Mode
+- Leaving the default value of "random" will randomly shuffle the train and test data sets each k-fold iteration.
+
+***This is only recommended for classification data sets where there is relatively balanced counts of unique classes in the label column***
+> [NOTE]: attempting to run any mode other than "random" or "chronological" on a regression problem will not work.  Default behavior
+will reset the trainSplitMethod to "random" if they are selected on a regression problem.
+
+Stratified Mode
+
+- Stratified mode will balance all of the values present in the label column of a classification algorithm so that there
+is adequate coverage of all available labels in both train and test for each kfold split step.
+
+***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column and there is a need for 
+training on the full, unmanipulated data set.***
+
+UnderSampling Mode
+
+- Under sampling will evaluate the classes within the label column and sample all classes within each kfold / model run
+to target the row count of the smallest class. (Only recommended for moderate skew cases)
+
+***If using this mode, ensure that the smallest class has sufficient row counts to make training effective!***
+
+OverSampling Mode
+
+- Over sampling will evaluate the class with the highest count of entries and during splitting, will replicate all 
+other classes' data to *generally match* the counts of the most frequent class. (**this is not exact and can vary from 
+run to run**)
+
+***WARNING*** - using this mode will dramatically increase the training and test data set sizes.  
+***Small count classes' data will be copied multiple times to eliminate skew***
+
 
 ###### Train Split Chronological Column
 

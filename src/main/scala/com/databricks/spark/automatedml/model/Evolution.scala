@@ -1,15 +1,15 @@
 package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{EvolutionDefaults, RandomForestConfig}
-import com.databricks.spark.automatedml.utils.{DataValidation, SeedConverters}
-import org.apache.spark.sql.DataFrame
+import com.databricks.spark.automatedml.utils.{DataValidation, SeedConverters, SparkSessionWrapper}
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe._
 
-trait Evolution extends DataValidation with EvolutionDefaults with SeedConverters {
+trait Evolution extends DataValidation with EvolutionDefaults with SeedConverters with SparkSessionWrapper {
 
   var _labelCol: String = _defaultLabel
   var _featureCol: String = _defaultFeature
@@ -310,54 +310,189 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     }.toList.length
   }
 
+  private def toDoubleType(x: Any): Option[Double] = x match {
+    case i: Int => Some(i)
+    case d: Double => Some(d)
+    case _ => None
+  }
+
+  private def generateEmptyTrainTest(data: DataFrame): (DataFrame, DataFrame) = {
+
+    val schema = data.schema
+
+    var trainData = spark.createDataFrame(sc.emptyRDD[Row], schema)
+    var testData = spark.createDataFrame(sc.emptyRDD[Row], schema)
+    (trainData, testData)
+  }
+
+  /**
+    * Method for stratification of the test/train around the unique values of the label column
+    * This mode is recommended for label value distributions in classification that have relatively balanced
+    * and uniformly distributed instances of the classes.
+    * If there is significant skew, it is highly recommended to use under or over sampling.
+    *
+    * @param data Dataframe that is the input to the train/test split
+    * @param seed random seed for splitting the data into train/test.
+    * @return An Array of Dataframes: Array[<trainData>, <testData>]
+    */
+  def stratifiedSplit(data: DataFrame, seed: Long): Array[DataFrame] = {
+
+    var (trainData, testData) = generateEmptyTrainTest(data)
+
+    val uniqueLabels = data.select(_labelCol).distinct().collect()
+
+    uniqueLabels.foreach{ x =>
+
+      val conversionValue = toDoubleType(x(0)).get
+
+      val Array(trainSplit, testSplit) = data.filter(
+        col(_labelCol) === conversionValue).randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+
+      trainData = trainData.union(trainSplit)
+      testData = testData.union(testSplit)
+
+    }
+
+    Array(trainData, testData)
+  }
+
+  def underSampleSplit(data: DataFrame, seed: Long): Array[DataFrame] = {
+
+    var (trainData, testData) = generateEmptyTrainTest(data)
+
+    val totalDataSetCount = data.count()
+
+    val groupedLabelCount = data.select(_labelCol)
+      .groupBy(_labelCol)
+      .agg(count("*").as("counts"))
+      .withColumn("skew", col("counts") / lit(totalDataSetCount))
+      .select(_labelCol, "skew")
+
+    val uniqueGroups = groupedLabelCount.collect()
+
+    val smallestSkew = groupedLabelCount
+      .sort(col("skew").asc)
+      .select(col("skew"))
+      .first()
+      .getDouble(0)
+
+    uniqueGroups.foreach{ x =>
+
+      val groupData = toDoubleType(x(0)).get
+
+      val groupRatio = x.getDouble(1)
+
+      val groupDataFrame = data.filter(col(_labelCol) === groupData)
+
+      val Array(train, test) = if (groupRatio == smallestSkew) {
+        groupDataFrame.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+      } else {
+        groupDataFrame.sample(false, smallestSkew / groupRatio)
+          .randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+      }
+
+      trainData = trainData.union(train)
+      testData = testData.union(test)
+
+    }
+
+    Array(trainData, testData)
+
+  }
+
+  def overSampleSplit(data: DataFrame, seed: Long): Array[DataFrame] = {
+
+    var (trainData, testData) = generateEmptyTrainTest(data)
+
+    val groupedLabelCount = data
+      .select(_labelCol)
+      .groupBy(_labelCol)
+      .agg(count("*").as("counts"))
+
+    val uniqueGroups = groupedLabelCount.collect()
+
+    val largestGroupCount = groupedLabelCount
+      .sort(col("counts").desc)
+      .select(col("counts"))
+      .first()
+      .getLong(0)
+
+    uniqueGroups.foreach{ x =>
+      val groupData = toDoubleType(x(0)).get
+
+      val groupRatio = math.ceil(largestGroupCount / x.getLong(1)).toInt
+
+      for(i <- 1 to groupRatio) {
+
+        val Array(train, test): Array[DataFrame] = data
+          .filter(col(_labelCol) === groupData)
+          .randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+
+        trainData = trainData.union(train)
+        testData = testData.union(test)
+
+      }
+    }
+
+    Array(trainData, testData)
+
+  }
+
+  def chronologicalSplit(data: DataFrame, seed: Long): Array[DataFrame] = {
+
+    require(data.schema.fieldNames.contains(_trainSplitChronologicalColumn),
+      s"Chronological Split Field ${_trainSplitChronologicalColumn} is not in schema: " +
+        s"${data.schema.fieldNames.mkString(", ")}")
+
+    // Validation check for the random 'wiggle value' if it's set that it won't risk creating zero rows in train set.
+    if (_trainSplitChronologicalRandomPercentage > 0.0)
+      require((1 - _trainPortion) * _trainSplitChronologicalRandomPercentage / 100 < 0.5,
+        s"With trainSplitChronologicalRandomPercentage set at '${_trainSplitChronologicalRandomPercentage}' " +
+          s"and a train test ratio of ${_trainPortion} there is a high probability of train data set being empty." +
+          s"  \n\tAdjust lower to prevent non-deterministic split levels that could break training.")
+
+    // Get the row count
+    val rawDataCount = data.count.toDouble
+
+    val splitValue = scala.math.round(rawDataCount * _trainPortion).toInt
+
+    // Get the row number estimation for conduction the split at
+    val splitRow: Int = if (_trainSplitChronologicalRandomPercentage <= 0.0) {
+      splitValue
+    }
+    else {
+      // randomly mutate the size of the test validation set
+      val splitWiggle = scala.math.round(rawDataCount * (1 - _trainPortion) *
+        _trainSplitChronologicalRandomPercentage / 100).toInt
+      splitValue - _randomizer.nextInt(splitWiggle)
+    }
+
+    // Define the window partition
+    val uniqueCol = "chron_grp_autoML_" + java.util.UUID.randomUUID().toString
+
+    // Define temporary non-colliding columns for the window partition
+    val uniqueRow = "row_" + java.util.UUID.randomUUID().toString
+    val windowDefintion = Window.partitionBy(uniqueCol).orderBy(_trainSplitChronologicalColumn)
+
+    // Generate a new Dataframe that has the row number partition, sorted by the chronological field
+    val preSplitData = data.withColumn(uniqueCol, lit("grp"))
+      .withColumn(uniqueRow, row_number() over windowDefintion)
+      .drop(uniqueCol)
+
+    // Generate the test/train split data based on sorted chronological column
+    Array(preSplitData.filter(col(uniqueRow) <= splitRow).drop(uniqueRow),
+      preSplitData.filter(col(uniqueRow) > splitRow).drop(uniqueRow))
+
+  }
+
   def genTestTrain(data: DataFrame, seed: Long): Array[DataFrame] = {
 
     _trainSplitMethod match {
       case "random" => data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
-      case "chronological" =>
-        require(data.schema.fieldNames.contains(_trainSplitChronologicalColumn),
-          s"Chronological Split Field ${_trainSplitChronologicalColumn} is not in schema: " +
-            s"${data.schema.fieldNames.mkString(", ")}")
-
-        // Validation check for the random 'wiggle value' if it's set that it won't risk creating zero rows in train set.
-        if (_trainSplitChronologicalRandomPercentage > 0.0)
-          require((1 - _trainPortion) * _trainSplitChronologicalRandomPercentage / 100 < 0.5,
-            s"With trainSplitChronologicalRandomPercentage set at '${_trainSplitChronologicalRandomPercentage}' " +
-              s"and a train test ratio of ${_trainPortion} there is a high probability of train data set being empty." +
-              s"  \n\tAdjust lower to prevent non-deterministic split levels that could break training.")
-
-        // Get the row count
-        val rawDataCount = data.count.toDouble
-
-        val splitValue = scala.math.round(rawDataCount * _trainPortion).toInt
-
-        // Get the row number estimation for conduction the split at
-        val splitRow: Int = if (_trainSplitChronologicalRandomPercentage <= 0.0) {
-          splitValue
-        }
-        else {
-          // randomly mutate the size of the test validation set
-          val splitWiggle = scala.math.round(rawDataCount * (1 - _trainPortion) *
-            _trainSplitChronologicalRandomPercentage / 100).toInt
-          splitValue - _randomizer.nextInt(splitWiggle)
-        }
-
-        // Define the window partition
-        val uniqueCol = "chron_grp_autoML_" + java.util.UUID.randomUUID().toString
-
-        // Define temporary non-colliding columns for the window partition
-        val uniqueRow = "row_" + java.util.UUID.randomUUID().toString
-        val windowDefintion = Window.partitionBy(uniqueCol).orderBy(_trainSplitChronologicalColumn)
-
-        // Generate a new Dataframe that has the row number partition, sorted by the chronological field
-        val preSplitData = data.withColumn(uniqueCol, lit("grp"))
-          .withColumn(uniqueRow, row_number() over windowDefintion)
-          .drop(uniqueCol)
-
-        // Generate the test/train split data based on sorted chronological column
-        Array(preSplitData.filter(col(uniqueRow) <= splitRow).drop(uniqueRow),
-          preSplitData.filter(col(uniqueRow) > splitRow).drop(uniqueRow))
-
+      case "chronological" => chronologicalSplit(data, seed)
+      case "stratified" => stratifiedSplit(data, seed)
+      case "overSample" => overSampleSplit(data, seed)
+      case "underSample" => underSampleSplit(data, seed)
       case _ => throw new IllegalArgumentException(s"Cannot conduct train test split in mode: '${_trainSplitMethod}'")
     }
 

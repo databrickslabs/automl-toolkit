@@ -2,6 +2,7 @@ package com.databricks.spark.automatedml.params
 
 import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.regression.LinearRegressionModel
+import org.apache.spark.sql.DataFrame
 
 case class PearsonPayload(
                            fieldName: String,
@@ -166,6 +167,85 @@ case class GenerationalReport(
                                generationMeanScore: Double,
                                generationStddevScore: Double
                              )
+
+case class TreeSplitReport(
+                          decisionText: String,
+                          featureImportances: DataFrame,
+                          model: Any
+                          )
+
+sealed trait Output{
+ def modelReport: Array[GenericModelReturn]
+ def generationReport: Array[GenerationalReport]
+ def modelReportDataFrame: DataFrame
+ def generationReportDataFrame: DataFrame
+}
+
+abstract case class AutomationOutput() extends Output
+
+abstract case class TunerOutput(rawData: DataFrame, modelSelection:String) extends Output
+
+abstract case class PredictionOutput(dataWithPredictions: DataFrame) extends Output
+
+abstract case class FeatureImportanceOutput(featureImportances: DataFrame) extends Output
+
+abstract case class FeatureImportancePredictionOutput(featureImportances: DataFrame,
+                                                      predictionData: DataFrame) extends Output
+
+abstract case class ConfusionOutput(predictionData: DataFrame, confusionData: DataFrame) extends Output
+
+
+
+
+//case class AutomationOutput(
+//                        modelReport: Array[GenericModelReturn],
+//                        generationReport: Array[GenerationalReport],
+//                        modelReportDataFrame: DataFrame,
+//                        generationReportDataFrame: DataFrame
+//                      )
+//
+//case class TunerOutput(
+//                        modelReport: Array[GenericModelReturn],
+//                        generationReport: Array[GenerationalReport],
+//                        modelReportDataFrame: DataFrame,
+//                        generationReportDataFrame: DataFrame,
+//                        rawData: DataFrame,
+//                        modelSelection: String
+//                      )
+//
+//case class PredictionOutput(
+//                           modelReport: Array[GenericModelReturn],
+//                           generationReport: Array[GenerationalReport],
+//                           modelReportDataFrame: DataFrame,
+//                           generationReportDataFrame: DataFrame,
+//                           dataWithPredictions: DataFrame
+//                           )
+//
+//case class ConfusionOutput(
+//                            modelReport: Array[GenericModelReturn],
+//                            generationReport: Array[GenerationalReport],
+//                            modelReportDataFrame: DataFrame,
+//                            generationReportDataFrame: DataFrame,
+//                            dataWithPredictions: DataFrame,
+//                            confusionReport: DataFrame
+//                          )
+//
+//case class FeatureImportanceOutput(
+//                                    modelReport: Array[GenericModelReturn],
+//                                    generationReport: Array[GenerationalReport],
+//                                    modelReportDataFrame: DataFrame,
+//                                    generationReportDataFrame: DataFrame,
+//                                    featureImportances: DataFrame
+//                                  )
+//
+//case class FeatureImportancePredictionOutput(
+//                                              modelReport: Array[GenericModelReturn],
+//                                              generationReport: Array[GenerationalReport],
+//                                              modelReportDataFrame: DataFrame,
+//                                              generationReportDataFrame: DataFrame,
+//                                              featureImportances: DataFrame,
+//                                              dataWithPredictions: DataFrame
+//                                            )
 
 sealed trait ModelType[A, B]
 
