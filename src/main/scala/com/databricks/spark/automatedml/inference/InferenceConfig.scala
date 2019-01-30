@@ -404,6 +404,9 @@ trait InferenceConfig extends InferenceDefaults {
 }
 
 
+object InferenceConfig extends InferenceConfig{
+}
+
 //TODO's:
 /**
   * use the model load method (mlflow vs path)

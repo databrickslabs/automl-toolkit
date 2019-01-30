@@ -2,7 +2,12 @@ package com.databricks.spark.automatedml.inference
 
 import com.databricks.spark.automatedml.executor.AutomationConfig
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
+import com.databricks.spark.automatedml.sanitize.Scaler
 import com.databricks.spark.automatedml.utils.{AutomationTools, DataValidation}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification._
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -92,10 +97,35 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
   }
 
+  private def createFeatureVector(payload: InferencePayload): InferencePayload = {
+
+    val vectorAssembler = new VectorAssembler()
+      .setInputCols(payload.modelingColumns)
+      .setOutputCol(_inferenceConfig.inferenceDataConfig.featuresCol)
+
+    val vectorAppliedDataFrame = vectorAssembler.transform(payload.data)
+
+    createInferencePayload(vectorAppliedDataFrame, payload.modelingColumns,
+      payload.allColumns ++ Array(_inferenceConfig.inferenceDataConfig.featuresCol))
+
+  }
+
+  private def oneHotEncodingTransform(payload: InferencePayload): InferencePayload = {
+
+    val featurePipeline = new FeaturePipeline(payload.data)
+      .setLabelCol(_inferenceConfig.inferenceDataConfig.labelCol)
+      .setFeatureCol(_inferenceConfig.inferenceDataConfig.featuresCol)
+      .setDateTimeConversionType(_inferenceConfig.inferenceDataConfig.dateTimeConversionType)
+
+    val (returnData, vectorCols, allCols) = featurePipeline.applyOneHotEncoding(payload.modelingColumns,
+      payload.allColumns)
+
+    createInferencePayload(returnData, vectorCols, allCols)
+
+  }
 
 
-
-  private def filterFields(payload: InferencePayload): InferencePayload = {
+  private def executeFeatureEngineering(payload: InferencePayload): InferencePayload = {
 
     // Variance Filtering
     val variancePayload = if (_inferenceConfig.inferenceSwitchSettings.varianceFilterFlag) {
@@ -148,35 +178,115 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     } else covariancePayload
 
     // Build the Feature Vector
+    val featureVectorPayload = createFeatureVector(pearsonPayload)
 
-    val (vectorData, vectorFields, fullDataFields) = vectorPipeline(pearsonPayload.data)
-
-
-
+    // OneHotEncoding
     val oneHotEncodedPayload = if (_inferenceConfig.inferenceSwitchSettings.oneHotEncodeFlag) {
 
+      oneHotEncodingTransform(featureVectorPayload)
 
+    } else featureVectorPayload
 
-    } else {
-
-    }
-
-
-
+    // Scaling
     val scaledPayload = if (_inferenceConfig.inferenceSwitchSettings.scalingFlag) {
 
-    } else {
+      val scalerConfig = _inferenceConfig.featureEngineeringConfig.scalingConfig
 
-    }
+      val scaledData = new Scaler(oneHotEncodedPayload.data)
+        .setFeaturesCol(_inferenceConfig.inferenceDataConfig.featuresCol)
+        .setScalerType(scalerConfig.scalerType)
+        .setScalerMin(scalerConfig.scalerMin)
+        .setScalerMax(scalerConfig.scalerMax)
+        .setStandardScalerMeanMode(scalerConfig.standardScalerMeanFlag)
+        .setStandardScalerStdDevMode(scalerConfig.standardScalerStdDevFlag)
+        .setPNorm(scalerConfig.pNorm)
+        .scaleFeatures()
+
+      createInferencePayload(scaledData, oneHotEncodedPayload.modelingColumns, oneHotEncodedPayload.allColumns)
+
+    } else oneHotEncodedPayload
 
     // yield the Data and the Columns for the payload
 
-
+    scaledPayload
 
   }
 
+  private def loadModelAndInfer(data: DataFrame): DataFrame = {
 
-  def executeInference(inferenceSaveLocation: String): Unit = {
+    val modelFamily = _inferenceConfig.inferenceModelConfig.modelFamily
+    val modelType = _inferenceConfig.inferenceModelConfig.modelType
+
+    val modelLoadPath = _inferenceConfig.inferenceModelConfig.modelPathLocation
+
+    // load the model and transform the dataframe to batch predict on the data
+    modelFamily match {
+      case "RandomForest" =>
+        modelType match {
+          case "regressor" =>
+            val rfRegressor = RandomForestRegressionModel.load(modelLoadPath)
+            rfRegressor.transform(data)
+          case "classifier" =>
+            val rfClassifier = RandomForestClassificationModel.load(modelLoadPath)
+            rfClassifier.transform(data)
+        }
+      case "GBT" =>
+        modelType match {
+          case "regressor" =>
+            val gbtRegressor = GBTRegressionModel.load(modelLoadPath)
+            gbtRegressor.transform(data)
+          case "classifier" =>
+            val gbtClassifier = GBTClassificationModel.load(modelLoadPath)
+            gbtClassifier.transform(data)
+        }
+      case "Trees" =>
+        modelType match {
+          case "regressor" =>
+            val treesRegressor = DecisionTreeRegressionModel.load(modelLoadPath)
+            treesRegressor.transform(data)
+          case "classifier" =>
+            val treesClassifier = DecisionTreeClassificationModel.load(modelLoadPath)
+            treesClassifier.transform(data)
+        }
+      case "MLPC" =>
+        val mlpcClassifier = MultilayerPerceptronClassificationModel.load(modelLoadPath)
+        mlpcClassifier.transform(data)
+      case "LinearRegression" =>
+        val linearRegressor = LinearRegressionModel.load(modelLoadPath)
+        linearRegressor.transform(data)
+      case "LogisticRegression" =>
+        val logisticRegressor = LogisticRegressionModel.load(modelLoadPath)
+        logisticRegressor.transform(data)
+      case "SVM" =>
+        val svmClassifier = LinearSVCModel.load(modelLoadPath)
+        svmClassifier.transform(data)
+    }
+  }
+
+  private def getAndSetConfig(inferenceDataFrameSaveLocation: String): Unit = {
+
+    val inferenceDataFrame = spark.read.load(inferenceDataFrameSaveLocation)
+
+    val config = extractInferenceConfigFromDataFrame(inferenceDataFrame)
+
+    setInferenceConfig(config)
+
+  }
+
+  //TODO: add in support for loading a model from mlflow with a different method call
+
+
+  // TODO: load from mlflow tags
+
+
+
+  //TODO: tag and record the inference location for each model built in mlflow.
+  // Store the actual Config, as well as the location that it was written to.
+
+  def executeInference(inferenceDataFrameSaveLocation: String): Unit = {
+
+
+    //TODO: load and set the inference configuration
 
     val prep = dataPreparation()
 

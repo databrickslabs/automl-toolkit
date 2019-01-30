@@ -16,7 +16,7 @@ object DataSanitizerPythonHelper {
   var _decision: String = _
 
   def generateCleanData(sanitizer: DataSanitizer, dfName: String): Unit = {
-    val (cleanDf, decision) = sanitizer.generateCleanData()
+    val (cleanDf, naFillConfig, decision) = sanitizer.generateCleanData()
     _decision = decision
     cleanDf.createOrReplaceTempView(dfName)
     println("Dataframe has been cleaned and registered as " + dfName + " " + cleanDf)

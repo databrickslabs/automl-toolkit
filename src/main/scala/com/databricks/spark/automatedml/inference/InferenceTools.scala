@@ -1,18 +1,20 @@
 package com.databricks.spark.automatedml.inference
 
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
-import java.io._
+import org.json4s._
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization._
 
-trait InferenceTools {
+trait InferenceTools extends SparkSessionWrapper {
 
-
-  def createInferencePayload(data: DataFrame, modelingColumns: Array[String], allColumns: Array[String]):
+  def createInferencePayload(dataFrame: DataFrame, modelingColumnsPayload: Array[String], allColumnsPayload: Array[String]):
   InferencePayload = {
     new InferencePayload {
-      override def data: DataFrame = data
-      override def modelingColumns: Array[String] = modelingColumns
-      override def allColumns: Array[String] = allColumns
+      override def data: DataFrame = dataFrame
+      override def modelingColumns: Array[String] = modelingColumnsPayload
+      override def allColumns: Array[String] = allColumnsPayload
     }
   }
 
@@ -26,24 +28,79 @@ trait InferenceTools {
 
   }
 
+  /**
+    * Handler method for converting the InferenceMainConfig object to a serializable Json String with correct
+    * scala-compatible data structures.
+    * @param config instance of InferenceMainConfig
+    * @return [InferenceJsonReturn] consisting of compact form (for logging) and prettyprint form (human readable)
+    */
+  def convertInferenceConfigToJson(config: InferenceMainConfig): InferenceJsonReturn = {
 
-  def saveInferenceConfig(config: InferenceMainConfig): Unit = {
+    implicit val formats: Formats = Serialization.formats(hints=NoTypeHints)
+    val pretty = writePretty(config)
+    val compact = write(config)
 
-    val outputWriter = new ObjectOutputStream(new FileOutputStream(config.inferenceConfigStorageLocation))
+    InferenceJsonReturn(
+      compactJson = compact,
+      prettyJson = pretty
+    )
+  }
 
-    outputWriter.writeObject(config)
-    outputWriter.close()
+  /**
+    * Handler method for converting a read-in json config String to an instance of InferenceMainConfig
+    * @param jsonConfig the config as a Json-formatted String
+    * @return config as InstanceOf[InferenceMainConfig]
+    */
+  def convertJsonConfigToClass(jsonConfig: String): InferenceMainConfig = {
+
+    read[InferenceMainConfig](jsonConfig)
 
   }
 
-  def loadInferenceConfig(path: String): InferenceMainConfig = {
+  /**
+    * Seems a bit counter-intuitive to do this, but this allows for cloud-agnostic storage of the config.
+    * Otherwise, a configuration would need to be created to manage which cloud this is operating on and handle
+    * native SDK object writers.  Instead of re-inventing the wheel here, a DataFrame can be serialized to
+    * any cloud-native storage medium with very little issue.
+    * @param config The inference configuration generated for a particular modeling run
+    * @return A DataFrame consisting of a single row and a single field.  Cell 1:1 contains the json string.
+    */
+  def convertInferenceConfigToDataFrame(config: InferenceMainConfig): DataFrame = {
 
-    val inputReader = new ObjectInputStream(new FileInputStream(path))
-    val storedConfig = inputReader.readObject()
-    inputReader.close()
+    import spark.sqlContext.implicits._
 
-    storedConfig.asInstanceOf[InferenceMainConfig]
+    val jsonConfig = convertInferenceConfigToJson(config)
+
+    sc.parallelize(Seq(jsonConfig)).toDF("config")
 
   }
+
+  /**
+    * From a supplied DataFrame that contains the configuration in cell 1:1, get the json string
+    * @param configDataFrame A Dataframe that contains the configuration for the Inference run.
+    * @return The string-encoded json payload for InferenceMainConfig
+    */
+  def extractInferenceJsonFromDataFrame(configDataFrame: DataFrame): String = {
+
+    configDataFrame.collect()(0).get(0).toString
+
+  }
+
+  /**
+    * Extract the InferenceMainConfig from a stored DataFrame containing the string-encoded json in row 1, column 1
+    * @param configDataFrame A Dataframe that contains the configuration for the Inference run.
+    * @return an instance of InferenceMainConfig
+    */
+  def extractInferenceConfigFromDataFrame(configDataFrame: DataFrame): InferenceMainConfig = {
+
+    val encodedJson = extractInferenceJsonFromDataFrame(configDataFrame)
+
+    convertJsonConfigToClass(encodedJson)
+
+  }
+
 
 }
+
+
+
