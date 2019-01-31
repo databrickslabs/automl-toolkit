@@ -5,6 +5,7 @@ import com.databricks.spark.automatedml.utils.{DataValidation, SparkSessionWrapp
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions._
 
+import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
@@ -127,7 +128,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
   }
 
   def filterContinuousOutliers(vectorIgnoreList: Array[String], ignoreList: Array[String]=Array.empty[String]):
-  (DataFrame, DataFrame) = {
+  (DataFrame, DataFrame, Map[String, (Double, String)]) = {
 
     val filteredNumericPayload = new ListBuffer[String]
     val (numericPayload, totalFeatureFields) = validateNumericFields(vectorIgnoreList)
@@ -143,46 +144,70 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
     var mutatedDF = df
     var outlierDF = df
 
+    val inferenceOutlierMap: mutable.Map[String, (Double, String)] = mutable.Map.empty[String, (Double, String)]
+
     val filteredNumericPayloadPar = filteredNumericPayload.par
     filteredNumericPayloadPar.tasksupport = taskSupport
 
     filteredNumericPayloadPar.foreach{x =>
       _filterBounds match {
         case "lower" =>
-          mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
-          outlierDF = filterHigh(outlierDF, x, filterBoundaries(x, _lowerFilterNTile))
+          val lowerBoundary = filterBoundaries(x, _lowerFilterNTile)
+            // add Inference Logging
+          inferenceOutlierMap.put(x, (lowerBoundary, "lesser"))
+
+          mutatedDF = filterLow(mutatedDF, x, lowerBoundary)
+          outlierDF = filterHigh(outlierDF, x,lowerBoundary)
         case "upper" =>
-          mutatedDF = filterHigh(mutatedDF, x, filterBoundaries(x, _upperFilterNTile))
-          outlierDF = filterLow(outlierDF, x, filterBoundaries(x, _upperFilterNTile))
+          val upperBoundary = filterBoundaries(x, _upperFilterNTile)
+          // add Inference Logging
+          inferenceOutlierMap.put(x, (upperBoundary, "greater"))
+
+          mutatedDF = filterHigh(mutatedDF, x, upperBoundary)
+          outlierDF = filterLow(outlierDF, x, upperBoundary)
         case "both" =>
-          mutatedDF = filterLow(mutatedDF, x, filterBoundaries(x, _lowerFilterNTile))
-          mutatedDF = filterHigh(mutatedDF, x, filterBoundaries(x, _upperFilterNTile))
-          outlierDF = filterHigh(outlierDF, x, filterBoundaries(x, _lowerFilterNTile))
-          outlierDF = filterLow(outlierDF, x, filterBoundaries(x, _upperFilterNTile))
+
+          val lowerBoundary = filterBoundaries(x, _lowerFilterNTile)
+          val upperBoundary = filterBoundaries(x, _upperFilterNTile)
+
+          inferenceOutlierMap.put(x, (lowerBoundary, "lesser"))
+          inferenceOutlierMap.put(x, (upperBoundary, "greater"))
+
+          mutatedDF = filterLow(mutatedDF, x, lowerBoundary)
+          mutatedDF = filterHigh(mutatedDF, x, upperBoundary)
+          outlierDF = filterHigh(outlierDF, x, lowerBoundary)
+          outlierDF = filterLow(outlierDF, x, upperBoundary)
       }
     }
-    (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*))
+    (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*),
+      inferenceOutlierMap.result().toMap)
   }
 
   def filterContinuousOutliers(manualFilter: List[ManualFilters], vectorIgnoreList: Array[String]):
-  (DataFrame, DataFrame) = {
+  (DataFrame, DataFrame, Map[String, (Double, String)]) = {
 
     var mutatedDF = df
     var outlierDF = df
     val (numericPayload, totalFeatureFields) = validateNumericFields(vectorIgnoreList)
     val totalFields = totalFeatureFields ++ List(_labelCol) ++ vectorIgnoreList.toList
+
+    val inferenceOutlierMap: mutable.Map[String, (Double, String)] = mutable.Map.empty[String, (Double, String)]
+
     manualFilter.foreach{x =>
       _filterBounds match {
         case "lower" =>
+          inferenceOutlierMap.put(x.field, (x.threshold, "lesser"))
           mutatedDF = filterLow(mutatedDF, x.field, x.threshold)
           outlierDF = filterHigh(outlierDF, x.field, x.threshold)
         case "upper" =>
+          inferenceOutlierMap.put(x.field, (x.threshold, "greater"))
           mutatedDF = filterHigh(mutatedDF, x.field, x.threshold)
           outlierDF = filterLow(outlierDF, x.field, x.threshold)
         case _ => throw new UnsupportedOperationException(
           s"Filter mode '${_filterBounds} is not supported.  Please use either 'lower' or 'upper'")
       }
     }
-    (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*))
+    (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*),
+    inferenceOutlierMap.result.toMap)
   }
 }

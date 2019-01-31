@@ -172,6 +172,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _continuousEvolutionRollingImprovementCount: Int = _geneticTunerDefaults.continuousEvolutionRollingImprovementCount
 
+  var _inferenceConfigSaveLocation: String = _inferenceConfigSaveLocationDefault
+
   private def setConfigs(): this.type = {
     setMainConfig()
     setTreeSplitsConfig()
@@ -848,6 +850,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setInferenceConfigSaveLocation(value: String): this.type = {
+    _inferenceConfigSaveLocation = value
+    setConfigs()
+    this
+  }
+
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
       parallelism = _parallelism,
@@ -907,7 +915,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
-      mlFlowConfig = _mlFlowConfig
+      mlFlowConfig = _mlFlowConfig,
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
     )
     this
   }
@@ -947,7 +956,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
-      mlFlowConfig = _mlFlowConfig
+      mlFlowConfig = _mlFlowConfig,
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
     )
     this
   }
@@ -990,7 +1000,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
-      mlFlowConfig = _mlFlowConfig
+      mlFlowConfig = _mlFlowConfig,
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
     )
     this
   }
@@ -1159,6 +1170,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
 
+  def getInferenceConfigSaveLocation: String = _inferenceConfigSaveLocation
 
   /**
     * Helper method for extracting the config from a run's GenericModelReturn payload

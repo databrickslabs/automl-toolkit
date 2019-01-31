@@ -4,10 +4,9 @@ import com.databricks.spark.automatedml.executor.AutomationConfig
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize.Scaler
 import com.databricks.spark.automatedml.utils.{AutomationTools, DataValidation}
-import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
+import org.apache.spark.ml.regression._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -17,59 +16,13 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
 
   /**
-    *
-    * Replayability
-    *
-    * 1. Field Casting
-    *     1. Need a Map of all fields and what they should be converted to
-    *     2. Call base method for doing this conversion.
-    * 2. NA Fill
-    *     1. Map of character cols and what they should be mapped to
-    *     2. Map of numeric cols and what they should be mapped to
-    * 3. Variance Filter
-    *     1. Array of fields to remove
-    *     2. Method for removing those fields from the input Dataframe
-    * 4. Outlier Filtering
-    *     1. Map of thresholds to filter against
-    *         1. ColumnName -> (filterValue, direction)
-    *         2. Method for removing the rows that are outside of those thresholds.
-    * 5. Create Feature Vector
-    * 6. Covariance Filtering
-    *     1. Array of columns to remove
-    *     2. Re-use column filtering from variance filter
-    *     3. Re-create Feature Vector
-    * 7. Pearson Filtering
-    *     1. Array of columns to remove
-    *     2. Reuse column filtering
-    *     3. Re-create Feature Vector
-    * 8. OneHotEncode
-    *     1. Re-create Feature Vector
-    * 9. Scaling
-    *     1. Re-create Feature Vector
-    * 10. Model load
-    *     1. need RunID as logged by MLFlow
-    *     2. Retrieve model artifact
-    *     3. Load as appropriate type
-    *     4. Predict on main DataFrame
-    *     5. Save Results
-    *     6. Exit
+    * Data Prep to:
+    *   - select only the initial columns that were present at the beginning of the training run
+    *   - Convert the datetime entities to correct actionable types
+    *   - StringIndex categorical (text or ordinal) fields
+    *   - Fill NA with the values that were used during the training run for each column
+    * @return The courier object InferencePayload[<DataFrame>, <ColumnsForFeatureVector>, <AllColumns>]
     */
-
-  /**
-    * vectorPipeline(df) - FeaturePipeline().makeFeaturePipeline(fieldsToIgnore)
-    *   - Get Schema
-    *   - extractTypes
-    *   - convertDateTimeFields
-    *   -
-    * select restriction (drop unwanted fields)
-    * fillNA
-    * variance filter (drop columns)
-    *
-    */
-
-//TODO: update the main config for the Automation runner to require a location for writing the Inference Config to.
-
-  // Step 1 - get the map of fields that need to be filled and fill them.
   private def dataPreparation(): InferencePayload = {
 
     // Filter out any non-used fields that may be included in future data sets that weren't part of model training
@@ -97,6 +50,14 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
   }
 
+  /**
+    * Helper method for creating the Feature Vector for modeling / feature engineering tasks
+    * @param payload InferencePayload object that contains:
+    *                - The DataFrame
+    *                - The List of Columns to be included in the Feature Vector
+    *                - The Full List of Columns (including ignored columns used for post-inference joining, etc.)
+    * @return a new InferencePayload object (with the DataFrame now including a feature vector)
+    */
   private def createFeatureVector(payload: InferencePayload): InferencePayload = {
 
     val vectorAssembler = new VectorAssembler()
@@ -110,6 +71,12 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
   }
 
+  /**
+    * Helper method for applying one hot encoding to the feature vector, if used in the original modeling run
+    * @param payload InferencePayload object
+    * @return a new InferencePayload object (the DataFrame, with and updated feature vector, and the field listings
+    *         now having any previous  StringIndexed fields converted to OneHotEncoded fields.)
+    */
   private def oneHotEncodingTransform(payload: InferencePayload): InferencePayload = {
 
     val featurePipeline = new FeaturePipeline(payload.data)
@@ -124,7 +91,12 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
   }
 
-
+  /**
+    * Method for performing all configured FeatureEngineering tasks as set in the InferenceMainConfig
+    * @param payload InferencePayload object
+    * @return new InferencePayload object with all actions applied to the Dataframe and associated field listings
+    *         that were originally performed in model training.
+    */
   private def executeFeatureEngineering(payload: InferencePayload): InferencePayload = {
 
     // Variance Filtering
@@ -212,6 +184,11 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
   }
 
+  /**
+    * Helper method for loading and applying a transformation on the Dataframe from FeatureEngineering tasks.
+    * @param data The Dataframe from feature engineering output.
+    * @return A Dataframe with a prediction and/or probability column applied.
+    */
   private def loadModelAndInfer(data: DataFrame): DataFrame = {
 
     val modelFamily = _inferenceConfig.inferenceModelConfig.modelFamily
@@ -263,7 +240,14 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     }
   }
 
-  private def getAndSetConfig(inferenceDataFrameSaveLocation: String): Unit = {
+  /**
+    * Helper method for loading the InferenceMainConfig from a DataFrame that has been written to a storage location
+    * during model training. After loading the Dataframe, the value in row 1 column 1 will be extracted, converted
+    * to json, converted to an instance of InferenceMainConfig, and finally used to set the current state of this
+    * class' MainInferenceConfig.
+    * @param inferenceDataFrameSaveLocation The storage location path of the Dataframe.
+    */
+  private def getAndSetConfigFromDataFrame(inferenceDataFrameSaveLocation: String): Unit = {
 
     val inferenceDataFrame = spark.read.load(inferenceDataFrameSaveLocation)
 
@@ -273,36 +257,51 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
   }
 
-  //TODO: add in support for loading a model from mlflow with a different method call
+  /**
+    * Main private method for executing an inference run.
+    * @return A Dataframe with an applied model prediction.
+    */
+  private def inferencePipeline(): DataFrame = {
 
-
-  // TODO: load from mlflow tags
-
-
-
-  //TODO: tag and record the inference location for each model built in mlflow.
-  // Store the actual Config, as well as the location that it was written to.
-
-  def executeInference(inferenceDataFrameSaveLocation: String): Unit = {
-
-
-    //TODO: load and set the inference configuration
-
+    // Run through the Data Preparation steps as a prelude to Feature Engineering
     val prep = dataPreparation()
 
-    // feature engineering
+    // Execute the Feature Engineering that was performed during initial model training
+    val featureEngineering = executeFeatureEngineering(prep)
 
-    // retrieve the model
-
-    // cast as appropriate type
-
-    // transform the dataset
-
-    // save the resulting data set
+    // Execute the model inference and return a transformed DataFrame.
+    loadModelAndInfer(featureEngineering.data)
 
   }
 
+  /**
+    * Public method for performing an inference run from a stored InferenceConfig Dataframe location.
+    * @param inferenceConfigDFPath Path on storage of where the Dataframe was written during the training run.
+    * @return A Dataframe with predictions based on a pre-trained model.
+    */
+  def runInferenceFromStoredDataFrame(inferenceConfigDFPath: String): DataFrame = {
 
+    // Load the Dataframe containing the configuration and set the InferenceMainConfig
+    getAndSetConfigFromDataFrame(inferenceConfigDFPath)
+
+    inferencePipeline()
+
+  }
+
+  /**
+    * Public method for performing an inference run from a supplied inference config string.
+    * @param jsonConfig the saved inference config from a previous run as string-encoded json
+    * @return A Dataframe with prediction based on a pre-trained model.
+    */
+  def runInferenceFromJSONConfig(jsonConfig: String): DataFrame = {
+
+    val config = convertJsonConfigToClass(jsonConfig)
+
+    setInferenceConfig(config)
+
+    inferencePipeline()
+
+  }
 
 
 

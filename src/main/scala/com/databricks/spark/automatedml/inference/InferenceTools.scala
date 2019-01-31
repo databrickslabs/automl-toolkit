@@ -53,6 +53,7 @@ trait InferenceTools extends SparkSessionWrapper {
     */
   def convertJsonConfigToClass(jsonConfig: String): InferenceMainConfig = {
 
+    implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
     read[InferenceMainConfig](jsonConfig)
 
   }

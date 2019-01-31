@@ -2,17 +2,17 @@ package com.databricks.spark.automatedml.tracking
 
 import java.io.File
 
+import com.databricks.spark.automatedml.inference.{InferenceConfig, InferenceModelConfig, InferenceTools}
 import org.mlflow.tracking.creds._
 import org.mlflow.api.proto.Service.CreateRun
 import org.mlflow.tracking.MlflowClient
-
-import com.databricks.spark.automatedml.params.GenericModelReturn
+import com.databricks.spark.automatedml.params.{GenericModelReturn, MLFlowConfig}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 
 import scala.collection.mutable
 
-class MLFlowTracker {
+class MLFlowTracker extends InferenceConfig with InferenceTools{
 
 
   private var _mlFlowTrackingURI: String = _
@@ -86,7 +86,7 @@ class MLFlowTracker {
 
   /**
     * Method for generating an entry to log to for the
-    * @param runIdentifier
+    * @param runIdentifier A unique String that identifies the run
     * @return :(MlflowClient, String) The client logging object and the runId uuid for use in logging.
     */
   private def generateMlFlowRun(client: MlflowClient, runIdentifier: String): String = {
@@ -192,7 +192,8 @@ class MLFlowTracker {
     * @param modelFamily Type of Model Family used (e.g. "RandomForest")
     * @param modelType Type of Model used (e.g. "regression")
     */
-  def logMlFlowDataAndModels(runData: Array[GenericModelReturn], modelFamily: String, modelType: String): Unit = {
+  def logMlFlowDataAndModels(runData: Array[GenericModelReturn], modelFamily: String, modelType: String,
+                             inferenceSaveLocation: String): Unit = {
 
     val mlflowLoggingClient = createHostedMlFlowClient()
 
@@ -259,6 +260,51 @@ class MLFlowTracker {
 
         // log the generation
         mlflowLoggingClient.logParam(runId, "generation", x.generation.toString)
+
+
+        /**
+          * Set the remaining aspect of InferenceConfig for this run
+          */
+
+        // set the model save directory
+        val inferencePath = inferenceSaveLocation.takeRight(1) match {
+          case "/" => s"$inferenceSaveLocation${_mlFlowExperimentName}/"
+          case _ => s"$inferenceSaveLocation/${_mlFlowExperimentName}/"
+        }
+
+        val inferenceLocation = inferencePath + runId
+
+        val inferenceMlFlowConfig = MLFlowConfig(
+          mlFlowTrackingURI = _mlFlowTrackingURI,
+          mlFlowExperimentName = _mlFlowExperimentName,
+          mlFlowAPIToken = _mlFlowHostedAPIToken,
+          mlFlowModelSaveDirectory = baseDirectory
+        )
+
+        val inferenceModelConfig = InferenceModelConfig(
+          modelFamily = modelFamily,
+          modelType = modelType,
+          modelLoadMethod = "path",
+          mlFlowConfig = inferenceMlFlowConfig,
+          mlFlowRunId = runId,
+          modelPathLocation = modelDir
+        )
+
+        setInferenceModelConfig(inferenceModelConfig)
+        setInferenceConfigStorageLocation(inferenceLocation)
+
+        val inferenceConfig = getInferenceConfig
+
+        val inferenceConfigAsJSON = convertInferenceConfigToJson(inferenceConfig)
+
+        val inferenceConfigAsDF = convertInferenceConfigToDataFrame(inferenceConfig)
+
+        //Save the inference config to the save location
+        inferenceConfigAsDF.write.save(inferenceLocation)
+
+        mlflowLoggingClient.setTag(runId, "InferenceConfig", inferenceConfigAsJSON.compactJson)
+
+        mlflowLoggingClient.setTag(runId, "InferenceDataFrameLocation", inferenceLocation)
 
         withinRunId += 1
 

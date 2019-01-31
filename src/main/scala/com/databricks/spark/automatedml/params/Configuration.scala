@@ -29,7 +29,8 @@ case class MainConfig(
                        geneticConfig: GeneticConfig,
                        mlFlowLoggingFlag: Boolean,
                        mlFlowLogArtifactsFlag: Boolean,
-                       mlFlowConfig: MLFlowConfig
+                       mlFlowConfig: MLFlowConfig,
+                       inferenceConfigSaveLocation: String
                      )
 
 // TODO: Change MainConfig to use this case class definition.

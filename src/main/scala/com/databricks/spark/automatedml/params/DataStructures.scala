@@ -174,6 +174,16 @@ case class TreeSplitReport(
                           model: Any
                           )
 
+case class DataPrepReturn(
+                          outputData: DataFrame,
+                          fieldListing: Array[String]
+                         )
+
+case class OutlierFilteringReturn(
+                                 outputData: DataFrame,
+                                 fieldRemovalMap: Map[String, (Double, String)]
+                                 )
+
 sealed trait Output{
  def modelReport: Array[GenericModelReturn]
  def generationReport: Array[GenerationalReport]

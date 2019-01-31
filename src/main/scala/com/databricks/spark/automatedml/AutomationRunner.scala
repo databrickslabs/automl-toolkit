@@ -1,6 +1,7 @@
 package com.databricks.spark.automatedml
 
 import com.databricks.spark.automatedml.executor.DataPrep
+import com.databricks.spark.automatedml.inference.InferenceModelConfig
 import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
@@ -380,13 +381,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
     if(_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn() else mlFlowLogger.logArtifactsOff()
 
     try {
-      mlFlowLogger.logMlFlowDataAndModels(runData, modelFamily, modelType)
+      mlFlowLogger.logMlFlowDataAndModels(runData, modelFamily, modelType, _mainConfig.inferenceConfigSaveLocation)
       "Logged to MlFlow Successful"
     } catch {
       case e: Exception =>
         val stack = e.toString
         val topStackTrace : String = e.getStackTrace.mkString("\n")
-        println(s"Failed to log to mlflow. Check configuration. \n  $stack \n Top trace: \t $stack")
+        println(s"Failed to log to mlflow. Check configuration. \n  $stack \n Top trace: \t $topStackTrace")
         logger.log(Level.INFO, stack)
         "Failed to Log to MlFlow"
     }
