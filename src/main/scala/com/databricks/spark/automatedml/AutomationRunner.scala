@@ -1,7 +1,7 @@
 package com.databricks.spark.automatedml
 
 import com.databricks.spark.automatedml.executor.DataPrep
-import com.databricks.spark.automatedml.inference.InferenceModelConfig
+import com.databricks.spark.automatedml.inference.{InferenceModelConfig, InferenceTools}
 import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
@@ -15,7 +15,7 @@ import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.ArrayBuffer
 
-class AutomationRunner(df: DataFrame) extends DataPrep(df) {
+class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -492,6 +492,36 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) {
       val mlFlowResult = logResultsToMlFlow(genericResultData, _mainConfig.modelFamily, modelSelection)
       println(mlFlowResult)
       logger.log(Level.INFO, mlFlowResult)
+    } else {
+
+      // set the Inference details in general for the run
+      val inferenceModelConfig = InferenceModelConfig(
+        modelFamily = _mainConfig.modelFamily,
+        modelType = modelSelection,
+        modelLoadMethod = "path",
+        mlFlowConfig = _mainConfig.mlFlowConfig,
+        mlFlowRunId = "none",
+        modelPathLocation = _mainConfig.mlFlowConfig.mlFlowModelSaveDirectory
+      )
+
+      // Set the Inference Config
+      setInferenceModelConfig(inferenceModelConfig)
+      setInferenceConfigStorageLocation(_mainConfig.inferenceConfigSaveLocation)
+
+      // Write the Inference Payload out to the specified location
+      val outputInferencePayload = getInferenceConfig
+
+      val inferenceConfigReadable = convertInferenceConfigToJson(outputInferencePayload)
+      val inferenceLog = s"Inference Configuration: \n${inferenceConfigReadable.prettyJson}"
+      println(inferenceLog)
+
+      logger.log(Level.INFO, inferenceLog)
+
+      if (_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory.nonEmpty) {
+        val inferenceConfigAsDF = convertInferenceConfigToDataFrame(outputInferencePayload)
+
+        inferenceConfigAsDF.write.save(_mainConfig.inferenceConfigSaveLocation)
+      }
     }
 
     val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,

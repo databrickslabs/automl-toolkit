@@ -72,7 +72,7 @@ trait InferenceTools extends SparkSessionWrapper {
 
     val jsonConfig = convertInferenceConfigToJson(config)
 
-    sc.parallelize(Seq(jsonConfig)).toDF("config")
+    sc.parallelize(Seq(jsonConfig.compactJson)).toDF("config")
 
   }
 

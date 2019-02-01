@@ -161,7 +161,7 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
               client.setTag(runId, s"SparkModel_$modelId", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "classifer_LogisticRegression" =>
+            case "classifier_LogisticRegression" =>
               modelReturn.model.asInstanceOf[LogisticRegressionModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
               client.setTag(runId, s"SparkModel_$modelId", path)
@@ -284,7 +284,7 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
         val inferenceModelConfig = InferenceModelConfig(
           modelFamily = modelFamily,
           modelType = modelType,
-          modelLoadMethod = "path",
+          modelLoadMethod = "mlflow",
           mlFlowConfig = inferenceMlFlowConfig,
           mlFlowRunId = runId,
           modelPathLocation = modelDir
