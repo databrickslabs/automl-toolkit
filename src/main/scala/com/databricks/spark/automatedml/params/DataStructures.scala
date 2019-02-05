@@ -174,6 +174,16 @@ case class TreeSplitReport(
                           model: Any
                           )
 
+case class DataPrepReturn(
+                          outputData: DataFrame,
+                          fieldListing: Array[String]
+                         )
+
+case class OutlierFilteringReturn(
+                                 outputData: DataFrame,
+                                 fieldRemovalMap: Map[String, (Double, String)]
+                                 )
+
 sealed trait Output{
  def modelReport: Array[GenericModelReturn]
  def generationReport: Array[GenerationalReport]
@@ -193,59 +203,6 @@ abstract case class FeatureImportancePredictionOutput(featureImportances: DataFr
                                                       predictionData: DataFrame) extends Output
 
 abstract case class ConfusionOutput(predictionData: DataFrame, confusionData: DataFrame) extends Output
-
-
-
-
-//case class AutomationOutput(
-//                        modelReport: Array[GenericModelReturn],
-//                        generationReport: Array[GenerationalReport],
-//                        modelReportDataFrame: DataFrame,
-//                        generationReportDataFrame: DataFrame
-//                      )
-//
-//case class TunerOutput(
-//                        modelReport: Array[GenericModelReturn],
-//                        generationReport: Array[GenerationalReport],
-//                        modelReportDataFrame: DataFrame,
-//                        generationReportDataFrame: DataFrame,
-//                        rawData: DataFrame,
-//                        modelSelection: String
-//                      )
-//
-//case class PredictionOutput(
-//                           modelReport: Array[GenericModelReturn],
-//                           generationReport: Array[GenerationalReport],
-//                           modelReportDataFrame: DataFrame,
-//                           generationReportDataFrame: DataFrame,
-//                           dataWithPredictions: DataFrame
-//                           )
-//
-//case class ConfusionOutput(
-//                            modelReport: Array[GenericModelReturn],
-//                            generationReport: Array[GenerationalReport],
-//                            modelReportDataFrame: DataFrame,
-//                            generationReportDataFrame: DataFrame,
-//                            dataWithPredictions: DataFrame,
-//                            confusionReport: DataFrame
-//                          )
-//
-//case class FeatureImportanceOutput(
-//                                    modelReport: Array[GenericModelReturn],
-//                                    generationReport: Array[GenerationalReport],
-//                                    modelReportDataFrame: DataFrame,
-//                                    generationReportDataFrame: DataFrame,
-//                                    featureImportances: DataFrame
-//                                  )
-//
-//case class FeatureImportancePredictionOutput(
-//                                              modelReport: Array[GenericModelReturn],
-//                                              generationReport: Array[GenerationalReport],
-//                                              modelReportDataFrame: DataFrame,
-//                                              generationReportDataFrame: DataFrame,
-//                                              featureImportances: DataFrame,
-//                                              dataWithPredictions: DataFrame
-//                                            )
 
 sealed trait ModelType[A, B]
 

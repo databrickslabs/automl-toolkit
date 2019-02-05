@@ -205,6 +205,8 @@ trait Defaults {
     mlFlowModelSaveDirectory = "s3://mlflow/experiments/"
   )
 
+  def _inferenceConfigSaveLocationDefault: String = "/models"
+
   def _defaultMlFlowLoggingFlag: Boolean = false
 
   def _defaultMlFlowArtifactsFlag: Boolean = false
@@ -246,7 +248,8 @@ trait Defaults {
     geneticConfig = _geneticTunerDefaults,
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
-    mlFlowConfig = _mlFlowConfigDefaults
+    mlFlowConfig = _mlFlowConfigDefaults,
+    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault
   )
 
   def _featureImportancesDefaults = MainConfig(
@@ -302,7 +305,8 @@ trait Defaults {
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
-    mlFlowConfig = _mlFlowConfigDefaults
+    mlFlowConfig = _mlFlowConfigDefaults,
+    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault
   )
 
   def _treeSplitDefaults =  MainConfig(
@@ -358,7 +362,8 @@ trait Defaults {
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
-    mlFlowConfig = _mlFlowConfigDefaults
+    mlFlowConfig = _mlFlowConfigDefaults,
+    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault
   )
 
 }

@@ -1,5 +1,6 @@
 package com.databricks.spark.automatedml.sanitize
 
+import com.databricks.spark.automatedml.inference.NaFillConfig
 import com.databricks.spark.automatedml.utils.DataValidation
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.ml.feature.StringIndexer
@@ -15,7 +16,7 @@ object DataSanitizerPythonHelper {
   var _decision: String = _
 
   def generateCleanData(sanitizer: DataSanitizer, dfName: String): Unit = {
-    val (cleanDf, decision) = sanitizer.generateCleanData()
+    val (cleanDf, naFillConfig, decision) = sanitizer.generateCleanData()
     _decision = decision
     cleanDf.createOrReplaceTempView(dfName)
     println("Dataframe has been cleaned and registered as " + dfName + " " + cleanDf)
@@ -95,6 +96,11 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   def getFilterPrecision: Double = _filterPrecision
 
+
+  private var _labelValidation: Boolean = false
+  private def labelValidationOn(): Boolean = true
+
+
   private def convertLabel(df: DataFrame): DataFrame = {
 
     val stringIndexer = new StringIndexer()
@@ -108,19 +114,17 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private def refactorLabel(df: DataFrame, labelColumn: String): DataFrame = {
 
-    var validation = false
-
     extractSchema(df.schema).foreach(x =>
       x._2 match {
         case `labelColumn` => x._1 match {
-          case StringType => validation = true
-          case BooleanType => validation = true
-          case BinaryType => validation = true
+          case StringType => labelValidationOn()
+          case BooleanType => labelValidationOn()
+          case BinaryType => labelValidationOn()
           case _ => None
         }
         case _ => None
       })
-    if (validation) convertLabel(df) else df
+    if (_labelValidation) convertLabel(df) else df
   }
 
   private def metricConversion(metric: String): String = {
@@ -175,7 +179,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     summaryColumns.zip(summaryValues)
   }
 
-  private def fillMissing(df: DataFrame): (Map[String, Double], Map[String, String]) = {
+  private def fillMissing(df: DataFrame): NaFillConfig = {
 
     val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
 
@@ -207,7 +211,11 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val characterMapping = characterFilterBuffer.toArray.toMap
 
-    (numericMapping, characterMapping)
+    NaFillConfig(
+      numericColumns = numericMapping,
+      categoricalColumns = characterMapping
+    )
+
   }
 
   def decideModel(): String = {
@@ -221,14 +229,14 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     decision
   }
 
-  def generateCleanData(): (DataFrame, String) = {
+  def generateCleanData(): (DataFrame, NaFillConfig, String) = {
 
     val preFilter = refactorLabel(data, _labelCol)
 
-    val (numMap, charMap) = fillMissing(preFilter)
-    val filledData = preFilter.na.fill(numMap).na.fill(charMap)
+    val fillMap = fillMissing(preFilter)
+    val filledData = preFilter.na.fill(fillMap.numericColumns).na.fill(fillMap.categoricalColumns)
 
-    (filledData, decideModel())
+    (filledData, fillMap, decideModel())
 
   }
 

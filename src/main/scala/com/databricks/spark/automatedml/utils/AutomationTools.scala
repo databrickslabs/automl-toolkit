@@ -1,6 +1,7 @@
 package com.databricks.spark.automatedml.utils
 
-import com.databricks.spark.automatedml.params.{GenerationalReport, GenericModelReturn}
+import com.databricks.spark.automatedml.inference.{InferenceDataConfig, InferenceSwitchSettings}
+import com.databricks.spark.automatedml.params.{GenerationalReport, GenericModelReturn, MainConfig}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
@@ -131,6 +132,36 @@ trait AutomationTools extends SparkSessionWrapper {
       case _ => trainSplitMethod
 
     }
+
+  }
+
+  /**
+    * Single-pass method for recording all switch settings to the InferenceConfig Object.
+    * @param config MainConfig used for starting the training AutomatedML run
+    */
+  def recordInferenceSwitchSettings(config: MainConfig): InferenceSwitchSettings = {
+
+    // Set the switch settings
+    InferenceSwitchSettings(
+      naFillFlag = config.naFillFlag,
+      varianceFilterFlag = config.varianceFilterFlag,
+      outlierFilterFlag = config.outlierFilterFlag,
+      pearsonFilterFlag = config.pearsonFilteringFlag,
+      covarianceFilterFlag = config.covarianceFilteringFlag,
+      oneHotEncodeFlag = config.oneHotEncodeFlag,
+      scalingFlag = config.scalingFlag
+    )
+  }
+
+  def recordInferenceDataConfig(config: MainConfig, startingFields: Array[String]): InferenceDataConfig = {
+
+    InferenceDataConfig(
+      labelCol = config.labelCol,
+      featuresCol = config.featuresCol,
+      startingColumns = startingFields,
+      fieldsToIgnore = config.fieldsToIgnoreInVector,
+      dateTimeConversionType = config.dateTimeConversionType
+    )
 
   }
 

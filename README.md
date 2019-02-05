@@ -1680,8 +1680,6 @@ def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
 ```
 > NOTE: ***DO NOT OVERRIDE THIS***
 
-
-
 ## Feature Importance
 
 DOCS COMING SOON
@@ -1689,3 +1687,27 @@ DOCS COMING SOON
 ## Decision Splits
 
 DOCS COMING SOON
+
+
+
+# Inference
+
+## Batch Inference Mode
+
+Batch Inference Mode is a feature that allows for a particular run's settings to be preserved, recalled, and used to 
+apply the precise feature engineering actions that occured during a model training run.  This is useful in order to 
+utilize the built model for batch inference, or to understand how to write real-time transformation logic in order to 
+create a feature vector that can be sent through a model in a model-as-a-service mode.
+
+***This mode REQUIRES MLFlow in order to function***
+
+Each individual model will get two forms of the configuration:
+1. A compact JSON data structure that is logged as a tagged element to the mlflow run that can be copied and 
+pasted (or retrieved through the mlflow API) for any particular run that would be used to do batch inference
+2. A specified location that a Dataframe has been saved that contains the same location.
+
+There are two primary entry points for an inference run.  One simply requires the path of the DataFrame (preferred), 
+while the other requires the json string itself.  Everything needed to execute the inference prediction is 
+contained within this data structure (either the json or the Dataframe)
+
+
