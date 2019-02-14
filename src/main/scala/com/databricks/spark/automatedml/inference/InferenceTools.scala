@@ -4,8 +4,8 @@ import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.json4s._
-import org.json4s.native.Serialization
-import org.json4s.native.Serialization._
+import org.json4s.jackson.Serialization
+import org.json4s.jackson.Serialization._
 
 trait InferenceTools extends SparkSessionWrapper {
 
