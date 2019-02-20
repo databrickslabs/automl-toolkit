@@ -25,9 +25,21 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   private var _mlpcStringBoundaries = _mlpcDefaultStringBoundaries
 
-  final private val featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
-  final private val classDistinctCount = df.select(_labelCol).distinct().count().toInt
+//  final private val featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
+//  final private val classDistinctCount = df.select(_labelCol).distinct().count().toInt
 
+  private var _featureInputSize: Int = 0
+  private var _classDistinctCount: Int = 0
+
+  private def calcFeatureInputSize: this.type = {
+    _featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
+    this
+  }
+
+  private def calcClassDistinctCount: this.type = {
+    _classDistinctCount = df.select(_labelCol).distinct().count().toInt
+    this
+  }
 
   def setScoringMetric(value: String): this.type = {
     require(classificationMetrics.contains(value),
@@ -109,7 +121,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     var i = 0
     do {
       val layers = generateLayerArray("layers", "hiddenLayerSizeAdjust",
-        _mlpcNumericBoundaries, featureInputSize, classDistinctCount)
+        _mlpcNumericBoundaries, _featureInputSize, _classDistinctCount)
       val maxIter = generateRandomInteger("maxIter", _mlpcNumericBoundaries)
       val solver = generateRandomString("solver", _mlpcStringBoundaries)
       val stepSize = generateRandomDouble("stepSize", _mlpcNumericBoundaries)
@@ -233,6 +245,10 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   private def continuousEvolution(): Array[MLPCModelsWithResults] = {
 
+    // Set the parameter guides for layers / label counts (only set once)
+    calcFeatureInputSize
+    calcClassDistinctCount
+
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
     var runResults = new ArrayBuffer[MLPCModelsWithResults]
@@ -343,6 +359,10 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
   }
 
   def evolveParameters(): Array[MLPCModelsWithResults] = {
+
+    // Set the parameter guides for layers / label counts (only set once)
+    calcFeatureInputSize
+    calcClassDistinctCount
 
     var generation = 1
     // Record of all generations results
