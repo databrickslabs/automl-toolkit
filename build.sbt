@@ -2,7 +2,7 @@ name := "AutomatedML"
 
 organization := "com.databricks"
 
-version := "0.4.4"
+version := "0.4.5"
 
 scalaVersion := "2.11.12"
 
@@ -14,7 +14,7 @@ libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
 
 
 lazy val commonSettings = Seq(
-  version := "0.4.2",
+  version := "0.4.5",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )
