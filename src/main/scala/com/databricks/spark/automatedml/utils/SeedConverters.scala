@@ -6,6 +6,21 @@ import scala.collection.mutable.ListBuffer
 
 trait SeedConverters {
 
+  def generateXGBoostConfig(configMap: Map[String, Any]): XGBoostConfig = {
+    XGBoostConfig (
+      alpha = configMap("alpha").asInstanceOf[String].toDouble,
+      eta = configMap("eta").asInstanceOf[String].toDouble,
+      gamma = configMap("gamma").asInstanceOf[String].toDouble,
+      lambda = configMap("lambda").asInstanceOf[String].toDouble,
+      maxDepth = configMap("maxDepth").asInstanceOf[String].toInt,
+      maxBins = configMap("maxBins").asInstanceOf[String].toInt,
+      subSample = configMap("subSample").asInstanceOf[String].toDouble,
+      minChildWeight = configMap("minChildWeight").asInstanceOf[String].toDouble,
+      numRound = configMap("numRound").asInstanceOf[String].toInt,
+      trainTestRatio = configMap("trainTestRatio").asInstanceOf[String].toDouble
+    )
+  }
+
   def generateRandomForestConfig(configMap: Map[String, Any]): RandomForestConfig = {
     RandomForestConfig(
       numTrees=configMap("numTrees").asInstanceOf[String].toInt,

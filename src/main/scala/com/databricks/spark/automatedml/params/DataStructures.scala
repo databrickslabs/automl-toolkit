@@ -27,6 +27,19 @@ case class ManualFilters(
                           threshold: Double
                         )
 
+case class XGBoostConfig(
+                        alpha: Double,
+                        eta: Double,
+                        gamma: Double,
+                        lambda: Double,
+                        maxDepth: Int,
+                        subSample: Double,
+                        minChildWeight: Double,
+                        numRound: Int,
+                        maxBins: Int,
+                        trainTestRatio: Double
+                        )
+
 case class RandomForestConfig(
                                numTrees: Int,
                                impurity: String,
@@ -90,6 +103,14 @@ case class LogisticRegressionModelsWithResults(
                                                 evalMetrics: Map[String, Double],
                                                 generation: Int
                                               )
+
+case class XGBoostModelsWithResults(
+                                   modelHyperParams: XGBoostConfig,
+                                   model: Any,
+                                   score: Double,
+                                   evalMetrics: Map[String, Double],
+                                   generation: Int
+                                   )
 
 case class RandomForestModelsWithResults(
                                           modelHyperParams: RandomForestConfig,

@@ -6,6 +6,7 @@ import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
 import com.databricks.spark.automatedml.tracking.MLFlowTracker
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
@@ -31,6 +32,51 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setFeaturesCol(_mainConfig.featuresCol)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
       .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
+      .setScoringMetric(_mainConfig.scoringMetric)
+      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+      .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+      .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
+      .setKFold(_mainConfig.geneticConfig.kFold)
+      .setSeed(_mainConfig.geneticConfig.seed)
+      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+      .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+      .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+      .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
+      .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
+      .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionMaxIterations(_mainConfig.geneticConfig.continuousEvolutionMaxIterations)
+      .setContinuousEvolutionStoppingScore(_mainConfig.geneticConfig.continuousEvolutionStoppingScore)
+      .setContinuousEvolutionParallelism(_mainConfig.geneticConfig.continuousEvolutionParallelism)
+      .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
+      .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
+      .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+
+    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+
+    (modelResults, modelStats, modelSelection, cachedData)
+  }
+
+  private def runXGBoost(): (Array[XGBoostModelsWithResults], DataFrame, String, DataFrame) = {
+
+    val (data, fields, modelSelection) = prepData()
+
+    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
+    cachedData.count
+
+    val initialize = new XGBoostTuner(cachedData, modelSelection)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setXGBoostNumericBoundaries(_mainConfig.numericBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
       .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
@@ -412,6 +458,18 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           )
         }
         (genericResults, stats, selection, data)
+      case "XGBoost" =>
+        val (results, stats, selection, data) = runXGBoost()
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
       case "GBT" =>
         val (results, stats, selection, data) = runGBT()
         results.foreach{x =>
@@ -520,7 +578,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       if (_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory.nonEmpty) {
         val inferenceConfigAsDF = convertInferenceConfigToDataFrame(outputInferencePayload)
 
-        inferenceConfigAsDF.write.save(_mainConfig.inferenceConfigSaveLocation)
+        inferenceConfigAsDF.write.mode("overwrite").save(_mainConfig.inferenceConfigSaveLocation)
       }
     }
 
@@ -550,6 +608,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             model.transform(rawData)
           case "classifier" =>
             val model = bestModel.model.asInstanceOf[RandomForestClassificationModel]
+            model.transform(rawData)
+        }
+      case "XGBoost" =>
+        modelSelection match {
+          case "regressor" =>
+            val model = bestModel.model.asInstanceOf[XGBoostRegressionModel]
+            model.transform(rawData)
+          case "classifier" =>
+            val model = bestModel.model.asInstanceOf[XGBoostClassificationModel]
             model.transform(rawData)
         }
       case "GBT" =>
@@ -586,7 +653,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  private def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
+  def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
 
     val (data, fields, modelType) = prepData()
 
@@ -673,13 +740,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       override def modelReportDataFrame: DataFrame = tunerResult.modelReportDataFrame
       override def generationReportDataFrame: DataFrame = tunerResult.generationReportDataFrame
     }
-//
-//    AutomationOutput(
-//      modelReport = tunerResult.modelReport,
-//      generationReport = tunerResult.generationReport,
-//      modelReportDataFrame = tunerResult.modelReportDataFrame,
-//      generationReportDataFrame = tunerResult.generationReportDataFrame
-//    )
 
   }
 

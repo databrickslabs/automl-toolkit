@@ -9,7 +9,8 @@ trait Defaults {
     "LinearRegression",
     "LogisticRegression",
     "MLPC",
-    "SVM"
+    "SVM",
+    "XGBoost"
   )
 
   final val trainSplitMethods: List[String] = List("random", "chronological", "stratified", "overSample", "underSample")
@@ -112,6 +113,19 @@ trait Defaults {
     pearsonFilterFlag = true,
     covarianceFilterFlag = true,
     scalingFlag = false
+  )
+
+  def _xgboostDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "alpha" -> Tuple2(0.0, 1.0),
+    "eta" -> Tuple2(0.1, 0.5),
+    "gamma" -> Tuple2(0, 10),
+    "lambda" -> Tuple2(0.1, 10),
+    "maxDepth" -> Tuple2(3, 10),
+    "subsample" -> Tuple2(0.4, 0.6),
+    "minChildWeight" -> Tuple2(0.1, 10),
+    "numRound" -> Tuple2(5, 25),
+    "maxBins" -> Tuple2(25, 512),
+    "trainTestRatio" -> (0.2, 0.8)
   )
 
   def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
