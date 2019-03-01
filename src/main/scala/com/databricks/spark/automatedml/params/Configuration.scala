@@ -31,7 +31,8 @@ case class MainConfig(
                        mlFlowLoggingFlag: Boolean,
                        mlFlowLogArtifactsFlag: Boolean,
                        mlFlowConfig: MLFlowConfig,
-                       inferenceConfigSaveLocation: String
+                       inferenceConfigSaveLocation: String,
+                       dataReductionFactor: Double
                      )
 
 // TODO: Change MainConfig to use this case class definition.

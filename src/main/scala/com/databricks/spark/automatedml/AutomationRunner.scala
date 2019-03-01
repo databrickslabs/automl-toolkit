@@ -61,6 +61,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+      .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -109,6 +110,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+      .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -161,6 +163,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -214,6 +217,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+      .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -267,6 +271,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -323,6 +328,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -379,6 +385,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -432,6 +439,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
      .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
      .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
      .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+     .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 

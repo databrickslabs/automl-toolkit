@@ -176,6 +176,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _inferenceConfigSaveLocation: String = _inferenceConfigSaveLocationDefault
 
+  var _dataReductionFactor: Double = _defaultDataReductionFactor
+
   private def setConfigs(): this.type = {
     setMainConfig()
     setTreeSplitsConfig()
@@ -870,6 +872,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setDataReductionFactor(value: Double): this.type = {
+    require(value > 0, s"Data Reduction Factor must be between 0 and 1")
+    require(value < 1, s"Data Reduction Factor must be between 0 and 1")
+    _dataReductionFactor = value
+    setConfigs()
+    this
+  }
+
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
       parallelism = _parallelism,
@@ -931,7 +941,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
-      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
+      dataReductionFactor = _dataReductionFactor
     )
     this
   }
@@ -973,7 +984,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
-      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
+      dataReductionFactor = _dataReductionFactor
     )
     this
   }
@@ -1018,7 +1030,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
-      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
+      dataReductionFactor = _dataReductionFactor
     )
     this
   }
@@ -1190,6 +1203,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
 
   def getInferenceConfigSaveLocation: String = _inferenceConfigSaveLocation
+
+  def getDataReductionFactor: Double = _dataReductionFactor
 
   /**
     * Helper method for extracting the config from a run's GenericModelReturn payload
