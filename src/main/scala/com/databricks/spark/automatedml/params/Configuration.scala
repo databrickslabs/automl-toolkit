@@ -11,6 +11,7 @@ case class MainConfig(
                        covarianceFilteringFlag: Boolean,
                        oneHotEncodeFlag: Boolean,
                        scalingFlag: Boolean,
+                       dataPrepCachingFlag: Boolean,
                        autoStoppingFlag: Boolean,
                        autoStoppingScore: Double,
                        featureImportanceCutoffType: String,

@@ -26,6 +26,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _scalingFlag: Boolean = _defaultScalingFlag
 
+  var _dataPrepCachingFlag: Boolean = _defaultDataPrepCachingFlag
+
   var _numericBoundaries: Map[String, (Double, Double)] = _rfDefaultNumBoundaries
 
   var _stringBoundaries: Map[String, List[String]] = _rfDefaultStringBoundaries
@@ -298,6 +300,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def scalingOff(): this.type = {
     _scalingFlag = false
+    setConfigs()
+    this
+  }
+
+  def dataPrepCachingOn(): this.type = {
+    _dataPrepCachingFlag = true
+    setConfigs()
+    this
+  }
+
+  def dataPrepCachingOff(): this.type = {
+    _dataPrepCachingFlag = false
     setConfigs()
     this
   }
@@ -897,6 +911,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      dataPrepCachingFlag = _dataPrepCachingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -938,6 +953,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      dataPrepCachingFlag = _dataPrepCachingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -982,6 +998,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      dataPrepCachingFlag = _dataPrepCachingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -1033,6 +1050,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getOneHotEncodingStatus: Boolean = _oneHotEncodeFlag
 
   def getScalingStatus: Boolean = _scalingFlag
+
+  def getDataPrepCachingStatus: Boolean = _dataPrepCachingFlag
 
   def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
 

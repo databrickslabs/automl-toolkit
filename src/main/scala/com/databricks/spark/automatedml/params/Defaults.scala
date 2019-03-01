@@ -39,6 +39,8 @@ trait Defaults {
 
   def _defaultScalingFlag: Boolean = false
 
+  def _defaultDataPrepCachingFlag: Boolean = true
+
   def _defaultDateTimeConversionType: String = "split"
 
   def _defaultFieldsToIgnoreInVector: Array[String] = Array.empty[String]
@@ -244,6 +246,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
     featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
@@ -277,6 +280,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
     featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
@@ -334,6 +338,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    dataPrepCachingFlag = true,
     dateTimeConversionType = "split",
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
