@@ -189,6 +189,13 @@ case class GenerationalReport(
                                generationStddevScore: Double
                              )
 
+case class FeatureImportanceReturn(
+                                  modelPayload: RandomForestModelsWithResults,
+                                  data: DataFrame,
+                                  fields: Array[String],
+                                  modelType: String
+                                  )
+
 case class TreeSplitReport(
                           decisionText: String,
                           featureImportances: DataFrame,
@@ -199,6 +206,12 @@ case class DataPrepReturn(
                           outputData: DataFrame,
                           fieldListing: Array[String]
                          )
+
+case class DataGeneration (
+                            data: DataFrame,
+                            fields: Array[String],
+                            modelType: String
+                          )
 
 case class OutlierFilteringReturn(
                                  outputData: DataFrame,

@@ -1,7 +1,7 @@
 package com.databricks.spark.automatedml.executor
 
 import com.databricks.spark.automatedml.inference.{InferenceConfig, NaFillConfig}
-import com.databricks.spark.automatedml.params.{DataPrepReturn, OutlierFilteringReturn}
+import com.databricks.spark.automatedml.params.{DataGeneration, DataPrepReturn, OutlierFilteringReturn}
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize._
 import com.databricks.spark.automatedml.utils.AutomationTools
@@ -203,7 +203,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
 
   }
 
-  def prepData(): (DataFrame, Array[String], String) = {
+  def prepData(): DataGeneration = {
 
     // Record the Switch Settings from MainConfig to return an InferenceSwitchSettings object
     val inferenceSwitchSettings = recordInferenceSwitchSettings(_mainConfig)
@@ -404,7 +404,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     logger.log(Level.INFO, finalStatement)
     println(finalStatement)
 
-    (persistDataStage7, stage65Fields, detectedModelType)
+    DataGeneration(persistDataStage7, stage65Fields, detectedModelType)
 
   }
 
