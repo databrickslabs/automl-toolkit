@@ -155,6 +155,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   private def runBattery(battery: Array[MLPCConfig], generation: Int = 1): Array[MLPCModelsWithResults] = {
 
+    val startTimeStamp = System.currentTimeMillis/1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[MLPCModelsWithResults]
@@ -190,11 +191,14 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
         kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
         scoringMap(a) = metricScores.sum / metricScores.length
       }
+
+      val completionTimeStamp = System.currentTimeMillis/1000
+      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
       val runAvg = MLPCModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
         calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
       println(runScoreStatement)

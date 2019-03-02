@@ -187,6 +187,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   private def runBattery(battery: Array[XGBoostConfig], generation: Int = 1): Array[XGBoostModelsWithResults] = {
 
+    val startTimeStamp = System.currentTimeMillis/1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[XGBoostModelsWithResults]
@@ -234,11 +235,13 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
+      val completionTimeStamp = System.currentTimeMillis/1000
+      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
       val runAvg = XGBoostModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
         calculateModelingFamilyRemainingTime(generation, modelCnt)
       }%2.4f%%"

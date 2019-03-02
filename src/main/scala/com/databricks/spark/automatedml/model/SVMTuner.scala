@@ -123,6 +123,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
   private def runBattery(battery: Array[SVMConfig], generation: Int = 1): Array[SVMModelsWithResults] = {
 
+    val startTimeStamp = System.currentTimeMillis/1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[SVMModelsWithResults]
@@ -159,11 +160,14 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
         kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
         scoringMap(a) = metricScores.sum / metricScores.length
       }
+
+      val completionTimeStamp = System.currentTimeMillis/1000
+      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
       val runAvg = SVMModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
         calculateModelingFamilyRemainingTime(generation, modelCnt)
       }%2.4f%%"
