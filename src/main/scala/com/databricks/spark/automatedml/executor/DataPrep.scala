@@ -250,7 +250,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (persistDataStage1, dataStage1RowCount) = if(_mainConfig.dataPrepCachingFlag) {
       dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
     } else {
-      (dataStage1, dataStage1.count())
+      (dataStage1, "no count when data prep caching is disabled")
     }
 
     if(_mainConfig.naFillFlag) {
@@ -272,7 +272,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (persistDataStage2, dataStage2RowCount) = if(_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistDataStage1, dataStage2.outputData, cacheLevel, unpersistBlock)
     } else {
-      (dataStage2.outputData, dataStage2.outputData.count())
+      (dataStage2.outputData, "no count when data prep caching is disabled")
     }
 
     if(_mainConfig.varianceFilterFlag) {
@@ -290,7 +290,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (persistDataStage3, dataStage3RowCount) = if(_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistDataStage2, dataStage3.outputData, cacheLevel, unpersistBlock)
     } else {
-      (dataStage3.outputData, dataStage3.outputData.count())
+      (dataStage3.outputData, "no count when data prep caching is disabled")
     }
 
     if(_mainConfig.outlierFilterFlag) {
@@ -315,7 +315,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (persistFeaturizedDataCleaned, featurizedDataCleanedRowCount) = if(_mainConfig.dataPrepCachingFlag){
       dataPersist(persistDataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
     } else {
-      (featurizedDataCleaned, featurizedDataCleaned.count())
+      (featurizedDataCleaned, "no count when data prep caching is disabled")
     }
 
     //DEBUG
@@ -329,7 +329,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (persistDataStage4, dataStage4RowCount) = if(_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistFeaturizedDataCleaned, dataStage4.outputData, cacheLevel, unpersistBlock)
     } else {
-      (dataStage4.outputData, dataStage4.outputData.count())
+      (dataStage4.outputData, "no count when data prep caching is disabled")
     }
 
     if(_mainConfig.covarianceFilteringFlag) {
@@ -349,7 +349,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (persistDataStage5, dataStage5RowCount) = if(_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistDataStage4, dataStage5, cacheLevel, unpersistBlock)
     } else {
-      (dataStage5, dataStage5.count())
+      (dataStage5, "no count when data prep caching is disabled")
     }
 
     // Pearson Filtering (generates a vector features Field)
@@ -383,7 +383,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (persistDataStage7, dataStage7RowCount) = if(_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistDataStage5, dataStage7, cacheLevel, unpersistBlock)
     } else {
-      (dataStage7, dataStage7.count())
+      (dataStage7, "no count when data prep caching is disabled")
     }
 
     if(_mainConfig.scalingFlag) {
