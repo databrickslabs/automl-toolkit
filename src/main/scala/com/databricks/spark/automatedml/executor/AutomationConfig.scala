@@ -194,6 +194,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       case "LinearRegression" => _linearRegressionDefaultNumBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultNumBoundaries
       case "SVM" => _svmDefaultNumBoundaries
+      case "XGBoost" => _xgboostDefaultNumBoundaries
       case _ => throw new IllegalArgumentException(s"$value is an unsupported Model Type")
     }
     _stringBoundaries = value match {
@@ -204,6 +205,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       case "LinearRegression" => _linearRegressionDefaultStringBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultStringBoundaries
       case "SVM" => _svmDefaultStringBoundaries
+      case "XGBoost" => Map()
       case _ => throw new IllegalArgumentException(s"$value is an unsupported Model Type")
     }
     setConfigs()
