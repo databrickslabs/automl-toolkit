@@ -4,6 +4,7 @@ import com.databricks.spark.automatedml.executor.AutomationConfig
 import com.databricks.spark.automatedml.pipeline.FeaturePipeline
 import com.databricks.spark.automatedml.sanitize.Scaler
 import com.databricks.spark.automatedml.utils.{AutomationTools, DataValidation}
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.regression._
@@ -198,6 +199,15 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
     // load the model and transform the dataframe to batch predict on the data
     modelFamily match {
+      case "XGBoost" =>
+        modelType match {
+          case "regressor" =>
+            val xgboostRegressor = XGBoostRegressionModel.load(modelLoadPath)
+            xgboostRegressor.transform(data)
+          case "classifier" =>
+            val xgboostClassifier = XGBoostClassificationModel.load(modelLoadPath)
+            xgboostClassifier.transform(data)
+        }
       case "RandomForest" =>
         modelType match {
           case "regressor" =>
