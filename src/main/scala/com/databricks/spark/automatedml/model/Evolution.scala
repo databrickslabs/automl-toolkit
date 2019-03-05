@@ -667,4 +667,13 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
 
   }
 
+  def classificationAdjudicator(df: DataFrame): Boolean = {
+
+    // Calculate the distinct entries of the label value for a classification problem
+    val uniqueLabelCounts = df.select(_labelCol).distinct().count()
+
+    if(uniqueLabelCounts <= 2) true else false
+
+  }
+
 }

@@ -4,7 +4,7 @@ import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig, Ra
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
+import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -181,6 +181,15 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     modelSelection match {
       case "classifier" =>
+        if (classificationAdjudicator(df)) {
+          for (i <- binaryClassificationMetrics) {
+            val binaryEvaluator = new BinaryClassificationEvaluator()
+              .setLabelCol(_labelCol)
+              .setRawPredictionCol("probability")
+              .setMetricName(i)
+            scoringMap(i) = binaryEvaluator.evaluate(predictedData)
+          }
+        }
         for (i <- classificationMetrics) {
           val scoreEvaluator = new MulticlassClassificationEvaluator()
             .setLabelCol(_labelCol)

@@ -11,8 +11,8 @@ libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.4.0"
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.0"
 libraryDependencies += "org.mlflow" % "mlflow-client" % "0.8.1"
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
-libraryDependencies += "ml.dmlc" % "xgboost4j" % "0.81"
-libraryDependencies += "ml.dmlc" % "xgboost4j-spark" % "0.81"
+libraryDependencies += "ml.dmlc" % "xgboost4j" % "0.82"
+libraryDependencies += "ml.dmlc" % "xgboost4j-spark" % "0.82"
 
 lazy val commonSettings = Seq(
   version := "0.4.7",
