@@ -2,7 +2,7 @@ name := "AutomatedML"
 
 organization := "com.databricks"
 
-version := "0.4.7"
+version := "0.4.8"
 
 scalaVersion := "2.11.12"
 
@@ -15,7 +15,7 @@ libraryDependencies += "ml.dmlc" % "xgboost4j" % "0.82"
 libraryDependencies += "ml.dmlc" % "xgboost4j-spark" % "0.82"
 
 lazy val commonSettings = Seq(
-  version := "0.4.7",
+  version := "0.4.8",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )

@@ -20,6 +20,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
+  // Instantiate the default scoring metric
   private var _scoringMetric = modelSelection match {
     case "regressor" => "rmse"
     case "classifier" => "f1"
@@ -30,15 +31,22 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private var _randomForestStringBoundaries = _rfDefaultStringBoundaries
 
+  private val _classificationMetrics = modelSelection match {
+    case "classifier" =>
+      classificationMetricValidator(classificationAdjudicator(df), classificationMetrics)
+    case _ => classificationMetrics
+  }
+
+
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
       case "regressor" => require(regressionMetrics.contains(value),
         s"Regressor scoring metric '$value' is not a valid member of ${
           invalidateSelection(value, regressionMetrics)
         }")
-      case "classifier" => require(classificationMetrics.contains(value),
-        s"Regressor scoring metric '$value' is not a valid member of ${
-          invalidateSelection(value, classificationMetrics)
+      case "classifier" => require(_classificationMetrics.contains(value),
+        s"Classification scoring metric '$value' is not a valid member of ${
+          invalidateSelection(value, _classificationMetrics)
         }")
       case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
     }
@@ -62,7 +70,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   def getRandomForestStringBoundaries: Map[String, List[String]] = _randomForestStringBoundaries
 
-  def getClassificationMetrics: List[String] = classificationMetrics
+  def getClassificationMetrics: List[String] = _classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
 
@@ -181,29 +189,12 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     modelSelection match {
       case "classifier" =>
-        if (classificationAdjudicator(df)) {
-          for (i <- binaryClassificationMetrics) {
-            val binaryEvaluator = new BinaryClassificationEvaluator()
-              .setLabelCol(_labelCol)
-              .setRawPredictionCol("probability")
-              .setMetricName(i)
-            scoringMap(i) = binaryEvaluator.evaluate(predictedData)
-          }
-        }
-        for (i <- classificationMetrics) {
-          val scoreEvaluator = new MulticlassClassificationEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+        for (i <- _classificationMetrics) {
+          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          val scoreEvaluator = new RegressionEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
         }
     }
 
@@ -246,14 +237,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
         case "classifier" =>
-          if (classificationAdjudicator(df)) {
-            for (i <- binaryClassificationMetrics) {
-              val metricScores = new ListBuffer[Double]
-              kFoldBuffer.map(x => metricScores += x.evalMetrics(i))
-              scoringMap(i) = metricScores.sum / metricScores.length
-            }
-          }
-          for (a <- classificationMetrics) {
+          for (a <- _classificationMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
             scoringMap(a) = metricScores.sum / metricScores.length

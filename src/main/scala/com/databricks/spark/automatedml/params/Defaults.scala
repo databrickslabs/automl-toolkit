@@ -97,8 +97,8 @@ trait Defaults {
   )
 
   def _covarianceConfigDefaults = CovarianceConfig(
-    correlationCutoffLow = -0.8,
-    correlationCutoffHigh = 0.8
+    correlationCutoffLow = -0.99,
+    correlationCutoffHigh = 0.99
   )
 
   def _scalingConfigDefaults = ScalingConfig(

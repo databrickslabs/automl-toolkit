@@ -2,6 +2,7 @@ package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{EvolutionDefaults, RandomForestConfig}
 import com.databricks.spark.automatedml.utils.{DataValidation, SeedConverters, SparkSessionWrapper}
+import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
@@ -667,6 +668,12 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
 
   }
 
+  /**
+    * Method for validating the distinct class count for a classification type model (for use in determining which
+    * evaluator to employ for scoring and optimization of each model)
+    * @param df source Dataframe (prior to splitting for train/test)
+    * @return Boolean true for Binary Classification problem, false for multi-class problem
+    */
   def classificationAdjudicator(df: DataFrame): Boolean = {
 
     // Calculate the distinct entries of the label value for a classification problem
@@ -675,5 +682,67 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     if(uniqueLabelCounts <= 2) true else false
 
   }
+
+  /**
+    * Method for restricting the available metrics used or are available for optimizing for classification problems
+    * @param binaryValidation boolean check from classificationAdjudicator() method
+    * @param metricPayload the hard-coded allowable List[String] of allowable classification metrics
+    *                      from com.databricks.spark.automatedml.params.EvolutionDefaults
+    * @return a copy of the the allowable params list with the Binary metrics removed if this is a multiclass problem.
+    */
+  def classificationMetricValidator(binaryValidation: Boolean, metricPayload: List[String]): List[String] = {
+
+    if(binaryValidation) {
+      metricPayload
+    } else {
+      metricPayload.diff(List("areaUnderROC", "areaUnderPR"))
+    }
+
+  }
+
+  /**
+    * Method for scoring and evaluating classification models (supporting both multi-class and binary classification
+    * problems)
+    * @param metricName the metric to be tested against (both for binary and multi-class)
+    * @param labelColumn the column name in the data set that is the 'source of truth' to compare against
+    * @param data the DataFrame that has been transformed
+    * @return the score, as a Double value.
+    */
+  def classificationScoring(metricName: String, labelColumn: String, data: DataFrame): Double = {
+
+    metricName match {
+      case "areaUnderPR" | "areaUnderROC" =>
+        new BinaryClassificationEvaluator()
+          .setLabelCol(labelColumn)
+          .setRawPredictionCol("probability")
+          .setMetricName(metricName)
+          .evaluate(data)
+      case _ =>
+        new MulticlassClassificationEvaluator()
+          .setLabelCol(labelColumn)
+          .setPredictionCol("prediction")
+          .setMetricName(metricName)
+          .evaluate(data)
+    }
+
+  }
+
+  /**
+    * Method for scoring Regression models.
+    * @param metricName The metric desired to be tested
+    * @param labelColumn The name of the label column
+    * @param data the DataFrame that has been transformed by a model.
+    * @return the score for the metric, as a Double value.
+    */
+  def regressionScoring(metricName: String, labelColumn: String, data: DataFrame): Double = {
+
+    new RegressionEvaluator()
+      .setLabelCol(labelColumn)
+      .setMetricName(metricName)
+      .evaluate(data)
+
+  }
+
+
 
 }
