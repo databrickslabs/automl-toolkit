@@ -1,63 +1,98 @@
 package com.databricks.spark.automatedml.model
 
-import com.databricks.spark.automatedml.params.{Defaults, LogisticRegressionConfig, LogisticRegressionModelsWithResults}
+import com.databricks.spark.automatedml.params.{Defaults, XGBoostConfig, XGBoostModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
-import org.apache.spark.ml.classification.LogisticRegression
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions._
+import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
+import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-import org.apache.log4j.{Level, Logger}
-
 import scala.collection.parallel.mutable.ParHashSet
+import scala.concurrent.forkjoin.ForkJoinPool
 
-class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defaults
-  with Evolution {
+class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution
+  with Defaults {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  private var _scoringMetric = _scoringDefaultClassifier
+  private var _scoringMetric = modelSelection match {
+    case "regressor" => "rmse"
+    case "classifier" => "f1"
+    case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not supported.")
+  }
 
-  private var _logisticRegressionNumericBoundaries = _logisticRegressionDefaultNumBoundaries
+  private var _xgboostNumericBoundaries = _xgboostDefaultNumBoundaries
 
   def setScoringMetric(value: String): this.type = {
-    require(classificationMetrics.contains(value),
-      s"Classification scoring metric $value is not a valid member of ${
-        invalidateSelection(value, classificationMetrics)
-      }")
+    modelSelection match {
+      case "regressor" => require(regressionMetrics.contains(value),
+        s"Regressor scoring metric '$value' is not a valid member of ${
+          invalidateSelection(value, regressionMetrics)
+        }")
+      case "classifier" => require(classificationMetrics.contains(value),
+        s"Regressor scoring metric '$value' is not a valid member of ${
+          invalidateSelection(value, classificationMetrics)
+        }")
+      case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
+    }
     this._scoringMetric = value
     this
   }
 
-  def setLogisticRegressionNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
-    this._logisticRegressionNumericBoundaries = value
+  def setXGBoostNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+    _xgboostNumericBoundaries = value
     this
   }
 
   def getScoringMetric: String = _scoringMetric
-
-  def getLogisticRegressionNumericBoundaries: Map[String, (Double, Double)] = _logisticRegressionNumericBoundaries
+  def getXGBoostNumericBoundaries: Map[String, (Double, Double)] = _xgboostNumericBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
+  def getRegressionMetrics: List[String] = regressionMetrics
 
-  private def configureModel(modelConfig: LogisticRegressionConfig): LogisticRegression = {
-    new LogisticRegression()
-      .setLabelCol(_labelCol)
-      .setFeaturesCol(_featureCol)
-      .setElasticNetParam(modelConfig.elasticNetParams)
-      .setFamily("auto")
-      .setFitIntercept(modelConfig.fitIntercept)
-      .setMaxIter(modelConfig.maxIter)
-      .setRegParam(modelConfig.regParam)
-      .setStandardization(modelConfig.standardization)
-      .setTol(modelConfig.tolerance)
+  private def modelDecider[A, B](modelConfig: XGBoostConfig) = {
+
+    val builtModel = modelSelection match {
+      case "classifier" =>
+        new XGBoostClassifier()
+          .setLabelCol(_labelCol)
+          .setFeaturesCol(_featureCol)
+          .setAlpha(modelConfig.alpha)
+          .setEta(modelConfig.eta)
+          .setGamma(modelConfig.gamma)
+          .setLambda(modelConfig.lambda)
+          .setMaxDepth(modelConfig.maxDepth)
+          .setMaxBins(modelConfig.maxBins)
+          .setSubsample(modelConfig.subSample)
+          .setMinChildWeight(modelConfig.minChildWeight)
+          .setNumRound(modelConfig.numRound)
+          .setTrainTestRatio(modelConfig.trainTestRatio)
+      case "regressor" =>
+        new XGBoostRegressor()
+          .setLabelCol(_labelCol)
+          .setFeaturesCol(_featureCol)
+          .setAlpha(modelConfig.alpha)
+          .setEta(modelConfig.eta)
+          .setGamma(modelConfig.gamma)
+          .setLambda(modelConfig.lambda)
+          .setMaxDepth(modelConfig.maxDepth)
+          .setMaxBins(modelConfig.maxBins)
+          .setSubsample(modelConfig.subSample)
+          .setMinChildWeight(modelConfig.minChildWeight)
+          .setNumRound(modelConfig.numRound)
+          .setTrainTestRatio(modelConfig.trainTestRatio)
+      case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
+    }
+    builtModel
   }
 
-  private def returnBestHyperParameters(collection: ArrayBuffer[LogisticRegressionModelsWithResults]):
-  (LogisticRegressionConfig, Double) = {
+
+  private def returnBestHyperParameters(collection: ArrayBuffer[XGBoostModelsWithResults]):
+  (XGBoostConfig, Double) = {
 
     val bestEntry = _optimizationStrategy match {
       case "minimize" => collection.result.toArray.sortWith(_.score < _.score).head
@@ -80,74 +115,90 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
     }
   }
 
-  private def sortAndReturnAll(results: ArrayBuffer[LogisticRegressionModelsWithResults]):
-  Array[LogisticRegressionModelsWithResults] = {
+  private def sortAndReturnAll(results: ArrayBuffer[XGBoostModelsWithResults]):
+  Array[XGBoostModelsWithResults] = {
     _optimizationStrategy match {
       case "minimize" => results.result.toArray.sortWith(_.score < _.score)
       case _ => results.result.toArray.sortWith(_.score > _.score)
     }
   }
 
-  private def sortAndReturnBestScore(results: ArrayBuffer[LogisticRegressionModelsWithResults]): Double = {
+  private def sortAndReturnBestScore(results: ArrayBuffer[XGBoostModelsWithResults]): Double = {
     sortAndReturnAll(results).head.score
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[LogisticRegressionConfig] = {
+  private def generateThresholdedParams(iterationCount: Int): Array[XGBoostConfig] = {
 
-    val iterations = new ArrayBuffer[LogisticRegressionConfig]
+    val iterations = new ArrayBuffer[XGBoostConfig]
 
     var i = 0
     do {
-      val elasticNetParams = generateRandomDouble("elasticNetParams", _logisticRegressionNumericBoundaries)
-      val fitIntercept = coinFlip()
-      val maxIter = generateRandomInteger("maxIter", _logisticRegressionNumericBoundaries)
-      val regParam = generateRandomDouble("regParam", _logisticRegressionNumericBoundaries)
-      val standardization = coinFlip()
-      val tolerance = generateRandomDouble("tol", _logisticRegressionNumericBoundaries)
-      iterations += LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter, regParam, standardization,
-        tolerance)
+      val alpha = generateRandomDouble("alpha", _xgboostNumericBoundaries)
+      val eta = generateRandomDouble("eta", _xgboostNumericBoundaries)
+      val gamma = generateRandomDouble("gamma", _xgboostNumericBoundaries)
+      val lambda = generateRandomDouble("lambda", _xgboostNumericBoundaries)
+      val maxDepth = generateRandomInteger("maxDepth", _xgboostNumericBoundaries)
+      val subSample = generateRandomDouble("subSample", _xgboostNumericBoundaries)
+      val minChildWeight = generateRandomDouble("minChildWeight", _xgboostNumericBoundaries)
+      val numRound = generateRandomInteger("numRound", _xgboostNumericBoundaries)
+      val maxBins = generateRandomInteger("maxBins", _xgboostNumericBoundaries)
+      val trainTestRatio = generateRandomDouble("trainTestRatio", _xgboostNumericBoundaries)
+      iterations += XGBoostConfig(alpha, eta, gamma, lambda, maxDepth, subSample, minChildWeight, numRound,
+        maxBins, trainTestRatio)
       i += 1
     } while (i < iterationCount)
+
     iterations.toArray
   }
 
-  private def generateAndScoreLogisticRegression(train: DataFrame, test: DataFrame,
-                                                 modelConfig: LogisticRegressionConfig,
-                                                 generation: Int = 1): LogisticRegressionModelsWithResults = {
-    val regressionModel = configureModel(modelConfig)
+  private def generateAndScoreXGBoostModel(train: DataFrame, test: DataFrame,
+                                                modelConfig: XGBoostConfig,
+                                                generation: Int = 1): XGBoostModelsWithResults = {
 
-    val builtModel = regressionModel.fit(train)
+    val xgboostModel = modelDecider(modelConfig)
+
+    val builtModel = xgboostModel.fit(train)
 
     val predictedData = builtModel.transform(test)
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
-    for (i <- classificationMetrics) {
-      val scoreEvaluator = new MulticlassClassificationEvaluator()
-        .setLabelCol(_labelCol)
-        .setPredictionCol("prediction")
-        .setMetricName(i)
-      scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+    modelSelection match {
+      case "classifier" =>
+        for (i <- classificationMetrics) {
+          val scoreEvaluator = new MulticlassClassificationEvaluator()
+            .setLabelCol(_labelCol)
+            .setPredictionCol("prediction")
+            .setMetricName(i)
+          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+        }
+      case "regressor" =>
+        for (i <- regressionMetrics) {
+          val scoreEvaluator = new RegressionEvaluator()
+            .setLabelCol(_labelCol)
+            .setPredictionCol("prediction")
+            .setMetricName(i)
+          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+        }
     }
-    LogisticRegressionModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap,
-      generation)
+
+    XGBoostModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
   }
 
-
-  private def runBattery(battery: Array[LogisticRegressionConfig],
-                 generation: Int = 1): Array[LogisticRegressionModelsWithResults] = {
+  private def runBattery(battery: Array[XGBoostConfig], generation: Int = 1): Array[XGBoostModelsWithResults] = {
 
     val startTimeStamp = System.currentTimeMillis/1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
-    @volatile var results = new ArrayBuffer[LogisticRegressionModelsWithResults]
+    @volatile var results = new ArrayBuffer[XGBoostModelsWithResults]
     @volatile var modelCnt = 0
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
     val runs = battery.par
     runs.tasksupport = taskSupport
 
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    }%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -156,11 +207,11 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       val runId = java.util.UUID.randomUUID()
       println(s"Starting run $runId with Params: ${x.toString}")
 
-      val kFoldBuffer = new ArrayBuffer[LogisticRegressionModelsWithResults]
+      val kFoldBuffer = new ArrayBuffer[XGBoostModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
-        kFoldBuffer += generateAndScoreLogisticRegression(train, test, x)
+        kFoldBuffer += generateAndScoreXGBoostModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {
@@ -168,21 +219,32 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       })
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
-      for (a <- classificationMetrics) {
-        val metricScores = new ListBuffer[Double]
-        kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
-        scoringMap(a) = metricScores.sum / metricScores.length
+      modelSelection match {
+        case "classifier" =>
+          for (a <- classificationMetrics) {
+            val metricScores = new ListBuffer[Double]
+            kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
+            scoringMap(a) = metricScores.sum / metricScores.length
+          }
+        case "regressor" =>
+          for (a <- regressionMetrics) {
+            val metricScores = new ListBuffer[Double]
+            kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
+            scoringMap(a) = metricScores.sum / metricScores.length
+          }
+        case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
       val completionTimeStamp = System.currentTimeMillis/1000
       val totalTimeOfBattery = completionTimeStamp - startTimeStamp
-      val runAvg = LogisticRegressionModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
+      val runAvg = XGBoostModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
       modelCnt += 1
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+        calculateModelingFamilyRemainingTime(generation, modelCnt)
+      }%2.4f%%"
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -193,14 +255,15 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
   }
 
-  private def irradiateGeneration(parents: Array[LogisticRegressionConfig], mutationCount: Int,
-                          mutationAggression: Int, mutationMagnitude: Double): Array[LogisticRegressionConfig] = {
+  private def irradiateGeneration(parents: Array[XGBoostConfig], mutationCount: Int,
+                                  mutationAggression: Int, mutationMagnitude: Double): Array[XGBoostConfig] = {
 
-    val mutationPayload = new ArrayBuffer[LogisticRegressionConfig]
-    val totalConfigs = modelConfigLength[LogisticRegressionConfig]
+    val mutationPayload = new ArrayBuffer[XGBoostConfig]
+    val totalConfigs = modelConfigLength[XGBoostConfig]
     val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
-    val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
+    val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation,
+      mutationCount)
 
     for (i <- mutationCandidates.indices) {
 
@@ -208,35 +271,48 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       val mutationIteration = mutationCandidates(i)
       val mutationIndexIteration = mutationIndeces(i)
 
-      mutationPayload += LogisticRegressionConfig(
-        if (mutationIndexIteration.contains(0)) geneMixing(randomParent.elasticNetParams,
-          mutationIteration.elasticNetParams, mutationMagnitude)
-        else randomParent.elasticNetParams,
-        if (mutationIndexIteration.contains(1)) coinFlip(randomParent.fitIntercept,
-          mutationIteration.fitIntercept, mutationMagnitude)
-        else randomParent.fitIntercept,
-        if (mutationIndexIteration.contains(2)) geneMixing(randomParent.maxIter,
-          mutationIteration.maxIter, mutationMagnitude)
-        else randomParent.maxIter,
-        if (mutationIndexIteration.contains(3)) geneMixing(randomParent.regParam,
-          mutationIteration.regParam, mutationMagnitude)
-        else randomParent.regParam,
-        if (mutationIndexIteration.contains(4)) coinFlip(randomParent.standardization,
-          mutationIteration.standardization, mutationMagnitude)
-        else randomParent.standardization,
-        if (mutationIndexIteration.contains(5)) geneMixing(randomParent.tolerance,
-          mutationIteration.tolerance, mutationMagnitude)
-        else randomParent.tolerance
+      mutationPayload += XGBoostConfig(
+        if (mutationIndexIteration.contains(0)) geneMixing(
+          randomParent.alpha, mutationIteration.alpha, mutationMagnitude)
+        else randomParent.alpha,
+        if (mutationIndexIteration.contains(1)) geneMixing(
+          randomParent.eta, mutationIteration.eta, mutationMagnitude)
+        else randomParent.eta,
+        if (mutationIndexIteration.contains(2)) geneMixing(
+          randomParent.gamma, mutationIteration.gamma, mutationMagnitude)
+        else randomParent.gamma,
+        if (mutationIndexIteration.contains(3)) geneMixing(
+          randomParent.lambda, mutationIteration.lambda, mutationMagnitude)
+        else randomParent.lambda,
+        if (mutationIndexIteration.contains(4)) geneMixing(
+          randomParent.maxDepth, mutationIteration.maxDepth, mutationMagnitude)
+        else randomParent.maxDepth,
+        if (mutationIndexIteration.contains(5)) geneMixing(
+          randomParent.subSample, mutationIteration.subSample, mutationMagnitude)
+        else randomParent.subSample,
+        if (mutationIndexIteration.contains(6)) geneMixing(
+          randomParent.minChildWeight, mutationIteration.minChildWeight, mutationMagnitude)
+        else randomParent.minChildWeight,
+        if (mutationIndexIteration.contains(7)) geneMixing(
+          randomParent.numRound, mutationIteration.numRound, mutationMagnitude)
+        else randomParent.numRound,
+        if (mutationIndexIteration.contains(8)) geneMixing(
+          randomParent.maxBins, mutationIteration.maxBins, mutationMagnitude)
+        else randomParent.maxBins,
+        if (mutationIndexIteration.contains(9)) geneMixing(
+          randomParent.trainTestRatio, mutationIteration.trainTestRatio, mutationMagnitude)
+        else randomParent.trainTestRatio
       )
     }
     mutationPayload.result.toArray
   }
 
-  private def continuousEvolution(): Array[LogisticRegressionModelsWithResults] = {
+
+  private def continuousEvolution(): Array[XGBoostModelsWithResults] = {
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
-    var runResults = new ArrayBuffer[LogisticRegressionModelsWithResults]
+    var runResults = new ArrayBuffer[XGBoostModelsWithResults]
 
     var scoreHistory = new ArrayBuffer[Double]
 
@@ -252,11 +328,11 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
     // Generate the first pool of attempts to seed the hyperparameter space
     //    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
 
-    val totalConfigs = modelConfigLength[LogisticRegressionConfig]
+    val totalConfigs = modelConfigLength[XGBoostConfig]
 
     var runSet = if(_modelSeedSet) {
-      val genArray = new ArrayBuffer[LogisticRegressionConfig]
-      val startingModelSeed = generateLogisticRegressionConfig(_modelSeed)
+      val genArray = new ArrayBuffer[XGBoostConfig]
+      val startingModelSeed = generateXGBoostConfig(_modelSeed)
       genArray += startingModelSeed
       genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
         _geneticMixing)
@@ -339,25 +415,25 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
   }
 
-  def generateIdealParents(results: Array[LogisticRegressionModelsWithResults]): Array[LogisticRegressionConfig] = {
-    val bestParents = new ArrayBuffer[LogisticRegressionConfig]
+  def generateIdealParents(results: Array[XGBoostModelsWithResults]): Array[XGBoostConfig] = {
+    val bestParents = new ArrayBuffer[XGBoostConfig]
     results.take(_numberOfParentsToRetain).map(x => {
       bestParents += x.modelHyperParams
     })
     bestParents.result.toArray
   }
 
-  def evolveParameters(): Array[LogisticRegressionModelsWithResults] = {
+  def evolveParameters(): Array[XGBoostModelsWithResults] = {
 
     var generation = 1
     // Record of all generations results
-    val fossilRecord = new ArrayBuffer[LogisticRegressionModelsWithResults]
+    val fossilRecord = new ArrayBuffer[XGBoostModelsWithResults]
 
-    val totalConfigs = modelConfigLength[LogisticRegressionConfig]
+    val totalConfigs = modelConfigLength[XGBoostConfig]
 
     val primordial = if (_modelSeedSet) {
-      val generativeArray = new ArrayBuffer[LogisticRegressionConfig]
-      val startingModelSeed = generateLogisticRegressionConfig(_modelSeed)
+      val generativeArray = new ArrayBuffer[XGBoostConfig]
+      val startingModelSeed = generateXGBoostConfig(_modelSeed)
       generativeArray += startingModelSeed
       generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
         _geneticMixing)
@@ -432,11 +508,11 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
     }
   }
 
-  def evolveBest(): LogisticRegressionModelsWithResults = {
+  def evolveBest(): XGBoostModelsWithResults = {
     evolveParameters().head
   }
 
-  def generateScoredDataFrame(results: Array[LogisticRegressionModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(results: Array[XGBoostModelsWithResults]): DataFrame = {
 
     import spark.sqlContext.implicits._
 
@@ -447,7 +523,7 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(): (Array[LogisticRegressionModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF(): (Array[XGBoostModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
       case "batch" => evolveParameters()

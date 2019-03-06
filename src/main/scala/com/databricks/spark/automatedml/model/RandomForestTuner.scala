@@ -4,7 +4,7 @@ import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig, Ra
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
+import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -181,6 +181,15 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     modelSelection match {
       case "classifier" =>
+        if (classificationAdjudicator(df)) {
+          for (i <- binaryClassificationMetrics) {
+            val binaryEvaluator = new BinaryClassificationEvaluator()
+              .setLabelCol(_labelCol)
+              .setRawPredictionCol("probability")
+              .setMetricName(i)
+            scoringMap(i) = binaryEvaluator.evaluate(predictedData)
+          }
+        }
         for (i <- classificationMetrics) {
           val scoreEvaluator = new MulticlassClassificationEvaluator()
             .setLabelCol(_labelCol)
@@ -203,6 +212,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
 
+    val startTimeStamp = System.currentTimeMillis/1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[RandomForestModelsWithResults]
@@ -236,6 +246,13 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
         case "classifier" =>
+          if (classificationAdjudicator(df)) {
+            for (i <- binaryClassificationMetrics) {
+              val metricScores = new ListBuffer[Double]
+              kFoldBuffer.map(x => metricScores += x.evalMetrics(i))
+              scoringMap(i) = metricScores.sum / metricScores.length
+            }
+          }
           for (a <- classificationMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
@@ -250,11 +267,13 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
+      val completionTimeStamp = System.currentTimeMillis/1000
+      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
       val runAvg = RandomForestModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length}"
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
         calculateModelingFamilyRemainingTime(generation, modelCnt)
       }%2.4f%%"

@@ -26,6 +26,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _scalingFlag: Boolean = _defaultScalingFlag
 
+  var _dataPrepCachingFlag: Boolean = _defaultDataPrepCachingFlag
+
   var _numericBoundaries: Map[String, (Double, Double)] = _rfDefaultNumBoundaries
 
   var _stringBoundaries: Map[String, List[String]] = _rfDefaultStringBoundaries
@@ -174,6 +176,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _inferenceConfigSaveLocation: String = _inferenceConfigSaveLocationDefault
 
+  var _dataReductionFactor: Double = _defaultDataReductionFactor
+
   private def setConfigs(): this.type = {
     setMainConfig()
     setTreeSplitsConfig()
@@ -190,6 +194,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       case "LinearRegression" => _linearRegressionDefaultNumBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultNumBoundaries
       case "SVM" => _svmDefaultNumBoundaries
+      case "XGBoost" => _xgboostDefaultNumBoundaries
       case _ => throw new IllegalArgumentException(s"$value is an unsupported Model Type")
     }
     _stringBoundaries = value match {
@@ -200,6 +205,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       case "LinearRegression" => _linearRegressionDefaultStringBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultStringBoundaries
       case "SVM" => _svmDefaultStringBoundaries
+      case "XGBoost" => Map()
       case _ => throw new IllegalArgumentException(s"$value is an unsupported Model Type")
     }
     setConfigs()
@@ -302,6 +308,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def dataPrepCachingOn(): this.type = {
+    _dataPrepCachingFlag = true
+    setConfigs()
+    this
+  }
+
+  def dataPrepCachingOff(): this.type = {
+    _dataPrepCachingFlag = false
+    setConfigs()
+    this
+  }
+
   def setNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
     _numericBoundaries = value
     setConfigs()
@@ -310,6 +328,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setStringBoundaries(value: Map[String, List[String]]): this.type = {
     _stringBoundaries = value
+    setConfigs()
+    this
+  }
+
+  def setScoringMetric(value: String): this.type = {
+    _scoringMetric = value
     setConfigs()
     this
   }
@@ -856,6 +880,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setDataReductionFactor(value: Double): this.type = {
+    require(value > 0, s"Data Reduction Factor must be between 0 and 1")
+    require(value < 1, s"Data Reduction Factor must be between 0 and 1")
+    _dataReductionFactor = value
+    setConfigs()
+    this
+  }
+
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
       parallelism = _parallelism,
@@ -897,6 +929,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      dataPrepCachingFlag = _dataPrepCachingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -916,7 +949,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
-      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
+      dataReductionFactor = _dataReductionFactor
     )
     this
   }
@@ -938,6 +972,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      dataPrepCachingFlag = _dataPrepCachingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -957,7 +992,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
-      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
+      dataReductionFactor = _dataReductionFactor
     )
     this
   }
@@ -982,6 +1018,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      dataPrepCachingFlag = _dataPrepCachingFlag,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -1001,7 +1038,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
-      inferenceConfigSaveLocation = _inferenceConfigSaveLocation
+      inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
+      dataReductionFactor = _dataReductionFactor
     )
     this
   }
@@ -1033,6 +1071,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getOneHotEncodingStatus: Boolean = _oneHotEncodeFlag
 
   def getScalingStatus: Boolean = _scalingFlag
+
+  def getDataPrepCachingStatus: Boolean = _dataPrepCachingFlag
 
   def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
 
@@ -1171,6 +1211,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
 
   def getInferenceConfigSaveLocation: String = _inferenceConfigSaveLocation
+
+  def getDataReductionFactor: Double = _dataReductionFactor
 
   /**
     * Helper method for extracting the config from a run's GenericModelReturn payload

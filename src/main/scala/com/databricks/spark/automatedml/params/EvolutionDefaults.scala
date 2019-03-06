@@ -8,8 +8,9 @@ trait EvolutionDefaults {
   final val allowableMutationMagnitudeMode = List("random", "fixed")
   final val regressionMetrics: List[String] = List("rmse", "mse", "r2", "mae")
   final val classificationMetrics: List[String] = List("f1", "weightedPrecision", "weightedRecall", "accuracy")
+  final val binaryClassificationMetrics: List[String] = List("areaUnderPR", "areaUnderROC")
   final val allowableTrainSplitMethod: List[String] = List("random", "chronological", "stratified", "overSample",
-    "underSample")
+    "underSample", "stratifyReduce")
 
   def _defaultLabel: String = "label"
 
@@ -64,6 +65,8 @@ trait EvolutionDefaults {
   def _defaultContinuousEvolutionGeneticMixing: Double = 0.7
 
   def _defaultContinuousEvolutionRollingImprovementCount: Int = 20
+
+  def _defaultDataReduce: Double = 0.5
 
 }
 

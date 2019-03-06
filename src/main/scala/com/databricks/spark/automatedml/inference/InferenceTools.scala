@@ -9,6 +9,15 @@ import org.json4s.jackson.Serialization._
 
 trait InferenceTools extends SparkSessionWrapper {
 
+
+  //TODO: for chained feature importances, strip out the _si and _oh from field names.
+  /**
+    *
+    * @param dataFrame
+    * @param modelingColumnsPayload
+    * @param allColumnsPayload
+    * @return
+    */
   def createInferencePayload(dataFrame: DataFrame, modelingColumnsPayload: Array[String], allColumnsPayload: Array[String]):
   InferencePayload = {
     new InferencePayload {
@@ -18,6 +27,12 @@ trait InferenceTools extends SparkSessionWrapper {
     }
   }
 
+  /**
+    *
+    * @param payload
+    * @param removalArray
+    * @return
+    */
   def removeArrayOfColumns(payload: InferencePayload, removalArray: Array[String]): InferencePayload = {
 
     val featureRemoval = payload.modelingColumns.diff(removalArray)

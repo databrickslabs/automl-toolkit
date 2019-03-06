@@ -45,6 +45,8 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
   var _modelSeedSet: Boolean = false
   var _modelSeed: Map[String, Any] = Map.empty
 
+  var _dataReduce: Double = _defaultDataReduce
+
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
 
@@ -241,6 +243,13 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     this
   }
 
+  def setDataReductionFactor(value: Double): this.type = {
+    require(value > 0, s"Data Reduction Factor must be between 0 and 1")
+    require(value < 1, s"Data Reduction Factor must be between 0 and 1")
+    _dataReduce = value
+    this
+  }
+
   def getLabelCol: String = _labelCol
 
   def getFeaturesCol: String = _featureCol
@@ -296,6 +305,8 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
   def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
 
   def getModelSeed: Map[String, Any] = _modelSeed
+
+  def getDataReductionFactor: Double = _dataReduce
 
   def totalModels: Int = _evolutionStrategy match {
     case "batch" => (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool
@@ -438,6 +449,28 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
 
   }
 
+  def stratifyReduce(data: DataFrame, reductionFactor: Double, seed:Long): Array[DataFrame] = {
+
+    var (trainData, testData) = generateEmptyTrainTest(data)
+
+    val uniqueLabels = data.select(_labelCol).distinct().collect()
+
+    uniqueLabels.foreach{ x =>
+
+      val conversionValue = toDoubleType(x(0)).get
+
+      val Array(trainSplit, testSplit) = data.filter(
+        col(_labelCol) === conversionValue).randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
+
+      trainData = trainData.union(trainSplit.sample(reductionFactor))
+      testData = testData.union(testSplit.sample(reductionFactor))
+
+    }
+
+    Array(trainData, testData)
+
+  }
+
   def chronologicalSplit(data: DataFrame, seed: Long): Array[DataFrame] = {
 
     require(data.schema.fieldNames.contains(_trainSplitChronologicalColumn),
@@ -493,6 +526,7 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
       case "stratified" => stratifiedSplit(data, seed)
       case "overSample" => overSampleSplit(data, seed)
       case "underSample" => underSampleSplit(data, seed)
+      case "stratifyReduce" => stratifyReduce(data, _dataReduce, seed)
       case _ => throw new IllegalArgumentException(s"Cannot conduct train test split in mode: '${_trainSplitMethod}'")
     }
 
@@ -630,6 +664,15 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     }
 
     (modelsComplete.toDouble / totalModels.toDouble) * 100
+
+  }
+
+  def classificationAdjudicator(df: DataFrame): Boolean = {
+
+    // Calculate the distinct entries of the label value for a classification problem
+    val uniqueLabelCounts = df.select(_labelCol).distinct().count()
+
+    if(uniqueLabelCounts <= 2) true else false
 
   }
 

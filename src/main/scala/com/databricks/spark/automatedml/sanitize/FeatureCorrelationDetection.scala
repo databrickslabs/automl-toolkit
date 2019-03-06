@@ -56,14 +56,12 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
     val correlationInteractions = new ArrayBuffer[FeatureCorrelationStats]
     val redundantRecursionEliminator = new ArrayBuffer[String]
 
-//    Attempted parallelization here but it removes all the columns every time
-//    TODO: This function is EXTREMELY time consuming. Any way to improve?
-//    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
-//    val fieldListingPar = fieldListing.par
-//    fieldListingPar.tasksupport = taskSupport
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+    val fieldListingPar = fieldListing.par
+    fieldListingPar.tasksupport = taskSupport
 
 
-    fieldListing.foreach{ x =>
+    fieldListingPar.foreach{ x =>
       val leftFields = fieldListing.filterNot(_.contains(x)).filterNot(f => redundantRecursionEliminator.contains(f))
       leftFields.foreach{y =>
         val corrStats: Double = try {

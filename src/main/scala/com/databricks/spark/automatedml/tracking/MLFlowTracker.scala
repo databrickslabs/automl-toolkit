@@ -7,6 +7,7 @@ import org.mlflow.tracking.creds._
 import org.mlflow.api.proto.Service.CreateRun
 import org.mlflow.tracking.MlflowClient
 import com.databricks.spark.automatedml.params.{GenericModelReturn, MLFlowConfig}
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 
@@ -138,6 +139,24 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_RandomForest" =>
               modelReturn.model.asInstanceOf[RandomForestClassificationModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "TrainingPayload", modelReturn.toString)
+            case "regressor_XGBoost" =>
+
+              //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
+              // Jackson dependency issues.  Disabling manual model storage for now.
+
+              //modelReturn.model.asInstanceOf[XGBoostRegressionModel].write.overwrite().save(path)
+              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "TrainingPayload", modelReturn.toString)
+            case "classifier_XGBoost" =>
+
+              //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
+              // Jackson dependency issues.  Disabling manual model storage for now.
+
+              //modelReturn.model.asInstanceOf[XGBoostClassificationModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
               client.setTag(runId, s"SparkModel_$modelId", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)

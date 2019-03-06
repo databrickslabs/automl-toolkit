@@ -9,10 +9,11 @@ trait Defaults {
     "LinearRegression",
     "LogisticRegression",
     "MLPC",
-    "SVM"
+    "SVM",
+    "XGBoost"
   )
 
-  final val trainSplitMethods: List[String] = List("random", "chronological", "stratified", "overSample", "underSample")
+  final val trainSplitMethods: List[String] = List("random", "chronological", "stratifyReduce", "stratified", "overSample", "underSample")
 
   final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
 
@@ -37,6 +38,10 @@ trait Defaults {
   def _defaultOneHotEncodeFlag: Boolean = false
 
   def _defaultScalingFlag: Boolean = false
+
+  def _defaultDataPrepCachingFlag: Boolean = true
+
+  def _defaultDataReductionFactor: Double = 0.5
 
   def _defaultDateTimeConversionType: String = "split"
 
@@ -112,6 +117,19 @@ trait Defaults {
     pearsonFilterFlag = true,
     covarianceFilterFlag = true,
     scalingFlag = false
+  )
+
+  def _xgboostDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "alpha" -> Tuple2(0.0, 1.0),
+    "eta" -> Tuple2(0.1, 0.5),
+    "gamma" -> Tuple2(0.0, 10.0),
+    "lambda" -> Tuple2(0.1, 10.0),
+    "maxDepth" -> Tuple2(3.0, 10.0),
+    "subSample" -> Tuple2(0.4, 0.6),
+    "minChildWeight" -> Tuple2(0.1, 10.0),
+    "numRound" -> Tuple2(5.0, 25.0),
+    "maxBins" -> Tuple2(25.0, 512.0),
+    "trainTestRatio" -> Tuple2(0.2, 0.8)
   )
 
   def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
@@ -230,6 +248,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
     featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
@@ -249,7 +268,8 @@ trait Defaults {
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
-    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault
+    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
+    dataReductionFactor = _defaultDataReductionFactor
   )
 
   def _featureImportancesDefaults = MainConfig(
@@ -263,6 +283,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
     featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
@@ -306,7 +327,8 @@ trait Defaults {
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
-    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault
+    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
+    dataReductionFactor = _defaultDataReductionFactor
   )
 
   def _treeSplitDefaults =  MainConfig(
@@ -320,6 +342,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    dataPrepCachingFlag = true,
     dateTimeConversionType = "split",
     autoStoppingFlag = _defaultAutoStoppingFlag,
     autoStoppingScore = _defaultAutoStoppingScore,
@@ -363,7 +386,8 @@ trait Defaults {
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
-    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault
+    inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
+    dataReductionFactor = _defaultDataReductionFactor
   )
 
 }

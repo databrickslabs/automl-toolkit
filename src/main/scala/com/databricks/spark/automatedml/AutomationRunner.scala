@@ -6,6 +6,7 @@ import com.databricks.spark.automatedml.model._
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
 import com.databricks.spark.automatedml.tracking.MLFlowTracker
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
@@ -19,21 +20,24 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  private def runRandomForest(): (Array[RandomForestModelsWithResults], DataFrame, String, DataFrame) = {
+  private def runRandomForest(payload: DataGeneration): (Array[RandomForestModelsWithResults], DataFrame, String, DataFrame) = {
 
-    val (data, fields, modelSelection) = prepData()
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
 
-    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-    cachedData.count
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    val initialize = new RandomForestTuner(cachedData, modelSelection)
+    val initialize = new RandomForestTuner(cachedData, payload.modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
       .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
       .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
       .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -57,22 +61,75 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+      .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
     val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-    (modelResults, modelStats, modelSelection, cachedData)
+    (modelResults, modelStats, payload.modelType, cachedData)
   }
 
-  private def runMLPC(): (Array[MLPCModelsWithResults], DataFrame, String, DataFrame) = {
+  private def runXGBoost(payload: DataGeneration): (Array[XGBoostModelsWithResults], DataFrame, String, DataFrame) = {
 
-    val (data, fields, modelSelection) = prepData()
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
 
-    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-    cachedData.count
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    modelSelection match {
+    val initialize = new XGBoostTuner(cachedData, payload.modelType)
+      .setLabelCol(_mainConfig.labelCol)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setXGBoostNumericBoundaries(_mainConfig.numericBoundaries)
+      .setScoringMetric(_mainConfig.scoringMetric)
+      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
+      .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+      .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
+      .setKFold(_mainConfig.geneticConfig.kFold)
+      .setSeed(_mainConfig.geneticConfig.seed)
+      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+      .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+      .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+      .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+      .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+      .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+      .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+      .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
+      .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
+      .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionMaxIterations(_mainConfig.geneticConfig.continuousEvolutionMaxIterations)
+      .setContinuousEvolutionStoppingScore(_mainConfig.geneticConfig.continuousEvolutionStoppingScore)
+      .setContinuousEvolutionParallelism(_mainConfig.geneticConfig.continuousEvolutionParallelism)
+      .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
+      .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
+      .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+      .setDataReductionFactor(_mainConfig.dataReductionFactor)
+
+    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+
+    (modelResults, modelStats, payload.modelType, cachedData)
+  }
+
+  private def runMLPC(payload: DataGeneration): (Array[MLPCModelsWithResults], DataFrame, String, DataFrame) = {
+
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
+
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
+
+    payload.modelType match {
       case "classifier" =>
         val initialize = new MLPCTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
@@ -81,7 +138,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -106,32 +163,36 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection, cachedData)
+        (modelResults, modelStats, payload.modelType, cachedData)
       case _ => throw new UnsupportedOperationException(
-        s"Detected Model Type $modelSelection is not supported by MultiLayer Perceptron Classifier")
+        s"Detected Model Type ${payload.modelType} is not supported by MultiLayer Perceptron Classifier")
     }
   }
 
-  private def runGBT(): (Array[GBTModelsWithResults], DataFrame, String, DataFrame) = {
+  private def runGBT(payload: DataGeneration): (Array[GBTModelsWithResults], DataFrame, String, DataFrame) = {
 
-    val (data, fields, modelSelection) = prepData()
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
 
-    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-    cachedData.count
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-     val initialize = new GBTreesTuner(cachedData, modelSelection)
+     val initialize = new GBTreesTuner(cachedData, payload.modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
       .setGBTStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+      .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
       .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
       .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -156,22 +217,26 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+      .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
     val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-    (modelResults, modelStats, modelSelection, cachedData)
+    (modelResults, modelStats, payload.modelType, cachedData)
   }
 
-  private def runLinearRegression(): (Array[LinearRegressionModelsWithResults], DataFrame, String, DataFrame) = {
+  private def runLinearRegression(payload: DataGeneration): (Array[LinearRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
-    val (data, fields, modelSelection) = prepData()
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
 
-    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-    cachedData.count
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    modelSelection match {
+    payload.modelType match {
       case "regressor" =>
         val initialize = new LinearRegressionTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
@@ -181,7 +246,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -206,26 +271,30 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection, cachedData)
+        (modelResults, modelStats, payload.modelType, cachedData)
       case _ => throw new UnsupportedOperationException(
-        s"Detected Model Type $modelSelection is not supported by Linear Regression")
+        s"Detected Model Type ${payload.modelType} is not supported by Linear Regression")
     }
 
   }
 
-  private def runLogisticRegression(): (Array[LogisticRegressionModelsWithResults], DataFrame,  String, DataFrame) = {
+  private def runLogisticRegression(payload: DataGeneration): (Array[LogisticRegressionModelsWithResults], DataFrame,  String, DataFrame) = {
 
-    val (data, fields, modelSelection) = prepData()
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
 
-    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-    cachedData.count
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    modelSelection match {
+    payload.modelType match {
       case "classifier" =>
         val initialize = new LogisticRegressionTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
@@ -234,7 +303,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -259,26 +328,30 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection, cachedData)
+        (modelResults, modelStats, payload.modelType, cachedData)
       case _ => throw new UnsupportedOperationException(
-        s"Detected Model Type $modelSelection is not supported by Logistic Regression")
+        s"Detected Model Type ${payload.modelType} is not supported by Logistic Regression")
     }
 
   }
 
-  private def runSVM(): (Array[SVMModelsWithResults], DataFrame, String, DataFrame) = {
+  private def runSVM(payload: DataGeneration): (Array[SVMModelsWithResults], DataFrame, String, DataFrame) = {
 
-    val (data, fields, modelSelection) = prepData()
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
 
-    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-    cachedData.count
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    modelSelection match {
+    payload.modelType match {
       case "classifier" =>
         val initialize = new SVMTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
@@ -287,7 +360,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setScoringMetric(_mainConfig.scoringMetric)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+          .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
           .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
           .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
           .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -312,25 +385,29 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+          .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
         val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, modelSelection, cachedData)
+        (modelResults, modelStats, payload.modelType, cachedData)
       case _ => throw new UnsupportedOperationException(
-        s"Detected Model Type $modelSelection is not supported by Support Vector Machines")
+        s"Detected Model Type ${payload.modelType} is not supported by Support Vector Machines")
     }
   }
 
- private def runTrees(): (Array[TreesModelsWithResults], DataFrame, String, DataFrame) = {
+ private def runTrees(payload: DataGeneration): (Array[TreesModelsWithResults], DataFrame, String, DataFrame) = {
 
-   val (data, fields, modelSelection) = prepData()
+   val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+     payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+   } else {
+     payload.data
+   }
 
-   val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-   cachedData.count
+   if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-   val initialize = new DecisionTreeTuner(data, modelSelection)
+   val initialize = new DecisionTreeTuner(payload.data, payload.modelType)
      .setLabelCol(_mainConfig.labelCol)
      .setFeaturesCol(_mainConfig.featuresCol)
      .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
@@ -338,7 +415,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
      .setScoringMetric(_mainConfig.scoringMetric)
      .setScoringMetric(_mainConfig.scoringMetric)
      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
-     .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, modelSelection))
+     .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
      .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
      .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
      .setParallelism(_mainConfig.geneticConfig.parallelism)
@@ -362,12 +439,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
      .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
      .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
      .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+     .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
 
-   (modelResults, modelStats, modelSelection, cachedData)
+   (modelResults, modelStats, payload.modelType, cachedData)
  }
 
   private def logResultsToMlFlow(runData: Array[GenericModelReturn], modelFamily: String, modelType: String): String = {
@@ -394,14 +472,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-
-  private def executeTuning(): TunerOutput = {
+  protected[automatedml] def executeTuning(payload: DataGeneration): TunerOutput = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
 
     val (resultArray, modelStats, modelSelection, dataframe) = _mainConfig.modelFamily match {
       case "RandomForest" =>
-        val (results, stats, selection, data) = runRandomForest()
+        val (results, stats, selection, data) = runRandomForest(payload)
         results.foreach{ x=>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -412,8 +489,20 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           )
         }
         (genericResults, stats, selection, data)
+      case "XGBoost" =>
+        val (results, stats, selection, data) = runXGBoost(payload)
+        results.foreach{x =>
+          genericResults += GenericModelReturn(
+            hyperParams = extractPayload(x.modelHyperParams),
+            model = x.model,
+            score = x.score,
+            metrics = x.evalMetrics,
+            generation = x.generation
+          )
+        }
+        (genericResults, stats, selection, data)
       case "GBT" =>
-        val (results, stats, selection, data) = runGBT()
+        val (results, stats, selection, data) = runGBT(payload)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -425,7 +514,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         }
         (genericResults, stats, selection, data)
       case "MLPC" =>
-        val (results, stats, selection, data) = runMLPC()
+        val (results, stats, selection, data) = runMLPC(payload)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -437,7 +526,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         }
         (genericResults, stats, selection, data)
       case "LinearRegression" =>
-        val (results, stats, selection, data) = runLinearRegression()
+        val (results, stats, selection, data) = runLinearRegression(payload)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -449,7 +538,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         }
         (genericResults, stats, selection, data)
       case "LogisticRegression" =>
-        val (results, stats, selection, data) = runLogisticRegression()
+        val (results, stats, selection, data) = runLogisticRegression(payload)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -461,7 +550,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         }
         (genericResults, stats, selection, data)
       case "SVM" =>
-        val (results, stats, selection, data) = runSVM()
+        val (results, stats, selection, data) = runSVM(payload)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -473,7 +562,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         }
         (genericResults, stats, selection, data)
       case "Trees" =>
-        val (results, stats, selection, data) = runTrees()
+        val (results, stats, selection, data) = runTrees(payload)
         results.foreach{x =>
           genericResults += GenericModelReturn(
             hyperParams = extractPayload(x.modelHyperParams),
@@ -520,7 +609,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       if (_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory.nonEmpty) {
         val inferenceConfigAsDF = convertInferenceConfigToDataFrame(outputInferencePayload)
 
-        inferenceConfigAsDF.write.save(_mainConfig.inferenceConfigSaveLocation)
+        inferenceConfigAsDF.write.mode("overwrite").save(_mainConfig.inferenceConfigSaveLocation)
       }
     }
 
@@ -537,7 +626,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  private def predictFromBestModel(resultPayload: Array[GenericModelReturn], rawData: DataFrame,
+  protected[automatedml] def predictFromBestModel(resultPayload: Array[GenericModelReturn], rawData: DataFrame,
                                    modelSelection: String): DataFrame = {
 
     val bestModel = resultPayload(0)
@@ -550,6 +639,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             model.transform(rawData)
           case "classifier" =>
             val model = bestModel.model.asInstanceOf[RandomForestClassificationModel]
+            model.transform(rawData)
+        }
+      case "XGBoost" =>
+        modelSelection match {
+          case "regressor" =>
+            val model = bestModel.model.asInstanceOf[XGBoostRegressionModel]
+            model.transform(rawData)
+          case "classifier" =>
+            val model = bestModel.model.asInstanceOf[XGBoostClassificationModel]
             model.transform(rawData)
         }
       case "GBT" =>
@@ -586,38 +684,49 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  private def exploreFeatureImportances(): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
+  def exploreFeatureImportances(): FeatureImportanceReturn = {
 
-    val (data, fields, modelType) = prepData()
+    val payload = prepData()
 
-    val cachedData = data.persist(StorageLevel.MEMORY_AND_DISK)
-    cachedData.count
+    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
 
-    val featureResults = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, modelType)
+    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
+
+
+    val featureResults = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, payload.modelType)
       .setCutoffType(_mainConfig.featureImportanceCutoffType)
       .setCutoffValue(_mainConfig.featureImportanceCutoffValue)
-      .runFeatureImportances(fields)
-    cachedData.unpersist()
+      .runFeatureImportances(payload.fields)
 
-    featureResults
+    if(_mainConfig.dataPrepCachingFlag) cachedData.unpersist()
+
+    FeatureImportanceReturn(featureResults._1, featureResults._2, featureResults._3, payload.modelType)
   }
 
   def runWithFeatureCulling(): FeatureImportanceOutput = {
 
     // Get the Feature Importances
 
-    val (modelResults, importanceDF, culledFields) = exploreFeatureImportances()
+    val featureImportanceResults = exploreFeatureImportances()
 
-    val selectableFields = culledFields :+ _mainConfig.labelCol
+    val selectableFields = featureImportanceResults.fields :+ _mainConfig.labelCol
 
-    val dataSubset = df.select(selectableFields.map(col):_*).persist(StorageLevel.MEMORY_AND_DISK)
-    dataSubset.count
+    val dataSubset = df.select(selectableFields.map(col):_*)
+
+    if(_mainConfig.dataPrepCachingFlag) {
+      dataSubset.persist(StorageLevel.MEMORY_AND_DISK)
+      dataSubset.count
+    }
     
     val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).run()
 
-    dataSubset.unpersist()
+    if(_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
 
-    new FeatureImportanceOutput(importanceDF) {
+    new FeatureImportanceOutput(featureImportanceResults.data) {
       override def modelReport: Array[GenericModelReturn] = runResults.modelReport
       override def generationReport: Array[GenerationalReport] = runResults.generationReport
       override def modelReportDataFrame: DataFrame = runResults.modelReportDataFrame
@@ -628,23 +737,29 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   def runFeatureCullingWithPrediction(): FeatureImportancePredictionOutput = {
 
-    val (modelResults, importanceDF, culledFields) = exploreFeatureImportances()
+    val featureImportanceResults = exploreFeatureImportances()
 
-    val selectableFields = culledFields :+ _mainConfig.labelCol
+    val selectableFields = featureImportanceResults.fields :+ _mainConfig.labelCol
 
-    val dataSubset = df.select(selectableFields.map(col):_*).persist(StorageLevel.MEMORY_AND_DISK)
-    dataSubset.count
+    val dataSubset = df.select(selectableFields.map(col):_*)
 
-    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning()
+    if(_mainConfig.dataPrepCachingFlag) {
+      dataSubset.persist(StorageLevel.MEMORY_AND_DISK)
+      dataSubset.count
+    }
 
-    dataSubset.unpersist()
+    val payload = DataGeneration(dataSubset, selectableFields, featureImportanceResults.modelType)
+
+    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning(payload)
+
+    if(_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
 
     val predictedData = predictFromBestModel(runResults.modelReport, runResults.rawData, runResults.modelSelection)
 
-    runResults.rawData.unpersist()
+    if(_mainConfig.dataPrepCachingFlag) runResults.rawData.unpersist()
 
     new FeatureImportancePredictionOutput(
-      featureImportances = importanceDF,
+      featureImportances = featureImportanceResults.data,
       predictionData = predictedData
     ) {
       override def modelReport: Array[GenericModelReturn] = runResults.modelReport
@@ -657,15 +772,17 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   def generateDecisionSplits(): TreeSplitReport = {
 
-    val (data, fields, modelType) = prepData()
+    val payload = prepData()
 
-    new DecisionTreeSplits(data, _treeSplitsConfig, modelType).runTreeSplitAnalysis(fields)
+    new DecisionTreeSplits(payload.data, _treeSplitsConfig, payload.modelType).runTreeSplitAnalysis(payload.fields)
 
   }
 
   def run(): AutomationOutput = {
 
-    val tunerResult = executeTuning()
+    val tunerResult = executeTuning(prepData())
+
+    if(_mainConfig.dataPrepCachingFlag) tunerResult.rawData.unpersist()
 
     new AutomationOutput {
       override def modelReport: Array[GenericModelReturn] = tunerResult.modelReport
@@ -673,23 +790,16 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       override def modelReportDataFrame: DataFrame = tunerResult.modelReportDataFrame
       override def generationReportDataFrame: DataFrame = tunerResult.generationReportDataFrame
     }
-//
-//    AutomationOutput(
-//      modelReport = tunerResult.modelReport,
-//      generationReport = tunerResult.generationReport,
-//      modelReportDataFrame = tunerResult.modelReportDataFrame,
-//      generationReportDataFrame = tunerResult.generationReportDataFrame
-//    )
 
   }
 
   def runWithPrediction(): PredictionOutput = {
 
-    val tunerResult = executeTuning()
+    val tunerResult = executeTuning(prepData())
 
     val predictedData = predictFromBestModel(tunerResult.modelReport, tunerResult.rawData, tunerResult.modelSelection)
 
-    tunerResult.rawData.unpersist()
+    if(_mainConfig.dataPrepCachingFlag) tunerResult.rawData.unpersist()
 
     new PredictionOutput(dataWithPredictions = predictedData) {
       override def modelReport: Array[GenericModelReturn] = tunerResult.modelReport
@@ -719,8 +829,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
    }
 
  }
-
-
 
   //TODO: add a generational runner to find the best model in a modelType (classification / regression)
   //TODO: this will require a new configuration methodology (generationalRunnerConfig) that has all of the families
