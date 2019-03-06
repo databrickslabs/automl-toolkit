@@ -246,6 +246,13 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
         case "classifier" =>
+          if (classificationAdjudicator(df)) {
+            for (i <- binaryClassificationMetrics) {
+              val metricScores = new ListBuffer[Double]
+              kFoldBuffer.map(x => metricScores += x.evalMetrics(i))
+              scoringMap(i) = metricScores.sum / metricScores.length
+            }
+          }
           for (a <- classificationMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
