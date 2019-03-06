@@ -269,11 +269,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     // Record the Inference Settings for Variance Filtering
     setInferenceVarianceFilterConfig(dataStage2.fieldListing)
 
-    val (persistDataStage2, dataStage2RowCount) = if(_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistDataStage1, dataStage2.outputData, cacheLevel, unpersistBlock)
-    } else {
-      (dataStage2.outputData, "no count when data prep caching is disabled")
-    }
+    val (persistDataStage2, dataStage2RowCount) = dataPersist(persistDataStage1, dataStage2.outputData, cacheLevel, unpersistBlock)
 
     if(_mainConfig.varianceFilterFlag) {
       println(dataStage2RowCount)
