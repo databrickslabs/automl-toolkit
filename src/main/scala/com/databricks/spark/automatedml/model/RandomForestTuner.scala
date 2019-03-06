@@ -4,7 +4,6 @@ import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig, Ra
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -31,12 +30,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private var _randomForestStringBoundaries = _rfDefaultStringBoundaries
 
-  private val _classificationMetrics = modelSelection match {
-    case "classifier" =>
-      classificationMetricValidator(classificationAdjudicator(df), classificationMetrics)
-    case _ => classificationMetrics
-  }
-
+  private var _classificationMetrics = classificationMetrics
 
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
@@ -44,7 +38,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
         s"Regressor scoring metric '$value' is not a valid member of ${
           invalidateSelection(value, regressionMetrics)
         }")
-      case "classifier" => require(_classificationMetrics.contains(value),
+      case "classifier" =>
+        require(_classificationMetrics.contains(value),
         s"Classification scoring metric '$value' is not a valid member of ${
           invalidateSelection(value, _classificationMetrics)
         }")
@@ -73,6 +68,17 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   def getClassificationMetrics: List[String] = _classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  private def resetClassificationMetrics: List[String] = modelSelection match {
+    case "classifier" =>
+      classificationMetricValidator(classificationAdjudicator(df), classificationMetrics)
+    case _ => classificationMetrics
+  }
+
+  private def setClassificationMetrics(value: List[String]): this.type = {
+    _classificationMetrics = value
+    this
+  }
 
   private def modelDecider[A, B](modelConfig: RandomForestConfig) = {
 
@@ -314,8 +320,9 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     mutationPayload.result.toArray
   }
 
-
   private def continuousEvolution(): Array[RandomForestModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -431,6 +438,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
   def evolveParameters(): Array[RandomForestModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     var generation = 1
     // Record of all generations results

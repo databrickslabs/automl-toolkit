@@ -133,11 +133,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     for (i <- regressionMetrics) {
-      val scoreEvaluator = new RegressionEvaluator()
-        .setLabelCol(_labelCol)
-        .setPredictionCol("prediction")
-        .setMetricName(i)
-      scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+      scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
     }
     LinearRegressionModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric),
       scoringMap.toMap, generation)

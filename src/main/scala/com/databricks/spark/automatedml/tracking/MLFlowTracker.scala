@@ -12,6 +12,8 @@ import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 
 import scala.collection.mutable
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 class MLFlowTracker extends InferenceConfig with InferenceTools{
 
@@ -240,7 +242,12 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
 
       var withinRunId = 0
 
-      currentGen.foreach{x =>
+      // Execute these writes in parallel.
+      val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(10))
+      val generations = currentGen.par
+      generations.tasksupport = taskSupport
+
+      generations.foreach{x =>
 
         // create a new MlFlowRun
         //val runId = generateMlFlowRun(mlflowLoggingClient, g.toString)

@@ -29,6 +29,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   private var _gbtStringBoundaries = _gbtDefaultStringBoundaries
 
+  private var _classificationMetrics = classificationMetrics
+
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
       case "regressor" => require(regressionMetrics.contains(value),
@@ -64,6 +66,17 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   def getClassificationMetrics: List[String] = classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  private def resetClassificationMetrics: List[String] = modelSelection match {
+    case "classifier" =>
+      classificationMetricValidator(classificationAdjudicator(df), classificationMetrics)
+    case _ => classificationMetrics
+  }
+
+  private def setClassificationMetrics(value: List[String]): this.type = {
+    _classificationMetrics = value
+    this
+  }
 
   private def modelDecider[A, B](modelConfig: GBTConfig) = {
 
@@ -187,20 +200,12 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     modelSelection match {
       case "classifier" =>
-        for (i <- classificationMetrics) {
-          val scoreEvaluator = new MulticlassClassificationEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+        for (i <- _classificationMetrics) {
+          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          val scoreEvaluator = new RegressionEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
         }
     }
 
@@ -243,7 +248,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
         case "classifier" =>
-          for (a <- classificationMetrics) {
+          for (a <- _classificationMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
             scoringMap(a) = metricScores.sum / metricScores.length
@@ -322,6 +327,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   }
 
   private def continuousEvolution(): Array[GBTModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -437,6 +444,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   }
 
   def evolveParameters(): Array[GBTModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     var generation = 1
     // Record of all generations results
