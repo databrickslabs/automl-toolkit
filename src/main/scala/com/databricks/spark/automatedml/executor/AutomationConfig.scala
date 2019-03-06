@@ -332,6 +332,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setScoringMetric(value: String): this.type = {
+    _scoringMetric = value
+    setConfigs()
+    this
+  }
+
   def setNumericFillStat(value: String): this.type = {
     _numericFillStat = value
     setFillConfig()
