@@ -239,7 +239,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
             else None
           }
         })
-      case "less" =>
+      case "lesser" =>
         statPayload.foreach(x => {
           x.getClass.getDeclaredFields foreach {f =>
             f.setAccessible(true)
