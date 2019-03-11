@@ -120,6 +120,12 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     this
   }
 
+  /**
+    * Private method for calculating the ChiSq relation of each feature to the label column.
+    * @param data DataFrame that contains the vector to test and the label column.
+    * @param featureColumn the name of the feature column vector to be used in the test.
+    * @return List of the stats from the comparison calculated.
+    */
   private def buildChiSq(data: DataFrame, featureColumn: String): List[PearsonPayload] = {
     val reportBuffer = new ListBuffer[PearsonPayload]
 
@@ -187,6 +193,13 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
 
   }
 
+  /**
+    * Method for creating a new temporary feature vector that will be used for Pearson Filtering evaluation, removing
+    * the high cardinality fields from this test.
+    * @return [DataFrame] the DataFrame with a new vector entiitled "pearsonVector" that is used for removing
+    *         fields from the feature vector that are either highly positively or negatively correlated to the label
+    *         field.
+    */
   private def reVectorize(): DataFrame = {
 
     // Create a new feature vector based on the fields that will be evaluated in PearsonFiltering
@@ -204,6 +217,14 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     assembler.transform(df)
   }
 
+  /**
+    * Method for manually filtering out fields from the feature vector based on a user-supplied or
+    * automation-calculated threshold cutoff.
+    * @param statPayload the calculated correlation stats from feature elements in the vector to the label column.
+    * @param filterValue the cut-off value specified by the user, or calculated through the quantile generator
+    *                    methodology.
+    * @return A list of fields that will be persisted and included in the feature vector going forward.
+    */
   private def filterChiSq(statPayload: List[PearsonPayload], filterValue: Double): List[String] = {
     val fieldRestriction = new ListBuffer[String]
     _filterDirection match {
@@ -233,6 +254,14 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     fieldRestriction.result
   }
 
+  /**
+    * Method for automatically detecting the quantile values for the filter statistic to cull fields automatically
+    * based on the distribution of correlation amongst the feature vector and the label.
+    * @param pearsonResults The pearson (and other) stats that have been calculated between each element of the
+    *                       feature vector and the label.
+    * @return The PearsonPayload results for each field, filtering out those elements that are either above / below
+    *         the threshold configured.
+    */
   private def quantileGenerator(pearsonResults: List[PearsonPayload]): Double = {
 
     val statBuffer = new ListBuffer[Double]
