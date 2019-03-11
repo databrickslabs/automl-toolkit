@@ -2,9 +2,8 @@ package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.inference.NaFillConfig
 import com.databricks.spark.automatedml.utils.DataValidation
-import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.ml.feature.StringIndexer
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 

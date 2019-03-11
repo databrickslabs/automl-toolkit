@@ -2,12 +2,15 @@ package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.params.PearsonPayload
 import com.databricks.spark.automatedml.utils.DataValidation
+import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.ml.stat.ChiSquareTest
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 /**
   *
@@ -103,18 +106,102 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
   def getFilterMode: String = _filterMode
   def getAutoFilterNTile: Double = _autoFilterNTile
 
-  private def buildChiSq(): List[PearsonPayload] = {
+
+  private var _pearsonVectorFields: Array[String] = Array.empty
+  private var _pearsonNonCategoricalFields: Array[String] = Array.empty
+
+  private def setPearsonNonCategoricalFields(value: Array[String]): this.type = {
+    _pearsonNonCategoricalFields = value
+    this
+  }
+
+  private def setPearsonVectorFields(value: Array[String]): this.type = {
+    _pearsonVectorFields = value
+    this
+  }
+
+  private def buildChiSq(data: DataFrame, featureColumn: String): List[PearsonPayload] = {
     val reportBuffer = new ListBuffer[PearsonPayload]
 
-    val chi = ChiSquareTest.test(df, _featuresCol, _labelCol).head
+    val chi = ChiSquareTest.test(data, featureColumn, _labelCol).head
     val pvalues = chi.getAs[Vector](0).toArray
     val degreesFreedom = chi.getSeq[Int](1).toArray
     val pearsonStat = chi.getAs[Vector](2).toArray
 
-    for(i <- featureColumnListing.indices){
-      reportBuffer += PearsonPayload(featureColumnListing(i), pvalues(i), degreesFreedom(i), pearsonStat(i))
+    for(i <- _pearsonVectorFields.indices){
+      reportBuffer += PearsonPayload(_pearsonVectorFields(i), pvalues(i), degreesFreedom(i), pearsonStat(i))
     }
     reportBuffer.result
+  }
+
+  /**
+    * Method for, given a particular column, get the exact count of the cardinality of the field.
+    * @param column Name of the column that is being tested for cardinality
+    * @return [Long] the number of unique entries in the column
+    */
+  private def acquireCardinality(column: String): Long = {
+
+    val aggregateData = df.select(col(column)).groupBy(col(column)).agg(count(col(column)))
+    aggregateData.count()
+  }
+
+  /**
+    * Private method for running through all of the fields included in the base feature vector and calculating their
+    * cardinality in parallel (10x concurrency)
+    * @return An Array of Field Name, Distinct Count
+    */
+  private def featuresCardinality(): Array[(String, Long)] = {
+
+    val cardinalityOfFields = new ArrayBuffer[(String, Long)]()
+
+    val featurePool = featureColumnListing.par
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(10))
+    featurePool.tasksupport = taskSupport
+
+    featurePool.foreach{ x=>
+      cardinalityOfFields += Tuple2(x, acquireCardinality(x))
+    }
+
+    cardinalityOfFields.result.toArray
+  }
+
+  /**
+    * Private method for analyzing the input feature vector columns, determining their cardinality, and updating
+    * the private var's to use these new lists.
+    * @return Nothing - it updates the class-scoped variables when called.
+    */
+  private def restrictFeatureSet(): this.type = {
+
+    // Empty ArrayBuffer to hold the fields to build the PearsonFeature Vector
+    val pearsonVectorBuffer = new ArrayBuffer[String]
+    val pearsonNonCategoricalBuffer = new ArrayBuffer[String]
+
+    val determineCardinality = featuresCardinality()
+
+    determineCardinality.foreach{ x=>
+      if(x._2 < 10000) pearsonVectorBuffer += x._1 else pearsonNonCategoricalBuffer += x._1
+    }
+
+    setPearsonNonCategoricalFields(pearsonNonCategoricalBuffer.result.toArray)
+    setPearsonVectorFields(pearsonVectorBuffer.result.toArray)
+
+  }
+
+  private def reVectorize(): DataFrame = {
+
+    // Create a new feature vector based on the fields that will be evaluated in PearsonFiltering
+    restrictFeatureSet()
+
+    require(_pearsonVectorFields.nonEmpty, s"Pearson Filtering contains all continuous variables in the feature" +
+      s" vector, or cardinality of all features is greater than the threshold of 10k unique entries.  " +
+      s"Please turn off pearson filtering for this data set by defining the main class with the setter: " +
+      s".pearsonFilterOff() to continue.")
+
+    val assembler = new VectorAssembler()
+      .setInputCols(_pearsonVectorFields)
+      .setOutputCol("pearsonVector")
+
+    assembler.transform(df)
   }
 
   private def filterChiSq(statPayload: List[PearsonPayload], filterValue: Double): List[String] = {
@@ -167,9 +254,16 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
 
   }
 
+  /**
+    * Main entry point for Pearson Filtering
+    * @param ignoreFields Fields that will be ignored from running a Pearson filter against.
+    * @return
+    */
   def filterFields(ignoreFields: Array[String]=Array.empty[String]): DataFrame = {
 
-    val chiSqData = buildChiSq()
+    val revectoredData = reVectorize()
+
+    val chiSqData = buildChiSq(revectoredData, "pearsonVector")
     val featureFields: List[String] = _filterMode match {
       case "manual" =>
         filterChiSq(chiSqData, _filterManualValue)
@@ -177,7 +271,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
         filterChiSq(chiSqData, quantileGenerator(chiSqData))
       }
     require(featureFields.nonEmpty, "All feature fields have been filtered out.  Adjust parameters.")
-    val fieldListing = featureFields ::: List(_labelCol) ::: ignoreFields.toList
+    val fieldListing = featureFields ::: List(_labelCol) ::: ignoreFields.toList ::: _pearsonNonCategoricalFields.toList
     df.select(fieldListing.map(col):_*)
   }
 
