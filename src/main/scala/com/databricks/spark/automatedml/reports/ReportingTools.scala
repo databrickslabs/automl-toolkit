@@ -34,7 +34,6 @@ trait ReportingTools extends SparkSessionWrapper {
     reparsedArray.result.toMap.foldLeft(modelDebugString){case(body, (k,v)) => body.replaceAll(k, v)}
   }
 
-  //TODO: might want to remove this
   def reportFields(fieldIndexArray: Array[(String, Int)]): String = {
 
     val stringConstructor = new ArrayBuffer[String]

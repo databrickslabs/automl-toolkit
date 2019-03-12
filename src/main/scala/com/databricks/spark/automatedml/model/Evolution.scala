@@ -88,7 +88,6 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
   }
 
   def setParallelism(value: Int): this.type = {
-    //TODO: SET PARALLELISM VALIDATION CORRECTLY
     require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
     _parallelism = value
     this
