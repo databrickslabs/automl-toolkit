@@ -2,7 +2,6 @@ package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{Defaults, LinearRegressionConfig, LinearRegressionModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
-import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
