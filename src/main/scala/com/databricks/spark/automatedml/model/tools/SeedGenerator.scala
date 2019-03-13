@@ -6,28 +6,28 @@ import scala.math._
 trait SeedGenerator {
 
 
-  def generateLinearIntSpace(minimum: Int, maximum: Int, generatorCount: Int): Array[Int] = {
+  def generateLinearIntSpace(boundaries: NumericBoundaries, generatorCount: Int): Array[Double] = {
 
-    val integerSpace = new ArrayBuffer[Int]()
+    val integerSpace = new ArrayBuffer[Double]()
 
-    val generatedDoubles = generateLinearSpace(minimum.toDouble, maximum.toDouble, generatorCount)
+    val generatedDoubles = generateLinearSpace(boundaries, generatorCount)
 
-    generatedDoubles.foreach{ x => integerSpace += x.round.toInt}
+    generatedDoubles.foreach{ x => integerSpace += x.round}
 
     integerSpace.result.toArray
 
   }
 
-  def generateLinearSpace(minimum: Double, maximum: Double, generatorCount: Int): Array[Double] = {
+  def generateLinearSpace(boundaries: NumericBoundaries, generatorCount: Int): Array[Double] = {
 
     val space = new ArrayBuffer[Double]
 
-    val iteratorDelta = (maximum - minimum) / (generatorCount.toDouble - 1.0)
+    val iteratorDelta = (boundaries.maximum - boundaries.minimum) / (generatorCount.toDouble - 1.0)
 
     for(i <- 0 until generatorCount - 1) {
-      space += minimum + i * iteratorDelta
+      space += boundaries.minimum + i * iteratorDelta
     }
-    space += maximum
+    space += boundaries.maximum
     space.result.toArray
   }
 
@@ -40,14 +40,14 @@ trait SeedGenerator {
     a * exp(b * value)
   }
 
-  def generateLogSpace(minimum: Double, maximum: Double, generatorCount: Int): Array[Double] = {
+  def generateLogSpace(boundaries: NumericBoundaries, generatorCount: Int): Array[Double] = {
 
     val space = new ArrayBuffer[Double]
 
-    val linearSpace = generateLinearSpace(minimum, maximum, generatorCount)
+    val linearSpace = generateLinearSpace(boundaries, generatorCount)
 
     linearSpace.foreach{ x=>
-      space += convertToLog(minimum, maximum, x)
+      space += convertToLog(boundaries.minimum, boundaries.maximum, x)
     }
 
     space.result.toArray
