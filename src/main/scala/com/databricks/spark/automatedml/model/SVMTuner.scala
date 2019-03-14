@@ -418,6 +418,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
   }
 
   def evolveBest(): SVMModelsWithResults = {
+    require(df != null && df.count() > 0)
     evolveParameters().head
   }
 

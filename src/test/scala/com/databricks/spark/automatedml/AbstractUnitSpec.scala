@@ -46,15 +46,15 @@ object AutomationUnitTestsUtil {
   }
 
   def assertConfusionOutput(confusionOutput: ConfusionOutput) : Unit = {
-    assert(confusionOutput != null)
-    assert(confusionOutput.confusionData != null)
-    assert(confusionOutput.predictionData != null)
-    assert(confusionOutput.confusionData.count() > 0)
-    assert(confusionOutput.predictionData.count() > 0)
+    assert(confusionOutput != null, "should have not returned null confusion output")
+    assert(confusionOutput.confusionData != null, "should not have returned null confusion output data")
+    assert(confusionOutput.predictionData != null, "should not have returned null prediction data")
+    assert(confusionOutput.confusionData.count() > 0, "should have more than 0 rows for confusion data")
+    assert(confusionOutput.predictionData.count() > 0, "should have more than 0 rows for prediction data")
   }
 
   def assertPredOutput(inputCount: Long, predictCount: Long) : Unit = {
-    assert(inputCount == predictCount)
+    assert(inputCount == predictCount, "count should have matched")
   }
 
   def getSerializablesToTmpLocation() : String = {

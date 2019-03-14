@@ -57,8 +57,8 @@ class AutomationRunnerIT extends AbstractUnitSpec {
     val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
     val fullConfig = AutomationUnitTestsUtil.getXgBoostConfig(adultDfwithLabel, "continuous")
     val predictionRowsCount = fullConfig.runWithPrediction().dataWithPredictions.count()
-    assert(predictionRowsCount > 0)
-    assert(predictionRowsCount == adultDfwithLabel.count())
+    assert(predictionRowsCount > 0, "should have returned more than 0 rows for prediction output")
+    assert(predictionRowsCount == adultDfwithLabel.count(), "should have same row count for input dataset and prediction dataset")
   }
 
 }

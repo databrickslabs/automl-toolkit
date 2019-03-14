@@ -1,7 +1,7 @@
 package com.databricks.spark.automatedml
 
-import com.databricks.spark.automatedml.params.DataGeneration
-import com.databricks.spark.automatedml.utils.ModelType
+import com.databricks.spark.automatedml.executor.DataPrep
+import com.databricks.spark.automatedml.params.{ConfusionOutput, DataGeneration}
 
 class ManualRunnerTest extends AbstractUnitSpec {
 
@@ -18,26 +18,21 @@ class ManualRunnerTest extends AbstractUnitSpec {
     }
   }
 
-  it should "return feature importance without any exceptions " in {
+  it should "execute ManualRunner without any exceptions" in {
+    val adultDataset = AutomationUnitTestsUtil.getAdultDf()
+    val confusionOutput: ConfusionOutput = new ManualRunner(new DataPrep(adultDataset).prepData())
+      .setScoringMetric("f1")
+      .setNumberOfGenerations(2)
+      .setFirstGenerationGenePool(5)
+      .mlFlowLoggingOff()
+      .mlFlowLogArtifactsOff()
+      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .runWithConfusionReport()
 
-    val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
-
-    val manualRunner = new ManualRunner(
-      DataGeneration(adultDfwithLabel, adultDfwithLabel.columns, ModelType.CLASSIFIER.toString))
-        .mlFlowLoggingOff()
-        .mlFlowLogArtifactsOff()
-        .oneHotEncodingOn()
-        .setEvolutionStrategy("continuous")
-        .naFillOn()
-
-    manualRunner.runWithConfusionReport()
-
-    val mo = manualRunner.run()
-
-    assert(manualRunner != null)
-
-    assert(manualRunner.exploreFeatureImportances() != null)
-
+    assert(confusionOutput != null, "confusionOutput should not have been null")
+    assert(confusionOutput.confusionData != null, "confusion data should not have been null")
+    assert(confusionOutput.predictionData != null, "prediction data should not have been null")
+    assert(confusionOutput.predictionData.count() == adultDataset.count(), "prediction dataset count should have match original dataset's count")
   }
 
 
