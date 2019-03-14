@@ -11,7 +11,7 @@
         <spark.version>2.4.0</spark.version>
         <mlflow.version>0.8.1</mlflow.version>
         <json4s.version>3.5.3</json4s.version>
-        <build.scope>provided</build.scope>
+        <dependency.scope>provided</dependency.scope>
     </properties>
 
     <dependencies>
