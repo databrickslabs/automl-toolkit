@@ -11,7 +11,7 @@
         <spark.version>2.4.0</spark.version>
         <mlflow.version>0.8.1</mlflow.version>
         <json4s.version>3.5.3</json4s.version>
-        <compile.scope>provided</compile.scope>
+        <build.scope>provided</build.scope>
     </properties>
 
     <dependencies>
@@ -20,42 +20,42 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${build.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.11</artifactId>
             <version>${spark.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${build.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_2.11</artifactId>
             <version>${spark.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${build.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mllib_2.11</artifactId>
             <version>${spark.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${build.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mlflow</groupId>
             <artifactId>mlflow-client</artifactId>
             <version>${mlflow.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${build.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-jackson_2.11</artifactId>
             <version>${json4s.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${build.scope}</scope>
         </dependency>
 
         <dependency>
