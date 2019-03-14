@@ -19,6 +19,7 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
 
 
   def setLabelCol(value: String): this.type = {
+    assert(_dataFieldNames.contains(value), s"Label field $value is not in DataFrame!")
     _labelCol = value
     this
   }
