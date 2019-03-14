@@ -58,6 +58,38 @@
             <scope>${compile.scope}</scope>
         </dependency>
 
+        <dependency>
+            <groupId>ml.dmlc</groupId>
+            <artifactId>xgboost4j</artifactId>
+            <version>0.81</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ml.dmlc</groupId>
+            <artifactId>xgboost4j-spark</artifactId>
+            <version>0.81</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--<dependency>-->
+            <!--<groupId>org.scalactic</groupId>-->
+            <!--<artifactId>scalactic_2.12</artifactId>-->
+            <!--<version>3.0.5</version>-->
+        <!--</dependency>-->
+
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>3.0.6</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

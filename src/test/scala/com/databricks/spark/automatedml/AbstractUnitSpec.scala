@@ -1,0 +1,225 @@
+package com.databricks.spark.automatedml
+
+import com.databricks.spark.automatedml.inference.InferencePayload
+import com.databricks.spark.automatedml.params.ConfusionOutput
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.junit.runner.RunWith
+import org.scalatest._
+
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
+abstract class AbstractUnitSpec
+  extends FlatSpec
+    with Matchers
+    with OptionValues
+    with Inside
+    with Inspectors
+
+
+object AutomationUnitTestsUtil {
+
+  lazy val sparkSession: SparkSession = SparkSession
+    .builder().
+    master("local[*]")
+    .appName("providentiaml-unit-tests")
+    .getOrCreate()
+
+  def convertCsvToDf(csvPath: String): DataFrame = {
+    sparkSession
+      .read
+      .format("csv")
+      .option("header", true)
+      .option("inferSchema", true)
+      .load(getClass.getResource(csvPath).getPath)
+  }
+
+  def getAdultDf() :DataFrame = {
+   val adultDf = convertCsvToDf("/adult_data.csv")
+
+    var adultDfCleaned = adultDf
+    for ( colName <- adultDf.columns) {
+      adultDfCleaned = adultDfCleaned.withColumn(colName.split("\\s+").mkString+"_trimmed", trim(col(colName))).drop(colName)
+    }
+    adultDfCleaned.
+      withColumnRenamed("class_trimmed","label")
+      .withColumn("label", when(col("label").contains("<=50k"),0).otherwise(1))
+  }
+
+  def assertConfusionOutput(confusionOutput: ConfusionOutput) : Unit = {
+    assert(confusionOutput != null)
+    assert(confusionOutput.confusionData != null)
+    assert(confusionOutput.predictionData != null)
+    assert(confusionOutput.confusionData.count() > 0)
+    assert(confusionOutput.predictionData.count() > 0)
+  }
+
+  def assertPredOutput(inputCount: Long, predictCount: Long) : Unit = {
+    assert(inputCount == predictCount)
+  }
+
+  def getSerializablesToTmpLocation() : String = {
+    System.getProperty("java.io.tmpdir")+"/automatedml"
+  }
+
+
+  def getRandomForestConfig(inputDataset: DataFrame,
+                            evolutionStrategy: String): AutomationRunner = {
+    new AutomationRunner(inputDataset)
+      .setModelingFamily("RandomForest")
+      .setLabelCol("label")
+      .setFeaturesCol("features")
+      .naFillOn()
+      .varianceFilterOn()
+      .outlierFilterOff()
+      .pearsonFilterOff()
+      .covarianceFilterOff()
+      .oneHotEncodingOn()
+      .scalingOff()
+      .setStandardScalerMeanFlagOff()
+      .setStandardScalerStdDevFlagOff()
+      .mlFlowLoggingOff()
+      .mlFlowLogArtifactsOff()
+      .autoStoppingOff()
+      .setFilterPrecision(0.9)
+      .setParallelism(20)
+      .setKFold(1)
+      .setTrainPortion(0.70)
+      .setTrainSplitMethod("stratified")
+      .setFirstGenerationGenePool(5)
+      .setNumberOfGenerations(2)
+      .setNumberOfParentsToRetain(2)
+      .setNumberOfMutationsPerGeneration(2)
+      .setGeneticMixing(0.8)
+      .setGenerationalMutationStrategy("fixed")
+      .setScoringMetric("f1")
+      .setFeatureImportanceCutoffType("count")
+      .setFeatureImportanceCutoffValue(12.0)
+      .setEvolutionStrategy(evolutionStrategy)
+      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+  }
+
+  def getLogisticRegressionConfig(inputDataset: DataFrame,
+                                  evolutionStrategy: String): AutomationRunner = {
+    new AutomationRunner(inputDataset)
+      .setModelingFamily("LogisticRegression")
+      .setLabelCol("label")
+      .setFeaturesCol("features")
+      .naFillOn()
+      .varianceFilterOn()
+      .outlierFilterOff()
+      .pearsonFilterOff()
+      .covarianceFilterOff()
+      .oneHotEncodingOn()
+      .scalingOn()
+      .setStandardScalerMeanFlagOn()
+      .setStandardScalerStdDevFlagOff()
+      .mlFlowLoggingOff()
+      .mlFlowLogArtifactsOff()
+      .autoStoppingOff()
+      .setFilterPrecision(0.9)
+      .setParallelism(20)
+      .setKFold(2)
+      .setTrainPortion(0.70)
+      .setTrainSplitMethod("random")
+      .setFirstGenerationGenePool(5)
+      .setNumberOfGenerations(2)
+      .setNumberOfParentsToRetain(2)
+      .setNumberOfMutationsPerGeneration(2)
+      .setGeneticMixing(0.8)
+      .setGenerationalMutationStrategy("fixed")
+      .setFeatureImportanceCutoffType("count")
+      .setFeatureImportanceCutoffValue(12.0)
+      .setEvolutionStrategy(evolutionStrategy)
+      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+  }
+
+  def getXgBoostConfig(inputDataset: DataFrame,
+                       evolutionStrategy: String): AutomationRunner = {
+    new AutomationRunner(inputDataset)
+      .setModelingFamily("XGBoost")
+      .setLabelCol("label")
+      .setFeaturesCol("features")
+      .naFillOn()
+      .varianceFilterOn()
+      .outlierFilterOff()
+      .pearsonFilterOff()
+      .covarianceFilterOn()
+      .oneHotEncodingOn()
+      .scalingOff()
+      .setStandardScalerMeanFlagOff()
+      .setStandardScalerStdDevFlagOff()
+      .mlFlowLoggingOff()
+      .mlFlowLogArtifactsOff()
+      .autoStoppingOff()
+      .setFilterPrecision(0.9)
+      .setParallelism(20)
+      .setKFold(4)
+      .setTrainPortion(0.70)
+      .setTrainSplitMethod("stratified")
+      .setScoringMetric("f1")
+      .setFirstGenerationGenePool(5)
+      .setNumberOfGenerations(2)
+      .setNumberOfParentsToRetain(2)
+      .setNumberOfMutationsPerGeneration(2)
+      .setGeneticMixing(0.8)
+      .setGenerationalMutationStrategy("fixed")
+      .setFeatureImportanceCutoffType("count")
+      .setFeatureImportanceCutoffValue(10.0)
+      .setEvolutionStrategy(evolutionStrategy)
+      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+  }
+
+  def getMlpcConfig(inputDataset: DataFrame,
+                    evolutionStrategy: String): AutomationRunner = {
+    new AutomationRunner(inputDataset)
+      .setModelingFamily("MLPC")
+      .setLabelCol("label")
+      .setFeaturesCol("features")
+      .naFillOn()
+      .varianceFilterOn()
+      .outlierFilterOff()
+      .pearsonFilterOff()
+      .covarianceFilterOn()
+      .oneHotEncodingOff()
+      .scalingOn()
+      .setStandardScalerMeanFlagOff()
+      .setStandardScalerStdDevFlagOff()
+      .mlFlowLoggingOff()
+      .mlFlowLogArtifactsOff()
+      .autoStoppingOff()
+      .setFilterPrecision(0.9)
+      .setParallelism(20)
+      .setKFold(5)
+      .setTrainPortion(0.70)
+      .setTrainSplitMethod("random")
+      .setScoringMetric("f1")
+      .setFirstGenerationGenePool(5)
+      .setNumberOfGenerations(2)
+      .setNumberOfParentsToRetain(2)
+      .setNumberOfMutationsPerGeneration(2)
+      .setGeneticMixing(0.8)
+      .setGenerationalMutationStrategy("fixed")
+      .setFeatureImportanceCutoffType("count")
+      .setFeatureImportanceCutoffValue(10.0)
+      .setEvolutionStrategy(evolutionStrategy)
+      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+  }
+
+}
+
+object InferenceUnitTestUtil {
+
+  def generateInferencePayload() : InferencePayload = {
+    val adultDataset = AutomationUnitTestsUtil.getAdultDf()
+    val adultDsColumns = adultDataset.columns;
+    {
+      new InferencePayload {
+        override def data: DataFrame = adultDataset
+        override def modelingColumns: Array[String] = Array("label")
+        override def allColumns: Array[String] = adultDsColumns
+      }
+    }
+  }
+}
+
+
