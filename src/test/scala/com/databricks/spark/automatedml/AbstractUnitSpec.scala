@@ -1,5 +1,7 @@
 package com.databricks.spark.automatedml
 
+import java.util.UUID
+
 import com.databricks.spark.automatedml.inference.InferencePayload
 import com.databricks.spark.automatedml.params.ConfusionOutput
 import org.apache.spark.sql.functions._
@@ -58,7 +60,7 @@ object AutomationUnitTestsUtil {
   }
 
   def getSerializablesToTmpLocation() : String = {
-    System.getProperty("java.io.tmpdir")+"/automatedml"
+    System.getProperty("java.io.tmpdir") + "/" + UUID.randomUUID().toString + "/automatedml"
   }
 
 
