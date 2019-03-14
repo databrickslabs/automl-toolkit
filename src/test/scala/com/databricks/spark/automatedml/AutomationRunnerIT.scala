@@ -12,7 +12,6 @@ class AutomationRunnerIT extends AbstractUnitSpec {
 
   it should "return confusion report for Random Forest in batch evolution strategy" in {
     val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
-    println(System.getProperty("java.io.tmpdir"))
     val fullConfig = AutomationUnitTestsUtil.getRandomForestConfig(adultDfwithLabel, "batch")
     val confusionOutput = fullConfig.runWithConfusionReport()
     AutomationUnitTestsUtil.assertConfusionOutput(confusionOutput)
@@ -38,7 +37,6 @@ class AutomationRunnerIT extends AbstractUnitSpec {
 
   it should "return confusion report for Random Forest in continuous evolution strategy" in {
     val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
-    println(System.getProperty("java.io.tmpdir"))
     val fullConfig = AutomationUnitTestsUtil.getRandomForestConfig(adultDfwithLabel, "continuous")
     val confusionOutput = fullConfig.runWithConfusionReport()
     AutomationUnitTestsUtil.assertConfusionOutput(confusionOutput)
