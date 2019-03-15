@@ -193,4 +193,9 @@ trait DataValidation {
     assert(dfSchema.fieldNames.contains(column), s"Dataframe does not contain column named: '$column'")
   }
 
+  def validateInputDataframe(df: DataFrame): Unit = {
+    require(df != null, "Input dataset cannot be null")
+    require(df.count() > 0, "Input dataset cannot be empty")
+  }
+
 }

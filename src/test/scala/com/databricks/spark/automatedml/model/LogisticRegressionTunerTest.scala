@@ -6,14 +6,14 @@ import com.databricks.spark.automatedml.{AbstractUnitSpec, AutomationUnitTestsUt
 
 class LogisticRegressionTunerTest extends AbstractUnitSpec {
 
-  "LogisticRegressionTuner" should "throw NullPointerException for passing invalid params" in {
-    a [NullPointerException] should be thrownBy {
+  "LogisticRegressionTuner" should "throw IllegalArgumentException for passing invalid params" in {
+    a [IllegalArgumentException] should be thrownBy {
       new LogisticRegressionTuner(null).evolveBest()
     }
   }
 
-  it should "should throw AssertionError for passing invalid dataset" in {
-    a [AssertionError] should be thrownBy {
+  it should "should throw IllegalArgumentException for passing invalid dataset" in {
+    a [IllegalArgumentException] should be thrownBy {
       new LogisticRegressionTuner(AutomationUnitTestsUtil.sparkSession.emptyDataFrame).evolveBest()
     }
   }
