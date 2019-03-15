@@ -63,12 +63,14 @@
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j</artifactId>
             <version>${dmlc.version}</version>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j-spark</artifactId>
             <version>${dmlc.version}</version>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
