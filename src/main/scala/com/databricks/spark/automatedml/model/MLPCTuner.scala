@@ -2,34 +2,27 @@ package com.databricks.spark.automatedml.model
 
 import com.databricks.spark.automatedml.params.{Defaults, MLPCConfig, MLPCModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-import org.apache.log4j.{Level, Logger}
-
 import scala.collection.parallel.mutable.ParHashSet
+import scala.concurrent.forkjoin.ForkJoinPool
 
 class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
   private var _scoringMetric = _scoringDefaultClassifier
-
   private var _mlpcNumericBoundaries = _mlpcDefaultNumBoundaries
-
   private var _mlpcStringBoundaries = _mlpcDefaultStringBoundaries
-
-//  final private val featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
-//  final private val classDistinctCount = df.select(_labelCol).distinct().count().toInt
-
   private var _featureInputSize: Int = 0
   private var _classDistinctCount: Int = 0
+  private var _classificationMetrics = classificationMetrics
 
   private def calcFeatureInputSize: this.type = {
     _featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
@@ -44,7 +37,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
   def setScoringMetric(value: String): this.type = {
     require(classificationMetrics.contains(value),
       s"Classification scoring metric $value is not a valid member of ${
-        invalidateSelection(value, classificationMetrics)}")
+        invalidateSelection(value, classificationMetrics)
+      }")
     _scoringMetric = value
     this
   }
@@ -66,6 +60,14 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
   def getMlpcStringBoundaries: Map[String, List[String]] = _mlpcStringBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
+
+  private def resetClassificationMetrics: List[String] = classificationMetricValidator(classificationAdjudicator(df),
+    classificationMetrics)
+
+  private def setClassificationMetrics(value: List[String]): this.type = {
+    _classificationMetrics = value
+    this
+  }
 
   private def configureModel(modelConfig: MLPCConfig): MultilayerPerceptronClassifier = {
     new MultilayerPerceptronClassifier()
@@ -141,12 +143,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     val predictedData = builtModel.transform(test)
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
-    for(i <- classificationMetrics){
-      val scoreEvaluator = new MulticlassClassificationEvaluator()
-        .setLabelCol(_labelCol)
-        .setPredictionCol("prediction")
-        .setMetricName(i)
-      scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+    for (i <- _classificationMetrics) {
+      scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
     }
 
     MLPCModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
@@ -155,7 +153,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   private def runBattery(battery: Array[MLPCConfig], generation: Int = 1): Array[MLPCModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis/1000
+    val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[MLPCModelsWithResults]
@@ -165,7 +163,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     runs.tasksupport = taskSupport
 
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    }%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -186,13 +185,13 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       })
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
-      for (a <- classificationMetrics) {
+      for (a <- _classificationMetrics) {
         val metricScores = new ListBuffer[Double]
         kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
         scoringMap(a) = metricScores.sum / metricScores.length
       }
 
-      val completionTimeStamp = System.currentTimeMillis/1000
+      val completionTimeStamp = System.currentTimeMillis / 1000
       val totalTimeOfBattery = completionTimeStamp - startTimeStamp
       val runAvg = MLPCModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
@@ -200,7 +199,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       modelCnt += 1
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+        calculateModelingFamilyRemainingTime(generation, modelCnt)
+      }%2.4f%%"
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -249,6 +249,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   private def continuousEvolution(): Array[MLPCModelsWithResults] = {
 
+    setClassificationMetrics(resetClassificationMetrics)
+
     // Set the parameter guides for layers / label counts (only set once)
     calcFeatureInputSize
     calcClassDistinctCount
@@ -269,7 +271,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
     val totalConfigs = modelConfigLength[MLPCConfig]
 
-    var runSet = if(_modelSeedSet) {
+    var runSet = if (_modelSeedSet) {
       val genArray = new ArrayBuffer[MLPCConfig]
       val startingModelSeed = generateMLPCConfig(_modelSeed)
       genArray += startingModelSeed
@@ -363,6 +365,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
   }
 
   def evolveParameters(): Array[MLPCModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     // Set the parameter guides for layers / label counts (only set once)
     calcFeatureInputSize

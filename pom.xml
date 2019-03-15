@@ -4,7 +4,7 @@
     <groupId>com.databricks</groupId>
     <artifactId>automatedml</artifactId>
     <packaging>jar</packaging>
-    <version>0.4.4-SNAPSHOT</version>
+    <version>0.4.8-SNAPSHOT</version>
 
     <properties>
         <scala.version>2.11.12</scala.version>
@@ -12,6 +12,7 @@
         <mlflow.version>0.8.1</mlflow.version>
         <json4s.version>3.5.3</json4s.version>
         <dependency.scope>provided</dependency.scope>
+        <dmlc.version>0.82</dmlc.version>
     </properties>
 
     <dependencies>
@@ -61,13 +62,13 @@
         <dependency>
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j</artifactId>
-            <version>0.81</version>
+            <version>${dmlc.version}</version>
         </dependency>
 
         <dependency>
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j-spark</artifactId>
-            <version>0.81</version>
+            <version>${dmlc.version}</version>
         </dependency>
 
         <dependency>
@@ -76,14 +77,13 @@
             <version>4.8.1</version>
             <scope>test</scope>
         </dependency>
-
+      
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.11</artifactId>
             <version>3.0.6</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>

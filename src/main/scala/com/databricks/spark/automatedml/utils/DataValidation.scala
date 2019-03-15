@@ -57,8 +57,9 @@ trait DataValidation {
       }
     )
 
-    assert(vectorizableFields.contains(labelColumn),
-      s"The provided Dataframe MUST contain a labeled column with the name '$labelColumn'")
+    //TODO: temporary removal of this assertion for troubleshooting purposes.
+//    assert(vectorizableFields.contains(labelColumn),
+//      s"The provided Dataframe MUST contain a labeled column with the name '$labelColumn'")
     vectorizableFields -= labelColumn
 
     (vectorizableFields.result, conversionFields.result, dateFields.result, timeFields.result)
