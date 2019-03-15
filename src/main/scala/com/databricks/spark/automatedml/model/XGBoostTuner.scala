@@ -7,7 +7,6 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
 import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -24,6 +23,8 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     case "classifier" => "f1"
     case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not supported.")
   }
+
+  private var _classificationMetrics = classificationMetrics
 
   private var _xgboostNumericBoundaries = _xgboostDefaultNumBoundaries
 
@@ -53,6 +54,17 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   def getClassificationMetrics: List[String] = classificationMetrics
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  private def resetClassificationMetrics: List[String] = modelSelection match {
+    case "classifier" =>
+      classificationMetricValidator(classificationAdjudicator(df), classificationMetrics)
+    case _ => classificationMetrics
+  }
+
+  private def setClassificationMetrics(value: List[String]): this.type = {
+    _classificationMetrics = value
+    this
+  }
 
   private def modelDecider[A, B](modelConfig: XGBoostConfig) = {
 
@@ -165,20 +177,12 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     modelSelection match {
       case "classifier" =>
-        for (i <- classificationMetrics) {
-          val scoreEvaluator = new MulticlassClassificationEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+        for (i <- _classificationMetrics) {
+          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          val scoreEvaluator = new RegressionEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
         }
     }
 
@@ -221,7 +225,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
         case "classifier" =>
-          for (a <- classificationMetrics) {
+          for (a <- _classificationMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
             scoringMap(a) = metricScores.sum / metricScores.length
@@ -309,6 +313,8 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
 
   private def continuousEvolution(): Array[XGBoostModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -424,6 +430,8 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   }
 
   def evolveParameters(): Array[XGBoostModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     var generation = 1
     // Record of all generations results

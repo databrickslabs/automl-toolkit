@@ -4,7 +4,6 @@ import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig, Ra
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.RandomForestClassifier
-import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -20,6 +19,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
+  // Instantiate the default scoring metric
   private var _scoringMetric = modelSelection match {
     case "regressor" => "rmse"
     case "classifier" => "f1"
@@ -30,15 +30,18 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private var _randomForestStringBoundaries = _rfDefaultStringBoundaries
 
+  private var _classificationMetrics = classificationMetrics
+
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
       case "regressor" => require(regressionMetrics.contains(value),
         s"Regressor scoring metric '$value' is not a valid member of ${
           invalidateSelection(value, regressionMetrics)
         }")
-      case "classifier" => require(classificationMetrics.contains(value),
-        s"Regressor scoring metric '$value' is not a valid member of ${
-          invalidateSelection(value, classificationMetrics)
+      case "classifier" =>
+        require(_classificationMetrics.contains(value),
+        s"Classification scoring metric '$value' is not a valid member of ${
+          invalidateSelection(value, _classificationMetrics)
         }")
       case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
     }
@@ -62,9 +65,20 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   def getRandomForestStringBoundaries: Map[String, List[String]] = _randomForestStringBoundaries
 
-  def getClassificationMetrics: List[String] = classificationMetrics
+  def getClassificationMetrics: List[String] = _classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  private def resetClassificationMetrics: List[String] = modelSelection match {
+    case "classifier" =>
+      classificationMetricValidator(classificationAdjudicator(df), classificationMetrics)
+    case _ => classificationMetrics
+  }
+
+  private def setClassificationMetrics(value: List[String]): this.type = {
+    _classificationMetrics = value
+    this
+  }
 
   private def modelDecider[A, B](modelConfig: RandomForestConfig) = {
 
@@ -181,29 +195,12 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     modelSelection match {
       case "classifier" =>
-        if (classificationAdjudicator(df)) {
-          for (i <- binaryClassificationMetrics) {
-            val binaryEvaluator = new BinaryClassificationEvaluator()
-              .setLabelCol(_labelCol)
-              .setRawPredictionCol("probability")
-              .setMetricName(i)
-            scoringMap(i) = binaryEvaluator.evaluate(predictedData)
-          }
-        }
-        for (i <- classificationMetrics) {
-          val scoreEvaluator = new MulticlassClassificationEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+        for (i <- _classificationMetrics) {
+          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          val scoreEvaluator = new RegressionEvaluator()
-            .setLabelCol(_labelCol)
-            .setPredictionCol("prediction")
-            .setMetricName(i)
-          scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
         }
     }
 
@@ -246,14 +243,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
         case "classifier" =>
-          if (classificationAdjudicator(df)) {
-            for (i <- binaryClassificationMetrics) {
-              val metricScores = new ListBuffer[Double]
-              kFoldBuffer.map(x => metricScores += x.evalMetrics(i))
-              scoringMap(i) = metricScores.sum / metricScores.length
-            }
-          }
-          for (a <- classificationMetrics) {
+          for (a <- _classificationMetrics) {
             val metricScores = new ListBuffer[Double]
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
             scoringMap(a) = metricScores.sum / metricScores.length
@@ -330,8 +320,9 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     mutationPayload.result.toArray
   }
 
-
   private def continuousEvolution(): Array[RandomForestModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -447,6 +438,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
   def evolveParameters(): Array[RandomForestModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     var generation = 1
     // Record of all generations results

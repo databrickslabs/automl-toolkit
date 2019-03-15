@@ -4,7 +4,6 @@ import com.databricks.spark.automatedml.params.{Defaults, SVMConfig, SVMModelsWi
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.LinearSVC
-import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
@@ -111,11 +110,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     for (i <- regressionMetrics) {
-      val scoreEvaluator = new RegressionEvaluator()
-        .setLabelCol(_labelCol)
-        .setPredictionCol("prediction")
-        .setMetricName(i)
-      scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+      scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
     }
     SVMModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric),
       scoringMap.toMap, generation)

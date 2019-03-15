@@ -23,6 +23,8 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
   private var _logisticRegressionNumericBoundaries = _logisticRegressionDefaultNumBoundaries
 
+  private var _classificationMetrics = classificationMetrics
+
   def setScoringMetric(value: String): this.type = {
     require(classificationMetrics.contains(value),
       s"Classification scoring metric $value is not a valid member of ${
@@ -42,6 +44,14 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
   def getLogisticRegressionNumericBoundaries: Map[String, (Double, Double)] = _logisticRegressionNumericBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
+
+  private def resetClassificationMetrics: List[String] =  classificationMetricValidator(classificationAdjudicator(df),
+    classificationMetrics)
+
+  private def setClassificationMetrics(value: List[String]): this.type = {
+    _classificationMetrics = value
+    this
+  }
 
   private def configureModel(modelConfig: LogisticRegressionConfig): LogisticRegression = {
     new LogisticRegression()
@@ -122,12 +132,8 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
-    for (i <- classificationMetrics) {
-      val scoreEvaluator = new MulticlassClassificationEvaluator()
-        .setLabelCol(_labelCol)
-        .setPredictionCol("prediction")
-        .setMetricName(i)
-      scoringMap(i) = scoreEvaluator.evaluate(predictedData)
+    for (i <- _classificationMetrics) {
+      scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
     }
     LogisticRegressionModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap,
       generation)
@@ -168,7 +174,7 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       })
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
-      for (a <- classificationMetrics) {
+      for (a <- _classificationMetrics) {
         val metricScores = new ListBuffer[Double]
         kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
         scoringMap(a) = metricScores.sum / metricScores.length
@@ -233,6 +239,8 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
   }
 
   private def continuousEvolution(): Array[LogisticRegressionModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
 
@@ -348,6 +356,8 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
   }
 
   def evolveParameters(): Array[LogisticRegressionModelsWithResults] = {
+
+    setClassificationMetrics(resetClassificationMetrics)
 
     var generation = 1
     // Record of all generations results
