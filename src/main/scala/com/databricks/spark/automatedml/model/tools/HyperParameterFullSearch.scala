@@ -6,12 +6,13 @@ import scala.collection.mutable.ArrayBuffer
 import util.Random
 
 
-class HyperParameterFullSearch extends SeedGenerator with Defaults {
+class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   var _modelFamily = ""
   var _modelType = ""
   var _permutationCount = 10
   var _indexMixingMode = "linear"
+  var _arraySeed = 42L
 
   private val allowableMixingModes = List("linear", "random")
 
@@ -43,98 +44,44 @@ class HyperParameterFullSearch extends SeedGenerator with Defaults {
     this
   }
 
+  def setArraySeed(value: Long): this.type = {
+    _arraySeed = value
+    this
+  }
+
   def getModelFamily: String = _modelFamily
   def getModelType: String = _modelType
   def getPermutationCount: Int = _permutationCount
   def getIndexMixingMode: String = _indexMixingMode
+  def getArraySeed: Long = _arraySeed
 
-
-  private def randomIndexSelection(numericArrays: Array[Array[Double]]): NumericArrayCollection = {
-
-    val bufferContainer = new ArrayBuffer[Array[Double]]()
-
-    numericArrays.foreach{ x =>
-      bufferContainer += Random.shuffle(x.toList).toArray
-    }
-
-    val arrayRandomHolder = bufferContainer.result.toArray
-
-    val randomlySelectedPayload = arrayRandomHolder.map(x => x(0))
-
-    val remainingArrays = arrayRandomHolder.map(x => x.drop(1))
-
-    NumericArrayCollection(randomlySelectedPayload, remainingArrays)
-
-  }
-
-  private def staticIndexSelection(numericArrays: Array[Array[Double]]): NumericArrayCollection = {
-
-    val selectedPayload = numericArrays.map(x => x(0))
-
-    val remainingArrays = numericArrays.map(x => x.drop(1))
-
-    NumericArrayCollection(selectedPayload, remainingArrays)
-
-  }
-
-  private def extractContinuousBoundaries(parameter: Tuple2[Double, Double]): NumericBoundaries = {
-    NumericBoundaries(parameter._1, parameter._2)
-  }
-
-  private def selectStringIndex(availableParams: List[String], currentIterator: Int): StringSelectionReturn = {
-    val listLength = availableParams.length
-    val idxSelection = if(currentIterator >= listLength) 0 else currentIterator
-
-    StringSelectionReturn(availableParams(idxSelection), idxSelection)
-  }
-
-  def generateRandomForestHyperParameters(numericBoundaries: Map[String, (Double, Double)],
-                                                  stringBoundaries: Map[String, List[String]]): Array[RandomForestConfig] = {
+  def initialGenerationSeedRandomForest(numericBoundaries: Map[String, (Double, Double)],
+                            stringBoundaries: Map[String, List[String]]): Array[RandomForestConfig] = {
 
     var outputPayload = new ArrayBuffer[RandomForestConfig]()
-
-    // figure out the number of permutations to generate
-    val numericValuesCollection = stringBoundaries.size
-    val seedsToGenerate = _permutationCount / numericValuesCollection
-
-    /**
-      * General Guidelines:
-      *
-      * - For String / Boolean values: Re-use as an iterator to continue to select index positions through the loop.
-      * - For Continuous Variables:
-      * -- mode: "Linear" - Generate uniformly sized Arrays, then build by index position to create the config.
-      * -- mode: "Random" - Generate uniformly sized Array, build by random combination without replacement.
-      */
-
 
     val impurityValues = _modelType match {
       case "regressor" => List("variance")
       case _ => stringBoundaries("impurity")
     }
 
-    //TODO: generate the numeric Arrays for each of the hyper parameters
-
-
-    val numTreesArray = generateLinearIntSpace(
-      extractContinuousBoundaries(numericBoundaries("numTrees")), seedsToGenerate)
-    val maxBinsArray = generateLinearIntSpace(
-      extractContinuousBoundaries(numericBoundaries("maxBins")), seedsToGenerate)
-    val maxDepthArray = generateLinearIntSpace(
-      extractContinuousBoundaries(numericBoundaries("maxDepth")), seedsToGenerate)
-    val minInfoGainArray = generateLogSpace(
-      extractContinuousBoundaries(numericBoundaries("minInfoGain")), seedsToGenerate)
-    val subSamplingRateArray = generateLinearIntSpace(
-      extractContinuousBoundaries(numericBoundaries("subSamplingRate")), seedsToGenerate
+    // Set the config object
+    val rfConfig = RandomForestPermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
     )
+
+    // Generate the permutation collections
+
+    val generatedArrays = randomForestNumericArrayGenerator(rfConfig)
 
     // Create some index values
     var _impurityIdx = 0
     var _featureSubsetStrategyIdx = 0
 
-    //TODO: within the loop, call the index selection, then add in the parameters for each string value and build
-    // the RandomForestConfig collection.
-
-    var numericArrays = Array(numTreesArray, maxBinsArray, maxDepthArray, minInfoGainArray, subSamplingRateArray)
+    var numericArrays = Array(generatedArrays.numTreesArray, generatedArrays.maxBinsArray,
+      generatedArrays.maxDepthArray, generatedArrays.minInfoGainArray, generatedArrays.subSamplingRateArray)
 
     // Main builder loop
     for (i <- 1 to _permutationCount) {
@@ -174,20 +121,5 @@ class HyperParameterFullSearch extends SeedGenerator with Defaults {
 
   }
 
-
-
 }
 
-case class NumericBoundaries(
-                              minimum: Double,
-                              maximum: Double
-                            )
-
-case class NumericArrayCollection(
-                                  selectedPayload: Array[Double],
-                                  remainingPayload: Array[Array[Double]]
-                                 )
-case class StringSelectionReturn(
-                                 selectedStringValue: String,
-                                 IndexCounterStatus: Int
-                                )
