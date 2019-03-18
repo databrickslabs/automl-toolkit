@@ -66,6 +66,15 @@ object AutomationUnitTestsUtil {
 
   def getRandomForestConfig(inputDataset: DataFrame,
                             evolutionStrategy: String): AutomationRunner = {
+
+    val rfBoundaries = Map(
+      "numTrees" -> Tuple2(50.0, 1000.0),
+      "maxBins" -> Tuple2(10.0, 100.0),
+      "maxDepth" -> Tuple2(2.0, 20.0),
+      "minInfoGain" -> Tuple2(0.0, 0.075),
+      "subSamplingRate" -> Tuple2(0.5, 1.0)
+    )
+
     new AutomationRunner(inputDataset)
       .setModelingFamily("RandomForest")
       .setLabelCol("label")
@@ -98,6 +107,7 @@ object AutomationUnitTestsUtil {
       .setFeatureImportanceCutoffValue(12.0)
       .setEvolutionStrategy(evolutionStrategy)
       .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .setNumericBoundaries(rfBoundaries)
   }
 
   def getLogisticRegressionConfig(inputDataset: DataFrame,

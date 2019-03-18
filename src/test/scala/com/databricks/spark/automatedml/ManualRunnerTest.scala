@@ -21,7 +21,7 @@ class ManualRunnerTest extends AbstractUnitSpec {
   it should "execute ManualRunner without any exceptions" in {
     val adultDataset = AutomationUnitTestsUtil.getAdultDf()
     val confusionOutput: ConfusionOutput = new ManualRunner(new DataPrep(adultDataset).prepData())
-      .setScoringMetric("f1")
+      .setScoringMetric("areaUnderROC")
       .setNumberOfGenerations(2)
       .setFirstGenerationGenePool(5)
       .mlFlowLoggingOff()
