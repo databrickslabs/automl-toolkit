@@ -350,6 +350,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
 
     // Pearson Filtering (generates a vector features Field)
     val (dataStage6, stage6Fields, stage6FullFields) = if (_mainConfig.pearsonFilteringFlag) {
+
+
+      // TODO: perform a check here on fields to be included in a 'pearson vector' and only evaluate those.
+
       val pearsonReturn = pearsonFilter(persistDataStage5, stage5Fields)
 
       // Record the Inference Settings for Pearson Filtering
