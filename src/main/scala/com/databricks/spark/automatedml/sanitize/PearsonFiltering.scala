@@ -2,12 +2,15 @@ package com.databricks.spark.automatedml.sanitize
 
 import com.databricks.spark.automatedml.params.PearsonPayload
 import com.databricks.spark.automatedml.utils.DataValidation
+import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.ml.stat.ChiSquareTest
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 /**
   *
@@ -103,20 +106,125 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
   def getFilterMode: String = _filterMode
   def getAutoFilterNTile: Double = _autoFilterNTile
 
-  private def buildChiSq(): List[PearsonPayload] = {
+
+  private var _pearsonVectorFields: Array[String] = Array.empty
+  private var _pearsonNonCategoricalFields: Array[String] = Array.empty
+
+  private def setPearsonNonCategoricalFields(value: Array[String]): this.type = {
+    _pearsonNonCategoricalFields = value
+    this
+  }
+
+  private def setPearsonVectorFields(value: Array[String]): this.type = {
+    _pearsonVectorFields = value
+    this
+  }
+
+  /**
+    * Private method for calculating the ChiSq relation of each feature to the label column.
+    * @param data DataFrame that contains the vector to test and the label column.
+    * @param featureColumn the name of the feature column vector to be used in the test.
+    * @return List of the stats from the comparison calculated.
+    */
+  private def buildChiSq(data: DataFrame, featureColumn: String): List[PearsonPayload] = {
     val reportBuffer = new ListBuffer[PearsonPayload]
 
-    val chi = ChiSquareTest.test(df, _featuresCol, _labelCol).head
+    val chi = ChiSquareTest.test(data, featureColumn, _labelCol).head
     val pvalues = chi.getAs[Vector](0).toArray
     val degreesFreedom = chi.getSeq[Int](1).toArray
     val pearsonStat = chi.getAs[Vector](2).toArray
 
-    for(i <- featureColumnListing.indices){
-      reportBuffer += PearsonPayload(featureColumnListing(i), pvalues(i), degreesFreedom(i), pearsonStat(i))
+    for(i <- _pearsonVectorFields.indices){
+      reportBuffer += PearsonPayload(_pearsonVectorFields(i), pvalues(i), degreesFreedom(i), pearsonStat(i))
     }
     reportBuffer.result
   }
 
+  /**
+    * Method for, given a particular column, get the exact count of the cardinality of the field.
+    * @param column Name of the column that is being tested for cardinality
+    * @return [Long] the number of unique entries in the column
+    */
+  private def acquireCardinality(column: String): Long = {
+
+    val aggregateData = df.select(col(column)).groupBy(col(column)).agg(count(col(column)))
+    aggregateData.count()
+  }
+
+  /**
+    * Private method for running through all of the fields included in the base feature vector and calculating their
+    * cardinality in parallel (10x concurrency)
+    * @return An Array of Field Name, Distinct Count
+    */
+  private def featuresCardinality(): Array[(String, Long)] = {
+
+    val cardinalityOfFields = new ArrayBuffer[(String, Long)]()
+
+    val featurePool = featureColumnListing.par
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(10))
+    featurePool.tasksupport = taskSupport
+
+    featurePool.foreach{ x=>
+      cardinalityOfFields += Tuple2(x, acquireCardinality(x))
+    }
+
+    cardinalityOfFields.result.toArray
+  }
+
+  /**
+    * Private method for analyzing the input feature vector columns, determining their cardinality, and updating
+    * the private var's to use these new lists.
+    * @return Nothing - it updates the class-scoped variables when called.
+    */
+  private def restrictFeatureSet(): this.type = {
+
+    // Empty ArrayBuffer to hold the fields to build the PearsonFeature Vector
+    val pearsonVectorBuffer = new ArrayBuffer[String]
+    val pearsonNonCategoricalBuffer = new ArrayBuffer[String]
+
+    val determineCardinality = featuresCardinality()
+
+    determineCardinality.foreach{ x=>
+      if(x._2 < 10000) pearsonVectorBuffer += x._1 else pearsonNonCategoricalBuffer += x._1
+    }
+
+    setPearsonNonCategoricalFields(pearsonNonCategoricalBuffer.result.toArray)
+    setPearsonVectorFields(pearsonVectorBuffer.result.toArray)
+
+  }
+
+  /**
+    * Method for creating a new temporary feature vector that will be used for Pearson Filtering evaluation, removing
+    * the high cardinality fields from this test.
+    * @return [DataFrame] the DataFrame with a new vector entiitled "pearsonVector" that is used for removing
+    *         fields from the feature vector that are either highly positively or negatively correlated to the label
+    *         field.
+    */
+  private def reVectorize(): DataFrame = {
+
+    // Create a new feature vector based on the fields that will be evaluated in PearsonFiltering
+    restrictFeatureSet()
+
+    require(_pearsonVectorFields.nonEmpty, s"Pearson Filtering contains all continuous variables in the feature" +
+      s" vector, or cardinality of all features is greater than the threshold of 10k unique entries.  " +
+      s"Please turn off pearson filtering for this data set by defining the main class with the setter: " +
+      s".pearsonFilterOff() to continue.")
+
+    val assembler = new VectorAssembler()
+      .setInputCols(_pearsonVectorFields)
+      .setOutputCol("pearsonVector")
+
+    assembler.transform(df)
+  }
+
+  /**
+    * Method for manually filtering out fields from the feature vector based on a user-supplied or
+    * automation-calculated threshold cutoff.
+    * @param statPayload the calculated correlation stats from feature elements in the vector to the label column.
+    * @param filterValue the cut-off value specified by the user, or calculated through the quantile generator
+    *                    methodology.
+    * @return A list of fields that will be persisted and included in the feature vector going forward.
+    */
   private def filterChiSq(statPayload: List[PearsonPayload], filterValue: Double): List[String] = {
     val fieldRestriction = new ListBuffer[String]
     _filterDirection match {
@@ -131,7 +239,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
             else None
           }
         })
-      case "less" =>
+      case "lesser" =>
         statPayload.foreach(x => {
           x.getClass.getDeclaredFields foreach {f =>
             f.setAccessible(true)
@@ -146,6 +254,14 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     fieldRestriction.result
   }
 
+  /**
+    * Method for automatically detecting the quantile values for the filter statistic to cull fields automatically
+    * based on the distribution of correlation amongst the feature vector and the label.
+    * @param pearsonResults The pearson (and other) stats that have been calculated between each element of the
+    *                       feature vector and the label.
+    * @return The PearsonPayload results for each field, filtering out those elements that are either above / below
+    *         the threshold configured.
+    */
   private def quantileGenerator(pearsonResults: List[PearsonPayload]): Double = {
 
     val statBuffer = new ListBuffer[Double]
@@ -167,9 +283,16 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
 
   }
 
+  /**
+    * Main entry point for Pearson Filtering
+    * @param ignoreFields Fields that will be ignored from running a Pearson filter against.
+    * @return
+    */
   def filterFields(ignoreFields: Array[String]=Array.empty[String]): DataFrame = {
 
-    val chiSqData = buildChiSq()
+    val revectoredData = reVectorize()
+
+    val chiSqData = buildChiSq(revectoredData, "pearsonVector")
     val featureFields: List[String] = _filterMode match {
       case "manual" =>
         filterChiSq(chiSqData, _filterManualValue)
@@ -177,7 +300,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
         filterChiSq(chiSqData, quantileGenerator(chiSqData))
       }
     require(featureFields.nonEmpty, "All feature fields have been filtered out.  Adjust parameters.")
-    val fieldListing = featureFields ::: List(_labelCol) ::: ignoreFields.toList
+    val fieldListing = featureFields ::: List(_labelCol) ::: ignoreFields.toList ::: _pearsonNonCategoricalFields.toList
     df.select(fieldListing.map(col):_*)
   }
 
