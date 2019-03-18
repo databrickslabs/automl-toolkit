@@ -17,6 +17,8 @@ import scala.collection.parallel.mutable.ParHashSet
 class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defaults
   with Evolution {
 
+  validateInputDataframe(df)
+
   private val logger: Logger = Logger.getLogger(this.getClass)
 
   private var _scoringMetric = _scoringDefaultClassifier
