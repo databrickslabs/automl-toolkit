@@ -11,8 +11,8 @@
         <spark.version>2.4.0</spark.version>
         <mlflow.version>0.8.1</mlflow.version>
         <json4s.version>3.5.3</json4s.version>
+        <dependency.scope>provided</dependency.scope>
         <dmlc.version>0.82</dmlc.version>
-        <compile.scope>provided</compile.scope>
     </properties>
 
     <dependencies>
@@ -21,58 +21,71 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.11</artifactId>
             <version>${spark.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_2.11</artifactId>
             <version>${spark.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mllib_2.11</artifactId>
             <version>${spark.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mlflow</groupId>
             <artifactId>mlflow-client</artifactId>
             <version>${mlflow.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-jackson_2.11</artifactId>
             <version>${json4s.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j</artifactId>
             <version>${dmlc.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
         <dependency>
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j-spark</artifactId>
             <version>${dmlc.version}</version>
-            <scope>${compile.scope}</scope>
+            <scope>${dependency.scope}</scope>
         </dependency>
 
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.1</version>
+            <scope>test</scope>
+        </dependency>
+      
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>3.0.6</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -145,6 +158,16 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M3</version>
+                <configuration>
+                    <forkCount>8</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
+                </configuration>
+            </plugin>
 
         </plugins>
     </build>

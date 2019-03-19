@@ -13,6 +13,8 @@ libraryDependencies += "org.mlflow" % "mlflow-client" % "0.8.1"
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
 libraryDependencies += "ml.dmlc" % "xgboost4j" % "0.82"
 libraryDependencies += "ml.dmlc" % "xgboost4j-spark" % "0.82"
+libraryDependencies += "junit" % "junit" % "4.8.1" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.6" % "test"
 
 lazy val commonSettings = Seq(
   version := "0.4.9",
