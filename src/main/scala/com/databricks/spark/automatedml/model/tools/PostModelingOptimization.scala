@@ -57,9 +57,16 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators {
 
   // TODO: method for generating the hyper param search space
 
+  /**
+    * Generates an array of RandomForestConfig hyper parameters to meet the configured target size
+    * @return
+    */
   def generateRandomForestSearchSpace(): Array[RandomForestConfig] = {
 
-    val calculatedPermutationValue = getPermutationCounts(_hyperParameterSpaceCount, _numericBoundaries.size)
+    val calculatedPermutationValue = getPermutationCounts(_hyperParameterSpaceCount, _numericBoundaries.size) +
+      _stringBoundaries.size
+
+
 
   }
 
