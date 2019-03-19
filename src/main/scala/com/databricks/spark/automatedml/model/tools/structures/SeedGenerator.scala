@@ -1,4 +1,4 @@
-package com.databricks.spark.automatedml.model.tools
+package com.databricks.spark.automatedml.model.tools.structures
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math._

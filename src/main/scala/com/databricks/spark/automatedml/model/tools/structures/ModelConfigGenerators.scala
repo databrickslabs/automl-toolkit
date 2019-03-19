@@ -1,7 +1,6 @@
-package com.databricks.spark.automatedml.model.tools
+package com.databricks.spark.automatedml.model.tools.structures
 
 import com.databricks.spark.automatedml.params.RandomForestConfig
-
 
 
 trait ModelConfigGenerators extends SeedGenerator {
@@ -17,7 +16,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       minInfoGain <- randomForestPermutationCollection.minInfoGainArray
       subSamplingRate <- randomForestPermutationCollection.subSamplingRateArray
       featureSubsetStrategy <- randomForestPermutationCollection.featureSubsetStrategyArray
-    }  yield RandomForestConfig(numTrees.toInt, impurity, maxBins.toInt, maxDepth.toInt, minInfoGain, subSamplingRate, featureSubsetStrategy)
+    } yield RandomForestConfig(numTrees.toInt, impurity, maxBins.toInt, maxDepth.toInt, minInfoGain, subSamplingRate, featureSubsetStrategy)
 
   }
 
