@@ -14,7 +14,11 @@ case class StringSelectionReturn(
                                   IndexCounterStatus: Int
                                 )
 
-
+case class PermutationConfiguration(
+                                                permutationTarget: Int,
+                                                numericBoundaries: Map[String, (Double, Double)],
+                                                stringBoundaries: Map[String, List[String]]
+                                               )
 
 case class RandomForestPermutationCollection(
                                               numTreesArray: Array[Double],
@@ -26,11 +30,6 @@ case class RandomForestPermutationCollection(
                                               featureSubsetStrategyArray: Array[String]
                                             )
 
-case class RandomForestPermutationConfiguration(
-                                                permutationTarget: Int,
-                                                numericBoundaries: Map[String, (Double, Double)],
-                                                stringBoundaries: Map[String, List[String]]
-                                               )
 
 case class RandomForestNumericArrays(
                                       numTreesArray: Array[Double],
@@ -39,3 +38,14 @@ case class RandomForestNumericArrays(
                                       minInfoGainArray: Array[Double],
                                       subSamplingRateArray: Array[Double]
                                     )
+
+case class RandomForestModelRunReport(
+                                       numTrees: Int,
+                                       impurity: String,
+                                       maxBins: Int,
+                                       maxDepth: Int,
+                                       minInfoGain: Double,
+                                       subSamplingRate: Double,
+                                       featureSubsetStrategy: String,
+                                       score: Double
+                                     )

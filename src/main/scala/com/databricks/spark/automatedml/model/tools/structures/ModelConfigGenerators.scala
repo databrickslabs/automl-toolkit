@@ -20,7 +20,7 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   }
 
-  protected[tools] def randomForestNumericArrayGenerator(config: RandomForestPermutationConfiguration):
+  protected[tools] def randomForestNumericArrayGenerator(config: PermutationConfiguration):
   RandomForestNumericArrays = {
 
     RandomForestNumericArrays(
@@ -39,7 +39,7 @@ trait ModelConfigGenerators extends SeedGenerator {
   }
 
 
-  def randomForestPermutationGenerator(config: RandomForestPermutationConfiguration, countTarget: Int, seed: Long = 42L):
+  def randomForestPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
   Array[RandomForestConfig] = {
 
     // Get the number of permutations to generate

@@ -1,15 +1,24 @@
 package com.databricks.spark.automatedml.model.tools
 
-import com.databricks.spark.automatedml.model.tools.structures.ModelConfigGenerators
-import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig}
+import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, PermutationConfiguration, RandomForestModelRunReport}
+import com.databricks.spark.automatedml.params.{Defaults, GenericModelReturn, RandomForestConfig}
+import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.sql.functions._
+import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import org.apache.spark.ml.regression.{LinearRegression, RandomForestRegressor}
+import org.apache.spark.sql.DataFrame
 
-class PostModelingOptimization extends Defaults with ModelConfigGenerators {
+import scala.collection.mutable.ArrayBuffer
+
+class PostModelingOptimization extends Defaults with ModelConfigGenerators with SparkSessionWrapper {
 
   var _modelFamily = ""
   var _modelType = ""
   var _hyperParameterSpaceCount = 100000
   var _numericBoundaries: Map[String, (Double, Double)] = _
   var _stringBoundaries: Map[String, List[String]] = _
+  var _seed: Long = 42L
 
 
   def setModelFamily(value: String): this.type = {
@@ -49,26 +58,109 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators {
     this
   }
 
+  def setSeed(value: Long): this.type = {
+    _seed = value
+    this
+  }
 
   def getModelFamily: String = _modelFamily
   def getModelType: String = _modelType
   def getHyperParameterSpaceCount: Int = _hyperParameterSpaceCount
-
-
-  // TODO: method for generating the hyper param search space
+  def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
+  def getStringBoundaries: Map[String, List[String]] = _stringBoundaries
+  def getSeed: Long = _seed
 
   /**
     * Generates an array of RandomForestConfig hyper parameters to meet the configured target size
-    * @return
+    * @return a distinct array of RandomForestConfig's
     */
   def generateRandomForestSearchSpace(): Array[RandomForestConfig] = {
 
+    // Get the number of permutations to create for the continuous numeric boundary search space
     val calculatedPermutationValue = getPermutationCounts(_hyperParameterSpaceCount, _numericBoundaries.size) +
-      _stringBoundaries.size
+      stringBoundaryPermutationCalculator(_stringBoundaries)
 
+    // Specify the Permutation Configuration
+    val permutationConfig = PermutationConfiguration(
+      permutationTarget = calculatedPermutationValue,
+      numericBoundaries = _numericBoundaries,
+      stringBoundaries = _stringBoundaries
+    )
 
+    // Generate the Permutations
+    val permutationsArray = randomForestPermutationGenerator(permutationConfig, _hyperParameterSpaceCount, _seed)
+
+    permutationsArray.distinct
+  }
+
+  def generateRandomForestSearchSpaceAsDataFrame(): DataFrame = {
+
+    spark.createDataFrame(generateRandomForestSearchSpace())
 
   }
+
+  protected[tools] def randomForestResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[RandomForestModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += RandomForestModelRunReport(
+        numTrees = hyperParams("numTrees").toString.toInt,
+        impurity = hyperParams("impurity").toString,
+        maxBins = hyperParams("maxBins").toString.toInt,
+        maxDepth = hyperParams("maxDepth").toString.toInt,
+        minInfoGain = hyperParams("minInfoGain").toString.toDouble,
+        subSamplingRate = hyperParams("subSamplingRate").toString.toDouble,
+        featureSubsetStrategy = hyperParams("featureSubsetStrategy").toString,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def randomForestPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int):
+  Array[RandomForestConfig] = {
+
+    val inferenceDataSet = randomForestResultMapping(modelingResults)
+
+    val impuritySi = new StringIndexer()
+      .setInputCol("impurity")
+      .setOutputCol("impurity_si")
+
+    val featureSubsetStrategySi = new StringIndexer()
+      .setInputCol("featureSubsetStrategy")
+      .setOutputCol("featureSubsetStrategy_si")
+
+    val vectorizer = new VectorAssembler()
+      .setInputCols(Array("numTrees", "impurity_si", "maxBins", "maxDepth", "minInfoGain",
+      "subSamplingRate", "featureSubsetStrategy_si"))
+      .setOutputCol("features")
+
+    //TODO: set some solid hyper parameters for these models to ensure that the results are relatively accurate.
+    val model = modelType match {
+      case "RandomForest" => new RandomForestRegressor()
+      case "LinearRegression" => new LinearRegression()
+    }
+
+    model.setLabelCol("score")
+      .setFeaturesCol("features")
+
+    val modelPipeline = new Pipeline()
+      .setStages(Array(impuritySi, featureSubsetStrategySi, vectorizer, model))
+
+    val fittedPipeline = modelPipeline.fit(inferenceDataSet)
+
+    val fullSearchSpaceDataSet = generateRandomForestSearchSpaceAsDataFrame()
+
+    fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+      .collect()
+      .asInstanceOf[Array[RandomForestConfig]]
+
+  }
+
 
 
 

@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model.tools
 
-import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, RandomForestPermutationConfiguration}
+import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, PermutationConfiguration}
 import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig}
 
 import scala.collection.mutable.ArrayBuffer
@@ -66,7 +66,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     }
 
     // Set the config object
-    val rfConfig = RandomForestPermutationConfiguration(
+    val rfConfig = PermutationConfiguration(
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = stringBoundaries
@@ -121,11 +121,6 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  //TODO: Build a method that will generate the permutations for Linear Regression Inference based on a permutation
-  //TODO: this will build the massive array, then convert to a DataFrame based on the target.
-  // CHECK TO MAKE SURE THIS WON'T BLOW UP THE HEAP.
-
-  //TODO: ensure that the result set is distinct.
 
 
 }

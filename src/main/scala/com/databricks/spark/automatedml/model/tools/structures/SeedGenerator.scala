@@ -118,4 +118,21 @@ trait SeedGenerator {
 
   }
 
+  /**
+    * Calculates the number of possible additional permutations to be added to the search space for string values
+    * @param stringBoundaries The string boundary payload for a modeling family
+    * @return Int representing any additional permutations on the numeric body that will need to be generated in order
+    *         to attempt to reach the target unique hyperparameter search space
+    */
+  protected[tools] def stringBoundaryPermutationCalculator(stringBoundaries: Map[String, List[String]]): Int = {
+
+    var uniqueValues = 0
+
+    stringBoundaries.foreach{ x =>
+      uniqueValues += x._2.length - 1
+    }
+
+    uniqueValues
+  }
+
 }
