@@ -3,7 +3,7 @@ package com.databricks.spark.automatedml.model.tools
 import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, PermutationConfiguration, RandomForestModelRunReport}
 import com.databricks.spark.automatedml.params.{Defaults, GenericModelReturn, RandomForestConfig}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
-import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.ml.regression.{LinearRegression, RandomForestRegressor}
@@ -70,6 +70,9 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
   def getStringBoundaries: Map[String, List[String]] = _stringBoundaries
   def getSeed: Long = _seed
 
+
+
+
   /**
     * Generates an array of RandomForestConfig hyper parameters to meet the configured target size
     * @return a distinct array of RandomForestConfig's
@@ -124,32 +127,11 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
 
     val inferenceDataSet = randomForestResultMapping(modelingResults)
 
-    val impuritySi = new StringIndexer()
-      .setInputCol("impurity")
-      .setOutputCol("impurity_si")
-
-    val featureSubsetStrategySi = new StringIndexer()
-      .setInputCol("featureSubsetStrategy")
-      .setOutputCol("featureSubsetStrategy_si")
-
-    val vectorizer = new VectorAssembler()
-      .setInputCols(Array("numTrees", "impurity_si", "maxBins", "maxDepth", "minInfoGain",
-      "subSamplingRate", "featureSubsetStrategy_si"))
-      .setOutputCol("features")
-
-    //TODO: set some solid hyper parameters for these models to ensure that the results are relatively accurate.
-    val model = modelType match {
-      case "RandomForest" => new RandomForestRegressor()
-      case "LinearRegression" => new LinearRegression()
-    }
-
-    model.setLabelCol("score")
-      .setFeaturesCol("features")
-
-    val modelPipeline = new Pipeline()
-      .setStages(Array(impuritySi, featureSubsetStrategySi, vectorizer, model))
-
-    val fittedPipeline = modelPipeline.fit(inferenceDataSet)
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
 
     val fullSearchSpaceDataSet = generateRandomForestSearchSpaceAsDataFrame()
 
