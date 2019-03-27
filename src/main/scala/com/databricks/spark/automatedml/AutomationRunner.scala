@@ -3,6 +3,7 @@ package com.databricks.spark.automatedml
 import com.databricks.spark.automatedml.executor.DataPrep
 import com.databricks.spark.automatedml.inference.{InferenceModelConfig, InferenceTools}
 import com.databricks.spark.automatedml.model._
+import com.databricks.spark.automatedml.model.tools.PostModelingOptimization
 import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
 import com.databricks.spark.automatedml.tracking.MLFlowTracker
@@ -22,13 +23,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   private def runRandomForest(payload: DataGeneration): (Array[RandomForestModelsWithResults], DataFrame, String, DataFrame) = {
 
-    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+    val cachedData = if (_mainConfig.dataPrepCachingFlag) {
       payload.data.persist(StorageLevel.MEMORY_AND_DISK)
     } else {
       payload.data
     }
 
-    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
+    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
 
     val initialize = new RandomForestTuner(cachedData, payload.modelType)
       .setLabelCol(_mainConfig.labelCol)
@@ -62,12 +63,55 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
       .setDataReductionFactor(_mainConfig.dataReductionFactor)
+      .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+      .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+      .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+      .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
-    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+    if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+    val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-    (modelResults, modelStats, payload.modelType, cachedData)
+    val resultBuffer = modelResultsRaw.toBuffer
+    val statsBuffer = new ArrayBuffer[DataFrame]()
+    statsBuffer += modelStatsRaw
+
+    if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+      println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+      val genericResults = new ArrayBuffer[GenericModelReturn]
+
+      modelResultsRaw.foreach { x =>
+        genericResults += GenericModelReturn(
+          hyperParams = extractPayload(x.modelHyperParams),
+          model = x.model,
+          score = x.score,
+          metrics = x.evalMetrics,
+          generation = x.generation
+        )
+
+        val hyperSpaceRunCandidates = new PostModelingOptimization()
+          .setModelFamily("RandomForest")
+          .setModelType(payload.modelType)
+          .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+          .setNumericBoundaries(_mainConfig.numericBoundaries)
+          .setStringBoundaries(_mainConfig.stringBoundaries)
+          .setSeed(_mainConfig.geneticConfig.seed)
+          .randomForestPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+            _mainConfig.geneticConfig.hyperSpaceModelCount)
+
+        val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+        hyperResults.foreach { x =>
+          resultBuffer += x
+        }
+        statsBuffer += hyperDataFrame
+      }
+
+    }
+      (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
+
   }
 
   private def runXGBoost(payload: DataGeneration): (Array[XGBoostModelsWithResults], DataFrame, String, DataFrame) = {

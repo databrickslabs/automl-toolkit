@@ -47,6 +47,22 @@ trait Defaults {
 
   def _defaultFieldsToIgnoreInVector: Array[String] = Array.empty[String]
 
+  def _defaultHyperSpaceInference: Boolean = false
+
+  def _defaultHyperSpaceInferenceCount: Int = 200000
+
+  def _defaultHyperSpaceModelType: String = "RandomForest"
+
+  def _defaultHyperSpaceModelCount: Int = 10
+
+  def _defaultInitialGenerationMode: String = "random"
+
+  def _defaultFirstGenerationConfig = FirstGenerationConfig(
+    permutationCount = 10,
+    indexMixingMode = "linear",
+    arraySeed = 42L
+  )
+
   def _geneticTunerDefaults = GeneticConfig(
     parallelism = 20,
     kFold = 5,
@@ -70,7 +86,13 @@ trait Defaults {
     continuousEvolutionMutationAggressiveness = 3,
     continuousEvolutionGeneticMixing = 0.7,
     continuousEvolutionRollingImprovementCount = 20,
-    modelSeed = Map.empty
+    modelSeed = Map.empty,
+    hyperSpaceInference = _defaultHyperSpaceInference,
+    hyperSpaceInferenceCount = _defaultHyperSpaceInferenceCount,
+    hyperSpaceModelCount = _defaultHyperSpaceModelCount,
+    hyperSpaceModelType = _defaultHyperSpaceModelType,
+    initialGenerationMode = _defaultInitialGenerationMode,
+    initialGenerationConfig = _defaultFirstGenerationConfig
   )
 
   def _fillConfigDefaults = FillConfig(
@@ -322,7 +344,13 @@ trait Defaults {
       continuousEvolutionMutationAggressiveness = 3,
       continuousEvolutionGeneticMixing = 0.7,
       continuousEvolutionRollingImprovementCount = 20,
-      modelSeed = Map.empty
+      modelSeed = Map.empty,
+      hyperSpaceInference = _defaultHyperSpaceInference,
+      hyperSpaceInferenceCount = _defaultHyperSpaceInferenceCount,
+      hyperSpaceModelType = _defaultHyperSpaceModelType,
+      hyperSpaceModelCount = _defaultHyperSpaceModelCount,
+      initialGenerationMode = _defaultInitialGenerationMode,
+      initialGenerationConfig = _defaultFirstGenerationConfig
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
@@ -381,7 +409,13 @@ trait Defaults {
       continuousEvolutionMutationAggressiveness = 3,
       continuousEvolutionGeneticMixing = 0.7,
       continuousEvolutionRollingImprovementCount = 20,
-      modelSeed = Map.empty
+      modelSeed = Map.empty,
+      hyperSpaceInference = _defaultHyperSpaceInference,
+      hyperSpaceInferenceCount = _defaultHyperSpaceInferenceCount,
+      hyperSpaceModelType = _defaultHyperSpaceModelType,
+      hyperSpaceModelCount = _defaultHyperSpaceModelCount,
+      initialGenerationMode = _defaultInitialGenerationMode,
+      initialGenerationConfig = _defaultFirstGenerationConfig
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,

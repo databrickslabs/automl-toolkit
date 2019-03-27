@@ -24,6 +24,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
       s"\n Pearson Filter Flag: ${_mainConfig.pearsonFilteringFlag.toString}" +
       s"\n OneHotEncoding Flag: ${_mainConfig.oneHotEncodeFlag.toString}" +
       s"\n Scaling Flag: ${_mainConfig.scalingFlag.toString}" +
+      s"\n Hyperspace Inference Flag: ${_mainConfig.geneticConfig.hyperSpaceInference.toString}" +
+      s"\n First Generation Seed Mode: ${_mainConfig.geneticConfig.initialGenerationMode}" +
       s"\n MlFlow Logging Flag: ${_mainConfig.mlFlowLoggingFlag.toString}" +
       s"\n Early Stopping Flag: ${_mainConfig.autoStoppingFlag.toString}" +
       s"\n Data Prep Caching Flag: ${_mainConfig.dataPrepCachingFlag.toString}"

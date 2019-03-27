@@ -80,6 +80,12 @@ case class CovarianceConfig(
                              correlationCutoffHigh: Double
                            )
 
+case class FirstGenerationConfig(
+                                  permutationCount: Int,
+                                  indexMixingMode: String,
+                                  arraySeed: Long
+                                )
+
 case class GeneticConfig(
                           parallelism: Int,
                           kFold: Int,
@@ -103,7 +109,13 @@ case class GeneticConfig(
                           continuousEvolutionMutationAggressiveness: Int,
                           continuousEvolutionGeneticMixing: Double,
                           continuousEvolutionRollingImprovementCount: Int,
-                          modelSeed: Map[String, Any]
+                          modelSeed: Map[String, Any],
+                          hyperSpaceInference: Boolean,
+                          hyperSpaceInferenceCount: Int,
+                          hyperSpaceModelType: String,
+                          hyperSpaceModelCount: Int,
+                          initialGenerationMode: String,
+                          initialGenerationConfig: FirstGenerationConfig
                         )
 
 case class ScalingConfig(

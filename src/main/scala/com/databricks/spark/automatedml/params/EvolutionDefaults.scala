@@ -11,6 +11,8 @@ trait EvolutionDefaults {
     "areaUnderPR", "areaUnderROC")
   final val allowableTrainSplitMethod: List[String] = List("random", "chronological", "stratified", "overSample",
     "underSample", "stratifyReduce")
+  final val allowableInitialGenerationModes: List[String] = List("random", "permutations")
+  final val allowableInitialGenerationIndexMixingModes: List[String] = List("random", "linear")
 
   def _defaultLabel: String = "label"
 
@@ -67,6 +69,14 @@ trait EvolutionDefaults {
   def _defaultContinuousEvolutionRollingImprovementCount: Int = 20
 
   def _defaultDataReduce: Double = 0.5
+
+  def _defaultFirstGenMode: String = "random"
+
+  def _defaultFirstGenPermutations: Int = 10
+
+  def _defaultFirstGenIndexMixingMode: String = "linear"
+
+  def _defaultFirstGenArraySeed: Long = 42L
 
 }
 

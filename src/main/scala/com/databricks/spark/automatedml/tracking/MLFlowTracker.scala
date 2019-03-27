@@ -7,7 +7,6 @@ import org.mlflow.tracking.creds._
 import org.mlflow.api.proto.Service.CreateRun
 import org.mlflow.tracking.MlflowClient
 import com.databricks.spark.automatedml.params.{GenericModelReturn, MLFlowConfig}
-import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 
@@ -227,10 +226,15 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
     val uniqueGenerations = generationSet.result.toArray.sortWith(_<_)
 
     // set the model save directory
+//    val baseDirectory = _modelSaveDirectory.takeRight(1) match {
+//      case "/" => s"${_modelSaveDirectory}${_mlFlowExperimentName}/"
+//      case _ => s"${_modelSaveDirectory}/${_mlFlowExperimentName}/"
+//    }
     val baseDirectory = _modelSaveDirectory.takeRight(1) match {
-      case "/" => s"${_modelSaveDirectory}${_mlFlowExperimentName}/"
-      case _ => s"${_modelSaveDirectory}/${_mlFlowExperimentName}/"
-    }
+        case "/" => s"${_modelSaveDirectory}"
+        case _ => s"${_modelSaveDirectory}/"
+      }
+
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 

@@ -3,10 +3,8 @@ package com.databricks.spark.automatedml.model.tools
 import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, PermutationConfiguration, RandomForestModelRunReport}
 import com.databricks.spark.automatedml.params.{Defaults, GenericModelReturn, RandomForestConfig}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
-import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.functions._
-import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
-import org.apache.spark.ml.regression.{LinearRegression, RandomForestRegressor}
+
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
@@ -38,12 +36,9 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
   }
 
   def setHyperParameterSpaceCount(value: Int): this.type = {
-    value match {
-      case x if x > 500000 => println(s"WARNING! HyperParameterSpaceCount value of $x is above 500,000.  " +
-        s"This will increase driver memory pressure and run time. Proceed if this is a desired setting only.")
-      case y if y > 1000000 => throw new UnsupportedOperationException(s"HyperParameterSpaceCount setting of $y is " +
-        s"greater than the allowable maximum of 1,000,000 permutations")
-    }
+    if(value > 500000) println("WARNING! Setting permutation counts above 500,000 will put stress on the driver.")
+    if(value > 1000000) throw new UnsupportedOperationException(s"Setting permutation above 1,000,000 is not supported" +
+      s" due to runtime considerations.  $value is too large of a value.")
     _hyperParameterSpaceCount = value
     this
   }
@@ -64,20 +59,23 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
   }
 
   def getModelFamily: String = _modelFamily
+
   def getModelType: String = _modelType
+
   def getHyperParameterSpaceCount: Int = _hyperParameterSpaceCount
+
   def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
+
   def getStringBoundaries: Map[String, List[String]] = _stringBoundaries
+
   def getSeed: Long = _seed
-
-
 
 
   /**
     * Generates an array of RandomForestConfig hyper parameters to meet the configured target size
     * @return a distinct array of RandomForestConfig's
     */
-  def generateRandomForestSearchSpace(): Array[RandomForestConfig] = {
+  protected[tools] def generateRandomForestSearchSpace(): Array[RandomForestConfig] = {
 
     // Get the number of permutations to create for the continuous numeric boundary search space
     val calculatedPermutationValue = getPermutationCounts(_hyperParameterSpaceCount, _numericBoundaries.size) +
@@ -135,11 +133,11 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
 
     val fullSearchSpaceDataSet = generateRandomForestSearchSpaceAsDataFrame()
 
-    fittedPipeline.transform(fullSearchSpaceDataSet)
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
-      .collect()
-      .asInstanceOf[Array[RandomForestConfig]]
+
+    convertRandomForestResultToConfig(restrictedData)
 
   }
 
