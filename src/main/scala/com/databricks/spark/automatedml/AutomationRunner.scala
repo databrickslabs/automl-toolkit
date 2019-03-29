@@ -90,6 +90,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           metrics = x.evalMetrics,
           generation = x.generation
         )
+      }
 
         val hyperSpaceRunCandidates = new PostModelingOptimization()
           .setModelFamily("RandomForest")
@@ -107,7 +108,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           resultBuffer += x
         }
         statsBuffer += hyperDataFrame
-      }
 
     }
       (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)

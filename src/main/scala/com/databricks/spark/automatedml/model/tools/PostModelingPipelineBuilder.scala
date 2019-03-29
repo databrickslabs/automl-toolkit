@@ -40,24 +40,21 @@ class PostModelingPipelineBuilder(modelResults: DataFrame) {
     val pipelineBuffer = new ArrayBuffer[PipelineStage]
 
     // Insert the Numeric Values directly into the ArrayBuffer for column listings for the vector assembler
-    vectorFields +: _numericBoundaries.keys.toArray
-
-    val stringIndexerBuffer = new ArrayBuffer[StringIndexer]
+    _numericBoundaries.keys.toArray.foreach(x => vectorFields += x)
 
     // Get the string type fields from the Dataframe to StringIndex them
-    _stringBoundaries.foreach{ x =>
-
-      val indexedName = s"${x._1}_si"
-
-      val stringIndexer = new StringIndexer()
-        .setInputCol(x._1)
-        .setOutputCol(indexedName)
-
-      stringIndexerBuffer += stringIndexer
-
-      vectorFields += indexedName
-      pipelineBuffer += stringIndexer
-    }
+//    _stringBoundaries.keys.foreach{ x =>
+//
+//      val indexedName = s"${x}_si"
+//
+//      val stringIndexer = new StringIndexer()
+//        .setInputCol(x)
+//        .setOutputCol(indexedName)
+//        .setHandleInvalid("keep")
+//
+//      vectorFields += indexedName
+//      pipelineBuffer += stringIndexer
+//    }
 
     // Build the vector
     val vectorizer = new VectorAssembler()
@@ -68,6 +65,9 @@ class PostModelingPipelineBuilder(modelResults: DataFrame) {
 
     val model = _modelType match {
       case "RandomForest" => new RandomForestRegressor()
+          .setMinInfoGain(1E-8)
+          .setNumTrees(600)
+          .setMaxDepth(10)
       case "LinearRegression" => new LinearRegression()
     }
 
