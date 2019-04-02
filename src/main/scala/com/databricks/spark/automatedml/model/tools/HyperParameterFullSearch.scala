@@ -1,7 +1,7 @@
 package com.databricks.spark.automatedml.model.tools
 
 import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, PermutationConfiguration}
-import com.databricks.spark.automatedml.params.{Defaults, RandomForestConfig}
+import com.databricks.spark.automatedml.params._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -55,6 +55,12 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
   def getIndexMixingMode: String = _indexMixingMode
   def getArraySeed: Long = _arraySeed
 
+  /**
+    * Method for generating a geometric space search for a first-generation hyper parameter generation for RandomForest
+    * @param numericBoundaries The allowable restrictive space for the numeric hyper parameters
+    * @param stringBoundaries The allowable values for string-based hyper parameters
+    * @return An Array of Hyperparameter settings for RandomForest algorithms.
+    */
   def initialGenerationSeedRandomForest(numericBoundaries: Map[String, (Double, Double)],
                             stringBoundaries: Map[String, List[String]]): Array[RandomForestConfig] = {
 
@@ -118,6 +124,308 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     }
 
   outputPayload.result.toArray
+
+  }
+
+  /**
+    * Method for generating a geometric search space for a first-generation hyper parameter generation for DecisionTrees
+    * @param numericBoundaries numeric bounds restrictions
+    * @param stringBoundaries string value restrictions
+    * @return An Array of Hyperparameter settings for DecisionTrees algorithms
+    */
+  def initialGenerationSeedTrees(numericBoundaries: Map[String, (Double, Double)],
+                                 stringBoundaries: Map[String, List[String]]): Array[TreesConfig] = {
+
+    var outputPayload = new ArrayBuffer[TreesConfig]()
+
+    val impurityValues = _modelType match {
+      case "regressor" => List("variance")
+      case _ => stringBoundaries("impurity")
+    }
+
+    val treesConfig = PermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
+    )
+
+    val generatedArrays = treesNumericArrayGenerator(treesConfig)
+
+    var _impurityIdx = 0
+
+    var numericArrays = Array(generatedArrays.maxBinsArray, generatedArrays.maxDepthArray,
+      generatedArrays.minInfoGainArray, generatedArrays.minInstancesPerNodeArray)
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => staticIndexSelection(numericArrays)
+        case "random" => randomIndexSelection(numericArrays)
+        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+      }
+
+      numericArrays = selectedIndeces.remainingPayload
+
+      val impurityLoop = selectStringIndex(impurityValues, _impurityIdx)
+      _impurityIdx = impurityLoop.IndexCounterStatus
+
+      outputPayload += TreesConfig(
+        impurity = impurityLoop.selectedStringValue,
+        maxBins = selectedIndeces.selectedPayload(0).toInt,
+        maxDepth = selectedIndeces.selectedPayload(1).toInt,
+        minInfoGain = selectedIndeces.selectedPayload(2),
+        minInstancesPerNode = selectedIndeces.selectedPayload(3).toInt
+      )
+      _impurityIdx += 1
+    }
+
+    outputPayload.result.toArray
+
+  }
+
+  def initialGenerationSeedGBT(numericBoundaries: Map[String, (Double, Double)],
+                               stringBoundaries: Map[String, List[String]]): Array[GBTConfig] = {
+    var outputPayload = new ArrayBuffer[GBTConfig]()
+
+    val impurityValues = _modelType match {
+      case "regressor" => List("variance")
+      case _ => stringBoundaries("impurity")
+    }
+    val lossTypeValues = _modelType match {
+      case "regressor" => List("squared", "absolute")
+      case _ => stringBoundaries("lossType")
+    }
+
+    val gbtConfig = PermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
+    )
+
+    val generatedArrays = gbtNumericArrayGenerator(gbtConfig)
+
+    var _impurityIdx = 0
+    var _lossTypeIdx = 0
+
+    var numericArrays = Array(generatedArrays.maxBinsArray, generatedArrays.maxDepthArray, generatedArrays.maxIterArray,
+      generatedArrays.minInfoGainArray, generatedArrays.minInstancesPerNodeArray, generatedArrays.stepSizeArray)
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => staticIndexSelection(numericArrays)
+        case "random" => randomIndexSelection(numericArrays)
+        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+      }
+
+      numericArrays = selectedIndeces.remainingPayload
+
+      val impurityLoop = selectStringIndex(impurityValues, _impurityIdx)
+      val lossTypeLoop = selectStringIndex(lossTypeValues, _lossTypeIdx)
+      _impurityIdx = impurityLoop.IndexCounterStatus
+      _lossTypeIdx = lossTypeLoop.IndexCounterStatus
+
+      outputPayload += GBTConfig(
+        impurity = impurityLoop.selectedStringValue,
+        lossType = lossTypeLoop.selectedStringValue,
+        maxBins = selectedIndeces.selectedPayload(0).toInt,
+        maxDepth = selectedIndeces.selectedPayload(1).toInt,
+        maxIter = selectedIndeces.selectedPayload(2).toInt,
+        minInfoGain = selectedIndeces.selectedPayload(3),
+        minInstancesPerNode = selectedIndeces.selectedPayload(4).toInt,
+        stepSize = selectedIndeces.selectedPayload(5)
+      )
+      _impurityIdx += 1
+      _lossTypeIdx += 1
+    }
+    outputPayload.result.toArray
+
+  }
+
+  def initialGenerationSeedLinearRegression(numericBoundaries: Map[String, (Double, Double)],
+                                            stringBoundaries: Map[String, List[String]]):
+  Array[LinearRegressionConfig] = {
+    var outputPayload = new ArrayBuffer[LinearRegressionConfig]()
+
+    val linearRegressionConfig = PermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
+    )
+
+    val generatedArrays = linearRegressionNumericArrayGenerator(linearRegressionConfig)
+
+    var _fitInterceptIdx = 0
+    var _standardizationIdx = 0
+    var _lossIdx = 0
+
+    var numericArrays = Array(generatedArrays.elasticNetParamsArray, generatedArrays.maxIterArray,
+      generatedArrays.regParamArray, generatedArrays.toleranceArray)
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => staticIndexSelection(numericArrays)
+        case "random" => randomIndexSelection(numericArrays)
+        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+      }
+
+      numericArrays = selectedIndeces.remainingPayload
+
+      val fitInterceptLoop = selectCoinFlip(_fitInterceptIdx)
+      val standardizationLoop = selectCoinFlip(_standardizationIdx)
+      val lossLoop = selectStringIndex(stringBoundaries("loss"), _lossIdx)
+      _lossIdx = lossLoop.IndexCounterStatus
+
+      outputPayload += LinearRegressionConfig(
+        elasticNetParams = selectedIndeces.selectedPayload(0),
+        fitIntercept = fitInterceptLoop,
+        loss = lossLoop.selectedStringValue,
+        maxIter = selectedIndeces.selectedPayload(1).toInt,
+        regParam = selectedIndeces.selectedPayload(2),
+        standardization = standardizationLoop,
+        tolerance = selectedIndeces.selectedPayload(3)
+      )
+      _lossIdx += 1
+      _standardizationIdx += 1
+      _fitInterceptIdx += 1
+    }
+    outputPayload.result.toArray
+  }
+
+  def initialGenerationSeedLogisticRegression(numericBoundaries: Map[String, (Double, Double)],
+                                              stringBoundaries: Map[String, List[String]]):
+  Array[LogisticRegressionConfig] = {
+
+    var outputPayload = new ArrayBuffer[LogisticRegressionConfig]()
+
+    val logisticRegressionConfig = PermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
+    )
+
+    val generatedArrays = logisticRegressionNumericArrayGenerator(logisticRegressionConfig)
+
+    var _fitInterceptIdx = 0
+    var _standardizationIdx = 0
+
+    var numericArrays = Array(generatedArrays.elasticNetParamsArray, generatedArrays.maxIterArray,
+      generatedArrays.regParamArray, generatedArrays.toleranceArray)
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => staticIndexSelection(numericArrays)
+        case "random" => randomIndexSelection(numericArrays)
+        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+      }
+
+      numericArrays = selectedIndeces.remainingPayload
+
+      val fitInterceptLoop = selectCoinFlip(_fitInterceptIdx)
+      val standardizationLoop = selectCoinFlip(_standardizationIdx)
+
+
+      outputPayload += LogisticRegressionConfig(
+        elasticNetParams = selectedIndeces.selectedPayload(0),
+        fitIntercept = fitInterceptLoop,
+        maxIter = selectedIndeces.selectedPayload(1).toInt,
+        regParam = selectedIndeces.selectedPayload(2),
+        standardization = standardizationLoop,
+        tolerance = selectedIndeces.selectedPayload(3)
+      )
+      _standardizationIdx += 1
+      _fitInterceptIdx += 1
+    }
+    outputPayload.result.toArray
+
+  }
+
+  def initialGenerationSeedSVM(numericBoundaries: Map[String, (Double, Double)],
+                               stringBoundaries: Map[String, List[String]]):
+  Array[SVMConfig] = {
+
+    var outputPayload = new ArrayBuffer[SVMConfig]()
+
+    val svmConfig = PermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
+    )
+
+    val generatedArrays = svmNumericArrayGenerator(svmConfig)
+
+    var _fitInterceptIdx = 0
+    var _standardizationIdx = 0
+
+    var numericArrays = Array(generatedArrays.maxIterArray, generatedArrays.regParamArray, generatedArrays.tolArray)
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => staticIndexSelection(numericArrays)
+        case "random" => randomIndexSelection(numericArrays)
+        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+      }
+
+      numericArrays = selectedIndeces.remainingPayload
+
+      val fitInterceptLoop = selectCoinFlip(_fitInterceptIdx)
+      val standardizationLoop = selectCoinFlip(_standardizationIdx)
+
+
+      outputPayload += SVMConfig(
+        fitIntercept = fitInterceptLoop,
+        maxIter = selectedIndeces.selectedPayload(0).toInt,
+        regParam = selectedIndeces.selectedPayload(1),
+        standardization = standardizationLoop,
+        tol = selectedIndeces.selectedPayload(2)
+      )
+      _standardizationIdx += 1
+      _fitInterceptIdx += 1
+    }
+    outputPayload.result.toArray
+
+  }
+
+  def initialGenerationSeedXGBoost(numericBoundaries: Map[String, (Double, Double)],
+                                   stringBoundaries: Map[String, List[String]]):
+  Array[XGBoostConfig] = {
+
+    var outputPayload = new ArrayBuffer[XGBoostConfig]()
+
+    val xgboostConfig = PermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
+    )
+
+    val generatedArrays = xgboostNumericArrayGenerator(xgboostConfig)
+
+    var numericArrays = Array(generatedArrays.alphaArray, generatedArrays.etaArray, generatedArrays.gammaArray,
+      generatedArrays.lambdaArray, generatedArrays.maxDepthArray, generatedArrays.subSampleArray,
+      generatedArrays.numRoundArray, generatedArrays.maxBinsArray, generatedArrays.trainTestRatioArray)
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => staticIndexSelection(numericArrays)
+        case "random" => randomIndexSelection(numericArrays)
+        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+      }
+
+      numericArrays = selectedIndeces.remainingPayload
+
+      outputPayload += XGBoostConfig(
+        alpha = selectedIndeces.selectedPayload(0),
+        eta = selectedIndeces.selectedPayload(1),
+        gamma = selectedIndeces.selectedPayload(2),
+        lambda = selectedIndeces.selectedPayload(3),
+        maxDepth = selectedIndeces.selectedPayload(4).toInt,
+        subSample = selectedIndeces.selectedPayload(5),
+        minChildWeight = selectedIndeces.selectedPayload(6),
+        numRound = selectedIndeces.selectedPayload(7).toInt,
+        maxBins = selectedIndeces.selectedPayload(8).toInt,
+        trainTestRatio = selectedIndeces.selectedPayload(9)
+      )
+
+    }
+    outputPayload.result.toArray
 
   }
 

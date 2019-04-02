@@ -1,5 +1,6 @@
 package com.databricks.spark.automatedml.model.tools.structures
 
+
 case class NumericBoundaries(
                               minimum: Double,
                               maximum: Double
@@ -20,6 +21,7 @@ case class PermutationConfiguration(
                                                 stringBoundaries: Map[String, List[String]]
                                                )
 
+// RANDOM FOREST
 case class RandomForestPermutationCollection(
                                               numTreesArray: Array[Double],
                                               maxBinsArray: Array[Double],
@@ -49,3 +51,195 @@ case class RandomForestModelRunReport(
                                        featureSubsetStrategy: String,
                                        score: Double
                                      )
+
+//DECISION TREES
+case class TreesPermutationCollection(
+                                      impurityArray: Array[String],
+                                      maxBinsArray: Array[Double],
+                                      maxDepthArray: Array[Double],
+                                      minInfoGainArray: Array[Double],
+                                      minInstancesPerNodeArray: Array[Double]
+                                     )
+
+case class TreesNumericArrays(
+                               maxBinsArray: Array[Double],
+                               maxDepthArray: Array[Double],
+                               minInfoGainArray: Array[Double],
+                               minInstancesPerNodeArray: Array[Double]
+                             )
+
+case class TreesModelRunReport(
+                               impurity: String,
+                               maxBins: Int,
+                               maxDepth: Int,
+                               minInfoGain: Double,
+                               minInstancesPerNode: Double,
+                               score: Double
+                              )
+
+//GRADIENT BOOSTED TREES
+case class GBTPermutationCollection(
+                                       impurityArray: Array[String],
+                                       lossTypeArray: Array[String],
+                                       maxBinsArray: Array[Double],
+                                       maxDepthArray: Array[Double],
+                                       maxIterArray: Array[Double],
+                                       minInfoGainArray: Array[Double],
+                                       minInstancesPerNodeArray: Array[Double],
+                                       stepSizeArray: Array[Double]
+                                     )
+
+case class GBTNumericArrays(
+                             maxBinsArray: Array[Double],
+                             maxDepthArray: Array[Double],
+                             maxIterArray: Array[Double],
+                             minInfoGainArray: Array[Double],
+                             minInstancesPerNodeArray: Array[Double],
+                             stepSizeArray: Array[Double]
+                             )
+
+case class GBTModelRunReport(
+                                impurity: String,
+                                lossType: String,
+                                maxBins: Int,
+                                maxDepth: Int,
+                                maxIter: Int,
+                                minInfoGain: Double,
+                                minInstancesPerNode: Double,
+                                stepSize: Double,
+                                score: Double
+                              )
+
+//LINEAR REGRESSION
+case class LinearRegressionPermutationCollection(
+                                                elasticNetParamsArray: Array[Double],
+                                                fitInterceptArray: Array[Boolean],
+                                                lossArray: Array[String],
+                                                maxIterArray: Array[Double],
+                                                regParamArray: Array[Double],
+                                                standardizationArray: Array[Boolean],
+                                                toleranceArray: Array[Double]
+                                                )
+
+case class LinearRegressionNumericArrays(
+                                        elasticNetParamsArray: Array[Double],
+                                        maxIterArray: Array[Double],
+                                        regParamArray: Array[Double],
+                                        toleranceArray: Array[Double]
+                                        )
+
+case class LinearRegressionModelRunReport(
+                                         elasticNetParams: Double,
+                                         fitIntercept: Boolean,
+                                         loss: String,
+                                         maxIter: Int,
+                                         regParam: Double,
+                                         standardization: Boolean,
+                                         tolerance: Double,
+                                         score: Double
+                                         )
+
+//LOGISTIC REGRESSION
+case class LogisticRegressionPermutationCollection(
+                                                  elasticNetParamsArray: Array[Double],
+                                                  fitInterceptArray: Array[Boolean],
+                                                  maxIterArray: Array[Double],
+                                                  regParamArray: Array[Double],
+                                                  standardizationArray: Array[Boolean],
+                                                  toleranceArray: Array[Double]
+                                                  )
+
+case class LogisticRegressionNumericArrays(
+                                          elasticNetParamsArray: Array[Double],
+                                          maxIterArray: Array[Double],
+                                          regParamArray: Array[Double],
+                                          toleranceArray: Array[Double]
+                                          )
+
+case class LogisticRegressionModelRunReport(
+                                           elasticNetParams: Double,
+                                           fitIntercept: Boolean,
+                                           maxIter: Int,
+                                           regParam: Double,
+                                           standardization: Boolean,
+                                           tolerance: Double,
+                                           score: Double
+                                         )
+
+//SVM
+case class SVMPermutationCollection(
+                                                    fitInterceptArray: Array[Boolean],
+                                                    maxIterArray: Array[Double],
+                                                    regParamArray: Array[Double],
+                                                    standardizationArray: Array[Boolean],
+                                                    tolArray: Array[Double]
+                                                  )
+
+case class SVMNumericArrays(
+                                            maxIterArray: Array[Double],
+                                            regParamArray: Array[Double],
+                                            tolArray: Array[Double]
+                                          )
+
+case class SVMModelRunReport(
+                                             fitIntercept: Boolean,
+                                             maxIter: Int,
+                                             regParam: Double,
+                                             standardization: Boolean,
+                                             tol: Double,
+                                             score: Double
+                                           )
+
+//MLPC
+//TODO figure this out.
+
+//case class MLPCConfig(
+//                       layers: Array[Int],
+//                       maxIter: Int,
+//                       solver: String,
+//                       stepSize: Double,
+//                       tol: Double
+//                     )
+
+//XGBOOST
+case class XGBoostPermutationCollection(
+                                       alphaArray: Array[Double],
+                                       etaArray: Array[Double],
+                                       gammaArray: Array[Double],
+                                       lambdaArray: Array[Double],
+                                       maxDepthArray: Array[Double],
+                                       subSampleArray: Array[Double],
+                                       minChildWeightArray: Array[Double],
+                                       numRoundArray: Array[Double],
+                                       maxBinsArray: Array[Double],
+                                       trainTestRatioArray: Array[Double]
+                                       )
+
+case class XGBoostNumericArrays(
+                                 alphaArray: Array[Double],
+                                 etaArray: Array[Double],
+                                 gammaArray: Array[Double],
+                                 lambdaArray: Array[Double],
+                                 maxDepthArray: Array[Double],
+                                 subSampleArray: Array[Double],
+                                 minChildWeightArray: Array[Double],
+                                 numRoundArray: Array[Double],
+                                 maxBinsArray: Array[Double],
+                                 trainTestRatioArray: Array[Double]
+                               )
+
+case class XGBoostModelRunReport(
+                             alpha: Double,
+                             eta: Double,
+                             gamma: Double,
+                             lambda: Double,
+                             maxDepth: Int,
+                             subSample: Double,
+                             minChildWeight: Double,
+                             numRound: Int,
+                             maxBins: Int,
+                             trainTestRatio: Double,
+                             score: Double
+                           )
+
+

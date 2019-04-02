@@ -90,6 +90,10 @@ trait SeedGenerator {
     StringSelectionReturn(availableParams(idxSelection), idxSelection)
   }
 
+  protected[tools] def selectCoinFlip(currentIterator: Int): Boolean = {
+    if (currentIterator.toDouble % 2.0 == 0.0) true else false
+  }
+
   protected[tools] def staticIndexSelection(numericArrays: Array[Array[Double]]): NumericArrayCollection = {
 
     val selectedPayload = numericArrays.map(x => x(0))

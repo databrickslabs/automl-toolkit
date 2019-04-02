@@ -1,10 +1,9 @@
 package com.databricks.spark.automatedml.model.tools
 
-import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, PermutationConfiguration, RandomForestModelRunReport}
-import com.databricks.spark.automatedml.params.{Defaults, GenericModelReturn, RandomForestConfig}
+import com.databricks.spark.automatedml.model.tools.structures._
+import com.databricks.spark.automatedml.params._
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.spark.sql.functions._
-
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
@@ -71,25 +70,26 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
   def getSeed: Long = _seed
 
 
+  private def generateGenericSearchSpace(): PermutationConfiguration = {
+    val calculatedPermutationValue = getPermutationCounts(_hyperParameterSpaceCount, _numericBoundaries.size) +
+      stringBoundaryPermutationCalculator(_stringBoundaries)
+
+    PermutationConfiguration(
+      permutationTarget = calculatedPermutationValue,
+      numericBoundaries = _numericBoundaries,
+      stringBoundaries = _stringBoundaries
+    )
+  }
+
+  //RANDOM FOREST METHODS
   /**
     * Generates an array of RandomForestConfig hyper parameters to meet the configured target size
     * @return a distinct array of RandomForestConfig's
     */
   protected[tools] def generateRandomForestSearchSpace(): Array[RandomForestConfig] = {
-
-    // Get the number of permutations to create for the continuous numeric boundary search space
-    val calculatedPermutationValue = getPermutationCounts(_hyperParameterSpaceCount, _numericBoundaries.size) +
-      stringBoundaryPermutationCalculator(_stringBoundaries)
-
-    // Specify the Permutation Configuration
-    val permutationConfig = PermutationConfiguration(
-      permutationTarget = calculatedPermutationValue,
-      numericBoundaries = _numericBoundaries,
-      stringBoundaries = _stringBoundaries
-    )
-
     // Generate the Permutations
-    val permutationsArray = randomForestPermutationGenerator(permutationConfig, _hyperParameterSpaceCount, _seed)
+    val permutationsArray = randomForestPermutationGenerator(generateGenericSearchSpace(), _hyperParameterSpaceCount,
+      _seed)
 
     permutationsArray.distinct
   }
@@ -141,9 +141,314 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
 
   }
 
+  //DECISION TREE METHODS
+
+  protected[tools] def generateTreesSearchSpace(): Array[TreesConfig] = {
+
+    val permutationsArray = treesPermutationGenerator(generateGenericSearchSpace(), _hyperParameterSpaceCount, _seed)
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateTreesSearchSpaceAsDataFrame(): DataFrame = {
+    spark.createDataFrame(generateTreesSearchSpace())
+  }
+
+  protected[tools] def treesResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[TreesModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += TreesModelRunReport(
+        impurity = hyperParams("impurity").toString,
+        maxBins = hyperParams("maxBins").toString.toInt,
+        maxDepth = hyperParams("maxDepth").toString.toInt,
+        minInfoGain = hyperParams("minInfoGain").toString.toDouble,
+        minInstancesPerNode = hyperParams("minInstancesPerNode").toString.toDouble,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def treesPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int):
+  Array[TreesConfig] = {
+    val inferenceDataSet = treesResultMapping(modelingResults)
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateTreesSearchSpaceAsDataFrame()
+
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+
+    convertTreesResultToConfig(restrictedData)
+  }
+
+  //GBT METHODS
+
+  protected[tools] def generateGBTSearchSpace(): Array[GBTConfig] = {
+
+    val permutationsArray = gbtPermutationGenerator(generateGenericSearchSpace(), _hyperParameterSpaceCount, _seed)
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateGBTSearchSpaceAsDataFrame(): DataFrame = {
+    spark.createDataFrame(generateGBTSearchSpace())
+  }
+
+  protected[tools] def gbtResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[GBTModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += GBTModelRunReport(
+        impurity = hyperParams("impurity").toString,
+        lossType = hyperParams("lossType").toString,
+        maxBins = hyperParams("maxBins").toString.toInt,
+        maxDepth = hyperParams("maxDepth").toString.toInt,
+        maxIter = hyperParams("maxIter").toString.toInt,
+        minInfoGain = hyperParams("minInfoGain").toString.toDouble,
+        minInstancesPerNode = hyperParams("minInstancesPerNode").toString.toDouble,
+        stepSize = hyperParams("stepSize").toString.toInt,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def gbtPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int):
+  Array[GBTConfig] = {
+    val inferenceDataSet = gbtResultMapping(modelingResults)
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateGBTSearchSpaceAsDataFrame()
+
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+
+    convertGBTResultToConfig(restrictedData)
+  }
+
+  //LINEAR REGRESSION METHODS
+
+  protected[tools] def generateLinearRegressionSearchSpace(): Array[LinearRegressionConfig] = {
+
+    val permutationsArray = linearRegressionPermutationGenerator(generateGenericSearchSpace(),
+      _hyperParameterSpaceCount, _seed)
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateLinearRegressionSearchSpaceAsDataFrame(): DataFrame = {
+    spark.createDataFrame(generateLinearRegressionSearchSpace())
+  }
+
+  protected[tools] def linearRegressionResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[LinearRegressionModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += LinearRegressionModelRunReport(
+        elasticNetParams = hyperParams("elasticNetParams").toString.toDouble,
+        fitIntercept = hyperParams("fitIntercept").toString.toBoolean,
+        loss = hyperParams("loss").toString,
+        maxIter = hyperParams("maxIter").toString.toInt,
+        regParam = hyperParams("regParam").toString.toDouble,
+        standardization = hyperParams("standardization").toString.toBoolean,
+        tolerance = hyperParams("tolerance").toString.toDouble,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def linearRegressionPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int):
+  Array[LinearRegressionConfig] = {
+    val inferenceDataSet = linearRegressionResultMapping(modelingResults)
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateLinearRegressionSearchSpaceAsDataFrame()
+
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+
+    convertLinearRegressionResultToConfig(restrictedData)
+  }
+
+  //LOGISTIC REGRESSION METHODS
+
+  protected[tools] def generateLogisticRegressionSearchSpace(): Array[LogisticRegressionConfig] = {
+
+    val permutationsArray = logisticRegressionPermutationGenerator(generateGenericSearchSpace(),
+      _hyperParameterSpaceCount, _seed)
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateLogisticRegressionSearchSpaceAsDataFrame(): DataFrame = {
+    spark.createDataFrame(generateLogisticRegressionSearchSpace())
+  }
+
+  protected[tools] def logisticRegressionResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[LogisticRegressionModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += LogisticRegressionModelRunReport(
+        elasticNetParams = hyperParams("elasticNetParams").toString.toDouble,
+        fitIntercept = hyperParams("fitIntercept").toString.toBoolean,
+        maxIter = hyperParams("maxIter").toString.toInt,
+        regParam = hyperParams("regParam").toString.toDouble,
+        standardization = hyperParams("standardization").toString.toBoolean,
+        tolerance = hyperParams("tolerance").toString.toDouble,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def logisticRegressionPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int):
+  Array[LogisticRegressionConfig] = {
+    val inferenceDataSet = logisticRegressionResultMapping(modelingResults)
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateLogisticRegressionSearchSpaceAsDataFrame()
+
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+
+    convertLogisticRegressionResultToConfig(restrictedData)
+  }
+
+  //SUPPORT VECTOR MACHINES METHODS
+
+  protected[tools] def generateSVMSearchSpace(): Array[SVMConfig] = {
+
+    val permutationsArray = svmPermutationGenerator(generateGenericSearchSpace(),
+      _hyperParameterSpaceCount, _seed)
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateSVMSearchSpaceAsDataFrame(): DataFrame = {
+    spark.createDataFrame(generateSVMSearchSpace())
+  }
+
+  protected[tools] def svmResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[SVMModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += SVMModelRunReport(
+        fitIntercept = hyperParams("fitIntercept").toString.toBoolean,
+        maxIter = hyperParams("maxIter").toString.toInt,
+        regParam = hyperParams("regParam").toString.toDouble,
+        standardization = hyperParams("standardization").toString.toBoolean,
+        tol = hyperParams("tol").toString.toDouble,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def svmPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int):
+  Array[SVMConfig] = {
+    val inferenceDataSet = svmResultMapping(modelingResults)
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateSVMSearchSpaceAsDataFrame()
+
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+
+    convertSVMResultToConfig(restrictedData)
+  }
 
 
+  //XGBOOST METHODS
 
+  protected[tools] def generateXGBoostSearchSpace(): Array[XGBoostConfig] = {
 
+    val permutationsArray = xgboostPermutationGenerator(generateGenericSearchSpace(),
+      _hyperParameterSpaceCount, _seed)
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateXGBoostSearchSpaceAsDataFrame(): DataFrame = {
+    spark.createDataFrame(generateXGBoostSearchSpace())
+  }
+
+  protected[tools] def xgBoostResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[XGBoostModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += XGBoostModelRunReport(
+        alpha = hyperParams("alpha").toString.toDouble,
+        eta = hyperParams("eta").toString.toDouble,
+        gamma = hyperParams("gamma").toString.toDouble,
+        lambda = hyperParams("lambda").toString.toDouble,
+        maxDepth = hyperParams("maxDepth").toString.toInt,
+        subSample = hyperParams("subSample").toString.toDouble,
+        minChildWeight = hyperParams("minChildWeight").toString.toDouble,
+        numRound = hyperParams("numRound").toString.toInt,
+        maxBins = hyperParams("maxBins").toString.toInt,
+        trainTestRatio = hyperParams("trainTestRatio").toString.toDouble,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def xgBoostPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int):
+  Array[XGBoostConfig] = {
+    val inferenceDataSet = xgBoostResultMapping(modelingResults)
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateXGBoostSearchSpaceAsDataFrame()
+
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+
+    convertXGBoostResultToConfig(restrictedData)
+  }
 
 }
