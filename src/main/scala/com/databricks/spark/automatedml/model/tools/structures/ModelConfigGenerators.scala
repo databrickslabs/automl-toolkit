@@ -646,7 +646,7 @@ trait ModelConfigGenerators extends SeedGenerator {
 
     dataCollection.foreach{ x =>
       collectionBuffer += MLPCConfig(
-        layers = x(0).toString.toArray[Int],
+        layers = x(0).asInstanceOf[Array[Int]],
         maxIter = x(1).toString.toInt,
         solver = x(2).toString,
         stepSize = x(3).toString.toDouble,
