@@ -1,5 +1,7 @@
 package com.databricks.spark.automatedml.model.tools.structures
 
+import com.databricks.spark.automatedml.params.MLPCConfig
+
 
 case class NumericBoundaries(
                               minimum: Double,
@@ -20,6 +22,14 @@ case class PermutationConfiguration(
                                                 numericBoundaries: Map[String, (Double, Double)],
                                                 stringBoundaries: Map[String, List[String]]
                                                )
+
+case class MLPCPermutationConfiguration(
+                                         permutationTarget: Int,
+                                         numericBoundaries: Map[String, (Double, Double)],
+                                         stringBoundaries: Map[String, List[String]],
+                                         inputFeatureSize: Int,
+                                         distinctClasses: Int
+                                       )
 
 // RANDOM FOREST
 case class RandomForestPermutationCollection(
@@ -191,15 +201,36 @@ case class SVMModelRunReport(
                                            )
 
 //MLPC
-//TODO figure this out.
 
-//case class MLPCConfig(
-//                       layers: Array[Int],
-//                       maxIter: Int,
-//                       solver: String,
-//                       stepSize: Double,
-//                       tol: Double
-//                     )
+case class MLPCPermutationCollection(
+                                    layersArray: Array[Array[Int]],
+                                    maxIterArray: Array[Double],
+                                    solverArray: Array[String],
+                                    stepSizeArray: Array[Double],
+                                    tolArray: Array[Double]
+                                    )
+
+case class MLPCNumericArrays(
+                             layersArray: Array[Array[Int]],
+                             maxIterArray: Array[Double],
+                             stepSizeArray: Array[Double],
+                             tolArray: Array[Double]
+                            )
+
+case class MLPCModelRunReport(
+                             layers: Array[Int],
+                             maxIter: Int,
+                             solver: String,
+                             stepSize: Double,
+                             tol: Double,
+                             score: Double
+                             )
+
+case class MLPCArrayCollection(
+                              selectedPayload: MLPCConfig,
+                              remainingPayloads: MLPCNumericArrays
+                              )
+
 
 //XGBOOST
 case class XGBoostPermutationCollection(

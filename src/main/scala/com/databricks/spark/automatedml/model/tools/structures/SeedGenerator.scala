@@ -1,5 +1,7 @@
 package com.databricks.spark.automatedml.model.tools.structures
 
+import com.databricks.spark.automatedml.params.MLPCConfig
+
 import scala.collection.mutable.ArrayBuffer
 import scala.math._
 import scala.reflect.ClassTag
@@ -56,6 +58,36 @@ trait SeedGenerator {
 
     space.result.toArray
 
+  }
+
+  private def constructLayerArray(inputFeatureSize: Int, distinctClasses: Int, layerCount: Int, sizeAdjustment: Int):
+  Array[Int] = {
+
+    val layerConstruct = new ArrayBuffer[Int]
+
+    layerConstruct += inputFeatureSize
+
+    (1 to layerCount).foreach(x => layerConstruct += inputFeatureSize + layerCount - x + sizeAdjustment)
+    layerConstruct += distinctClasses
+    layerConstruct.result.toArray
+  }
+
+  def generateArraySpace(layerBoundaryLow: Int, layerBoundaryHigh: Int, hiddenBoundaryLow: Int,
+                         hiddenBoundaryHigh: Int, inputFeatureSize: Int, distinctClasses: Int, generatorCount: Int):
+  Array[Array[Int]] = {
+
+    val outputBuffer = new ArrayBuffer[Array[Int]]()
+
+    // Generate the layer Boundary space and the size adjustment space
+    val layerBoundaries = generateLinearIntSpace(NumericBoundaries(layerBoundaryLow, layerBoundaryHigh), generatorCount)
+    val sizeAdjustmentBoundaries = generateLinearIntSpace(NumericBoundaries(hiddenBoundaryLow, hiddenBoundaryHigh),
+      generatorCount)
+
+    (0 until generatorCount).foreach{ x =>
+      outputBuffer += constructLayerArray(inputFeatureSize, distinctClasses, layerBoundaries(x).toInt,
+        sizeAdjustmentBoundaries(x).toInt)
+    }
+    outputBuffer.result.toArray
   }
 
   private[SeedGenerator] def getNthRoot(n: Double, root: Double): Double = {
@@ -121,6 +153,57 @@ trait SeedGenerator {
     NumericArrayCollection(randomlySelectedPayload, remainingArrays)
 
   }
+
+  protected[tools] def mlpcStaticIndexSelection(numericArrays: MLPCNumericArrays): MLPCArrayCollection = {
+
+    var layersArray = numericArrays.layersArray
+    val selectedLayers = layersArray.take(1)(0)
+    layersArray.drop(1)
+
+    var maxIterArray = numericArrays.maxIterArray
+    val selectedMaxIter = maxIterArray.take(1)(0)
+    maxIterArray.drop(1)
+
+    var stepSizeArray = numericArrays.stepSizeArray
+    val selectedStepSize = stepSizeArray.take(1)(0)
+    stepSizeArray.drop(1)
+
+    var tolArray = numericArrays.tolArray
+    val selectedTol = tolArray.take(1)(0)
+    tolArray.drop(1)
+
+    val remainingArrays = MLPCNumericArrays(
+      layersArray = layersArray,
+      maxIterArray = maxIterArray,
+      stepSizeArray = stepSizeArray,
+      tolArray = tolArray
+    )
+
+    MLPCArrayCollection(
+      MLPCConfig(
+        layers = selectedLayers,
+        maxIter = selectedMaxIter.toInt,
+        solver = "placeholder",
+        stepSize = selectedStepSize,
+        tol = selectedTol
+      ),
+      remainingArrays
+    )
+
+  }
+
+  protected[tools] def mlpcRandomIndexSelection(numericArrays: MLPCNumericArrays): MLPCArrayCollection = {
+
+    val shuffledData = MLPCNumericArrays(
+      layersArray = Random.shuffle(numericArrays.layersArray.toList).toArray,
+      maxIterArray = Random.shuffle(numericArrays.maxIterArray.toList).toArray,
+      stepSizeArray = Random.shuffle(numericArrays.stepSizeArray.toList).toArray,
+      tolArray = Random.shuffle(numericArrays.tolArray.toList).toArray
+    )
+
+    mlpcStaticIndexSelection(shuffledData)
+  }
+
 
   /**
     * Calculates the number of possible additional permutations to be added to the search space for string values

@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.model.tools
 
-import com.databricks.spark.automatedml.model.tools.structures.{ModelConfigGenerators, PermutationConfiguration}
+import com.databricks.spark.automatedml.model.tools.structures.{MLPCPermutationConfiguration, ModelConfigGenerators, PermutationConfiguration}
 import com.databricks.spark.automatedml.params._
 
 import scala.collection.mutable.ArrayBuffer
@@ -429,6 +429,47 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
+  def initialGenerationSeedMLPC(numericBoundaries: Map[String, (Double, Double)],
+                                stringBoundaries: Map[String, List[String]],
+                                inputFeatureSize: Int, distinctClasses: Int): Array[MLPCConfig] = {
+
+    var outputPayload = new ArrayBuffer[MLPCConfig]()
+
+    val mlpcConfig = MLPCPermutationConfiguration(
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries,
+      inputFeatureSize = inputFeatureSize,
+      distinctClasses = distinctClasses
+    )
+
+    var generatedArrays = mlpcNumericArrayGenerator(mlpcConfig)
+
+    var _solverIdx = 0
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => mlpcStaticIndexSelection(generatedArrays)
+        case "random" => mlpcRandomIndexSelection(generatedArrays)
+        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+      }
+
+      generatedArrays = selectedIndeces.remainingPayloads
+
+      val solverLoop = selectStringIndex(stringBoundaries("solver"), _solverIdx)
+      _solverIdx = solverLoop.IndexCounterStatus
+
+      outputPayload += MLPCConfig(
+        layers = selectedIndeces.selectedPayload.layers,
+        maxIter = selectedIndeces.selectedPayload.maxIter,
+        solver = solverLoop.selectedStringValue,
+        stepSize = selectedIndeces.selectedPayload.stepSize,
+        tol = selectedIndeces.selectedPayload.tol
+      )
+      _solverIdx += 1
+    }
+    outputPayload.result.toArray
+  }
 
 
 }

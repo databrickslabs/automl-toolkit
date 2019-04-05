@@ -586,6 +586,74 @@ trait ModelConfigGenerators extends SeedGenerator {
   }
 
   // MULTILAYER PERCEPTRON CLASSIFIER METHODS
-  //TODO: figure this out.
+
+  def mlpcConfigGenerator(mlpcPermutationCollection: MLPCPermutationCollection): Array[MLPCConfig] = {
+
+    for {
+
+      layers <- mlpcPermutationCollection.layersArray
+      maxIter <- mlpcPermutationCollection.maxIterArray
+      solver <- mlpcPermutationCollection.solverArray
+      stepSize <- mlpcPermutationCollection.stepSizeArray
+      tol <- mlpcPermutationCollection.tolArray
+
+    } yield MLPCConfig(layers, maxIter.toInt, solver, stepSize, tol)
+  }
+
+  protected[tools] def mlpcNumericArrayGenerator(config: MLPCPermutationConfiguration): MLPCNumericArrays = {
+
+    MLPCNumericArrays(
+      layersArray = generateArraySpace(config.numericBoundaries("layers")._1.toInt,
+        config.numericBoundaries("layers")._2.toInt, config.numericBoundaries("hiddenLayersSizeAdjust")._1.toInt,
+        config.numericBoundaries("hiddenLayersSizeAdjust")._2.toInt, config.inputFeatureSize, config.distinctClasses,
+        config.permutationTarget),
+      maxIterArray = generateLinearIntSpace(
+        extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
+      stepSizeArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("stepSize")), config.permutationTarget),
+      tolArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+    )
+  }
+
+  def mlpcPermutationGenerator(config: MLPCPermutationConfiguration, countTarget: Int, seed: Long = 42L):
+  Array[MLPCConfig] = {
+
+    // Get the number of permutations to generate
+    val numericPayloads = mlpcNumericArrayGenerator(config)
+
+    val fullPermutationConfig = MLPCPermutationCollection(
+      layersArray = numericPayloads.layersArray,
+      maxIterArray = numericPayloads.maxIterArray,
+      solverArray = config.stringBoundaries("solver").toArray,
+      stepSizeArray = numericPayloads.stepSizeArray,
+      tolArray = numericPayloads.tolArray
+    )
+
+    val permutationCollection = mlpcConfigGenerator(fullPermutationConfig)
+
+    randomSampleArray(permutationCollection, countTarget, seed)
+
+  }
+
+  def convertMLPCResultToConfig(predictionDataFrame: DataFrame): Array[MLPCConfig] = {
+
+    val collectionBuffer = new ArrayBuffer[MLPCConfig]()
+
+    val dataCollection = predictionDataFrame
+      .select(getCaseClassNames[MLPCConfig] map col :_*)
+      .collect()
+
+    dataCollection.foreach{ x =>
+      collectionBuffer += MLPCConfig(
+        layers = x(0).toString.toArray[Int],
+        maxIter = x(1).toString.toInt,
+        solver = x(2).toString,
+        stepSize = x(3).toString.toDouble,
+        tol = x(4).toString.toDouble
+      )
+    }
+    collectionBuffer.result.toArray
+  }
 
 }
