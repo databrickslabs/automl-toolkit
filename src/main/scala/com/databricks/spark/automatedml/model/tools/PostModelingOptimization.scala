@@ -451,4 +451,65 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
     convertXGBoostResultToConfig(restrictedData)
   }
 
+  //MLPC METHODS
+
+  protected[tools] def generateMLPCSearchSpace(inputFeatureSize: Int, classCount: Int): Array[MLPCConfig] = {
+
+    val mlpcSearchSpace = MLPCPermutationConfiguration(
+      permutationTarget = getPermutationCounts(_hyperParameterSpaceCount, _numericBoundaries.size) +
+        stringBoundaryPermutationCalculator(_stringBoundaries),
+      numericBoundaries = _numericBoundaries,
+      stringBoundaries = _stringBoundaries,
+      inputFeatureSize = inputFeatureSize,
+      distinctClasses = classCount
+    )
+
+    val permutationsArray = mlpcPermutationGenerator(mlpcSearchSpace, _hyperParameterSpaceCount, _seed)
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateMLPCSearchSpaceAsDataFrame(inputFeatureSize: Int, classCount: Int): DataFrame = {
+    spark.createDataFrame(generateMLPCSearchSpace(inputFeatureSize, classCount))
+  }
+
+  protected[tools] def mlpcResultMapping(results: Array[GenericModelReturn]): DataFrame = {
+
+    val builder = new ArrayBuffer[MLPCModelRunReport]()
+
+    results.foreach{ x =>
+      val hyperParams = x.hyperParams
+      builder += MLPCModelRunReport(
+        layers = hyperParams("layers").asInstanceOf[Array[Int]],
+        maxIter = hyperParams("maxIter").toString.toInt,
+        solver = hyperParams("solver").toString,
+        stepSize = hyperParams("stepSize").toString.toDouble,
+        tol = hyperParams("tol").toString.toDouble,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder.result.toArray)
+  }
+
+  def mlpcPrediction(modelingResults: Array[GenericModelReturn], modelType: String, topPredictions: Int,
+                     featureInputSize: Int, classDistinctCount: Int): Array[MLPCConfig] = {
+
+    val inferenceDataSet = mlpcResultMapping(modelingResults)
+
+    //NOTE: this probably won't work due to the complex data type in layers.  Might need to scrub that.
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateMLPCSearchSpaceAsDataFrame(featureInputSize, classDistinctCount)
+
+    val restrictedData = fittedPipeline.transform(fullSearchSpaceDataSet)
+      .orderBy(col("prediction").desc)
+      .limit(topPredictions)
+
+    convertMLPCResultToConfig(restrictedData)
+  }
+
 }

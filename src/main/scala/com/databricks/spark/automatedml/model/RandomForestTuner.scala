@@ -41,9 +41,9 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
         }")
       case "classifier" =>
         require(_classificationMetrics.contains(value),
-        s"Classification scoring metric '$value' is not a valid member of ${
-          invalidateSelection(value, _classificationMetrics)
-        }")
+          s"Classification scoring metric '$value' is not a valid member of ${
+            invalidateSelection(value, _classificationMetrics)
+          }")
       case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
     }
     this._scoringMetric = value
@@ -210,7 +210,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private def runBattery(battery: Array[RandomForestConfig], generation: Int = 1): Array[RandomForestModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis/1000
+    val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[RandomForestModelsWithResults]
@@ -227,9 +227,12 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
+
       val runId = java.util.UUID.randomUUID()
-      val kFoldTimeStamp = System.currentTimeMillis()/1000
+
       println(s"Starting run $runId with Params: ${x.toString}")
+
+      val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
 
@@ -243,6 +246,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       })
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
+
       modelSelection match {
         case "classifier" =>
           for (a <- _classificationMetrics) {
@@ -259,7 +263,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
-      val completionTimeStamp = System.currentTimeMillis/1000
+      val completionTimeStamp = System.currentTimeMillis / 1000
 
       val totalTimeOfBattery = completionTimeStamp - startTimeStamp
 
@@ -267,13 +271,17 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
       val runAvg = RandomForestModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
+
       results += runAvg
       modelCnt += 1
+
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
         s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
         calculateModelingFamilyRemainingTime(generation, modelCnt)
       }%2.4f%%"
+
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -342,17 +350,14 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-
     val earlyStoppingImprovementThreshold: Int = -10
 
     val totalConfigs = modelConfigLength[RandomForestConfig]
 
-    //TODO: allow for setting a seed model for permutation mode.
-
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if(_modelSeedSet) {
+        if (_modelSeedSet) {
           val genArray = new ArrayBuffer[RandomForestConfig]
           val startingModelSeed = generateRandomForestConfig(_modelSeed)
           genArray += startingModelSeed
@@ -372,17 +377,6 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
           .initialGenerationSeedRandomForest(_randomForestNumericBoundaries, _randomForestStringBoundaries)
         ParHashSet(startingPool: _*)
     }
-
-//    var runSet = if(_modelSeedSet) {
-//      val genArray = new ArrayBuffer[RandomForestConfig]
-//      val startingModelSeed = generateRandomForestConfig(_modelSeed)
-//      genArray += startingModelSeed
-//      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-//        _geneticMixing)
-//      ParHashSet(genArray.result.toArray: _*)
-//    } else {
-//      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
-//    }
 
     // Apply ForkJoin ThreadPool parallelism
     runSet.tasksupport = taskSupport
@@ -500,18 +494,6 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
         runBattery(startingPool, generation)
     }
 
-
-//    val primordial = if (_modelSeedSet) {
-//      val generativeArray = new ArrayBuffer[RandomForestConfig]
-//      val startingModelSeed = generateRandomForestConfig(_modelSeed)
-//      generativeArray += startingModelSeed
-//      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-//        _geneticMixing)
-//      runBattery(generativeArray.result.toArray, generation)
-//    } else {
-//      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
-//    }
-
     fossilRecord ++= primordial
     generation += 1
 
@@ -607,6 +589,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     * Helper Method for a post-run model optimization based on theoretical hyperparam multidimensional grid search space
     * After a genetic tuning run is complete, this allows for a model to be trained and run to predict a potential
     * best-condition of hyper parameter configurations.
+    *
     * @param paramsToTest Array of RandomForest Configuration (hyper parameter settings) from the post-run model
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
@@ -618,7 +601,6 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     (finalRunResults, generateScoredDataFrame(finalRunResults))
   }
-
 
 
 }

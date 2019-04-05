@@ -110,6 +110,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         statsBuffer += hyperDataFrame
 
     }
+
       (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
 
   }
@@ -158,9 +159,49 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+    val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-    (modelResults, modelStats, payload.modelType, cachedData)
+    val resultBuffer = modelResultsRaw.toBuffer
+    val statsBuffer = new ArrayBuffer[DataFrame]()
+    statsBuffer += modelStatsRaw
+
+    if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+      println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+      val genericResults = new ArrayBuffer[GenericModelReturn]
+
+      modelResultsRaw.foreach { x =>
+        genericResults += GenericModelReturn(
+          hyperParams = extractPayload(x.modelHyperParams),
+          model = x.model,
+          score = x.score,
+          metrics = x.evalMetrics,
+          generation = x.generation
+        )
+      }
+
+      val hyperSpaceRunCandidates = new PostModelingOptimization()
+        .setModelFamily("XGBoost")
+        .setModelType(payload.modelType)
+        .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+        .setNumericBoundaries(_mainConfig.numericBoundaries)
+        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setSeed(_mainConfig.geneticConfig.seed)
+        .xgBoostPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+          _mainConfig.geneticConfig.hyperSpaceModelCount)
+
+      val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+      hyperResults.foreach { x =>
+        resultBuffer += x
+      }
+      statsBuffer += hyperDataFrame
+
+    }
+
+    (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
+
   }
 
   private def runMLPC(payload: DataGeneration): (Array[MLPCModelsWithResults], DataFrame, String, DataFrame) = {
@@ -211,9 +252,50 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+        val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, payload.modelType, cachedData)
+        val resultBuffer = modelResultsRaw.toBuffer
+        val statsBuffer = new ArrayBuffer[DataFrame]()
+        statsBuffer += modelStatsRaw
+
+        if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+          println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+          val genericResults = new ArrayBuffer[GenericModelReturn]
+
+          modelResultsRaw.foreach { x =>
+            genericResults += GenericModelReturn(
+              hyperParams = extractPayload(x.modelHyperParams),
+              model = x.model,
+              score = x.score,
+              metrics = x.evalMetrics,
+              generation = x.generation
+            )
+          }
+
+          val hyperSpaceRunCandidates = new PostModelingOptimization()
+            .setModelFamily("MLPC")
+            .setModelType(payload.modelType)
+            .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setSeed(_mainConfig.geneticConfig.seed)
+            .mlpcPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+              _mainConfig.geneticConfig.hyperSpaceModelCount, initialize.getFeatureInputSize,
+              initialize.getClassDistinctCount)
+
+          val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+          hyperResults.foreach { x =>
+            resultBuffer += x
+          }
+          statsBuffer += hyperDataFrame
+
+        }
+
+        (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
+
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type ${payload.modelType} is not supported by MultiLayer Perceptron Classifier")
     }
@@ -263,11 +345,51 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
       .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
-    if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+    if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-    val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+    val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-    (modelResults, modelStats, payload.modelType, cachedData)
+    val resultBuffer = modelResultsRaw.toBuffer
+    val statsBuffer = new ArrayBuffer[DataFrame]()
+    statsBuffer += modelStatsRaw
+
+    if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+      println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+      val genericResults = new ArrayBuffer[GenericModelReturn]
+
+      modelResultsRaw.foreach { x =>
+        genericResults += GenericModelReturn(
+          hyperParams = extractPayload(x.modelHyperParams),
+          model = x.model,
+          score = x.score,
+          metrics = x.evalMetrics,
+          generation = x.generation
+        )
+      }
+
+      val hyperSpaceRunCandidates = new PostModelingOptimization()
+        .setModelFamily("GBT")
+        .setModelType(payload.modelType)
+        .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+        .setNumericBoundaries(_mainConfig.numericBoundaries)
+        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setSeed(_mainConfig.geneticConfig.seed)
+        .gbtPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+          _mainConfig.geneticConfig.hyperSpaceModelCount)
+
+      val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+      hyperResults.foreach { x =>
+        resultBuffer += x
+      }
+      statsBuffer += hyperDataFrame
+
+    }
+
+    (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
+
   }
 
   private def runLinearRegression(payload: DataGeneration): (Array[LinearRegressionModelsWithResults], DataFrame, String, DataFrame) = {
@@ -317,11 +439,51 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
           .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
-        if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+        if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+        val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, payload.modelType, cachedData)
+        val resultBuffer = modelResultsRaw.toBuffer
+        val statsBuffer = new ArrayBuffer[DataFrame]()
+        statsBuffer += modelStatsRaw
+
+        if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+          println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+          val genericResults = new ArrayBuffer[GenericModelReturn]
+
+          modelResultsRaw.foreach { x =>
+            genericResults += GenericModelReturn(
+              hyperParams = extractPayload(x.modelHyperParams),
+              model = x.model,
+              score = x.score,
+              metrics = x.evalMetrics,
+              generation = x.generation
+            )
+          }
+
+          val hyperSpaceRunCandidates = new PostModelingOptimization()
+            .setModelFamily("LinearRegression")
+            .setModelType(payload.modelType)
+            .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setSeed(_mainConfig.geneticConfig.seed)
+            .linearRegressionPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+              _mainConfig.geneticConfig.hyperSpaceModelCount)
+
+          val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+          hyperResults.foreach { x =>
+            resultBuffer += x
+          }
+          statsBuffer += hyperDataFrame
+
+        }
+
+        (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
+
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type ${payload.modelType} is not supported by Linear Regression")
     }
@@ -374,11 +536,51 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
           .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
-        if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+        if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+        val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, payload.modelType, cachedData)
+        val resultBuffer = modelResultsRaw.toBuffer
+        val statsBuffer = new ArrayBuffer[DataFrame]()
+        statsBuffer += modelStatsRaw
+
+        if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+          println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+          val genericResults = new ArrayBuffer[GenericModelReturn]
+
+          modelResultsRaw.foreach { x =>
+            genericResults += GenericModelReturn(
+              hyperParams = extractPayload(x.modelHyperParams),
+              model = x.model,
+              score = x.score,
+              metrics = x.evalMetrics,
+              generation = x.generation
+            )
+          }
+
+          val hyperSpaceRunCandidates = new PostModelingOptimization()
+            .setModelFamily("LogisticRegression")
+            .setModelType(payload.modelType)
+            .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setSeed(_mainConfig.geneticConfig.seed)
+            .logisticRegressionPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+              _mainConfig.geneticConfig.hyperSpaceModelCount)
+
+          val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+          hyperResults.foreach { x =>
+            resultBuffer += x
+          }
+          statsBuffer += hyperDataFrame
+
+        }
+
+        (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
+
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type ${payload.modelType} is not supported by Logistic Regression")
     }
@@ -431,11 +633,51 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
           .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
-        if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+        if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-        val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+        val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-        (modelResults, modelStats, payload.modelType, cachedData)
+        val resultBuffer = modelResultsRaw.toBuffer
+        val statsBuffer = new ArrayBuffer[DataFrame]()
+        statsBuffer += modelStatsRaw
+
+        if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+          println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+          val genericResults = new ArrayBuffer[GenericModelReturn]
+
+          modelResultsRaw.foreach { x =>
+            genericResults += GenericModelReturn(
+              hyperParams = extractPayload(x.modelHyperParams),
+              model = x.model,
+              score = x.score,
+              metrics = x.evalMetrics,
+              generation = x.generation
+            )
+          }
+
+          val hyperSpaceRunCandidates = new PostModelingOptimization()
+            .setModelFamily("SVM")
+            .setModelType(payload.modelType)
+            .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setSeed(_mainConfig.geneticConfig.seed)
+            .svmPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+              _mainConfig.geneticConfig.hyperSpaceModelCount)
+
+          val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+          hyperResults.foreach { x =>
+            resultBuffer += x
+          }
+          statsBuffer += hyperDataFrame
+
+        }
+
+        (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
+
       case _ => throw new UnsupportedOperationException(
         s"Detected Model Type ${payload.modelType} is not supported by Support Vector Machines")
     }
@@ -485,11 +727,50 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
      .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
      .setDataReductionFactor(_mainConfig.dataReductionFactor)
 
-   if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+   if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
-   val (modelResults, modelStats) = initialize.evolveWithScoringDF()
+   val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
 
-   (modelResults, modelStats, payload.modelType, cachedData)
+   val resultBuffer = modelResultsRaw.toBuffer
+   val statsBuffer = new ArrayBuffer[DataFrame]()
+   statsBuffer += modelStatsRaw
+
+   if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+     println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+     val genericResults = new ArrayBuffer[GenericModelReturn]
+
+     modelResultsRaw.foreach { x =>
+       genericResults += GenericModelReturn(
+         hyperParams = extractPayload(x.modelHyperParams),
+         model = x.model,
+         score = x.score,
+         metrics = x.evalMetrics,
+         generation = x.generation
+       )
+     }
+
+     val hyperSpaceRunCandidates = new PostModelingOptimization()
+       .setModelFamily("Trees")
+       .setModelType(payload.modelType)
+       .setHyperParameterSpaceCount(_mainConfig.geneticConfig.hyperSpaceInferenceCount)
+       .setNumericBoundaries(_mainConfig.numericBoundaries)
+       .setStringBoundaries(_mainConfig.stringBoundaries)
+       .setSeed(_mainConfig.geneticConfig.seed)
+       .treesPrediction(genericResults.result.toArray, _mainConfig.geneticConfig.hyperSpaceModelType,
+         _mainConfig.geneticConfig.hyperSpaceModelCount)
+
+     val (hyperResults, hyperDataFrame) = initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+     hyperResults.foreach { x =>
+       resultBuffer += x
+     }
+     statsBuffer += hyperDataFrame
+
+   }
+
+   (resultBuffer.toArray, statsBuffer.reduce(_ union _), payload.modelType, cachedData)
  }
 
   private def logResultsToMlFlow(runData: Array[GenericModelReturn], modelFamily: String, modelType: String): String = {

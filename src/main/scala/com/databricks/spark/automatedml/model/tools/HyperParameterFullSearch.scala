@@ -290,8 +290,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     outputPayload.result.toArray
   }
 
-  def initialGenerationSeedLogisticRegression(numericBoundaries: Map[String, (Double, Double)],
-                                              stringBoundaries: Map[String, List[String]]):
+  def initialGenerationSeedLogisticRegression(numericBoundaries: Map[String, (Double, Double)]):
   Array[LogisticRegressionConfig] = {
 
     var outputPayload = new ArrayBuffer[LogisticRegressionConfig]()
@@ -299,7 +298,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     val logisticRegressionConfig = PermutationConfiguration(
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
-      stringBoundaries = stringBoundaries
+      stringBoundaries = Map[String, List[String]]()
     )
 
     val generatedArrays = logisticRegressionNumericArrayGenerator(logisticRegressionConfig)
@@ -338,16 +337,14 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  def initialGenerationSeedSVM(numericBoundaries: Map[String, (Double, Double)],
-                               stringBoundaries: Map[String, List[String]]):
-  Array[SVMConfig] = {
+  def initialGenerationSeedSVM(numericBoundaries: Map[String, (Double, Double)]): Array[SVMConfig] = {
 
     var outputPayload = new ArrayBuffer[SVMConfig]()
 
     val svmConfig = PermutationConfiguration(
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
-      stringBoundaries = stringBoundaries
+      stringBoundaries = Map[String, List[String]]()
     )
 
     val generatedArrays = svmNumericArrayGenerator(svmConfig)
@@ -384,16 +381,14 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  def initialGenerationSeedXGBoost(numericBoundaries: Map[String, (Double, Double)],
-                                   stringBoundaries: Map[String, List[String]]):
-  Array[XGBoostConfig] = {
+  def initialGenerationSeedXGBoost(numericBoundaries: Map[String, (Double, Double)]): Array[XGBoostConfig] = {
 
     var outputPayload = new ArrayBuffer[XGBoostConfig]()
 
     val xgboostConfig = PermutationConfiguration(
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
-      stringBoundaries = stringBoundaries
+      stringBoundaries = Map[String, List[String]]()
     )
 
     val generatedArrays = xgboostNumericArrayGenerator(xgboostConfig)

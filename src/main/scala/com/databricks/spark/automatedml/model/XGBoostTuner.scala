@@ -1,12 +1,12 @@
 package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.model.tools.HyperParameterFullSearch
 import com.databricks.spark.automatedml.params.{Defaults, XGBoostConfig, XGBoostModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassifier, XGBoostRegressor}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
-import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
-import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -50,9 +50,11 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   }
 
   def getScoringMetric: String = _scoringMetric
+
   def getXGBoostNumericBoundaries: Map[String, (Double, Double)] = _xgboostNumericBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
+
   def getRegressionMetrics: List[String] = regressionMetrics
 
   private def resetClassificationMetrics: List[String] = modelSelection match {
@@ -164,8 +166,8 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   }
 
   private def generateAndScoreXGBoostModel(train: DataFrame, test: DataFrame,
-                                                modelConfig: XGBoostConfig,
-                                                generation: Int = 1): XGBoostModelsWithResults = {
+                                           modelConfig: XGBoostConfig,
+                                           generation: Int = 1): XGBoostModelsWithResults = {
 
     val xgboostModel = modelDecider(modelConfig)
 
@@ -191,7 +193,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   private def runBattery(battery: Array[XGBoostConfig], generation: Int = 1): Array[XGBoostModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis/1000
+    val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[XGBoostModelsWithResults]
@@ -208,8 +210,12 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
+
       val runId = java.util.UUID.randomUUID()
+
       println(s"Starting run $runId with Params: ${x.toString}")
+
+      val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[XGBoostModelsWithResults]
 
@@ -239,16 +245,25 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
-      val completionTimeStamp = System.currentTimeMillis/1000
+      val completionTimeStamp = System.currentTimeMillis / 1000
+
       val totalTimeOfBattery = completionTimeStamp - startTimeStamp
+
+      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
+
       val runAvg = XGBoostModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
+
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
+
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
+        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
         calculateModelingFamilyRemainingTime(generation, modelCnt)
       }%2.4f%%"
+
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -327,24 +342,32 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-
-    //TODO: evaluate this and see if this should be an early stopping signature!!!
     val earlyStoppingImprovementThreshold: Int = -10
-
-    // Generate the first pool of attempts to seed the hyperparameter space
-    //    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
 
     val totalConfigs = modelConfigLength[XGBoostConfig]
 
-    var runSet = if(_modelSeedSet) {
-      val genArray = new ArrayBuffer[XGBoostConfig]
-      val startingModelSeed = generateXGBoostConfig(_modelSeed)
-      genArray += startingModelSeed
-      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      ParHashSet(genArray.result.toArray: _*)
-    } else {
-      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val genArray = new ArrayBuffer[XGBoostConfig]
+          val startingModelSeed = generateXGBoostConfig(_modelSeed)
+          genArray += startingModelSeed
+          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          ParHashSet(genArray.result.toArray: _*)
+        } else {
+          ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("XGBoost")
+          .setModelType(modelSelection)
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedXGBoost(_xgboostNumericBoundaries)
+        ParHashSet(startingPool: _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -439,15 +462,28 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     val totalConfigs = modelConfigLength[XGBoostConfig]
 
-    val primordial = if (_modelSeedSet) {
-      val generativeArray = new ArrayBuffer[XGBoostConfig]
-      val startingModelSeed = generateXGBoostConfig(_modelSeed)
-      generativeArray += startingModelSeed
-      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      runBattery(generativeArray.result.toArray, generation)
-    } else {
-      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val generativeArray = new ArrayBuffer[XGBoostConfig]
+          val startingModelSeed = generateXGBoostConfig(_modelSeed)
+          generativeArray += startingModelSeed
+          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          runBattery(generativeArray.result.toArray, generation)
+        } else {
+          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("XGBoost")
+          .setModelType(modelSelection)
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedXGBoost(_xgboostNumericBoundaries)
+        runBattery(startingPool, generation)
     }
 
     fossilRecord ++= primordial
@@ -539,6 +575,22 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))
+  }
+
+  /**
+    * Helper Method for a post-run model optimization based on theoretical hyperparam multidimensional grid search space
+    * After a genetic tuning run is complete, this allows for a model to be trained and run to predict a potential
+    * best-condition of hyper parameter configurations.
+    *
+    * @param paramsToTest Array of XGBoost Configuration (hyper parameter settings) from the post-run model
+    *                     inference
+    * @return The results of the hyper parameter test, as well as the scored DataFrame report.
+    */
+  def postRunModeledHyperParams(paramsToTest: Array[XGBoostConfig]): (Array[XGBoostModelsWithResults], DataFrame) = {
+
+    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+
+    (finalRunResults, generateScoredDataFrame(finalRunResults))
   }
 
 }
