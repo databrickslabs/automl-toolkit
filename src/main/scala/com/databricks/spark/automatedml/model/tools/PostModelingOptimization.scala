@@ -215,8 +215,8 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
         maxDepth = hyperParams("maxDepth").toString.toInt,
         maxIter = hyperParams("maxIter").toString.toInt,
         minInfoGain = hyperParams("minInfoGain").toString.toDouble,
-        minInstancesPerNode = hyperParams("minInstancesPerNode").toString.toDouble,
-        stepSize = hyperParams("stepSize").toString.toInt,
+        minInstancesPerNode = hyperParams("minInstancesPerNode").toString.toInt,
+        stepSize = hyperParams("stepSize").toString.toDouble,
         score = x.score
       )
     }

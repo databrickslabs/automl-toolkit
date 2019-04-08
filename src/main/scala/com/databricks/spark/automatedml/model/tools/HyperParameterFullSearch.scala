@@ -395,7 +395,8 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
     var numericArrays = Array(generatedArrays.alphaArray, generatedArrays.etaArray, generatedArrays.gammaArray,
       generatedArrays.lambdaArray, generatedArrays.maxDepthArray, generatedArrays.subSampleArray,
-      generatedArrays.numRoundArray, generatedArrays.maxBinsArray, generatedArrays.trainTestRatioArray)
+      generatedArrays.minChildWeightArray, generatedArrays.numRoundArray, generatedArrays.maxBinsArray,
+      generatedArrays.trainTestRatioArray)
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
