@@ -292,9 +292,9 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- linearRegressionPermutationCollection.maxIterArray
       regParam <- linearRegressionPermutationCollection.regParamArray
       standardization <- linearRegressionPermutationCollection.standardizationArray
-      tolerance <- linearRegressionPermutationCollection.toleranceArray
+      tol <- linearRegressionPermutationCollection.tolArray
     } yield LinearRegressionConfig(elasticNetParams, fitIntercept, loss, maxIter.toInt, regParam, standardization,
-      tolerance)
+      tol)
   }
 
   protected[tools] def linearRegressionNumericArrayGenerator(config: PermutationConfiguration):
@@ -307,8 +307,8 @@ trait ModelConfigGenerators extends SeedGenerator {
         extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
-      toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
+      tolArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
     )
   }
 
@@ -325,7 +325,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIterArray = numericPayloads.maxIterArray,
       regParamArray = numericPayloads.regParamArray,
       standardizationArray = Array(true, false),
-      toleranceArray = numericPayloads.toleranceArray
+      tolArray = numericPayloads.tolArray
     )
 
     val permutationCollection = linearRegressionConfigGenerator(fullPermutationConfig)
@@ -349,7 +349,7 @@ trait ModelConfigGenerators extends SeedGenerator {
         maxIter = x(3).toString.toInt,
         regParam = x(4).toString.toDouble,
         standardization = x(5).toString.toBoolean,
-        tolerance = x(6).toString.toDouble
+        tol = x(6).toString.toDouble
       )
     }
     collectionBuffer.result.toArray
@@ -365,9 +365,9 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- logisticRegressionPermutationCollection.maxIterArray
       regParam <- logisticRegressionPermutationCollection.regParamArray
       standardization <- logisticRegressionPermutationCollection.standardizationArray
-      tolerance <- logisticRegressionPermutationCollection.toleranceArray
+      tol <- logisticRegressionPermutationCollection.tolArray
     } yield LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter.toInt, regParam, standardization,
-      tolerance)
+      tol)
   }
 
   protected[tools] def logisticRegressionNumericArrayGenerator(config: PermutationConfiguration):
@@ -380,8 +380,8 @@ trait ModelConfigGenerators extends SeedGenerator {
         extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
-      toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
+      tolArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
     )
   }
 
@@ -397,7 +397,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIterArray = numericPayloads.maxIterArray,
       regParamArray = numericPayloads.regParamArray,
       standardizationArray = Array(true, false),
-      toleranceArray = numericPayloads.toleranceArray
+      tolArray = numericPayloads.tolArray
     )
 
     val permutationCollection = logisticRegressionConfigGenerator(fullPermutationConfig)
@@ -421,7 +421,7 @@ trait ModelConfigGenerators extends SeedGenerator {
         maxIter = x(2).toString.toInt,
         regParam = x(3).toString.toDouble,
         standardization = x(4).toString.toBoolean,
-        tolerance = x(5).toString.toDouble
+        tol = x(5).toString.toDouble
       )
     }
     collectionBuffer.result.toArray

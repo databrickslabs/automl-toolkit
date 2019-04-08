@@ -156,6 +156,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
       .setDataReductionFactor(_mainConfig.dataReductionFactor)
+      .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+      .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+      .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+      .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -249,6 +253,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
           .setDataReductionFactor(_mainConfig.dataReductionFactor)
+          .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+          .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+          .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+          .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -344,6 +352,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
       .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
       .setDataReductionFactor(_mainConfig.dataReductionFactor)
+       .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+       .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+       .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+       .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
     if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -438,6 +450,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
           .setDataReductionFactor(_mainConfig.dataReductionFactor)
+          .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+          .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+          .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+          .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
         if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -535,6 +551,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
           .setDataReductionFactor(_mainConfig.dataReductionFactor)
+          .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+          .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+          .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+          .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
         if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -632,6 +652,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
           .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
           .setDataReductionFactor(_mainConfig.dataReductionFactor)
+          .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+          .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+          .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+          .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
         if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -726,6 +750,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
      .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
      .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
      .setDataReductionFactor(_mainConfig.dataReductionFactor)
+     .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+     .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+     .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+     .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
 
    if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 

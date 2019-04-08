@@ -60,7 +60,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
       .setRegParam(modelConfig.regParam)
       .setSolver("auto")
       .setStandardization(modelConfig.standardization)
-      .setTol(modelConfig.tolerance)
+      .setTol(modelConfig.tol)
   }
 
   private def returnBestHyperParameters(collection: ArrayBuffer[LinearRegressionModelsWithResults]):
@@ -246,9 +246,9 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
         if (mutationIndexIteration.contains(5)) coinFlip(randomParent.standardization,
           mutationIteration.standardization, mutationMagnitude)
         else randomParent.standardization,
-        if (mutationIndexIteration.contains(6)) geneMixing(randomParent.tolerance,
-          mutationIteration.tolerance, mutationMagnitude)
-        else randomParent.tolerance
+        if (mutationIndexIteration.contains(6)) geneMixing(randomParent.tol,
+          mutationIteration.tol, mutationMagnitude)
+        else randomParent.tol
       )
     }
     mutationPayload.result.toArray

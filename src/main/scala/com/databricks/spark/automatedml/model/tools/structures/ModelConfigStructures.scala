@@ -128,14 +128,14 @@ case class LinearRegressionPermutationCollection(
                                                 maxIterArray: Array[Double],
                                                 regParamArray: Array[Double],
                                                 standardizationArray: Array[Boolean],
-                                                toleranceArray: Array[Double]
+                                                tolArray: Array[Double]
                                                 )
 
 case class LinearRegressionNumericArrays(
                                         elasticNetParamsArray: Array[Double],
                                         maxIterArray: Array[Double],
                                         regParamArray: Array[Double],
-                                        toleranceArray: Array[Double]
+                                        tolArray: Array[Double]
                                         )
 
 case class LinearRegressionModelRunReport(
@@ -145,7 +145,7 @@ case class LinearRegressionModelRunReport(
                                          maxIter: Int,
                                          regParam: Double,
                                          standardization: Boolean,
-                                         tolerance: Double,
+                                         tol: Double,
                                          score: Double
                                          )
 
@@ -156,14 +156,14 @@ case class LogisticRegressionPermutationCollection(
                                                   maxIterArray: Array[Double],
                                                   regParamArray: Array[Double],
                                                   standardizationArray: Array[Boolean],
-                                                  toleranceArray: Array[Double]
+                                                  tolArray: Array[Double]
                                                   )
 
 case class LogisticRegressionNumericArrays(
                                           elasticNetParamsArray: Array[Double],
                                           maxIterArray: Array[Double],
                                           regParamArray: Array[Double],
-                                          toleranceArray: Array[Double]
+                                          tolArray: Array[Double]
                                           )
 
 case class LogisticRegressionModelRunReport(
@@ -172,7 +172,7 @@ case class LogisticRegressionModelRunReport(
                                            maxIter: Int,
                                            regParam: Double,
                                            standardization: Boolean,
-                                           tolerance: Double,
+                                           tol: Double,
                                            score: Double
                                          )
 

@@ -268,7 +268,7 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
         maxIter = hyperParams("maxIter").toString.toInt,
         regParam = hyperParams("regParam").toString.toDouble,
         standardization = hyperParams("standardization").toString.toBoolean,
-        tolerance = hyperParams("tolerance").toString.toDouble,
+        tol = hyperParams("tol").toString.toDouble,
         score = x.score
       )
     }
@@ -319,7 +319,7 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
         maxIter = hyperParams("maxIter").toString.toInt,
         regParam = hyperParams("regParam").toString.toDouble,
         standardization = hyperParams("standardization").toString.toBoolean,
-        tolerance = hyperParams("tolerance").toString.toDouble,
+        tol = hyperParams("tol").toString.toDouble,
         score = x.score
       )
     }
