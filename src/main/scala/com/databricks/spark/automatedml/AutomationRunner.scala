@@ -1026,10 +1026,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         model.transform(rawData)
       case "Trees" =>
         modelSelection match {
-          case "regressor" =>
+          case "classifier" =>
             val model = bestModel.model.asInstanceOf[DecisionTreeClassificationModel]
             model.transform(rawData)
-          case "classifier" =>
+          case "regressor" =>
             val model = bestModel.model.asInstanceOf[DecisionTreeRegressionModel]
             model.transform(rawData)
         }
