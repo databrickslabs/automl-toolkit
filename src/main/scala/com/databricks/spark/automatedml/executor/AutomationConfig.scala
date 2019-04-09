@@ -170,6 +170,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _mlFlowModelSaveDirectory: String = _mlFlowConfigDefaults.mlFlowModelSaveDirectory
 
+  var _mlFlowLoggingMode: String = _mlFlowConfigDefaults.mlFlowLoggingMode
+
+  var _mlFlowBestSuffix: String = _mlFlowConfigDefaults.mlFlowBestSuffix
+
   var _autoStoppingFlag: Boolean = _defaultAutoStoppingFlag
 
   var _autoStoppingScore: Double = _defaultAutoStoppingScore
@@ -860,12 +864,30 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setMlFlowLoggingMode(value: String): this.type = {
+    require(_allowableMlFlowLoggingModes.contains(value), s"MlFlow logging mode $value is not permitted.  Must be " +
+      s"one of: ${_allowableMlFlowLoggingModes.mkString(",")}")
+    _mlFlowLoggingMode = value
+    setMlFlowConfig()
+    setConfigs()
+    this
+  }
+
+  def setMlFlowBestSuffix(value: String): this.type = {
+    _mlFlowBestSuffix = value
+    setMlFlowConfig()
+    setConfigs()
+    this
+  }
+
   private def setMlFlowConfig(): this.type = {
     _mlFlowConfig = MLFlowConfig(
       mlFlowTrackingURI = _mlFlowTrackingURI,
       mlFlowExperimentName = _mlFlowExperimentName,
       mlFlowAPIToken = _mlFlowAPIToken,
-      mlFlowModelSaveDirectory = _mlFlowModelSaveDirectory
+      mlFlowModelSaveDirectory = _mlFlowModelSaveDirectory,
+      mlFlowLoggingMode = _mlFlowLoggingMode,
+      mlFlowBestSuffix = _mlFlowBestSuffix
     )
     this
   }
@@ -1299,6 +1321,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getMlFlowExperimentName: String = _mlFlowExperimentName
 
   def getMlFlowModelSaveDirectory: String = _mlFlowModelSaveDirectory
+
+  def getMlFlowLoggingMode: String = _mlFlowLoggingMode
+
+  def getMlFlowBestSuffix: String = _mlFlowBestSuffix
+
+  def getMlFlowConfig: MLFlowConfig = _mlFlowConfig
 
   def getGeneticConfig: GeneticConfig = _geneticConfig
 

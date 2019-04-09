@@ -1,6 +1,6 @@
 package com.databricks.spark.automatedml.params
 
-import org.apache.spark.ml.classification.{LinearSVCModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
+import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.LinearRegressionModel
 import org.apache.spark.sql.DataFrame
 
@@ -167,6 +167,20 @@ case class MLPCModelsWithResults(
                                   evalMetrics: Map[String, Double],
                                   generation: Int
                                 )
+
+case class NaiveBayesConfig(
+                            modelType: String,
+                            smoothing: Double,
+                            thresholds: Boolean
+                           )
+
+case class NaiveBayesModelsWithResults(
+                                       modelHyperParams: NaiveBayesConfig,
+                                       model: NaiveBayesModel,
+                                       score: Double,
+                                       evalMetrics: Map[String, Double],
+                                       generation: Int
+                                      )
 
 case class StaticModelConfig(
                               labelColumn: String,

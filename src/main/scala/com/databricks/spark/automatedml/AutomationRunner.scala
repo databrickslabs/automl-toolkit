@@ -808,11 +808,14 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
       .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
       .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
+      .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
+      .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
 
     if(_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn() else mlFlowLogger.logArtifactsOff()
 
     try {
-      mlFlowLogger.logMlFlowDataAndModels(runData, modelFamily, modelType, _mainConfig.inferenceConfigSaveLocation)
+      mlFlowLogger.logMlFlowDataAndModels(runData, modelFamily, modelType, _mainConfig.inferenceConfigSaveLocation,
+        _mainConfig.scoringOptimizationStrategy)
       "Logged to MlFlow Successful"
     } catch {
       case e: Exception =>

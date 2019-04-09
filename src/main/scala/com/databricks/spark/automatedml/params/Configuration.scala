@@ -49,7 +49,9 @@ case class MLFlowConfig(
                         mlFlowTrackingURI: String,
                         mlFlowExperimentName: String,
                         mlFlowAPIToken: String,
-                        mlFlowModelSaveDirectory: String
+                        mlFlowModelSaveDirectory: String,
+                        mlFlowLoggingMode: String,
+                        mlFlowBestSuffix: String
                        )
 
 case class FillConfig(

@@ -19,6 +19,8 @@ trait Defaults {
 
   final val _allowableEvolutionStrategies = List("batch", "continuous")
 
+  final val _allowableMlFlowLoggingModes = List("tuningOnly", "bestOnly", "full")
+
   def _defaultModelingFamily: String = "RandomForest"
 
   def _defaultLabelCol: String = "label"
@@ -231,6 +233,15 @@ trait Defaults {
     "" -> List("")
   )
 
+  def _naiveBayesDefaultStringBoundaries: Map[String, List[String]] = Map(
+    "modelType" -> List("multinomial", "bernoulli")
+  )
+
+  def _naiveBayesDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "smoothing" -> Tuple2(0.0, 1.0)
+  )
+
+
   def _scoringDefaultClassifier = "f1"
   def _scoringOptimizationStrategyClassifier = "maximize"
   def _scoringDefaultRegressor = "rmse"
@@ -242,7 +253,9 @@ trait Defaults {
     mlFlowTrackingURI = "hosted",
     mlFlowExperimentName = "default",
     mlFlowAPIToken = "default",
-    mlFlowModelSaveDirectory = "s3://mlflow/experiments/"
+    mlFlowModelSaveDirectory = "s3://mlflow/experiments/",
+    mlFlowLoggingMode = "full",
+    mlFlowBestSuffix = "_best"
   )
 
   def _inferenceConfigSaveLocationDefault: String = "/models"
