@@ -130,6 +130,24 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _modelSeedSetStatus: Boolean = false
 
+  var _firstGenerationConfig: FirstGenerationConfig = _defaultFirstGenerationConfig
+
+  var _firstGenerationPermutationCount: Int = _geneticTunerDefaults.initialGenerationConfig.permutationCount
+
+  var _firstGenerationIndexMixingMode: String = _geneticTunerDefaults.initialGenerationConfig.indexMixingMode
+
+  var _firstGenerationArraySeed: Long = _geneticTunerDefaults.initialGenerationConfig.arraySeed
+
+  var _hyperSpaceInference: Boolean = _defaultHyperSpaceInference
+
+  var _hyperSpaceInferenceCount: Int = _defaultHyperSpaceInferenceCount
+
+  var _hyperSpaceModelType: String = _defaultHyperSpaceModelType
+
+  var _hyperSpaceModelCount: Int = _defaultHyperSpaceModelCount
+
+  var _firstGenerationMode: String = _defaultInitialGenerationMode
+
   var _geneticConfig: GeneticConfig = _geneticTunerDefaults
 
   var _mainConfig: MainConfig = _mainConfigDefaults
@@ -706,6 +724,84 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setFirstGenerationConfig(): this.type = {
+    _firstGenerationConfig = FirstGenerationConfig(
+      permutationCount = _firstGenerationPermutationCount,
+      indexMixingMode = _firstGenerationIndexMixingMode,
+      arraySeed = _firstGenerationArraySeed
+    )
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setFirstGenerationPermutationCount(value: Int): this.type = {
+    _firstGenerationPermutationCount = value
+    setFirstGenerationConfig()
+    this
+  }
+
+  def setFirstGenerationIndexMixingMode(value: String): this.type = {
+    _firstGenerationIndexMixingMode = value
+    setFirstGenerationConfig()
+    this
+  }
+
+  def setFirstGenerationArraySeed(value: Long): this.type = {
+    _firstGenerationArraySeed = value
+    setFirstGenerationConfig()
+    this
+  }
+
+  def hyperSpaceInferenceOn(): this.type = {
+    _hyperSpaceInference = true
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def hyperSpaceInferenceOff(): this.type = {
+    _hyperSpaceInference = false
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setHyperSpaceInferenceCount(value: Int): this.type = {
+    if(value > 500000) println("WARNING! Setting permutation counts above 500,000 will put stress on the driver.")
+    if(value > 1000000) throw new UnsupportedOperationException(s"Setting permutation above 1,000,000 is not supported" +
+      s" due to runtime considerations.  $value is too large of a value.")
+    _hyperSpaceInferenceCount = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setHyperSpaceModelType(value: String): this.type = {
+    require(Array("RandomForest", "LinearRegression").contains(value), s"Model type $value is not supported for post " +
+      s"modeling hyper space optimization!  Please choose either RandomForest or LinearRegression")
+    _hyperSpaceModelType = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setHyperSpaceModelCount(value: Int): this.type = {
+    if(value > 50) println("WARNING! Setting this value above 50 will incur 50 additional models to be built.  Proceed" +
+      "only if this is intended.")
+    _hyperSpaceModelCount = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def setFirstGenerationMode(value: String): this.type = {
+    _firstGenerationMode = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
   def setMlFlowConfig(value: MLFlowConfig): this.type = {
     _mlFlowConfig = value
     setConfigs()
@@ -912,7 +1008,13 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       continuousEvolutionMutationAggressiveness = _continuousEvolutionMutationAggressiveness,
       continuousEvolutionGeneticMixing = _continuousEvolutionGeneticMixing,
       continuousEvolutionRollingImprovementCount = _continuousEvolutionRollingImprovementCount,
-      modelSeed = _modelSeedMap
+      modelSeed = _modelSeedMap,
+      hyperSpaceInference = _hyperSpaceInference,
+      hyperSpaceInferenceCount = _hyperSpaceInferenceCount,
+      hyperSpaceModelType = _hyperSpaceModelType,
+      hyperSpaceModelCount = _hyperSpaceModelCount,
+      initialGenerationMode = _firstGenerationMode,
+      initialGenerationConfig = _firstGenerationConfig
     )
     this
   }
@@ -1169,6 +1271,24 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getModelSeedSetStatus: Boolean = _modelSeedSetStatus
 
   def getModelSeedMap: Map[String, Any] = _modelSeedMap
+
+  def getFirstGenerationPermutationCount: Int = _firstGenerationPermutationCount
+
+  def getFirstGenerationIndexMixingMode: String = _firstGenerationIndexMixingMode
+
+  def getFirstGenerationArraySeed: Long = _firstGenerationArraySeed
+
+  def getHyperSpaceInferenceStatus: Boolean = _hyperSpaceInference
+
+  def getHyperSpaceInferenceCount: Int = _hyperSpaceInferenceCount
+
+  def getHyperSpaceModelType: String = _hyperSpaceModelType
+
+  def getHyperSpaceModelCount: Int = _hyperSpaceModelCount
+
+  def getFirstGenerationConfig: FirstGenerationConfig = _firstGenerationConfig
+
+  def getFirstGenerationMode: String = _firstGenerationMode
 
   def getMlFlowLoggingFlag: Boolean = _mlFlowLoggingFlag
 

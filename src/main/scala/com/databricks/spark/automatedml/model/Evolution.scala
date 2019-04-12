@@ -43,6 +43,11 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
   var _continuousEvolutionGeneticMixing: Double = _defaultContinuousEvolutionGeneticMixing
   var _continuousEvolutionRollingImprovementCount: Int = _defaultContinuousEvolutionRollingImprovementCount
 
+  var _initialGenerationMode: String = _defaultFirstGenMode
+  var _initialGenerationPermutationCount: Int = _defaultFirstGenPermutations
+  var _initialGenerationIndexMixingMode: String = _defaultFirstGenIndexMixingMode
+  var _initialGenerationArraySeed: Long = _defaultFirstGenArraySeed
+
   var _modelSeedSet: Boolean = false
   var _modelSeed: Map[String, Any] = Map.empty
 
@@ -88,7 +93,6 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
   }
 
   def setParallelism(value: Int): this.type = {
-    //TODO: SET PARALLELISM VALIDATION CORRECTLY
     require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
     _parallelism = value
     this
@@ -250,6 +254,42 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     _dataReduce = value
     this
   }
+
+  def setFirstGenMode(value: String): this.type = {
+    require(allowableInitialGenerationModes.contains(value), s"First Generation Mode '$value' is not a supported mode." +
+      s"  Must be one of: ${
+        invalidateSelection(value, allowableInitialGenerationModes)
+      }")
+    _initialGenerationMode = value
+    this
+  }
+
+  def setFirstGenPermutations(value: Int): this.type = {
+    _initialGenerationPermutationCount = value
+    this
+  }
+
+  def setFirstGenIndexMixingMode(value: String): this.type = {
+    require(allowableInitialGenerationIndexMixingModes.contains(value), s"First Generation Mode '$value' is not a" +
+      s"supported mode.  Must be one of ${
+        invalidateSelection(value, allowableInitialGenerationIndexMixingModes)
+      }")
+    _initialGenerationIndexMixingMode = value
+    this
+  }
+
+  def setFirstGenArraySeed(value: Long): this.type = {
+    _initialGenerationArraySeed = value
+    this
+  }
+
+  def getFirstGenArraySeed: Long = _initialGenerationArraySeed
+
+  def getFirstGenIndexMixingMode: String = _initialGenerationIndexMixingMode
+
+  def getFirstGenPermutations: Int = _initialGenerationPermutationCount
+
+  def getFirstGenMode: String = _initialGenerationMode
 
   def getLabelCol: String = _labelCol
 

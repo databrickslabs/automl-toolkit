@@ -1,5 +1,6 @@
 package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.model.tools.HyperParameterFullSearch
 import com.databricks.spark.automatedml.params.{Defaults, MLPCConfig, MLPCModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
@@ -60,6 +61,10 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
   def getMlpcStringBoundaries: Map[String, List[String]] = _mlpcStringBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
+
+  def getFeatureInputSize: Int = _featureInputSize
+
+  def getClassDistinctCount: Int = _classDistinctCount
 
   private def resetClassificationMetrics: List[String] = classificationMetricValidator(classificationAdjudicator(df),
     classificationMetrics)
@@ -170,8 +175,12 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
+
       val runId = java.util.UUID.randomUUID()
+
       println(s"Starting run $runId with Params: ${x.toString}")
+
+      val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[MLPCModelsWithResults]
 
@@ -192,15 +201,24 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       }
 
       val completionTimeStamp = System.currentTimeMillis / 1000
+
       val totalTimeOfBattery = completionTimeStamp - startTimeStamp
+
+      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
+
       val runAvg = MLPCModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
+
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
+
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
+        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
         calculateModelingFamilyRemainingTime(generation, modelCnt)
       }%2.4f%%"
+
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -271,15 +289,29 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
     val totalConfigs = modelConfigLength[MLPCConfig]
 
-    var runSet = if (_modelSeedSet) {
-      val genArray = new ArrayBuffer[MLPCConfig]
-      val startingModelSeed = generateMLPCConfig(_modelSeed)
-      genArray += startingModelSeed
-      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      ParHashSet(genArray.result.toArray: _*)
-    } else {
-      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val genArray = new ArrayBuffer[MLPCConfig]
+          val startingModelSeed = generateMLPCConfig(_modelSeed)
+          genArray += startingModelSeed
+          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          ParHashSet(genArray.result.toArray: _*)
+        } else {
+          ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("MLPC")
+          .setModelType("classifier")
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedMLPC(_mlpcNumericBoundaries, _mlpcStringBoundaries, _featureInputSize,
+            _classDistinctCount)
+        ParHashSet(startingPool: _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -378,15 +410,29 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
     val totalConfigs = modelConfigLength[MLPCConfig]
 
-    val primordial = if (_modelSeedSet) {
-      val generativeArray = new ArrayBuffer[MLPCConfig]
-      val startingModelSeed = generateMLPCConfig(_modelSeed)
-      generativeArray += startingModelSeed
-      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      runBattery(generativeArray.result.toArray, generation)
-    } else {
-      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val generativeArray = new ArrayBuffer[MLPCConfig]
+          val startingModelSeed = generateMLPCConfig(_modelSeed)
+          generativeArray += startingModelSeed
+          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          runBattery(generativeArray.result.toArray, generation)
+        } else {
+          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("MLPC")
+          .setModelType("classifier")
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedMLPC(_mlpcNumericBoundaries, _mlpcStringBoundaries, _featureInputSize,
+            _classDistinctCount)
+        runBattery(startingPool, generation)
     }
 
     fossilRecord ++= primordial
@@ -480,6 +526,22 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
 
+  /**
+    * Helper Method for a post-run model optimization based on theoretical hyperparam multidimensional grid search space
+    * After a genetic tuning run is complete, this allows for a model to be trained and run to predict a potential
+    * best-condition of hyper parameter configurations.
+    *
+    * @param paramsToTest Array of MLPC Configuration (hyper parameter settings) from the post-run model
+    *                     inference
+    * @return The results of the hyper parameter test, as well as the scored DataFrame report.
+    */
+  def postRunModeledHyperParams(paramsToTest: Array[MLPCConfig]):
+  (Array[MLPCModelsWithResults], DataFrame) = {
+
+    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+
+    (finalRunResults, generateScoredDataFrame(finalRunResults))
+  }
 
 }
 

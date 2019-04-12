@@ -1,21 +1,20 @@
 package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.model.tools.HyperParameterFullSearch
 import com.databricks.spark.automatedml.params.{Defaults, GBTConfig, GBTModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.GBTClassifier
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.GBTRegressor
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-import org.apache.log4j.{Level, Logger}
-
 import scala.collection.parallel.mutable.ParHashSet
+import scala.concurrent.forkjoin.ForkJoinPool
 
-class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution with Defaults{
+class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution with Defaults {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -164,6 +163,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   private def sortAndReturnBestScore(results: ArrayBuffer[GBTModelsWithResults]): Double = {
     sortAndReturnAll(results).head.score
   }
+
   private def generateThresholdedParams(iterationCount: Int): Array[GBTConfig] = {
 
     val iterations = new ArrayBuffer[GBTConfig]
@@ -187,8 +187,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
   }
 
   private def generateAndScoreGBTModel(train: DataFrame, test: DataFrame,
-                                                modelConfig: GBTConfig,
-                                                generation: Int = 1): GBTModelsWithResults = {
+                                       modelConfig: GBTConfig,
+                                       generation: Int = 1): GBTModelsWithResults = {
 
     val gbtModel = modelDecider(modelConfig)
 
@@ -214,7 +214,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   private def runBattery(battery: Array[GBTConfig], generation: Int = 1): Array[GBTModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis/1000
+    val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[GBTModelsWithResults]
@@ -224,7 +224,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     runs.tasksupport = taskSupport
 
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    }%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -232,7 +233,10 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     runs.foreach { x =>
 
       val runId = java.util.UUID.randomUUID()
+
       println(s"Starting run $runId with Params: ${x.toString}")
+
+      val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
 
@@ -262,15 +266,25 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
-      val completionTimeStamp = System.currentTimeMillis/1000
+      val completionTimeStamp = System.currentTimeMillis / 1000
+
       val totalTimeOfBattery = completionTimeStamp - startTimeStamp
+
+      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
+
       val runAvg = GBTModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
+
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
+
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
+        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+        calculateModelingFamilyRemainingTime(generation, modelCnt)
+      }%2.4f%%"
+
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -281,7 +295,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
 
   private def irradiateGeneration(parents: Array[GBTConfig], mutationCount: Int,
-                          mutationAggression: Int, mutationMagnitude: Double): Array[GBTConfig] = {
+                                  mutationAggression: Int, mutationMagnitude: Double): Array[GBTConfig] = {
 
     val mutationPayload = new ArrayBuffer[GBTConfig]
     val totalConfigs = modelConfigLength[GBTConfig]
@@ -341,8 +355,6 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-
-    //TODO: evaluate this and see if this should be an early stopping signature!!!
     val earlyStoppingImprovementThreshold: Int = -10
 
     // Generate the first pool of attempts to seed the hyperparameter space
@@ -350,15 +362,28 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     val totalConfigs = modelConfigLength[GBTConfig]
 
-    var runSet = if(_modelSeedSet) {
-      val genArray = new ArrayBuffer[GBTConfig]
-      val startingModelSeed = generateGBTConfig(_modelSeed)
-      genArray += startingModelSeed
-      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      ParHashSet(genArray.result.toArray: _*)
-    } else {
-      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val genArray = new ArrayBuffer[GBTConfig]
+          val startingModelSeed = generateGBTConfig(_modelSeed)
+          genArray += startingModelSeed
+          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          ParHashSet(genArray.result.toArray: _*)
+        } else {
+          ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("GBT")
+          .setModelType(modelSelection)
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedGBT(_gbtNumericBoundaries, _gbtStringBoundaries)
+        ParHashSet(startingPool: _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -453,15 +478,28 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     val totalConfigs = modelConfigLength[GBTConfig]
 
-    val primordial = if (_modelSeedSet) {
-      val generativeArray = new ArrayBuffer[GBTConfig]
-      val startingModelSeed = generateGBTConfig(_modelSeed)
-      generativeArray += startingModelSeed
-      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      runBattery(generativeArray.result.toArray, generation)
-    } else {
-      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val generativeArray = new ArrayBuffer[GBTConfig]
+          val startingModelSeed = generateGBTConfig(_modelSeed)
+          generativeArray += startingModelSeed
+          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          runBattery(generativeArray.result.toArray, generation)
+        } else {
+          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("GBT")
+          .setModelType(modelSelection)
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedGBT(_gbtNumericBoundaries, _gbtStringBoundaries)
+        runBattery(startingPool, generation)
     }
 
     fossilRecord ++= primordial
@@ -553,6 +591,22 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))
+  }
+
+  /**
+    * Helper Method for a post-run model optimization based on theoretical hyperparam multidimensional grid search space
+    * After a genetic tuning run is complete, this allows for a model to be trained and run to predict a potential
+    * best-condition of hyper parameter configurations.
+    *
+    * @param paramsToTest Array of GBT Configuration (hyper parameter settings) from the post-run model
+    *                     inference
+    * @return The results of the hyper parameter test, as well as the scored DataFrame report.
+    */
+  def postRunModeledHyperParams(paramsToTest: Array[GBTConfig]): (Array[GBTModelsWithResults], DataFrame) = {
+
+    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+
+    (finalRunResults, generateScoredDataFrame(finalRunResults))
   }
 
 }

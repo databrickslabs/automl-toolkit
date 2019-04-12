@@ -1,19 +1,18 @@
 package com.databricks.spark.automatedml.model
 
+import com.databricks.spark.automatedml.model.tools.HyperParameterFullSearch
 import com.databricks.spark.automatedml.params.{Defaults, TreesConfig, TreesModelsWithResults}
 import com.databricks.spark.automatedml.utils.SparkSessionWrapper
-import org.apache.spark.sql.DataFrame
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.DecisionTreeClassifier
-import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.regression.DecisionTreeRegressor
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-import org.apache.log4j.{Level, Logger}
-
 import scala.collection.parallel.mutable.ParHashSet
+import scala.concurrent.forkjoin.ForkJoinPool
 
 class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution with
   Defaults {
@@ -84,13 +83,13 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     val builtModel = modelSelection match {
       case "classifier" =>
         new DecisionTreeClassifier()
-        .setLabelCol(_labelCol)
-        .setFeaturesCol(_featureCol)
-        .setMaxBins(modelConfig.maxBins)
-        .setImpurity(modelConfig.impurity)
-        .setMaxDepth(modelConfig.maxDepth)
-        .setMinInfoGain(modelConfig.minInfoGain)
-        .setMinInstancesPerNode(modelConfig.minInstancesPerNode)
+          .setLabelCol(_labelCol)
+          .setFeaturesCol(_featureCol)
+          .setMaxBins(modelConfig.maxBins)
+          .setImpurity(modelConfig.impurity)
+          .setMaxDepth(modelConfig.maxDepth)
+          .setMinInfoGain(modelConfig.minInfoGain)
+          .setMinInstancesPerNode(modelConfig.minInstancesPerNode)
       case "regressor" =>
         new DecisionTreeRegressor()
           .setLabelCol(_labelCol)
@@ -173,8 +172,8 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
   }
 
   private def generateAndScoreTreesModel(train: DataFrame, test: DataFrame,
-                                                modelConfig: TreesConfig,
-                                                generation: Int = 1): TreesModelsWithResults = {
+                                         modelConfig: TreesConfig,
+                                         generation: Int = 1): TreesModelsWithResults = {
 
     val treesModel = modelDecider(modelConfig)
 
@@ -200,7 +199,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
   private def runBattery(battery: Array[TreesConfig], generation: Int = 1): Array[TreesModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis/1000
+    val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[TreesModelsWithResults]
@@ -210,7 +209,8 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     runs.tasksupport = taskSupport
 
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    }%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -218,6 +218,8 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     runs.foreach { x =>
       val runId = java.util.UUID.randomUUID()
       println(s"Starting run $runId with Params: ${x.toString}")
+
+      val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[TreesModelsWithResults]
 
@@ -247,15 +249,23 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
         case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
       }
 
-      val completionTimeStamp = System.currentTimeMillis/1000
+      val completionTimeStamp = System.currentTimeMillis / 1000
+
       val totalTimeOfBattery = completionTimeStamp - startTimeStamp
+
+      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
+
       val runAvg = TreesModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
         scoringMap.toMap, generation)
       results += runAvg
       modelCnt += 1
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} in $totalTimeOfBattery seconds"
+
+      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
+        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
       val progressStatement = f"\t\t Current modeling progress complete in family: ${
-          calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+        calculateModelingFamilyRemainingTime(generation, modelCnt)
+      }%2.4f%%"
+
       println(runScoreStatement)
       println(progressStatement)
       logger.log(Level.INFO, runScoreStatement)
@@ -324,15 +334,28 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     val totalConfigs = modelConfigLength[TreesConfig]
     // Generate the first pool of attempts to seed the hyperparameter space
 
-    var runSet = if(_modelSeedSet) {
-      val genArray = new ArrayBuffer[TreesConfig]
-      val startingModelSeed = generateTreesConfig(_modelSeed)
-      genArray += startingModelSeed
-      genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      ParHashSet(genArray.result.toArray: _*)
-    } else {
-      ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+    var runSet = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val genArray = new ArrayBuffer[TreesConfig]
+          val startingModelSeed = generateTreesConfig(_modelSeed)
+          genArray += startingModelSeed
+          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          ParHashSet(genArray.result.toArray: _*)
+        } else {
+          ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("Trees")
+          .setModelType(modelSelection)
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedTrees(_treesNumericBoundaries, _treesStringBoundaries)
+        ParHashSet(startingPool: _*)
     }
 
     // Apply ForkJoin ThreadPool parallelism
@@ -427,15 +450,28 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
 
     val totalConfigs = modelConfigLength[TreesConfig]
 
-    val primordial = if (_modelSeedSet) {
-      val generativeArray = new ArrayBuffer[TreesConfig]
-      val startingModelSeed = generateTreesConfig(_modelSeed)
-      generativeArray += startingModelSeed
-      generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-        _geneticMixing)
-      runBattery(generativeArray.result.toArray, generation)
-    } else {
-      runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+    val primordial = _initialGenerationMode match {
+
+      case "random" =>
+        if (_modelSeedSet) {
+          val generativeArray = new ArrayBuffer[TreesConfig]
+          val startingModelSeed = generateTreesConfig(_modelSeed)
+          generativeArray += startingModelSeed
+          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
+            _geneticMixing)
+          runBattery(generativeArray.result.toArray, generation)
+        } else {
+          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+        }
+      case "permutations" =>
+        val startingPool = new HyperParameterFullSearch()
+          .setModelFamily("Trees")
+          .setModelType(modelSelection)
+          .setPermutationCount(_initialGenerationPermutationCount)
+          .setIndexMixingMode(_initialGenerationIndexMixingMode)
+          .setArraySeed(_initialGenerationArraySeed)
+          .initialGenerationSeedTrees(_treesNumericBoundaries, _treesStringBoundaries)
+        runBattery(startingPool, generation)
     }
 
     fossilRecord ++= primordial
@@ -527,6 +563,22 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     }
 
     (evolutionResults, generateScoredDataFrame(evolutionResults))
+  }
+
+  /**
+    * Helper Method for a post-run model optimization based on theoretical hyperparam multidimensional grid search space
+    * After a genetic tuning run is complete, this allows for a model to be trained and run to predict a potential
+    * best-condition of hyper parameter configurations.
+    *
+    * @param paramsToTest Array of Decision Trees Configuration (hyper parameter settings) from the post-run model
+    *                     inference
+    * @return The results of the hyper parameter test, as well as the scored DataFrame report.
+    */
+  def postRunModeledHyperParams(paramsToTest: Array[TreesConfig]): (Array[TreesModelsWithResults], DataFrame) = {
+
+    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+
+    (finalRunResults, generateScoredDataFrame(finalRunResults))
   }
 
 }

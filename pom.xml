@@ -4,7 +4,7 @@
     <groupId>com.databricks</groupId>
     <artifactId>automatedml</artifactId>
     <packaging>jar</packaging>
-    <version>0.4.8-SNAPSHOT</version>
+    <version>0.4.9-SNAPSHOT</version>
 
     <properties>
         <scala.version>2.11.12</scala.version>

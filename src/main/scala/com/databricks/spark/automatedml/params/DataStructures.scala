@@ -75,7 +75,7 @@ case class LogisticRegressionConfig(
                                      maxIter: Int,
                                      regParam: Double,
                                      standardization: Boolean,
-                                     tolerance: Double
+                                     tol: Double
                                    )
 
 case class LinearRegressionConfig(
@@ -85,7 +85,7 @@ case class LinearRegressionConfig(
                                    maxIter: Int,
                                    regParam: Double,
                                    standardization: Boolean,
-                                   tolerance: Double
+                                   tol: Double
                                  )
 
 case class LinearRegressionModelsWithResults(
