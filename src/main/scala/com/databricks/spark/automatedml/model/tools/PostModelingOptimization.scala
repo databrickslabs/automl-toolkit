@@ -75,6 +75,7 @@ class PostModelingOptimization extends Defaults with ModelConfigGenerators with 
       stringBoundaryPermutationCalculator(_stringBoundaries)
 
     PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = calculatedPermutationValue,
       numericBoundaries = _numericBoundaries,
       stringBoundaries = _stringBoundaries

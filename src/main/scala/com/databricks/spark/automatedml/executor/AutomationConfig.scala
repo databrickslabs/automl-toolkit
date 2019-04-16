@@ -360,6 +360,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setScoringOptimizationStrategy(value: String): this.type = {
+    require(Array("minimize", "maximize").contains(value), s"$value is not a member of allowed scoring optimizations: " +
+      s"'minimize' or 'maximize'")
+    _scoringOptimizationStrategy = value
+    setConfigs()
+    this
+  }
+
   def setNumericFillStat(value: String): this.type = {
     _numericFillStat = value
     setFillConfig()
@@ -1201,6 +1209,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
 
   def getStringBoundaries: Map[String, List[String]] = _stringBoundaries
+
+  def getScoringMetric: String = _scoringMetric
+
+  def getScoringOptimizationStrategy: String = _scoringOptimizationStrategy
 
   def getNumericFillStat: String = _numericFillStat
 

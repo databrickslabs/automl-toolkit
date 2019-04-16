@@ -73,6 +73,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
     // Set the config object
     val rfConfig = PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = stringBoundaries
@@ -144,6 +145,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     }
 
     val treesConfig = PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = stringBoundaries
@@ -196,6 +198,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     }
 
     val gbtConfig = PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = stringBoundaries
@@ -246,6 +249,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var outputPayload = new ArrayBuffer[LinearRegressionConfig]()
 
     val linearRegressionConfig = PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = stringBoundaries
@@ -296,6 +300,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var outputPayload = new ArrayBuffer[LogisticRegressionConfig]()
 
     val logisticRegressionConfig = PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = Map[String, List[String]]()
@@ -342,6 +347,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var outputPayload = new ArrayBuffer[SVMConfig]()
 
     val svmConfig = PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = Map[String, List[String]]()
@@ -386,6 +392,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var outputPayload = new ArrayBuffer[XGBoostConfig]()
 
     val xgboostConfig = PermutationConfiguration(
+      modelType = _modelType,
       permutationTarget = _permutationCount,
       numericBoundaries = numericBoundaries,
       stringBoundaries = Map[String, List[String]]()

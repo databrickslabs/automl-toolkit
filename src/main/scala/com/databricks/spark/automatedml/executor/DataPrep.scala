@@ -314,7 +314,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
 
     val featurizedDataCleaned = featurizedData.select(featureFieldCleanup map col: _*)
 
-    val (persistFeaturizedDataCleaned, featurizedDataCleanedRowCount) = dataPersist(persistDataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
+    val (persistFeaturizedDataCleaned, featurizedDataCleanedRowCount) =
+      dataPersist(persistDataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
 
     //DEBUG
     logger.log(Level.DEBUG, printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString)

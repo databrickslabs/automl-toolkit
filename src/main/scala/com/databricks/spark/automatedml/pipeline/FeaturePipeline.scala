@@ -78,7 +78,23 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
 
     val transformedData = createPipe.fit(dateTimeModData).transform(dateTimeModData).select(fieldsToInclude map col:_*)
 
-    (transformedData, assembledColumns, fieldsToInclude.filterNot(_.contains(_featureCol)))
+    val transformedExtract = if(fieldsToConvert.contains(_labelCol)){
+      transformedData
+        .drop(_labelCol)
+        .withColumnRenamed(s"${_labelCol}_si", _labelCol)
+    } else {
+      transformedData
+    }
+
+    val assembledColumnsOutput = if(fieldsToConvert.contains(_labelCol)) {
+      assembledColumns.filterNot(x => x.contains(s"${_labelCol}_si"))
+    } else assembledColumns
+
+    val fieldsToIncludeOutput = if(fieldsToConvert.contains(_labelCol)) {
+      fieldsToInclude.filterNot(x => x.contains(s"${_labelCol}_si"))
+    } else fieldsToInclude
+
+    (transformedExtract, assembledColumnsOutput, fieldsToIncludeOutput.filterNot(_.contains(_featureCol)))
 
   }
 
@@ -86,7 +102,7 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
   (DataFrame, Array[String], Array[String]) = {
 
     // From the featureColumns collection, get the string indexed fields.
-    val stringIndexedFields = featureColumns.filter(x => x.takeRight(3) == "_si")
+    val stringIndexedFields = featureColumns.filter(x => x.takeRight(3) == "_si").filterNot(x => x.contains(_labelCol))
 
     // Get the fields that are not String Indexed.
     val remainingFeatureFields = featureColumns.filterNot(x => x.takeRight(3) == "_si")
@@ -95,7 +111,7 @@ class FeaturePipeline(data: DataFrame) extends DataValidation {
     val adjustedData = if (data.schema.fieldNames.contains(_featureCol)) data.drop(_featureCol) else data
 
     // One hot encode the StringIndexed fields, if present and generate the feature vector.
-    val (outputData, featureFields) = if(stringIndexedFields.length > 0){
+    val (outputData, featureFields) = if(stringIndexedFields.length > 0) {
 
       val (encoder, encodedColumns) = oneHotEncodeStrings(stringIndexedFields.toList)
 

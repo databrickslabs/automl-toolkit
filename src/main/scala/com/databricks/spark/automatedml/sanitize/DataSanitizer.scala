@@ -164,7 +164,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
       }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
 
     } else {
-      df.summary(statistics.replaceAll(" ", "").split(","): _*).select(selectionColumns map col: _*)
+      df.summary(statistics.replaceAll(" ", "").split(","): _*)
+        .select(selectionColumns map col: _*)
     }
     x
   }
