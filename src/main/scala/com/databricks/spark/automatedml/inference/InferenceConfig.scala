@@ -168,7 +168,9 @@ trait InferenceConfig extends InferenceDefaults {
       mlFlowTrackingURI = _inferenceConfigMlFlowTrackingURI,
       mlFlowExperimentName = _inferenceConfigMlFlowExperimentName,
       mlFlowAPIToken = _inferenceConfigMlFlowAPIToken,
-      mlFlowModelSaveDirectory = _inferenceConfigMlFlowModelSaveDirectory
+      mlFlowModelSaveDirectory = _inferenceConfigMlFlowModelSaveDirectory,
+      mlFlowLoggingMode = "full",
+      mlFlowBestSuffix = "_best"
     )
     setInferenceModelConfig()
     this
@@ -407,8 +409,3 @@ trait InferenceConfig extends InferenceDefaults {
 object InferenceConfig extends InferenceConfig{
 }
 
-//TODO's:
-/**
-  * use the model load method (mlflow vs path)
-  * outlier filtering needs to leverage the directional path for filtering each column and value
-  */
