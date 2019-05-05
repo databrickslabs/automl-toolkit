@@ -308,7 +308,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 
@@ -381,7 +381,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 
@@ -447,7 +447,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 
@@ -612,7 +612,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       stepSizeArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("stepSize")), config.permutationTarget),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 

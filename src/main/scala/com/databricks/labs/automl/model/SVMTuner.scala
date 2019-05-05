@@ -96,8 +96,8 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       val maxIter = generateRandomInteger("maxIter", _svmNumericBoundaries)
       val regParam = generateRandomDouble("regParam", _svmNumericBoundaries)
       val standardization = coinFlip()
-      val tol = generateRandomDouble("tol", _svmNumericBoundaries)
-      iterations += SVMConfig(fitIntercept, maxIter, regParam, standardization, tol)
+      val tolerance = generateRandomDouble("tolerance", _svmNumericBoundaries)
+      iterations += SVMConfig(fitIntercept, maxIter, regParam, standardization, tolerance)
     } while (i < iterationCount)
     iterations.toArray
   }
