@@ -184,7 +184,7 @@ trait Defaults {
     "layers" -> Tuple2(1.0, 10.0),
     "maxIter" -> Tuple2(10.0, 100.0),
     "stepSize" -> Tuple2(0.01, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5),
+    "tolerance" -> Tuple2(1E-9, 1E-5),
     "hiddenLayerSizeAdjust" -> Tuple2(0.0, 50.0)
   )
 
@@ -210,7 +210,7 @@ trait Defaults {
     "elasticNetParams" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
+    "tolerance" -> Tuple2(1E-9, 1E-5)
   )
   def _linearRegressionDefaultStringBoundaries: Map[String, List[String]] = Map (
     "loss" -> List("squaredError", "huber")
@@ -219,7 +219,7 @@ trait Defaults {
     "elasticNetParams" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
+    "tolerance" -> Tuple2(1E-9, 1E-5)
   )
   def _logisticRegressionDefaultStringBoundaries: Map[String, List[String]] = Map(
     "" -> List("")
@@ -227,7 +227,7 @@ trait Defaults {
   def _svmDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
+    "tolerance" -> Tuple2(1E-9, 1E-5)
   )
   def _svmDefaultStringBoundaries: Map[String, List[String]] = Map(
     "" -> List("")

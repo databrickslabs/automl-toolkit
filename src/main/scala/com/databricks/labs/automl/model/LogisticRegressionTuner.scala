@@ -64,7 +64,7 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       .setMaxIter(modelConfig.maxIter)
       .setRegParam(modelConfig.regParam)
       .setStandardization(modelConfig.standardization)
-      .setTol(modelConfig.tol)
+      .setTol(modelConfig.tolerance)
   }
 
   private def returnBestHyperParameters(collection: ArrayBuffer[LogisticRegressionModelsWithResults]):
@@ -247,9 +247,9 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
         if (mutationIndexIteration.contains(4)) coinFlip(randomParent.standardization,
           mutationIteration.standardization, mutationMagnitude)
         else randomParent.standardization,
-        if (mutationIndexIteration.contains(5)) geneMixing(randomParent.tol,
-          mutationIteration.tol, mutationMagnitude)
-        else randomParent.tol
+        if (mutationIndexIteration.contains(5)) geneMixing(randomParent.tolerance,
+          mutationIteration.tolerance, mutationMagnitude)
+        else randomParent.tolerance
       )
     }
     mutationPayload.result.toArray

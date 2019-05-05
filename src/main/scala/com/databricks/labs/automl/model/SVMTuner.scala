@@ -48,7 +48,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       .setMaxIter(modelConfig.maxIter)
       .setRegParam(modelConfig.regParam)
       .setStandardization(modelConfig.standardization)
-      .setTol(modelConfig.tol)
+      .setTol(modelConfig.tolerance)
   }
 
   private def returnBestHyperParameters(collection: ArrayBuffer[SVMModelsWithResults]):
@@ -219,9 +219,9 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
         if (mutationIndexIteration.contains(3)) coinFlip(randomParent.standardization,
           mutationIteration.standardization, mutationMagnitude)
         else randomParent.standardization,
-        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.tol,
-          mutationIteration.tol, mutationMagnitude)
-        else randomParent.tol
+        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.tolerance,
+          mutationIteration.tolerance, mutationMagnitude)
+        else randomParent.tolerance
       )
     }
     mutationPayload.result.toArray

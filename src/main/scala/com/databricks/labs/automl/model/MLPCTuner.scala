@@ -82,7 +82,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       .setMaxIter(modelConfig.maxIter)
       .setSolver(modelConfig.solver)
       .setStepSize(modelConfig.stepSize)
-      .setTol(modelConfig.tol)
+      .setTol(modelConfig.tolerance)
   }
 
   private def returnBestHyperParameters(collection: ArrayBuffer[MLPCModelsWithResults]):
@@ -257,9 +257,9 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
         if (mutationIndexIteration.contains(3)) geneMixing(randomParent.stepSize,
           mutationIteration.stepSize, mutationMagnitude)
         else randomParent.stepSize,
-        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.tol,
-          mutationIteration.tol, mutationMagnitude)
-        else randomParent.tol
+        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.tolerance,
+          mutationIteration.tolerance, mutationMagnitude)
+        else randomParent.tolerance
       )
     }
     mutationPayload.result.toArray
