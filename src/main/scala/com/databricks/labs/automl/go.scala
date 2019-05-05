@@ -61,21 +61,23 @@ object go extends App {
     .setEvolutionStrategy("batch")
     .setDataReductionFactor(0.5)
 
-  class myPartitioner(override val numPartitions: Int) extends Partitioner {
-    override def getPartition(key: Any): Int = {
-      val k = key.asInstanceOf[Int]
-      k % numPartitions
-    }
-
-    override def equals(other: scala.Any): Boolean = {
-      other match {
-        case obj: myPartitioner => obj.numPartitions == numPartitions
-        case _ => false
-      }
-    }
-  }
-
-  sc.parallelize(Seq((1,2),(3,4))).partitionBy(new myPartitioner(100))
+//  dataPrepConfig.getArti
+//
+//  class myPartitioner(override val numPartitions: Int) extends Partitioner {
+//    override def getPartition(key: Any): Int = {
+//      val k = key.asInstanceOf[Int]
+//      k % numPartitions
+//    }
+//
+//    override def equals(other: scala.Any): Boolean = {
+//      other match {
+//        case obj: myPartitioner => obj.numPartitions == numPartitions
+//        case _ => false
+//      }
+//    }
+//  }
+//
+//  sc.parallelize(Seq((1,2),(3,4))).partitionBy(new myPartitioner(100))
 //  val preppedData = dataPrepConfig.prepData()
 //  preppedData.data.show()
 
