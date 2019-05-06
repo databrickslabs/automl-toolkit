@@ -65,6 +65,7 @@ trait InferenceConfig extends InferenceDefaults {
 
   def setInferenceSwitchSettings(value: InferenceSwitchSettings): this.type = {
     _inferenceSwitchSettings = value
+    setInferenceConfig()
     this
   }
 
@@ -406,6 +407,6 @@ trait InferenceConfig extends InferenceDefaults {
 }
 
 
-object InferenceConfig extends InferenceConfig{
-}
+//object InferenceConfig extends InferenceConfig{
+//}
 

@@ -42,7 +42,7 @@ trait InferenceDefaults extends Defaults {
   )
 
   def _defaultOutlierFilteringConfig: OutlierFilteringConfig = OutlierFilteringConfig(
-    fieldRemovalMap = Map("" -> (Double.PositiveInfinity, "greater"))
+    fieldRemovalMap = Map("" -> (Double.MaxValue, "greater"))
   )
 
   def _defaultCovarianceFilteringConfig: CovarianceFilteringConfig = CovarianceFilteringConfig(

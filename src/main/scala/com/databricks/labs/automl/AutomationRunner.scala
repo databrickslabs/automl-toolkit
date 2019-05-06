@@ -810,6 +810,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
       .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
       .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
+      .setInferenceConfig(getInferenceConfig)
 
     if(_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn() else mlFlowLogger.logArtifactsOff()
 
@@ -934,10 +935,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val genericResultData = genericResults.result.toArray
 
     if(_mainConfig.mlFlowLoggingFlag) {
-      val mlFlowResult = logResultsToMlFlow(genericResultData, _mainConfig.modelFamily, modelSelection)
-      println(mlFlowResult)
-      logger.log(Level.INFO, mlFlowResult)
-    } else {
 
       // set the Inference details in general for the run
       val inferenceModelConfig = InferenceModelConfig(
@@ -961,6 +958,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       println(inferenceLog)
 
       logger.log(Level.INFO, inferenceLog)
+
+      val mlFlowResult = logResultsToMlFlow(genericResultData, _mainConfig.modelFamily, modelSelection)
+      println(mlFlowResult)
+      logger.log(Level.INFO, mlFlowResult)
+//    } else {
 
       if (_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory.nonEmpty) {
         val inferenceConfigAsDF = convertInferenceConfigToDataFrame(outputInferencePayload)

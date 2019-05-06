@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
+import com.databricks.labs.automl.inference.InferenceConfig
 import com.databricks.labs.automl.utils.DataValidation
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.Pipeline
@@ -8,7 +9,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 
-class FeaturePipeline(data: DataFrame) extends DataValidation {
+class FeaturePipeline(data: DataFrame) extends DataValidation with InferenceConfig {
 
   private var _labelCol = "label"
   private var _featureCol = "features"
