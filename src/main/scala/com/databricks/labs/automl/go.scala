@@ -29,7 +29,7 @@ object go extends App {
   train.count
   test.count
 
-  val RUNVERSION = 5
+  val RUNVERSION = 10
   val modelingType = "LinearRegression"
   val labelColumn = "SalePrice"
   val runExperiment = s"housePrices_$RUNVERSION"
@@ -58,7 +58,7 @@ object go extends App {
       .setMlFlowModelSaveDirectory(s"/tmp/tomes/ml/automl/danTest/models/")
       .setInferenceConfigSaveLocation(s"/tmp/tomes/ml/automl/danTest/inference/$runExperiment")
       .setFilterPrecision(0.9)
-      .setParallelism(4)
+      .setParallelism(8)
       .setKFold(1)
       .setTrainPortion(0.70)
       .setTrainSplitMethod("random")
@@ -93,7 +93,7 @@ object go extends App {
     inferenceConfig.show()
   }
 
-  doTrain(train)
-//  infer("/tmp/tomes/ml/automl/danTest/housePrices_5/5_best/fd1cf2a30fb4472eaef359a2da7e627e_best",
-//    test.withColumn(s"$labelColumn", lit(null)))
+//  doTrain(train)
+  infer("/tmp/tomes/ml/automl/danTest/inference/housePrices_10/_best/f0d44dfecc7c47feb264bd8c6b54313d_best",
+    test)
 }

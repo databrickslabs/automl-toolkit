@@ -10,7 +10,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 
-class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with InferenceConfig{
+class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
 
   //    TODO: parallelism config for non genetic parallel control should be added
   private val logger: Logger = Logger.getLogger(this.getClass)
@@ -209,7 +209,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
 
     // Record the Switch Settings from MainConfig to return an InferenceSwitchSettings object
     val inferenceSwitchSettings = recordInferenceSwitchSettings(_mainConfig)
-    setInferenceSwitchSettings(inferenceSwitchSettings)
+    InferenceConfig.setInferenceSwitchSettings(inferenceSwitchSettings)
 
     val includeFieldsFinalData = _mainConfig.fieldsToIgnoreInVector
 
@@ -236,7 +236,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
 
     // Record the Inference Settings for DataConfig
     val inferenceDataConfig = recordInferenceDataConfig(_mainConfig, selectFields)
-    setInferenceDataConfig(inferenceDataConfig)
+    InferenceConfig.setInferenceDataConfig(inferenceDataConfig)
 
     logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
 
@@ -246,7 +246,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     val (dataStage1, fillMap, detectedModelType) = fillNA(entryPointDataRestrict)
 
     // Record the Inference Settings for NaFillConfig mappings
-    setInferenceNaFillConfig(fillMap.categoricalColumns, fillMap.numericColumns)
+    InferenceConfig.setInferenceNaFillConfig(fillMap.categoricalColumns, fillMap.numericColumns)
 
     // uncache the main DataFrame, force the GC
     val (persistDataStage1, dataStage1RowCount) = if(_mainConfig.dataPrepCachingFlag) {
@@ -269,7 +269,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
       else DataPrepReturn(persistDataStage1, Array.empty[String])
 
     // Record the Inference Settings for Variance Filtering
-    setInferenceVarianceFilterConfig(dataStage2.fieldListing)
+    InferenceConfig.setInferenceVarianceFilterConfig(dataStage2.fieldListing)
 
     val (persistDataStage2, dataStage2RowCount) = if(_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistDataStage1, dataStage2.outputData, cacheLevel, unpersistBlock)
@@ -304,7 +304,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     logger.log(Level.DEBUG, printSchema(dataStage3.outputData, "stage3").toString)
 
     // Record the Inference Settings for Outlier Filtering
-    setInferenceOutlierFilteringConfig(dataStage3.fieldRemovalMap)
+    InferenceConfig.setInferenceOutlierFilteringConfig(dataStage3.fieldRemovalMap)
 
     // Next stages require a feature vector
     val (featurizedData, initialFields, initialFullFields) = vectorPipeline(persistDataStage3)
@@ -339,7 +339,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     logger.log(Level.DEBUG, printSchema(dataStage4.outputData, "stage4").toString)
 
     // Record the Inference Settings for Covariance Filtering
-    setInferenceCovarianceFilteringConfig(dataStage4.fieldListing)
+    InferenceConfig.setInferenceCovarianceFilteringConfig(dataStage4.fieldListing)
 
     // All stages after this point require a feature vector.
     val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(persistDataStage4)
@@ -356,12 +356,12 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
       val pearsonReturn = pearsonFilter(persistDataStage5, stage5Fields)
 
       // Record the Inference Settings for Pearson Filtering
-      setInferencePearsonFilteringConfig(pearsonReturn.fieldListing)
+      InferenceConfig.setInferencePearsonFilteringConfig(pearsonReturn.fieldListing)
 
       vectorPipeline(pearsonReturn.outputData)
     } else {
       // Record the Inference Settings for Pearson Filtering
-      setInferencePearsonFilteringConfig(Array.empty[String])
+      InferenceConfig.setInferencePearsonFilteringConfig(Array.empty[String])
       (persistDataStage5, stage5Fields, stage5FullFields)
     }
 
@@ -391,7 +391,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools with
     }
 
     // Record the Inference Settings for Scaling
-    setInferenceScalingConfig(_mainConfig.scalingConfig)
+    InferenceConfig.setInferenceScalingConfig(_mainConfig.scalingConfig)
 
     val finalSchema = s"Final Schema: \n    ${stage65Fields.mkString(", ")}"
     val finalFullSchema = s"Final Full Schema: \n    ${stage65FullFields.mkString(", ")}"

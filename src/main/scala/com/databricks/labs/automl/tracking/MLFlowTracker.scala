@@ -2,7 +2,8 @@ package com.databricks.labs.automl.tracking
 
 import java.io.File
 
-import com.databricks.labs.automl.inference.{InferenceConfig, InferenceModelConfig, InferenceTools}
+import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools}
+import com.databricks.labs.automl.inference.InferenceConfig._
 import com.databricks.labs.automl.params.{GenericModelReturn, MLFlowConfig}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
@@ -14,7 +15,7 @@ import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class MLFlowTracker extends InferenceConfig with InferenceTools{
+class MLFlowTracker extends InferenceTools{
 
 
   private var _mlFlowTrackingURI: String = _
@@ -284,15 +285,15 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
 
     //Inference data save
     val inferencePath = inferenceSaveLocation.takeRight(1) match {
-      case "/" => s"$inferenceSaveLocation$experimentId${_mlFlowBestSuffix}/"
-      case _ => s"$inferenceSaveLocation/$experimentId${_mlFlowBestSuffix}/"
+      case "/" => s"$inferenceSaveLocation${_mlFlowBestSuffix}/"
+      case _ => s"$inferenceSaveLocation/${_mlFlowBestSuffix}/"
     }
     val inferenceLocation = inferencePath + runId + _mlFlowBestSuffix
     val inferenceMlFlowConfig = MLFlowConfig(
       mlFlowTrackingURI = _mlFlowTrackingURI,
       mlFlowExperimentName = _mlFlowExperimentName,
       mlFlowAPIToken = _mlFlowHostedAPIToken,
-      mlFlowModelSaveDirectory = baseDirectory,
+      mlFlowModelSaveDirectory = "models",
       mlFlowLoggingMode = _mlFlowLoggingMode,
       mlFlowBestSuffix = _mlFlowBestSuffix
     )

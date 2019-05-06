@@ -10,10 +10,11 @@ import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.regression._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
+import com.databricks.labs.automl.inference.InferenceConfig._
 
 
-class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationTools with DataValidation with
-  InferenceConfig with InferenceTools {
+class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationTools with DataValidation
+  with InferenceTools {
 
 
   /**
@@ -27,11 +28,12 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
   private def dataPreparation(): InferencePayload = {
 
     // Filter out any non-used fields that may be included in future data sets that weren't part of model training
-    val initialColumnRestriction = df.select(_inferenceConfig.inferenceDataConfig.startingColumns map col:_*)
+//    TODO - Have to remove this temporarily
+//    val initialColumnRestriction = df.select(_inferenceConfig.inferenceDataConfig.startingColumns map col:_*)
 
     // Build the feature Pipeline
 
-    val featurePipelineObject = new FeaturePipeline(initialColumnRestriction)
+    val featurePipelineObject = new FeaturePipeline(df, isInferenceRun = true)
       .setLabelCol(_inferenceConfig.inferenceDataConfig.labelCol)
       .setFeatureCol(_inferenceConfig.inferenceDataConfig.featuresCol)
       .setDateTimeConversionType(_inferenceConfig.inferenceDataConfig.dateTimeConversionType)
@@ -80,7 +82,7 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     */
   private def oneHotEncodingTransform(payload: InferencePayload): InferencePayload = {
 
-    val featurePipeline = new FeaturePipeline(payload.data)
+    val featurePipeline = new FeaturePipeline(payload.data, isInferenceRun = true)
       .setLabelCol(_inferenceConfig.inferenceDataConfig.labelCol)
       .setFeatureCol(_inferenceConfig.inferenceDataConfig.featuresCol)
       .setDateTimeConversionType(_inferenceConfig.inferenceDataConfig.dateTimeConversionType)

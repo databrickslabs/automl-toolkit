@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.inference.InferenceConfig
+import com.databricks.labs.automl.inference.InferenceConfig._
 import com.databricks.labs.automl.utils.DataValidation
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.Pipeline
@@ -9,7 +9,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 
-class FeaturePipeline(data: DataFrame) extends DataValidation with InferenceConfig {
+class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends DataValidation {
 
   private var _labelCol = "label"
   private var _featureCol = "features"
@@ -20,7 +20,7 @@ class FeaturePipeline(data: DataFrame) extends DataValidation with InferenceConf
 
 
   def setLabelCol(value: String): this.type = {
-    assert(_dataFieldNames.contains(value), s"Label field $value is not in DataFrame!")
+    if (!isInferenceRun) assert(_dataFieldNames.contains(value), s"Label field $value is not in DataFrame!")
     _labelCol = value
     this
   }
@@ -46,7 +46,7 @@ class FeaturePipeline(data: DataFrame) extends DataValidation with InferenceConf
   def makeFeaturePipeline(ignoreList: Array[String]): (DataFrame, Array[String], Array[String]) = {
 
     val dfSchema = data.schema
-    assert(dfSchema.fieldNames.contains(_labelCol), s"Dataframe does not contain label column named: ${_labelCol}")
+    if(!isInferenceRun) assert(dfSchema.fieldNames.contains(_labelCol), s"Dataframe does not contain label column named: ${_labelCol}")
 
     // Extract all of the field types
     val (fieldsReady, fieldsToConvert, dateFields, timeFields) = extractTypes(data, _labelCol, ignoreList)
@@ -72,7 +72,12 @@ class FeaturePipeline(data: DataFrame) extends DataValidation with InferenceConf
     val createPipe = new Pipeline()
       .setStages(indexers :+ assembler)
 
-    val fieldsToInclude = assembledColumns ++ Array(_featureCol, _labelCol) ++ ignoreList
+    val fieldsToInclude = if (!isInferenceRun) {
+      assembledColumns ++ Array(_featureCol, _labelCol) ++ ignoreList
+    } else {
+      assembledColumns ++ Array(_featureCol) ++ ignoreList
+    }
+
 
     //DEBUG
     logger.log(Level.DEBUG, s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")

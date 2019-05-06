@@ -1,7 +1,7 @@
 package com.databricks.labs.automl
 
 import com.databricks.labs.automl.executor.DataPrep
-import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools}
+import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools, InferenceConfig}
 import com.databricks.labs.automl.model._
 import com.databricks.labs.automl.model.tools.PostModelingOptimization
 import com.databricks.labs.automl.params._
@@ -810,7 +810,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
       .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
       .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
-      .setInferenceConfig(getInferenceConfig)
 
     if(_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn() else mlFlowLogger.logArtifactsOff()
 
@@ -937,6 +936,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     if(_mainConfig.mlFlowLoggingFlag) {
 
       // set the Inference details in general for the run
+      // TODO - Remove this - It's here and in the tracker but the values are different and should be set equal
       val inferenceModelConfig = InferenceModelConfig(
         modelFamily = _mainConfig.modelFamily,
         modelType = modelSelection,
@@ -947,11 +947,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       )
 
       // Set the Inference Config
-      setInferenceModelConfig(inferenceModelConfig)
-      setInferenceConfigStorageLocation(_mainConfig.inferenceConfigSaveLocation)
+      InferenceConfig.setInferenceModelConfig(inferenceModelConfig)
+      InferenceConfig.setInferenceConfigStorageLocation(_mainConfig.inferenceConfigSaveLocation)
 
       // Write the Inference Payload out to the specified location
-      val outputInferencePayload = getInferenceConfig
+      val outputInferencePayload = InferenceConfig.getInferenceConfig
 
       val inferenceConfigReadable = convertInferenceConfigToJson(outputInferencePayload)
       val inferenceLog = s"Inference Configuration: \n${inferenceConfigReadable.prettyJson}"
@@ -964,11 +964,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       logger.log(Level.INFO, mlFlowResult)
 //    } else {
 
-      if (_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory.nonEmpty) {
-        val inferenceConfigAsDF = convertInferenceConfigToDataFrame(outputInferencePayload)
-
-        inferenceConfigAsDF.write.mode("overwrite").save(_mainConfig.inferenceConfigSaveLocation)
-      }
+//      if (_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory.nonEmpty) {
+//        val inferenceConfigAsDF = convertInferenceConfigToDataFrame(outputInferencePayload)
+//
+//        inferenceConfigAsDF.write.mode("overwrite").save(_mainConfig.inferenceConfigSaveLocation)
+//      }
     }
 
     val generationalData = extractGenerationalScores(genericResultData, _mainConfig.scoringOptimizationStrategy,
