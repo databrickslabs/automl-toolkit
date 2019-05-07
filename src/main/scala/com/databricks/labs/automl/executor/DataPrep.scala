@@ -403,8 +403,6 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
     logger.log(Level.INFO, finalStatement)
     println(finalStatement)
 
-//    TODO - DANIEL - REMOVE THIS BEFORE COMMIT
-    persistDataStage7.write.mode("overwrite").parquet("/tmp/tomes/test/trainDataPrep")
     DataGeneration(persistDataStage7, stage65Fields, detectedModelType)
 
   }
