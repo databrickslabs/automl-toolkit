@@ -389,7 +389,7 @@ val fullConfig = new AutomationRunner(myData)
                               "layers" -> Tuple2(4.0, 20.0),
                               "maxIter" -> Tuple2(10.0, 200.0),
                               "stepSize" -> Tuple2(0.01, 0.5),
-                              "tol" -> Tuple2(1E-9, 1E-6),
+                              "tolerance" -> Tuple2(1E-9, 1E-6),
                               "hiddenLayerSizeAdjust" -> Tuple2(5.0, 50.0)
                             ))
     .setStringBoundaries(Map(
@@ -447,7 +447,7 @@ val fullConfig = new AutomationRunner(myData)
     .setModelSeedMap(Map("layers" -> Array(5), 
     "maxIter" -> 80, 
     "stepSize" -> 0.05, 
-    "tol" -> 1E-8, 
+    "tolerance" -> 1E-8, 
     "hiddenLayersSizeAdjust" -> 14))       // alternative: .setModelSeedString(<Paste Generic Model Return payload>)
 ```
 ##### Note
@@ -1615,7 +1615,7 @@ def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "elasticNetParams" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
+    "tolerance" -> Tuple2(1E-9, 1E-5)
   )
 ```
 ###### Default String Boundaries
@@ -1632,7 +1632,7 @@ def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "elasticNetParams" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
+    "tolerance" -> Tuple2(1E-9, 1E-5)
   )
 ```
 ###### Default String Boundaries
@@ -1652,7 +1652,7 @@ def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "layers" -> Tuple2(1.0, 10.0),
     "maxIter" -> Tuple2(10.0, 100.0),
     "stepSize" -> Tuple2(0.01, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5),
+    "tolerance" -> Tuple2(1E-9, 1E-5),
     "hiddenLayerSizeAdjust" -> Tuple2(0.0, 50.0)
   )
 ```
@@ -1669,7 +1669,7 @@ def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
   def _svmDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
-    "tol" -> Tuple2(1E-9, 1E-5)
+    "tolerance" -> Tuple2(1E-9, 1E-5)
   )
 ```
 ###### Default String Boundaries

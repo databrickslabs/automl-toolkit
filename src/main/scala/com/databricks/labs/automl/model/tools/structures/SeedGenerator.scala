@@ -168,7 +168,7 @@ trait SeedGenerator {
     val selectedStepSize = stepSizeArray.take(1)(0)
     stepSizeArray.drop(1)
 
-    var tolArray = numericArrays.tolArray
+    var tolArray = numericArrays.toleranceArray
     val selectedTol = tolArray.take(1)(0)
     tolArray.drop(1)
 
@@ -176,7 +176,7 @@ trait SeedGenerator {
       layersArray = layersArray,
       maxIterArray = maxIterArray,
       stepSizeArray = stepSizeArray,
-      tolArray = tolArray
+      toleranceArray = tolArray
     )
 
     MLPCArrayCollection(
@@ -185,7 +185,7 @@ trait SeedGenerator {
         maxIter = selectedMaxIter.toInt,
         solver = "placeholder",
         stepSize = selectedStepSize,
-        tol = selectedTol
+        tolerance = selectedTol
       ),
       remainingArrays
     )
@@ -198,7 +198,7 @@ trait SeedGenerator {
       layersArray = Random.shuffle(numericArrays.layersArray.toList).toArray,
       maxIterArray = Random.shuffle(numericArrays.maxIterArray.toList).toArray,
       stepSizeArray = Random.shuffle(numericArrays.stepSizeArray.toList).toArray,
-      tolArray = Random.shuffle(numericArrays.tolArray.toList).toArray
+      toleranceArray = Random.shuffle(numericArrays.toleranceArray.toList).toArray
     )
 
     mlpcStaticIndexSelection(shuffledData)

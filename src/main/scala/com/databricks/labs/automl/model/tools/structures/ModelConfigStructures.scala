@@ -122,108 +122,108 @@ case class GBTModelRunReport(
 
 //LINEAR REGRESSION
 case class LinearRegressionPermutationCollection(
-                                                elasticNetParamsArray: Array[Double],
-                                                fitInterceptArray: Array[Boolean],
-                                                lossArray: Array[String],
-                                                maxIterArray: Array[Double],
-                                                regParamArray: Array[Double],
-                                                standardizationArray: Array[Boolean],
-                                                tolArray: Array[Double]
+                                                  elasticNetParamsArray: Array[Double],
+                                                  fitInterceptArray: Array[Boolean],
+                                                  lossArray: Array[String],
+                                                  maxIterArray: Array[Double],
+                                                  regParamArray: Array[Double],
+                                                  standardizationArray: Array[Boolean],
+                                                  toleranceArray: Array[Double]
                                                 )
 
 case class LinearRegressionNumericArrays(
-                                        elasticNetParamsArray: Array[Double],
-                                        maxIterArray: Array[Double],
-                                        regParamArray: Array[Double],
-                                        tolArray: Array[Double]
+                                          elasticNetParamsArray: Array[Double],
+                                          maxIterArray: Array[Double],
+                                          regParamArray: Array[Double],
+                                          toleranceArray: Array[Double]
                                         )
 
 case class LinearRegressionModelRunReport(
-                                         elasticNetParams: Double,
-                                         fitIntercept: Boolean,
-                                         loss: String,
-                                         maxIter: Int,
-                                         regParam: Double,
-                                         standardization: Boolean,
-                                         tol: Double,
-                                         score: Double
+                                           elasticNetParams: Double,
+                                           fitIntercept: Boolean,
+                                           loss: String,
+                                           maxIter: Int,
+                                           regParam: Double,
+                                           standardization: Boolean,
+                                           tolerance: Double,
+                                           score: Double
                                          )
 
 //LOGISTIC REGRESSION
 case class LogisticRegressionPermutationCollection(
-                                                  elasticNetParamsArray: Array[Double],
-                                                  fitInterceptArray: Array[Boolean],
-                                                  maxIterArray: Array[Double],
-                                                  regParamArray: Array[Double],
-                                                  standardizationArray: Array[Boolean],
-                                                  tolArray: Array[Double]
-                                                  )
-
-case class LogisticRegressionNumericArrays(
-                                          elasticNetParamsArray: Array[Double],
-                                          maxIterArray: Array[Double],
-                                          regParamArray: Array[Double],
-                                          tolArray: Array[Double]
-                                          )
-
-case class LogisticRegressionModelRunReport(
-                                           elasticNetParams: Double,
-                                           fitIntercept: Boolean,
-                                           maxIter: Int,
-                                           regParam: Double,
-                                           standardization: Boolean,
-                                           tol: Double,
-                                           score: Double
-                                         )
-
-//SVM
-case class SVMPermutationCollection(
+                                                    elasticNetParamsArray: Array[Double],
                                                     fitInterceptArray: Array[Boolean],
                                                     maxIterArray: Array[Double],
                                                     regParamArray: Array[Double],
                                                     standardizationArray: Array[Boolean],
-                                                    tolArray: Array[Double]
+                                                    toleranceArray: Array[Double]
                                                   )
 
-case class SVMNumericArrays(
+case class LogisticRegressionNumericArrays(
+                                            elasticNetParamsArray: Array[Double],
                                             maxIterArray: Array[Double],
                                             regParamArray: Array[Double],
-                                            tolArray: Array[Double]
+                                            toleranceArray: Array[Double]
                                           )
 
-case class SVMModelRunReport(
+case class LogisticRegressionModelRunReport(
+                                             elasticNetParams: Double,
                                              fitIntercept: Boolean,
                                              maxIter: Int,
                                              regParam: Double,
                                              standardization: Boolean,
-                                             tol: Double,
+                                             tolerance: Double,
                                              score: Double
+                                         )
+
+//SVM
+case class SVMPermutationCollection(
+                                     fitInterceptArray: Array[Boolean],
+                                     maxIterArray: Array[Double],
+                                     regParamArray: Array[Double],
+                                     standardizationArray: Array[Boolean],
+                                     toleranceArray: Array[Double]
+                                                  )
+
+case class SVMNumericArrays(
+                             maxIterArray: Array[Double],
+                             regParamArray: Array[Double],
+                             toleranceArray: Array[Double]
+                                          )
+
+case class SVMModelRunReport(
+                              fitIntercept: Boolean,
+                              maxIter: Int,
+                              regParam: Double,
+                              standardization: Boolean,
+                              tolerance: Double,
+                              score: Double
                                            )
 
 //MLPC
 
 case class MLPCPermutationCollection(
-                                    layersArray: Array[Array[Int]],
-                                    maxIterArray: Array[Double],
-                                    solverArray: Array[String],
-                                    stepSizeArray: Array[Double],
-                                    tolArray: Array[Double]
+                                      layersArray: Array[Array[Int]],
+                                      maxIterArray: Array[Double],
+                                      solverArray: Array[String],
+                                      stepSizeArray: Array[Double],
+                                      toleranceArray: Array[Double]
                                     )
 
 case class MLPCNumericArrays(
-                             layersArray: Array[Array[Int]],
-                             maxIterArray: Array[Double],
-                             stepSizeArray: Array[Double],
-                             tolArray: Array[Double]
+                              layersArray: Array[Array[Int]],
+                              maxIterArray: Array[Double],
+                              stepSizeArray: Array[Double],
+                              toleranceArray: Array[Double]
                             )
 
 case class MLPCModelRunReport(
-                             layers: Array[Int],
-                             maxIter: Int,
-                             solver: String,
-                             stepSize: Double,
-                             tol: Double,
-                             score: Double
+                               layers: Array[Int],
+                               maxIter: Int,
+                               solver: String,
+                               stepSize: Double,
+                               tolerance: Double,
+                               score: Double
                              )
 
 case class MLPCArrayCollection(

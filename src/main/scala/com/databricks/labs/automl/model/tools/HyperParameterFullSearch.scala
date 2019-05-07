@@ -258,7 +258,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var _lossIdx = 0
 
     var numericArrays = Array(generatedArrays.elasticNetParamsArray, generatedArrays.maxIterArray,
-      generatedArrays.regParamArray, generatedArrays.tolArray)
+      generatedArrays.regParamArray, generatedArrays.toleranceArray)
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
@@ -281,7 +281,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
         maxIter = selectedIndeces.selectedPayload(1).toInt,
         regParam = selectedIndeces.selectedPayload(2),
         standardization = standardizationLoop,
-        tol = selectedIndeces.selectedPayload(3)
+        tolerance = selectedIndeces.selectedPayload(3)
       )
       _lossIdx += 1
       _standardizationIdx += 1
@@ -307,7 +307,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var _standardizationIdx = 0
 
     var numericArrays = Array(generatedArrays.elasticNetParamsArray, generatedArrays.maxIterArray,
-      generatedArrays.regParamArray, generatedArrays.tolArray)
+      generatedArrays.regParamArray, generatedArrays.toleranceArray)
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
@@ -328,7 +328,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
         maxIter = selectedIndeces.selectedPayload(1).toInt,
         regParam = selectedIndeces.selectedPayload(2),
         standardization = standardizationLoop,
-        tol = selectedIndeces.selectedPayload(3)
+        tolerance = selectedIndeces.selectedPayload(3)
       )
       _standardizationIdx += 1
       _fitInterceptIdx += 1
@@ -352,7 +352,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var _fitInterceptIdx = 0
     var _standardizationIdx = 0
 
-    var numericArrays = Array(generatedArrays.maxIterArray, generatedArrays.regParamArray, generatedArrays.tolArray)
+    var numericArrays = Array(generatedArrays.maxIterArray, generatedArrays.regParamArray, generatedArrays.toleranceArray)
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
@@ -372,7 +372,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
         maxIter = selectedIndeces.selectedPayload(0).toInt,
         regParam = selectedIndeces.selectedPayload(1),
         standardization = standardizationLoop,
-        tol = selectedIndeces.selectedPayload(2)
+        tolerance = selectedIndeces.selectedPayload(2)
       )
       _standardizationIdx += 1
       _fitInterceptIdx += 1
@@ -460,7 +460,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
         maxIter = selectedIndeces.selectedPayload.maxIter,
         solver = solverLoop.selectedStringValue,
         stepSize = selectedIndeces.selectedPayload.stepSize,
-        tol = selectedIndeces.selectedPayload.tol
+        tolerance = selectedIndeces.selectedPayload.tolerance
       )
       _solverIdx += 1
     }

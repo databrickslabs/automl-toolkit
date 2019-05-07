@@ -60,7 +60,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
       .setRegParam(modelConfig.regParam)
       .setSolver("auto")
       .setStandardization(modelConfig.standardization)
-      .setTol(modelConfig.tol)
+      .setTol(modelConfig.tolerance)
   }
 
   private def returnBestHyperParameters(collection: ArrayBuffer[LinearRegressionModelsWithResults]):
@@ -111,9 +111,9 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
       val maxIter = generateRandomInteger("maxIter", _linearRegressionNumericBoundaries)
       val regParam = generateRandomDouble("regParam", _linearRegressionNumericBoundaries)
       val standardization = coinFlip()
-      val tol = generateRandomDouble("tolerance", _linearRegressionNumericBoundaries)
+      val tolerance = generateRandomDouble("tolerance", _linearRegressionNumericBoundaries)
       iterations += LinearRegressionConfig(elasticNetParams, fitIntercept, loss, maxIter, regParam, standardization,
-        tol)
+        tolerance)
       i += 1
     } while (i < iterationCount)
     iterations.toArray
@@ -246,9 +246,9 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
         if (mutationIndexIteration.contains(5)) coinFlip(randomParent.standardization,
           mutationIteration.standardization, mutationMagnitude)
         else randomParent.standardization,
-        if (mutationIndexIteration.contains(6)) geneMixing(randomParent.tol,
-          mutationIteration.tol, mutationMagnitude)
-        else randomParent.tol
+        if (mutationIndexIteration.contains(6)) geneMixing(randomParent.tolerance,
+          mutationIteration.tolerance, mutationMagnitude)
+        else randomParent.tolerance
       )
     }
     mutationPayload.result.toArray

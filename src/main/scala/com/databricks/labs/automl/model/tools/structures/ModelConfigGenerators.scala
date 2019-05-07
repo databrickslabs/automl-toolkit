@@ -292,9 +292,9 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- linearRegressionPermutationCollection.maxIterArray
       regParam <- linearRegressionPermutationCollection.regParamArray
       standardization <- linearRegressionPermutationCollection.standardizationArray
-      tol <- linearRegressionPermutationCollection.tolArray
+      tolerance <- linearRegressionPermutationCollection.toleranceArray
     } yield LinearRegressionConfig(elasticNetParams, fitIntercept, loss, maxIter.toInt, regParam, standardization,
-      tol)
+      tolerance)
   }
 
   protected[tools] def linearRegressionNumericArrayGenerator(config: PermutationConfiguration):
@@ -307,8 +307,8 @@ trait ModelConfigGenerators extends SeedGenerator {
         extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
-      tolArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+      toleranceArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 
@@ -325,7 +325,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIterArray = numericPayloads.maxIterArray,
       regParamArray = numericPayloads.regParamArray,
       standardizationArray = Array(true, false),
-      tolArray = numericPayloads.tolArray
+      toleranceArray = numericPayloads.toleranceArray
     )
 
     val permutationCollection = linearRegressionConfigGenerator(fullPermutationConfig)
@@ -349,7 +349,7 @@ trait ModelConfigGenerators extends SeedGenerator {
         maxIter = x(3).toString.toInt,
         regParam = x(4).toString.toDouble,
         standardization = x(5).toString.toBoolean,
-        tol = x(6).toString.toDouble
+        tolerance = x(6).toString.toDouble
       )
     }
     collectionBuffer.result.toArray
@@ -365,7 +365,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- logisticRegressionPermutationCollection.maxIterArray
       regParam <- logisticRegressionPermutationCollection.regParamArray
       standardization <- logisticRegressionPermutationCollection.standardizationArray
-      tol <- logisticRegressionPermutationCollection.tolArray
+      tol <- logisticRegressionPermutationCollection.toleranceArray
     } yield LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter.toInt, regParam, standardization,
       tol)
   }
@@ -380,8 +380,8 @@ trait ModelConfigGenerators extends SeedGenerator {
         extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
-      tolArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+      toleranceArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 
@@ -397,7 +397,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIterArray = numericPayloads.maxIterArray,
       regParamArray = numericPayloads.regParamArray,
       standardizationArray = Array(true, false),
-      tolArray = numericPayloads.tolArray
+      toleranceArray = numericPayloads.toleranceArray
     )
 
     val permutationCollection = logisticRegressionConfigGenerator(fullPermutationConfig)
@@ -421,7 +421,7 @@ trait ModelConfigGenerators extends SeedGenerator {
         maxIter = x(2).toString.toInt,
         regParam = x(3).toString.toDouble,
         standardization = x(4).toString.toBoolean,
-        tol = x(5).toString.toDouble
+        tolerance = x(5).toString.toDouble
       )
     }
     collectionBuffer.result.toArray
@@ -435,7 +435,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- svmPermutationCollection.maxIterArray
       regParam <- svmPermutationCollection.regParamArray
       standardization <- svmPermutationCollection.standardizationArray
-      tol <- svmPermutationCollection.tolArray
+      tol <- svmPermutationCollection.toleranceArray
     } yield SVMConfig(fitIntercept, maxIter.toInt, regParam, standardization, tol)
   }
 
@@ -446,8 +446,8 @@ trait ModelConfigGenerators extends SeedGenerator {
         extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
       regParamArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
-      tolArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+      toleranceArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 
@@ -462,7 +462,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIterArray = numericPayloads.maxIterArray,
       regParamArray = numericPayloads.regParamArray,
       standardizationArray = Array(true, false),
-      tolArray = numericPayloads.tolArray
+      toleranceArray = numericPayloads.toleranceArray
     )
 
     val permutationCollection = svmConfigGenerator(fullPermutationConfig)
@@ -485,7 +485,7 @@ trait ModelConfigGenerators extends SeedGenerator {
         maxIter = x(1).toString.toInt,
         regParam = x(2).toString.toDouble,
         standardization = x(3).toString.toBoolean,
-        tol = x(4).toString.toDouble
+        tolerance = x(4).toString.toDouble
       )
     }
     collectionBuffer.result.toArray
@@ -595,7 +595,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- mlpcPermutationCollection.maxIterArray
       solver <- mlpcPermutationCollection.solverArray
       stepSize <- mlpcPermutationCollection.stepSizeArray
-      tol <- mlpcPermutationCollection.tolArray
+      tol <- mlpcPermutationCollection.toleranceArray
 
     } yield MLPCConfig(layers, maxIter.toInt, solver, stepSize, tol)
   }
@@ -611,8 +611,8 @@ trait ModelConfigGenerators extends SeedGenerator {
         extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
       stepSizeArray = generateLinearSpace(
         extractContinuousBoundaries(config.numericBoundaries("stepSize")), config.permutationTarget),
-      tolArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tol")), config.permutationTarget)
+      toleranceArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
     )
   }
 
@@ -627,7 +627,7 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIterArray = numericPayloads.maxIterArray,
       solverArray = config.stringBoundaries("solver").toArray,
       stepSizeArray = numericPayloads.stepSizeArray,
-      tolArray = numericPayloads.tolArray
+      toleranceArray = numericPayloads.toleranceArray
     )
 
     val permutationCollection = mlpcConfigGenerator(fullPermutationConfig)
@@ -650,7 +650,7 @@ trait ModelConfigGenerators extends SeedGenerator {
         maxIter = x(1).toString.toInt,
         solver = x(2).toString,
         stepSize = x(3).toString.toDouble,
-        tol = x(4).toString.toDouble
+        tolerance = x(4).toString.toDouble
       )
     }
     collectionBuffer.result.toArray
