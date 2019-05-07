@@ -52,6 +52,7 @@ object go extends App {
       .autoStoppingOff()
       .mlFlowLoggingOn()
       .mlFlowLogArtifactsOff()
+      .setMlFlowLoggingMode("both")
       .setMlFlowTrackingURI("http://localhost:5000")
       .setMlFlowExperimentName(s"danTest")
       .setMlFlowModelSaveDirectory(s"/tmp/tomes/ml/automl/danTest/models/")
