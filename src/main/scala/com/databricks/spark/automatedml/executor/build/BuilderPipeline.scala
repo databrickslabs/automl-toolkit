@@ -119,7 +119,22 @@ class BuilderPipeline(df: DataFrame) extends BuilderConfig {
 
   }
 
-
+  /**
+    * TODO's:
+    * 1. Make an accessor class for building different configs for each family that's desired to be calculated.
+    *  - Companion object to this constructor that will simply return the state of the defaults in order to override
+    *  and mutate them easier?  Or stick with the current design of defaults loading upon instantiation?
+    *  - Validation checking needs to be done to ensure that each of the model families can support the type of task
+    *  (classification vs. regression) and that the type of data set that is supplied can support these model types.
+    *  - This builder will return a configuration object instantiation of the main builder case class.
+    * 2. Generate the basic types of model families as named objects
+    * 3. Build a string converter that allows for abbreviations / string attribution to define the model family type
+    * 4. Call the DataPrep class, then define the model runner processes in a new Automation package
+    *  - This new package should be designed to be as generic as possible, calling the respective Tuner's as needed
+    *  - There should be a pool of resources to run all packaged models together asynchronously
+    *  - Logging to mlflow should be accomplished in each generation completion? Think about how to do this.
+    * 5. Think about serializing the models in either a docker compose script or as an MLeap artifact. (FUTURE WORK)
+    */
 
 
   // TODO: super-cheese way of doing this is to turn mlflow logging off, run a bunch of automation runner runs
