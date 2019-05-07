@@ -132,8 +132,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       val maxIter = generateRandomInteger("maxIter", _mlpcNumericBoundaries)
       val solver = generateRandomString("solver", _mlpcStringBoundaries)
       val stepSize = generateRandomDouble("stepSize", _mlpcNumericBoundaries)
-      val tol = generateRandomDouble("tolerance", _mlpcNumericBoundaries)
-      iterations += MLPCConfig(layers, maxIter, solver, stepSize, tol)
+      val tolerance = generateRandomDouble("tolerance", _mlpcNumericBoundaries)
+      iterations += MLPCConfig(layers, maxIter, solver, stepSize, tolerance)
       i += 1
     } while (i < iterationCount)
     iterations.toArray

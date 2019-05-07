@@ -365,9 +365,9 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- logisticRegressionPermutationCollection.maxIterArray
       regParam <- logisticRegressionPermutationCollection.regParamArray
       standardization <- logisticRegressionPermutationCollection.standardizationArray
-      tol <- logisticRegressionPermutationCollection.toleranceArray
+      tolerance <- logisticRegressionPermutationCollection.toleranceArray
     } yield LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter.toInt, regParam, standardization,
-      tol)
+      tolerance)
   }
 
   protected[tools] def logisticRegressionNumericArrayGenerator(config: PermutationConfiguration):
@@ -435,8 +435,8 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- svmPermutationCollection.maxIterArray
       regParam <- svmPermutationCollection.regParamArray
       standardization <- svmPermutationCollection.standardizationArray
-      tol <- svmPermutationCollection.toleranceArray
-    } yield SVMConfig(fitIntercept, maxIter.toInt, regParam, standardization, tol)
+      tolerance <- svmPermutationCollection.toleranceArray
+    } yield SVMConfig(fitIntercept, maxIter.toInt, regParam, standardization, tolerance)
   }
 
   protected[tools] def svmNumericArrayGenerator(config: PermutationConfiguration): SVMNumericArrays = {
@@ -595,9 +595,9 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxIter <- mlpcPermutationCollection.maxIterArray
       solver <- mlpcPermutationCollection.solverArray
       stepSize <- mlpcPermutationCollection.stepSizeArray
-      tol <- mlpcPermutationCollection.toleranceArray
+      tolerance <- mlpcPermutationCollection.toleranceArray
 
-    } yield MLPCConfig(layers, maxIter.toInt, solver, stepSize, tol)
+    } yield MLPCConfig(layers, maxIter.toInt, solver, stepSize, tolerance)
   }
 
   protected[tools] def mlpcNumericArrayGenerator(config: MLPCPermutationConfiguration): MLPCNumericArrays = {

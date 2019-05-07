@@ -283,8 +283,8 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
 
     //Inference data save
     val inferencePath = inferenceSaveLocation.takeRight(1) match {
-      case "/" => s"$inferenceSaveLocation${_mlFlowExperimentName}${_mlFlowBestSuffix}/"
-      case _ => s"$inferenceSaveLocation/${_mlFlowExperimentName}${_mlFlowBestSuffix}/"
+      case "/" => s"$inferenceSaveLocation$experimentId${_mlFlowBestSuffix}/"
+      case _ => s"$inferenceSaveLocation/$experimentId${_mlFlowBestSuffix}/"
     }
     val inferenceLocation = inferencePath + runId + _mlFlowBestSuffix
     val inferenceMlFlowConfig = MLFlowConfig(
@@ -400,8 +400,8 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
 
         // set the model save directory
         val inferencePath = inferenceSaveLocation.takeRight(1) match {
-          case "/" => s"$inferenceSaveLocation${_mlFlowExperimentName}/"
-          case _ => s"$inferenceSaveLocation/${_mlFlowExperimentName}/"
+          case "/" => s"$inferenceSaveLocation$experimentId/"
+          case _ => s"$inferenceSaveLocation/$experimentId/"
         }
 
         val inferenceLocation = inferencePath + runId
