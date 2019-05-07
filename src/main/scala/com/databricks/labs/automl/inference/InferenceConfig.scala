@@ -2,7 +2,7 @@ package com.databricks.labs.automl.inference
 
 import com.databricks.labs.automl.params.{MLFlowConfig, ScalingConfig}
 
-trait InferenceConfig extends InferenceDefaults {
+object InferenceConfig extends InferenceDefaults {
 
   final val allowableModelLoads: Array[String] = Array("path", "mlflow")
   final val allowableOutlierFilteringDirections: Array[String] = Array("greater", "lesser")
@@ -65,11 +65,17 @@ trait InferenceConfig extends InferenceDefaults {
 
   def setInferenceSwitchSettings(value: InferenceSwitchSettings): this.type = {
     _inferenceSwitchSettings = value
+    setInferenceConfig()
     this
   }
 
   def setInferenceDataConfig(value: InferenceDataConfig): this.type = {
     _inferenceDataConfig = value
+    _inferenceDataConfigLabelCol = value.labelCol
+    _inferenceDataConfigFeaturesCol = value.featuresCol
+    _inferenceDataConfigStartingColumns = value.startingColumns
+    _inferenceDataConfigFieldsToIgnore = value.fieldsToIgnore
+    _inferenceDataConfigDateTimeConversionType = value.dateTimeConversionType
     setInferenceConfig()
     this
   }
@@ -406,6 +412,6 @@ trait InferenceConfig extends InferenceDefaults {
 }
 
 
-object InferenceConfig extends InferenceConfig{
-}
+//object InferenceConfig extends InferenceConfig{
+//}
 

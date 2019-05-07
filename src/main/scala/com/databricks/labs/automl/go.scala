@@ -1,8 +1,9 @@
 package com.databricks.labs.automl
 
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.{Partitioner, SparkContext}
+import com.databricks.labs.automl.inference.InferencePipeline
 
 object go extends App {
 
@@ -13,130 +14,85 @@ object go extends App {
     .getOrCreate()
 
   lazy val sc: SparkContext = SparkContext.getOrCreate()
-  val train_df = spark.read.parquet("/Users/danieltomes/Dev/gitProjects/providentia/testData")
-  val labelColumn = "TARGET"
-  val modelingType = "RandomForest"
-  val runExperiment = "runRF2"
-  val projectName = "Issuance_Churn_Tomes"
 
-  val rfBoundaries = Map(
-    "numTrees" -> Tuple2(50.0, 500.0),
-    "maxBins" -> Tuple2(10.0, 100.0),
-    "maxDepth" -> Tuple2(1.0, 7.0),
-    "minInfoGain" -> Tuple2(0.00000008, 0.2),
-    "subSamplingRate" -> Tuple2(0.5, 0.8)
-  )
+  val train = spark.read
+    .option("header", true)
+    .option("inferSchema", true)
+    .option("nullValue", "NA")
+    .csv("/tmp/house_prices/train.csv")
+    .cache
+  val test = spark.read
+    .option("header", true)
+    .option("inferSchema", true)
+    .option("nullValue", "NA")
+    .csv("/tmp/house_prices/test.csv").cache
+  train.count
+  test.count
 
-  val tCols = train_df.columns.slice(0,40) :+ labelColumn
-  val trainDFSml = train_df.select(tCols map col: _*)
+  val RUNVERSION = 8
+  val modelingType = "LinearRegression"
+  val labelColumn = "SalePrice"
+  val runExperiment = s"housePrices_$RUNVERSION"
+  val projectName = "housePrices"
 
+  def doTrain(trainDF: DataFrame): Unit = {
+    val fullConfig = new AutomationRunner(trainDF)
+      .setModelingFamily(modelingType)
+      .setLabelCol(labelColumn)
+      .setFeaturesCol("features")
+      .setStringBoundaries(Map("loss" -> List("squaredError")))
+      .naFillOn()
+      .setModelSelectionDistinctThreshold(20)
+      .varianceFilterOn()
+      .outlierFilterOff()
+      .pearsonFilterOff()
+      .covarianceFilterOff()
+      .oneHotEncodingOff()
+      .scalingOn()
+      .autoStoppingOff()
+      .mlFlowLoggingOn()
+      .mlFlowLogArtifactsOff()
+      .setMlFlowLoggingMode("both")
+      .setMlFlowTrackingURI("http://localhost:5000")
+      .setMlFlowExperimentName(s"danTest")
+      .setMlFlowModelSaveDirectory(s"/tmp/tomes/ml/automl/danTest/models/")
+      .setInferenceConfigSaveLocation(s"/tmp/tomes/ml/automl/danTest/inference/$runExperiment")
+      .setFilterPrecision(0.9)
+      .setParallelism(8)
+      .setKFold(1)
+      .setTrainPortion(0.70)
+      .setTrainSplitMethod("random")
+      .setFirstGenerationGenePool(8)
+      .setNumberOfGenerations(4)
+      .setNumberOfParentsToRetain(2)
+      .setNumberOfMutationsPerGeneration(4)
+      .setGeneticMixing(0.8)
+      .setGenerationalMutationStrategy("fixed")
+      .setScoringMetric("r2")
+      .setFeatureImportanceCutoffType("count")
+      .setFeatureImportanceCutoffValue(15.0)
+      .setEvolutionStrategy("batch")
+      .setFirstGenerationMode("random")
+      .setFirstGenerationPermutationCount(20)
+      .setFirstGenerationIndexMixingMode("random")
+      .setFirstGenerationArraySeed(42L)
+      .hyperSpaceInferenceOn()
+      .setHyperSpaceInferenceCount(400000)
+      .setHyperSpaceModelType("LinearRegression")
+      .setHyperSpaceModelCount(4)
 
-  val dataPrepConfig = new AutomationRunner(trainDFSml.limit(20000))
-    .setLabelCol(labelColumn)
-    .setFeaturesCol("features")
-    .naFillOn()
-    .varianceFilterOn()
-    .outlierFilterOff()
-    .pearsonFilterOff()
-    .covarianceFilterOff()
-    .oneHotEncodingOff()
-    .scalingOff()
-    .setScoringMetric("areaUnderROC")
-    .dataPrepCachingOff()
-    .setStandardScalerMeanFlagOff()
-    .setStandardScalerStdDevFlagOff()
-    .setFilterPrecision(0.9)
-    .setCorrelationCutoffLow(-0.9996)
-    .setCorrelationCutoffHigh(0.96)
-    .setParallelism(10)
-    .setKFold(1)
-    .setTrainPortion(0.70)
-    .setTrainSplitMethod("stratifyReduce")
-    .setFirstGenerationGenePool(5)
-    .setNumberOfGenerations(1)
-    .setNumberOfParentsToRetain(2)
-    .setNumberOfMutationsPerGeneration(5)
-    .setGeneticMixing(0.8)
-    .setGenerationalMutationStrategy("fixed")
-    .setEvolutionStrategy("batch")
-    .setDataReductionFactor(0.5)
+    val resultData = fullConfig.runWithConfusionReport()
+    resultData.confusionData.show()
+  }
 
-//  dataPrepConfig.getArti
-//
-//  class myPartitioner(override val numPartitions: Int) extends Partitioner {
-//    override def getPartition(key: Any): Int = {
-//      val k = key.asInstanceOf[Int]
-//      k % numPartitions
-//    }
-//
-//    override def equals(other: scala.Any): Boolean = {
-//      other match {
-//        case obj: myPartitioner => obj.numPartitions == numPartitions
-//        case _ => false
-//      }
-//    }
-//  }
-//
-//  sc.parallelize(Seq((1,2),(3,4))).partitionBy(new myPartitioner(100))
-//  val preppedData = dataPrepConfig.prepData()
-//  preppedData.data.show()
+  def infer(inferDataFrameLocation: String, inferDF: DataFrame): Unit = {
+    val inferenceConfig = new InferencePipeline(inferDF)
+      .runInferenceFromStoredDataFrame(inferDataFrameLocation)
 
-//  val sampleModel = dataPrepConfig.runWithPrediction()
-//  dataPrepConfig.run().
+    inferenceConfig.show()
+  }
 
-
-//  println(preppedDF.modelType)
-//
-//  preppedDF.data.rdd.map(row => row.getAs[Array[String]](0))
-//
-//  val dg = DataGeneration(preppedDF.data, preppedDF.fields, preppedDF.modelType)
-
-//  val fi = new ManualRunner(dg)
-//    .setModelingFamily(modelingType)
-//    .setNumericBoundaries(rfBoundaries)
-//    .setLabelCol(labelColumn)
-//    .setFeaturesCol("features")
-//    .dataPrepCachingOff()
-//    .naFillOn()
-//    .varianceFilterOn()
-//    .outlierFilterOff()
-//    .pearsonFilterOff()
-//    .covarianceFilterOff()
-//    .oneHotEncodingOff()
-//    .scalingOff()
-//    .setStandardScalerMeanFlagOff()
-//    .setStandardScalerStdDevFlagOff()
-//    .mlFlowLoggingOff()
-//    .mlFlowLogArtifactsOff()
-//    .autoStoppingOff()
-//    .setFilterPrecision(0.9)
-//    .setParallelism(2)
-//    .setKFold(1)
-//    .setTrainPortion(0.70)
-//    .setTrainSplitMethod("underSample")
-//    .setFirstGenerationGenePool(20)
-//    .setNumberOfGenerations(5)
-//    .setNumberOfParentsToRetain(2)
-//    .setNumberOfMutationsPerGeneration(10)
-//    .setGeneticMixing(0.8)
-//    .setGenerationalMutationStrategy("fixed")
-//    .setFeatureImportanceCutoffType("count")
-//    .setFeatureImportanceCutoffValue(20.0)
-//    .setEvolutionStrategy("batch")
-//    .setTrainSplitMethod("stratifyReduce")
-//    .setDataReductionFactor(0.8)
-//
-//  val vrun = fi.exploreFeatureImportances()
-
-//
-//  val selector = new ChiSqSelector()
-//    .setNumTopFeatures(80)
-//    .setFeaturesCol("features")
-//    .setLabelCol("TARGET")
-//    .setOutputCol("selectedFeatures")
-//
-//  val result = selector.fit(preppedDF).transform(preppedDF)
-//
-//  println(s"ChiSqSelector output with top ${selector.getNumTopFeatures} features selected")
-//  result.show()
+//  doTrain(train)
+  infer("/tmp/tomes/ml/automl/danTest/inference/housePrices_7/_best/f992fe66793b473cba4de9886588d34a_best",
+    test)
 }

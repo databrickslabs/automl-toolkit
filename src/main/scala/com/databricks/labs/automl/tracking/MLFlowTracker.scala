@@ -2,7 +2,8 @@ package com.databricks.labs.automl.tracking
 
 import java.io.File
 
-import com.databricks.labs.automl.inference.{InferenceConfig, InferenceModelConfig, InferenceTools}
+import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools}
+import com.databricks.labs.automl.inference.InferenceConfig._
 import com.databricks.labs.automl.params.{GenericModelReturn, MLFlowConfig}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
@@ -14,7 +15,7 @@ import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class MLFlowTracker extends InferenceConfig with InferenceTools{
+class MLFlowTracker extends InferenceTools{
 
 
   private var _mlFlowTrackingURI: String = _
@@ -108,6 +109,7 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
 
     val experimentId = getOrCreateExperimentId(client)
 
+//    client.logArtifacts("7bdee580de5f4ee58543b1d70283295f",new File("/tmp/house_prices"))
     val runId = client.createRun(experimentId, runIdentifier).getRunUuid
 
     runId
@@ -145,6 +147,7 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
   private def saveModel(client: MlflowClient, path: String, runId: String, modelReturn: GenericModelReturn,
                         modelDescriptor: String, modelId: String): Unit = {
 
+    println(s"Model will be saved to path $path")
     modelDescriptor match {
             case "regressor_RandomForest" =>
               modelReturn.model.asInstanceOf[RandomForestRegressionModel].write.overwrite().save(path)
@@ -284,7 +287,7 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
     //Inference data save
     val inferencePath = inferenceSaveLocation.takeRight(1) match {
       case "/" => s"$inferenceSaveLocation$experimentId${_mlFlowBestSuffix}/"
-      case _ => s"$inferenceSaveLocation/$experimentId${_mlFlowBestSuffix}/"
+      case _ => s"$inferenceSaveLocation/$experimentId/${_mlFlowBestSuffix}/"
     }
     val inferenceLocation = inferencePath + runId + _mlFlowBestSuffix
     val inferenceMlFlowConfig = MLFlowConfig(
@@ -314,6 +317,7 @@ class MLFlowTracker extends InferenceConfig with InferenceTools{
     val inferenceConfigAsDF = convertInferenceConfigToDataFrame(inferenceConfig)
 
     //Save the inference config to the save location
+    println(s"Inference DF will be saved to $inferenceLocation")
     inferenceConfigAsDF.write.save(inferenceLocation)
 
     mlflowLoggingClient.setTag(runId, "InferenceConfig", inferenceConfigAsJSON.compactJson)
