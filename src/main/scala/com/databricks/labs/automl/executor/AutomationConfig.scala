@@ -754,6 +754,9 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setFirstGenerationIndexMixingMode(value: String): this.type = {
+    require(_allowableInitialGenerationIndexMixingModes.contains(value), s"Invalid First Generation Index Mixing " +
+      s"Mode: $value .  First Generation Index Mixing Mode must be one of: " +
+      s"${_allowableInitialGenerationIndexMixingModes.mkString(", ")}")
     _firstGenerationIndexMixingMode = value
     setFirstGenerationConfig()
     this
@@ -808,6 +811,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setFirstGenerationMode(value: String): this.type = {
+    require(_allowableInitialGenerationModes.contains(value), s"Invalid First Generation Mode: $value . " +
+      s"First Generation Mode must be one of : ${_allowableInitialGenerationModes.mkString(", ")}")
     _firstGenerationMode = value
     setGeneticConfig()
     setConfigs()

@@ -1,4 +1,4 @@
-package com.databricks.spark.automatedml.executor.build
+package com.databricks.labs.automl.executor.build
 
 import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.executor.DataPrep
