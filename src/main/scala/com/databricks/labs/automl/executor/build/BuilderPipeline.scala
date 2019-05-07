@@ -1,8 +1,9 @@
 package com.databricks.spark.automatedml.executor.build
 
-import com.databricks.spark.automatedml.AutomationRunner
-import com.databricks.spark.automatedml.executor.DataPrep
-import com.databricks.spark.automatedml.sanitize.DataSanitizer
+import com.databricks.labs.automl.AutomationRunner
+import com.databricks.labs.automl.executor.DataPrep
+import com.databricks.labs.automl.executor.build.BuilderConfig
+import com.databricks.labs.automl.sanitize.DataSanitizer
 import org.apache.spark.sql.DataFrame
 
 class BuilderPipeline(df: DataFrame) extends BuilderConfig {

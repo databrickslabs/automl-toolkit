@@ -278,10 +278,20 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
       val lossLoop = selectStringIndex(stringBoundaries("loss"), _lossIdx)
       _lossIdx = lossLoop.IndexCounterStatus
 
+      /**
+        * For Linear Regression, the loss setting of 'huber' does not permit regularization of elasticnet or L1.
+        * It must be set to L2 regularization (elasticNetParams == 0.0) to function.
+        */
+      val loss = lossLoop.selectedStringValue
+      val elasticNetParams = loss match {
+        case "huber" => 0.0
+        case _ => selectedIndeces.selectedPayload(0)
+      }
+
       outputPayload += LinearRegressionConfig(
-        elasticNetParams = selectedIndeces.selectedPayload(0),
+        loss = loss,
+        elasticNetParams = elasticNetParams,
         fitIntercept = fitInterceptLoop,
-        loss = lossLoop.selectedStringValue,
         maxIter = selectedIndeces.selectedPayload(1).toInt,
         regParam = selectedIndeces.selectedPayload(2),
         standardization = standardizationLoop,

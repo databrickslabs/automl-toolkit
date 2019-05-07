@@ -78,7 +78,7 @@ trait SeedConverters {
       maxIter = configMap("maxIter").asInstanceOf[String].toInt,
       regParam = configMap("regParam").asInstanceOf[String].toDouble,
       standardization = configMap("standardization").asInstanceOf[String].toBoolean,
-      tol = configMap("tolerance").asInstanceOf[String].toDouble
+      tolerance = configMap("tolerance").asInstanceOf[String].toDouble
     )
   }
 
@@ -90,7 +90,7 @@ trait SeedConverters {
       maxIter = configMap("maxIter").asInstanceOf[String].toInt,
       regParam = configMap("regParam").asInstanceOf[String].toDouble,
       standardization = configMap("standardization").asInstanceOf[String].toBoolean,
-      tol = configMap("tolerance").asInstanceOf[String].toDouble
+      tolerance = configMap("tolerance").asInstanceOf[String].toDouble
     )
   }
 

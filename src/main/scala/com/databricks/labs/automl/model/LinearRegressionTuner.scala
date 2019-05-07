@@ -105,9 +105,16 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
 
     var i = 0
     do {
-      val elasticNetParams = generateRandomDouble("elasticNetParams", _linearRegressionNumericBoundaries)
-      val fitIntercept = coinFlip()
+      // get the loss metric first
       val loss = generateRandomString("loss", _linearRegressionStringBoundaries)
+
+      // modify the allowable results for huber loss since Huber solver can only support L2 regularization.
+
+      val elasticNetParams = loss match {
+        case "huber" => 0.0
+        case _ => generateRandomDouble("elasticNetParams", _linearRegressionNumericBoundaries)
+      }
+      val fitIntercept = coinFlip()
       val maxIter = generateRandomInteger("maxIter", _linearRegressionNumericBoundaries)
       val regParam = generateRandomDouble("regParam", _linearRegressionNumericBoundaries)
       val standardization = coinFlip()
