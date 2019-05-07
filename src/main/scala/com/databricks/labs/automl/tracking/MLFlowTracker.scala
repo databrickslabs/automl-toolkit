@@ -147,6 +147,7 @@ class MLFlowTracker extends InferenceTools{
   private def saveModel(client: MlflowClient, path: String, runId: String, modelReturn: GenericModelReturn,
                         modelDescriptor: String, modelId: String): Unit = {
 
+    println(s"Model will be saved to path $path")
     modelDescriptor match {
             case "regressor_RandomForest" =>
               modelReturn.model.asInstanceOf[RandomForestRegressionModel].write.overwrite().save(path)
@@ -316,6 +317,7 @@ class MLFlowTracker extends InferenceTools{
     val inferenceConfigAsDF = convertInferenceConfigToDataFrame(inferenceConfig)
 
     //Save the inference config to the save location
+    println(s"Inference DF will be saved to $inferenceLocation")
     inferenceConfigAsDF.write.save(inferenceLocation)
 
     mlflowLoggingClient.setTag(runId, "InferenceConfig", inferenceConfigAsJSON.compactJson)
@@ -412,7 +414,7 @@ class MLFlowTracker extends InferenceTools{
           mlFlowTrackingURI = _mlFlowTrackingURI,
           mlFlowExperimentName = _mlFlowExperimentName,
           mlFlowAPIToken = _mlFlowHostedAPIToken,
-          mlFlowModelSaveDirectory = baseDirectory,
+          mlFlowModelSaveDirectory = "models",
           mlFlowLoggingMode = _mlFlowLoggingMode,
           mlFlowBestSuffix = _mlFlowBestSuffix
         )

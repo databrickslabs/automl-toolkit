@@ -943,7 +943,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         modelLoadMethod = "path",
         mlFlowConfig = _mainConfig.mlFlowConfig,
         mlFlowRunId = "none",
-        modelPathLocation = _mainConfig.mlFlowConfig.mlFlowModelSaveDirectory
+        modelPathLocation = "notDefined"
       )
 
       // Set the Inference Config

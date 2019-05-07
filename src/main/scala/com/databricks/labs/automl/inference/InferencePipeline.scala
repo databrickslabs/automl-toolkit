@@ -282,6 +282,7 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     val featureEngineering = executeFeatureEngineering(prep)
 
     // Execute the model inference and return a transformed DataFrame.
+    featureEngineering.data.write.mode("overwrite").parquet("/tmp/tomes/test/testDataPrep")
     loadModelAndInfer(featureEngineering.data)
 
   }

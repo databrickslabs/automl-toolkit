@@ -29,7 +29,7 @@ object go extends App {
   train.count
   test.count
 
-  val RUNVERSION = 10
+  val RUNVERSION = 8
   val modelingType = "LinearRegression"
   val labelColumn = "SalePrice"
   val runExperiment = s"housePrices_$RUNVERSION"
@@ -47,12 +47,11 @@ object go extends App {
       .outlierFilterOff()
       .pearsonFilterOff()
       .covarianceFilterOff()
-      .oneHotEncodingOn()
+      .oneHotEncodingOff()
       .scalingOn()
       .autoStoppingOff()
       .mlFlowLoggingOn()
       .mlFlowLogArtifactsOff()
-      .setMlFlowLoggingMode("bestOnly")
       .setMlFlowTrackingURI("http://localhost:5000")
       .setMlFlowExperimentName(s"danTest")
       .setMlFlowModelSaveDirectory(s"/tmp/tomes/ml/automl/danTest/models/")
@@ -70,7 +69,7 @@ object go extends App {
       .setGenerationalMutationStrategy("fixed")
       .setScoringMetric("r2")
       .setFeatureImportanceCutoffType("count")
-      .setFeatureImportanceCutoffValue(12.0)
+      .setFeatureImportanceCutoffValue(15.0)
       .setEvolutionStrategy("batch")
       .setFirstGenerationMode("random")
       .setFirstGenerationPermutationCount(20)
@@ -82,7 +81,6 @@ object go extends App {
       .setHyperSpaceModelCount(4)
 
     val resultData = fullConfig.runWithConfusionReport()
-
     resultData.confusionData.show()
   }
 
@@ -94,6 +92,6 @@ object go extends App {
   }
 
 //  doTrain(train)
-  infer("/tmp/tomes/ml/automl/danTest/inference/housePrices_10/_best/f0d44dfecc7c47feb264bd8c6b54313d_best",
+  infer("/tmp/tomes/ml/automl/danTest/inference/housePrices_7/_best/f992fe66793b473cba4de9886588d34a_best",
     test)
 }
