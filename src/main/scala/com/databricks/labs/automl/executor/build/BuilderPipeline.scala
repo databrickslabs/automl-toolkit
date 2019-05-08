@@ -1,8 +1,5 @@
 package com.databricks.labs.automl.executor.build
 
-import com.databricks.labs.automl.AutomationRunner
-import com.databricks.labs.automl.executor.DataPrep
-import com.databricks.labs.automl.executor.build.BuilderConfig
 import com.databricks.labs.automl.sanitize.DataSanitizer
 import org.apache.spark.sql.DataFrame
 
@@ -261,3 +258,146 @@ class BuilderPipeline(df: DataFrame) extends BuilderConfig {
 
 
 
+/** MODEL STUFF
+  * val initialize = new RandomForestTuner(cachedData, payload.modelType)
+  * .setLabelCol(_mainConfig.labelCol)
+  * .setFeaturesCol(_mainConfig.featuresCol)
+  * .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
+  * .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
+  * .setScoringMetric(_mainConfig.scoringMetric)
+  * .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+  * .setTrainSplitMethod(trainSplitValidation(_mainConfig.geneticConfig.trainSplitMethod, payload.modelType))
+  * .setTrainSplitChronologicalColumn(_mainConfig.geneticConfig.trainSplitChronologicalColumn)
+  * .setTrainSplitChronologicalRandomPercentage(_mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage)
+  * .setParallelism(_mainConfig.geneticConfig.parallelism)
+  * .setKFold(_mainConfig.geneticConfig.kFold)
+  * .setSeed(_mainConfig.geneticConfig.seed)
+  * .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+  * .setFirstGenerationGenePool(_mainConfig.geneticConfig.firstGenerationGenePool)
+  * .setNumberOfMutationGenerations(_mainConfig.geneticConfig.numberOfGenerations)
+  * .setNumberOfMutationsPerGeneration(_mainConfig.geneticConfig.numberOfMutationsPerGeneration)
+  * .setNumberOfParentsToRetain(_mainConfig.geneticConfig.numberOfParentsToRetain)
+  * .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+  * .setGenerationalMutationStrategy(_mainConfig.geneticConfig.generationalMutationStrategy)
+  * .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+  * .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+  * .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
+  * .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
+  * .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+  * .setContinuousEvolutionMaxIterations(_mainConfig.geneticConfig.continuousEvolutionMaxIterations)
+  * .setContinuousEvolutionStoppingScore(_mainConfig.geneticConfig.continuousEvolutionStoppingScore)
+  * .setContinuousEvolutionParallelism(_mainConfig.geneticConfig.continuousEvolutionParallelism)
+  * .setContinuousEvolutionMutationAggressiveness(_mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness)
+  * .setContinuousEvolutionGeneticMixing(_mainConfig.geneticConfig.continuousEvolutionGeneticMixing)
+  * .setContinuousEvolutionRollingImporvementCount(_mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount)
+  * .setDataReductionFactor(_mainConfig.dataReductionFactor)
+  * .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+  * .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
+  * .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
+  * .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+  *
+  *
+  * case class MainConfig(
+  * modelFamily: String,
+  * labelCol: String,
+  * featuresCol: String,
+  * naFillFlag: Boolean,
+  * varianceFilterFlag: Boolean,
+  * outlierFilterFlag: Boolean,
+  * pearsonFilteringFlag: Boolean,
+  * covarianceFilteringFlag: Boolean,
+  * oneHotEncodeFlag: Boolean,
+  * scalingFlag: Boolean,
+  * dataPrepCachingFlag: Boolean,
+  * autoStoppingFlag: Boolean,
+  * autoStoppingScore: Double,
+  * featureImportanceCutoffType: String,
+  * featureImportanceCutoffValue: Double,
+  * dateTimeConversionType: String,
+  * fieldsToIgnoreInVector: Array[String],
+  * numericBoundaries: Map[String, (Double, Double)],
+  * stringBoundaries: Map[String, List[String]],
+  * scoringMetric: String,
+  * scoringOptimizationStrategy: String,
+  * fillConfig: FillConfig(
+    * numericFillStat: String,
+    * characterFillStat: String,
+    * modelSelectionDistinctThreshold: Int
+    * ),
+  * outlierConfig: OutlierConfig(
+    * filterBounds: String,
+    * lowerFilterNTile: Double,
+    * upperFilterNTile: Double,
+    * filterPrecision: Double,
+    * continuousDataThreshold: Int,
+    * fieldsToIgnore: Array[String]
+    * ),
+  * pearsonConfig: PearsonConfig(
+    * filterStatistic: String,
+    * filterDirection: String,
+    * filterManualValue: Double,
+    * filterMode: String,
+    * autoFilterNTile: Double
+    * ),
+  * covarianceConfig: CovarianceConfig(
+    * correlationCutoffLow: Double,
+    * correlationCutoffHigh: Double
+    * ),
+  * scalingConfig: ScalingConfig(
+    * scalerType: String,
+    * scalerMin: Double,
+    * scalerMax: Double,
+    * standardScalerMeanFlag: Boolean,
+    * standardScalerStdDevFlag: Boolean,
+    * pNorm: Double
+    * ),
+  * geneticConfig: GeneticConfig(
+    * parallelism: Int,
+    * kFold: Int,
+    * trainPortion: Double,
+    * trainSplitMethod: String,
+    * trainSplitChronologicalColumn: String,
+    * trainSplitChronologicalRandomPercentage: Double,
+    * seed: Long,
+    * firstGenerationGenePool: Int,
+    * numberOfGenerations: Int,
+    * numberOfParentsToRetain: Int,
+    * numberOfMutationsPerGeneration: Int,
+    * geneticMixing: Double,
+    * generationalMutationStrategy: String,
+    * fixedMutationValue: Int,
+    * mutationMagnitudeMode: String,
+    * evolutionStrategy: String,
+    * continuousEvolutionMaxIterations: Int,
+    * continuousEvolutionStoppingScore: Double,
+    * continuousEvolutionParallelism: Int,
+    * continuousEvolutionMutationAggressiveness: Int,
+    * continuousEvolutionGeneticMixing: Double,
+    * continuousEvolutionRollingImprovementCount: Int,
+    * modelSeed: Map[String, Any],
+    * hyperSpaceInference: Boolean,
+    * hyperSpaceInferenceCount: Int,
+    * hyperSpaceModelType: String,
+    * hyperSpaceModelCount: Int,
+    * initialGenerationMode: String,
+    * initialGenerationConfig: FirstGenerationConfig(
+      * permutationCount: Int,
+      * indexMixingMode: String,
+      * arraySeed: Long
+      * )
+    * ),
+  * mlFlowLoggingFlag: Boolean,
+  * mlFlowLogArtifactsFlag: Boolean,
+  * mlFlowConfig: MLFlowConfig(
+    * mlFlowTrackingURI: String,
+    * mlFlowExperimentName: String,
+    * mlFlowAPIToken: String,
+    * mlFlowModelSaveDirectory: String,
+    * mlFlowLoggingMode: String,
+    * mlFlowBestSuffix: String
+    * ),
+  * inferenceConfigSaveLocation: String,
+  * dataReductionFactor: Double
+  * )
+  *
+  */
