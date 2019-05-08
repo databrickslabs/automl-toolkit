@@ -1,6 +1,8 @@
 package com.databricks.labs.automl.executor.build
 
 
+import com.databricks.labs.automl.params._
+
 object ModelSelector extends Enumeration {
   type ModelSelector = Value
   val TreesRegressor, TreesClassifier, GBTRegressor, GBTClassifier, LinearRegression, LogisticRegression, MLPC,
@@ -23,7 +25,17 @@ case class GenericConfig(
                         var dateTimeConversionType: String,
                         var fieldsToIgnoreInVector: Array[String],
                         var scoringMetric: String,
+                        var scoringOptimizationStrategy: String //TODO: left off here.
                         )
+
+case class FeatureEngineeringConfig(
+                                   var fillConfig: FillConfig,
+                                   var outlierConfig: OutlierConfig,
+                                   var pearsonConfig: PearsonConfig,
+                                   var covarianceConfig: CovarianceConfig,
+                                   var scalingConfig: ScalingConfig
+                                   )
+
 
 class GenericConfigGenerator(predictionType: String) extends BuilderDefaults {
 
@@ -92,6 +104,10 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, generi
 
   private var _switchConfig = switchConfig(family)
 
+  /**
+    * Switch Config
+    */
+
   def naFillOn(): this.type = {_switchConfig.naFillFlag = true; this}
   def naFillOff(): this.type = {_switchConfig.naFillFlag = false; this}
   def varianceFilterOn(): this.type = {_switchConfig.varianceFilterFlag = true; this}
@@ -117,6 +133,27 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, generi
   def dataPrepCachingOff(): this.type = {_switchConfig.dataPrepCachingFlag = false; this}
   def autoStoppingOn(): this.type = {_switchConfig.autoStoppingFlag = true; this}
   def autoStoppingOff(): this.type = {_switchConfig.autoStoppingFlag = false; this}
+
+
+  /**
+    * Feature Engineering Config
+    */
+
+  /**
+    * Algorithm Config
+    */
+
+  /**
+    * Tuner Config
+    */
+
+  /**
+    * MLFlow Logging Config
+    */
+
+  /**
+    * Getters
+    */
 
   def getSwitchConfig: SwitchConfig = _switchConfig
 
@@ -170,10 +207,7 @@ case class SwitchConfig(
                        var autoStoppingFlag: Boolean
                        )
 
-case class FeatureEngineeringConfig(
-                        labelCol: String,
-                        featuresCol: String
-                        )
+
 case class TunerConfig(
 
                       )
