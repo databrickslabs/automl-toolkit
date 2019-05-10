@@ -46,6 +46,15 @@ trait BuilderDefaults {
     }
   }
 
+  private[build] def zeroToOneValidation(value: Double, parameterName: String): Unit = {
+    require(value >= 0.0 & value <= 1.0, s"$parameterName submitted value of '$value' is outside of the allowable " +
+      s"bounds of 0.0 to 1.0." )
+  }
+
+  private[build] def validateMembership(value: String, collection: List[String], parameterName: String): Unit = {
+    require(collection.contains(value), s"$parameterName value '$value' is not supported.  Must be one of: '" +
+      s"${collection.mkString(", ")}'")
+  }
 
   /**
     * Static restrictions
@@ -58,7 +67,18 @@ trait BuilderDefaults {
   final val allowableScoringOptimizationStrategies: List[String] = List("minimize", "maximize")
   final val allowableNumericFillStats: List[String] = List("min", "25p", "mean", "median", "75p", "max")
   final val allowableCharacterFillStats: List[String] = List("min", "max")
-
+  final val allowableOutlierFilterBounds: List[String] = List("lower", "upper", "both")
+  final val allowablePearsonFilterStats: List[String] = List("pvalue", "degreesFreedom", "pearsonStat")
+  final val allowablePearsonFilterDirections: List[String] = List("greater", "lesser")
+  final val allowablePearsonFilterModes: List[String] = List("auto", "manual")
+  final val allowableScalers: List[String] = List("minMax", "standard", "normalize", "maxAbs")
+  final val allowableTrainSplitMethods: List[String] = List("random", "chronological", "stratifyReduce", "stratified",
+    "overSample", "underSample")
+  final val allowableEvolutionStrategies: List[String] = List("batch", "continuous")
+  final val allowableMlFlowLoggingModes: List[String] = List("tuningOnly", "bestOnly", "full")
+  final val allowableInitialGenerationModes: List[String] = List("random", "permutations")
+  final val allowableInitialGenerationIndexMixingModes: List[String] = List("random", "linear")
+  //final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
 
 
   /**
@@ -191,6 +211,10 @@ trait BuilderDefaults {
     "minMax", 0.0, 1.0, false, true, 2.0
   )
 
+  //TODO: Finish these!
+  def tunerConfig(): TunerConfig = ???
+  def loggingConfig(): LoggingConfig = ???
+
 // TODO: finish this out properly.
   def instanceConfig(modelFamily: String, predictionType: String): InstanceConfig = {
     val modelingType = predictionTypeEvaluator(predictionType)
@@ -198,7 +222,7 @@ trait BuilderDefaults {
     val modelType = modelTypeEvaluator(modelFamily, predictionType)
     InstanceConfig(
       modelFamily, predictionType, genericConfig(modelingType), switchConfig(family), featureEngineeringConfig(),
-      algorithmConfig(modelType), TunerConfig(0.0), LoggingConfig()
+      algorithmConfig(modelType), tunerConfig(), LoggingConfig()
 
     )
   }
