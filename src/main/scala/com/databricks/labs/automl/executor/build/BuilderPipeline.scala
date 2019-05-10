@@ -298,27 +298,10 @@ class BuilderPipeline(df: DataFrame) extends BuilderConfig {
   *
   *
   * case class MainConfig(
-  * modelFamily: String,
-  * labelCol: String,
-  * featuresCol: String,
-  * naFillFlag: Boolean,
-  * varianceFilterFlag: Boolean,
-  * outlierFilterFlag: Boolean,
-  * pearsonFilteringFlag: Boolean,
-  * covarianceFilteringFlag: Boolean,
-  * oneHotEncodeFlag: Boolean,
-  * scalingFlag: Boolean,
-  * dataPrepCachingFlag: Boolean,
-  * autoStoppingFlag: Boolean,
+
+  *
   * autoStoppingScore: Double,
-  * featureImportanceCutoffType: String,
-  * featureImportanceCutoffValue: Double,
-  * dateTimeConversionType: String,
-  * fieldsToIgnoreInVector: Array[String],
-  * numericBoundaries: Map[String, (Double, Double)],
-  * stringBoundaries: Map[String, List[String]],
-  * scoringMetric: String,
-  * scoringOptimizationStrategy: String,
+
   * fillConfig: FillConfig(
     * numericFillStat: String,
     * characterFillStat: String,
