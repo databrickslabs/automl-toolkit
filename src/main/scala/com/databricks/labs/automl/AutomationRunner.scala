@@ -1069,6 +1069,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val selectableFields = featureImportanceResults.fields :+ _mainConfig.labelCol
 
+    println(s"Feature Selected: ${featureImportanceResults.fields.mkString(", ")}")
+
     val dataSubset = df.select(selectableFields.map(col):_*)
 
     if(_mainConfig.dataPrepCachingFlag) {
@@ -1095,7 +1097,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val selectableFields = featureImportanceResults.fields :+ _mainConfig.labelCol
 
-    println(s"Feature Selected: ${featureImportanceResults.fields.mkString(",")}")
+    println(s"Feature Selected: ${featureImportanceResults.fields.mkString(", ")}")
 
     val dataSubset = df.select(selectableFields.map(col):_*)
 
