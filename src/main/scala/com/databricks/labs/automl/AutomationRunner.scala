@@ -1102,9 +1102,18 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       dataSubset.count
     }
 
-    val payload = DataGeneration(dataSubset, selectableFields, featureImportanceResults.modelType)
+//    orig
+//    val payload = DataGeneration(dataSubset, selectableFields, featureImportanceResults.modelType)
 
-    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning(payload)
+
+    val runner = new AutomationRunner(dataSubset).setMainConfig(_mainConfig)
+
+    val payload = runner.prepData()
+
+//    orig
+//    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning(payload)
+
+    val runResults = runner.executeTuning(payload)
 
     if(_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
 
