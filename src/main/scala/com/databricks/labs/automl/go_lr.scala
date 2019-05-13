@@ -125,7 +125,7 @@ object go_lr extends App {
     inferenceConfig.show()
   }
 
-  doTrain(train)
-  //  infer("/tmp/tomes/ml/automl/danTest/inference/housePrices_7/_best/f992fe66793b473cba4de9886588d34a_best",
-  //    test)
+//  doTrain(train)
+    infer("/tmp/tomes/ml/automl/danTest/inference/housePrices_7/_best/f992fe66793b473cba4de9886588d34a_best",
+      test)
 }
