@@ -202,8 +202,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   private def setConfigs(): this.type = {
     setMainConfig()
-    setTreeSplitsConfig()
-    setFeatConfig()
+//    setTreeSplitsConfig()
+//    setFeatConfig()
   }
 
   def setModelingFamily(value: String): this.type = {
