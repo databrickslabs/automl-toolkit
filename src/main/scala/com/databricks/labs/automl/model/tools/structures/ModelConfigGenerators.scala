@@ -81,13 +81,19 @@ trait ModelConfigGenerators extends SeedGenerator {
     // Get the number of permutations to generate
     val numericPayloads = randomForestNumericArrayGenerator(config)
 
+    val impurityOverride = if(config.modelType == "regressor") {
+      Array("variance")
+    } else {
+      config.stringBoundaries("impurity").toArray
+    }
+
     val fullPermutationConfig = RandomForestPermutationCollection(
       numTreesArray = numericPayloads.numTreesArray,
       maxBinsArray = numericPayloads.maxBinsArray,
       maxDepthArray = numericPayloads.maxDepthArray,
       minInfoGainArray = numericPayloads.minInfoGainArray,
       subSamplingRateArray = numericPayloads.subSamplingRateArray,
-      impurityArray = config.stringBoundaries("impurity").toArray,
+      impurityArray = impurityOverride,
       featureSubsetStrategyArray = config.stringBoundaries("featureSubsetStrategy").toArray
     )
 
@@ -162,8 +168,14 @@ trait ModelConfigGenerators extends SeedGenerator {
     // Get the number of permutations to generate
     val numericPayloads = treesNumericArrayGenerator(config)
 
+    val impurityOverride = if(config.modelType == "regressor") {
+      Array("variance")
+    } else {
+      config.stringBoundaries("impurity").toArray
+    }
+
     val fullPermutationConfig = TreesPermutationCollection(
-      impurityArray = config.stringBoundaries("impurity").toArray,
+      impurityArray = impurityOverride,
       maxBinsArray = numericPayloads.maxBinsArray,
       maxDepthArray = numericPayloads.maxDepthArray,
       minInfoGainArray = numericPayloads.minInfoGainArray,
@@ -241,9 +253,21 @@ trait ModelConfigGenerators extends SeedGenerator {
     // Get the number of permutations to generate
     val numericPayloads = gbtNumericArrayGenerator(config)
 
+    val impurityOverride = if(config.modelType == "regressor") {
+      Array("variance")
+    } else {
+      config.stringBoundaries("impurity").toArray
+    }
+
+    val lossTypeOverride = if(config.modelType == "regressor") {
+      Array("squared", "absolute")
+    } else {
+      config.stringBoundaries("lossType").toArray
+    }
+
     val fullPermutationConfig = GBTPermutationCollection(
-      impurityArray = config.stringBoundaries("impurity").toArray,
-      lossTypeArray = config.stringBoundaries("lossType").toArray,
+      impurityArray = impurityOverride,
+      lossTypeArray = lossTypeOverride,
       maxBinsArray = numericPayloads.maxBinsArray,
       maxDepthArray = numericPayloads.maxDepthArray,
       maxIterArray = numericPayloads.maxIterArray,

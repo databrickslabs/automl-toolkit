@@ -18,6 +18,7 @@ case class StringSelectionReturn(
                                 )
 
 case class PermutationConfiguration(
+                                                modelType: String,
                                                 permutationTarget: Int,
                                                 numericBoundaries: Map[String, (Double, Double)],
                                                 stringBoundaries: Map[String, List[String]]

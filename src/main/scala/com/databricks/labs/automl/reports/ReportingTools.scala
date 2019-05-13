@@ -45,7 +45,7 @@ trait ReportingTools extends SparkSessionWrapper {
 
   def extractTopFeaturesByCount(featureFrame: DataFrame, topNCutoff: Int): Array[String] = {
     // Ensure the DataFrame is sorted and take the top N rows
-    val sortedData = featureFrame.sort(col("Importance").desc).collect()
+    val sortedData = featureFrame.sort(col("Importance").desc).limit(topNCutoff).collect()
 
     sortedData.map(x => x(0).toString)
 

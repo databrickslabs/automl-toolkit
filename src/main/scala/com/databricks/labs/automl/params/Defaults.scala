@@ -21,6 +21,10 @@ trait Defaults {
 
   final val _allowableMlFlowLoggingModes = List("tuningOnly", "bestOnly", "full")
 
+  final val _allowableInitialGenerationModes = List("random", "permutations")
+
+  final val _allowableInitialGenerationIndexMixingModes = List("random", "linear")
+
   def _defaultModelingFamily: String = "RandomForest"
 
   def _defaultLabelCol: String = "label"
