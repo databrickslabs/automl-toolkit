@@ -78,7 +78,10 @@ trait BuilderDefaults {
   final val allowableMlFlowLoggingModes: List[String] = List("tuningOnly", "bestOnly", "full")
   final val allowableInitialGenerationModes: List[String] = List("random", "permutations")
   final val allowableInitialGenerationIndexMixingModes: List[String] = List("random", "linear")
-  //final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
+  final val allowableMutationStrategies: List[String] = List("linear", "fixed")
+  final val allowableMutationMagnitudeMode: List[String] = List("random", "fixed")
+  final val allowableHyperSpaceModelTypes: List[String] = List("RandomForest", "LinearRegression")
+  final val allowableFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
 
 
   /**
@@ -197,39 +200,134 @@ trait BuilderDefaults {
   def genericConfig(predictionType: PredictionType): GenericConfig = GenericConfig( "label", "features", "split",
     Array.empty[String], familyScoringCheck(predictionType), familyScoringDirection(predictionType))
 
-  def switchConfig(family: FamilyValidator): SwitchConfig = SwitchConfig(true, true, false, false, false,
-    oneHotEncodeFlag(family), scalingFlag(family), true, false)
+  def switchConfig(family: FamilyValidator): SwitchConfig = {
+
+    val naFillFlag = true
+    val varianceFilterFlag = true
+    val outlierFilterFlag = false
+    val pearsonFilterFlag = false
+    val covarianceFilterFlag = false
+    val oheFlag = oneHotEncodeFlag(family)
+    val scaleFlag = scalingFlag(family)
+    val dataPrepCachingFlag = true
+    val autoStoppingFlag = false
+
+    SwitchConfig(naFillFlag, varianceFilterFlag, outlierFilterFlag, pearsonFilterFlag, covarianceFilterFlag,
+      oheFlag, scaleFlag, dataPrepCachingFlag, autoStoppingFlag)
+  }
 
   def algorithmConfig(modelType: ModelSelector): AlgorithmConfig = AlgorithmConfig(
       stringBoundariesAssignment(modelType), numericBoundariesAssignment(modelType))
 
-  def featureEngineeringConfig(): FeatureEngineeringConfig = FeatureEngineeringConfig(
-    "mean", "max", 50,
-    "both", 0.02, 0.98, 0.01, 50, Array.empty[String],
-    "pearsonStat", "greater", 0.0, "auto", 0.75,
-    -0.99, 0.99,
-    "minMax", 0.0, 1.0, false, true, 2.0
-  )
+  def featureEngineeringConfig(): FeatureEngineeringConfig = {
+    val numericFillStat = "mean"
+    val characterFillStat = "max"
+    val modelSelectionDistinctThreshold = 50
+    val outlierFilterBounds = "both"
+    val outlierLowerFilterNTile = 0.02
+    val outlierUpperFilterNTile = 0.98
+    val outlierFilterPrecision = 0.01
+    val outlierContinuousDataThreshold = 50
+    val outlierFieldsToIgnore = Array.empty[String]
+    val pearsonFilterStatistic = "pearsonStat"
+    val pearsonFilterDirection = "greater"
+    val pearsonFilterManualValue = 0.0
+    val pearsonFilterMode = "auto"
+    val pearsonAutoFilterNTile = 0.75
+    val covarianceCorrelationCutoffLow = -0.99
+    val covarianceCorrelctionCutoffHigh = 0.99
+    val scalingType = "minMax"
+    val scalingMin = 0.0
+    val scalingMax = 1.0
+    val scalingStandardMeanFlag = false
+    val scalingStdDevFlag = true
+    val scalingPNorm = 2.0
+    val featureImportanceCutoffType = "count"
+    val featureImportanceCutoffValue = 15.0
+    val dataReductionFactor = 0.5
 
-  //TODO: Finish these!
-  def tunerConfig(): TunerConfig = ???
-  def loggingConfig(): LoggingConfig = ???
+     FeatureEngineeringConfig(numericFillStat, characterFillStat, modelSelectionDistinctThreshold, outlierFilterBounds,
+       outlierLowerFilterNTile, outlierUpperFilterNTile, outlierFilterPrecision, outlierContinuousDataThreshold,
+       outlierFieldsToIgnore, pearsonFilterStatistic, pearsonFilterDirection, pearsonFilterManualValue,
+       pearsonFilterMode, pearsonAutoFilterNTile, covarianceCorrelationCutoffLow, covarianceCorrelctionCutoffHigh,
+       scalingType, scalingMin, scalingMax, scalingStandardMeanFlag, scalingStdDevFlag, scalingPNorm,
+       featureImportanceCutoffType, featureImportanceCutoffValue, dataReductionFactor
+    )
+  }
 
-// TODO: finish this out properly.
+  //TODO: named configs
+  def tunerConfig(): TunerConfig = {
+
+    val tunerAutoStoppingScore = 0.99
+    val tunerParallelism = 20
+    val tunerKFold = 5
+    val tunerTrainPortion = 0.8
+    val tunerTrainSplitMethod = "random"
+    val tunerTrainSplitChronologicalColumn = "datetime"
+    val tunerTrainSplitChronologicalRandomPercentage = 0.0
+    val tunerSeed = 42L
+    val tunerFirstGenerationGenePool = 20
+    val tunerNumberOfGenerations = 10
+    val tunerNumberOfParentsToRetain = 3
+    val tunerNumberOfMutationsPerGeneration = 10
+    val tunerGeneticMixing = 0.7
+    val tunerGenerationMutationStrategy = "linear"
+    val tunerFixedMutationValue = 1
+    val tunerMutationMagnitudeMode = "fixed"
+    val tunerEvolutionStrategy = "batch"
+    val tunerContinuousEvolutionMaxIterations = 200
+    val tunerContinuousEvolutionStoppingScore = 1.0
+    val tunerContinuousEvolutionParallelism = 4
+    val tunerContinuousEvolutionMutationAggressiveness = 3
+    val tunerContinuousEvolutionGeneticMixing = 0.7
+    val tunerContinuousEvolutionRollingImprovementCount = 20
+    val tunerModelSeed = Map.empty[String, Any]
+    val tunerHyperSpaceInference = true
+    val tunerHyperSpaceInferenceCount = 200000
+    val tunerHyperSpaceModelCount = 10
+    val tunerHyperSpaceModelType = "RandomForest"
+    val tunerInitialGenerationMode = "random"
+    val tunerInitialGenerationPermutationCount = 10
+    val tunerInitialGenerationIndexMixingMode = "linear"
+    val tunerInitialGenerationArraySeed = 42L
+
+    TunerConfig(tunerAutoStoppingScore, tunerParallelism, tunerKFold, tunerTrainPortion, tunerTrainSplitMethod,
+      tunerTrainSplitChronologicalColumn, tunerTrainSplitChronologicalRandomPercentage, tunerSeed,
+      tunerFirstGenerationGenePool, tunerNumberOfGenerations, tunerNumberOfParentsToRetain,
+      tunerNumberOfMutationsPerGeneration, tunerGeneticMixing, tunerGenerationMutationStrategy, tunerFixedMutationValue,
+      tunerMutationMagnitudeMode, tunerEvolutionStrategy, tunerContinuousEvolutionMaxIterations,
+      tunerContinuousEvolutionStoppingScore, tunerContinuousEvolutionParallelism,
+      tunerContinuousEvolutionMutationAggressiveness, tunerContinuousEvolutionGeneticMixing,
+      tunerContinuousEvolutionRollingImprovementCount, tunerModelSeed, tunerHyperSpaceInference,
+      tunerHyperSpaceInferenceCount, tunerHyperSpaceModelCount, tunerHyperSpaceModelType, tunerInitialGenerationMode,
+      tunerInitialGenerationPermutationCount, tunerInitialGenerationIndexMixingMode, tunerInitialGenerationArraySeed)
+  }
+  def loggingConfig(): LoggingConfig = {
+
+    val mlFlowLoggingFlag = true
+    val mlFlowLogArtifactsFlag = false
+    val mlFlowTrackingURI = "hosted"
+    val mlFlowExperimentName = "default"
+    val mlFlowAPIToken = "default"
+    val mlFlowModelSaveDirectory = "/mlflow/experiments/"
+    val mlFlowLoggingMode = "full"
+    val mlFlowBestSuffix = "_best"
+    val inferenceSaveLocation = "/inference/"
+
+    LoggingConfig(mlFlowLoggingFlag, mlFlowLogArtifactsFlag, mlFlowTrackingURI, mlFlowExperimentName, mlFlowAPIToken,
+      mlFlowModelSaveDirectory, mlFlowLoggingMode, mlFlowBestSuffix, inferenceSaveLocation)
+  }
+
   def instanceConfig(modelFamily: String, predictionType: String): InstanceConfig = {
     val modelingType = predictionTypeEvaluator(predictionType)
     val family = familyTypeEvaluator(modelFamily)
     val modelType = modelTypeEvaluator(modelFamily, predictionType)
     InstanceConfig(
       modelFamily, predictionType, genericConfig(modelingType), switchConfig(family), featureEngineeringConfig(),
-      algorithmConfig(modelType), tunerConfig(), LoggingConfig()
+      algorithmConfig(modelType), tunerConfig(), loggingConfig()
 
     )
   }
-
-  /**
-    * Model Specific configurations
-    */
 
 }
 
