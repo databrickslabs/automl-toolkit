@@ -95,6 +95,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
 
     val (varianceFilteredData, removedColumns) = varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
 
