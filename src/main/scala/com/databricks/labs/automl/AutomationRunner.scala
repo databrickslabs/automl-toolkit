@@ -1069,6 +1069,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val selectableFields = featureImportanceResults.fields :+ _featureImportancesConfig.labelCol
 
+    println(s"Feature Selected: ${featureImportanceResults.fields.mkString(", ")}")
+
     val dataSubset = df.select(selectableFields.map(col):_*)
 
     if(_featureImportancesConfig.dataPrepCachingFlag) {
@@ -1095,6 +1097,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val selectableFields = featureImportanceResults.fields :+ _mainConfig.labelCol
 
+    println(s"Feature Selected: ${featureImportanceResults.fields.mkString(", ")}")
+
     val dataSubset = df.select(selectableFields.map(col):_*)
 
     if(_mainConfig.dataPrepCachingFlag) {
@@ -1102,18 +1106,18 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       dataSubset.count
     }
 
-    // Remove this
-    //val payload = DataGeneration(dataSubset, selectableFields, featureImportanceResults.modelType)
 
-    // Add this
+//    orig
+//    val payload = DataGeneration(dataSubset, selectableFields, featureImportanceResults.modelType)
+
+
     val runner = new AutomationRunner(dataSubset).setMainConfig(_mainConfig)
-    // Add this
+
     val payload = runner.prepData()
 
-    //Remove this
-    //val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning(payload)
+//    orig
+//    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning(payload)
 
-    // Add this
     val runResults = runner.executeTuning(payload)
 
     if(_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
