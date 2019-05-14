@@ -1042,21 +1042,21 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val payload = prepData()
 
-    val cachedData = if(_mainConfig.dataPrepCachingFlag) {
+    val cachedData = if(_featureImportancesConfig.dataPrepCachingFlag) {
       payload.data.persist(StorageLevel.MEMORY_AND_DISK)
     } else {
       payload.data
     }
 
-    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
+    if(_featureImportancesConfig.dataPrepCachingFlag) payload.data.count()
 
 
     val featureResults = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, payload.modelType)
-      .setCutoffType(_mainConfig.featureImportanceCutoffType)
-      .setCutoffValue(_mainConfig.featureImportanceCutoffValue)
+      .setCutoffType(_featureImportancesConfig.featureImportanceCutoffType)
+      .setCutoffValue(_featureImportancesConfig.featureImportanceCutoffValue)
       .runFeatureImportances(payload.fields)
 
-    if(_mainConfig.dataPrepCachingFlag) cachedData.unpersist()
+    if(_featureImportancesConfig.dataPrepCachingFlag) cachedData.unpersist()
 
     FeatureImportanceReturn(featureResults._1, featureResults._2, featureResults._3, payload.modelType)
   }
@@ -1067,11 +1067,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val featureImportanceResults = exploreFeatureImportances()
 
-    val selectableFields = featureImportanceResults.fields :+ _mainConfig.labelCol
+    val selectableFields = featureImportanceResults.fields :+ _featureImportancesConfig.labelCol
 
     val dataSubset = df.select(selectableFields.map(col):_*)
 
-    if(_mainConfig.dataPrepCachingFlag) {
+    if(_featureImportancesConfig.dataPrepCachingFlag) {
       dataSubset.persist(StorageLevel.MEMORY_AND_DISK)
       dataSubset.count
     }

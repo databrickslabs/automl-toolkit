@@ -1,6 +1,6 @@
-package com.databricks.labs.automl.executor.build
+package com.databricks.labs.automl.executor.config
 
-trait BuilderDefaults {
+trait ConfigurationDefaults {
 
   import FamilyValidator._
   import PredictionType._
@@ -11,7 +11,7 @@ trait BuilderDefaults {
     * General Tools
     */
 
-  private[build] def modelTypeEvaluator(modelFamily: String, predictionType: String): ModelSelector = {
+  private[config] def modelTypeEvaluator(modelFamily: String, predictionType: String): ModelSelector = {
     (modelFamily.toLowerCase.replaceAll("\\s", ""),
       predictionType.toLowerCase.replaceAll("\\s", "")) match {
       case ("trees", "regressor") => TreesRegressor
@@ -26,32 +26,33 @@ trait BuilderDefaults {
       case ("xgboost", "classifier") => XGBoostClassifier
       case ("mlpc", "classifier") => MLPC
       case ("svm", "regressor") => SVM
-      case (_,_) => throw new IllegalArgumentException(s"$modelFamily Model Family and $predictionType are not supported.")
+      case (_,_) => throw new IllegalArgumentException(s"'$modelFamily' Model Family and PredictionType " +
+        s"'$predictionType' are not supported.")
     }
   }
 
-  private[build] def predictionTypeEvaluator(predictionType: String): PredictionType = {
+  private[config] def predictionTypeEvaluator(predictionType: String): PredictionType = {
     predictionType.toLowerCase.replaceAll("\\s", "") match {
       case "regressor" => Regressor
       case "classifier" => Classifier
-      case _ => throw new IllegalArgumentException(s"$predictionType is not a supported type! Must be either: " +
+      case _ => throw new IllegalArgumentException(s"'$predictionType' is not a supported type! Must be either: " +
         s"'regressor' or 'classifier'")
     }
   }
 
-  private[build] def familyTypeEvaluator(modelFamily: String): FamilyValidator = {
+  private[config] def familyTypeEvaluator(modelFamily: String): FamilyValidator = {
     modelFamily.toLowerCase.replaceAll("\\s", "") match {
       case "trees" | "gbt" | "randomforest" | "xgboost" => Trees
       case _ => NonTrees
     }
   }
 
-  private[build] def zeroToOneValidation(value: Double, parameterName: String): Unit = {
+  private[config] def zeroToOneValidation(value: Double, parameterName: String): Unit = {
     require(value >= 0.0 & value <= 1.0, s"$parameterName submitted value of '$value' is outside of the allowable " +
       s"bounds of 0.0 to 1.0." )
   }
 
-  private[build] def validateMembership(value: String, collection: List[String], parameterName: String): Unit = {
+  private[config] def validateMembership(value: String, collection: List[String], parameterName: String): Unit = {
     require(collection.contains(value), s"$parameterName value '$value' is not supported.  Must be one of: '" +
       s"${collection.mkString(", ")}'")
   }
@@ -116,12 +117,12 @@ trait BuilderDefaults {
     * Algorithm Helper Methods
     */
 
-  private[build] def boundaryValidation(modelKeys: Set[String], overwriteKeys: Set[String]): Unit = {
+  private[config] def boundaryValidation(modelKeys: Set[String], overwriteKeys: Set[String]): Unit = {
     require(modelKeys == overwriteKeys, s"The provided configuration does not match. Expected: " +
       s"${modelKeys.mkString(", ")}, but got: ${overwriteKeys.mkString(", ")} }")
   }
 
-  private[build] def validateNumericBoundariesKeys(modelType: ModelSelector, value: Map[String, (Double, Double)]): Unit = {
+  private[config] def validateNumericBoundariesKeys(modelType: ModelSelector, value: Map[String, (Double, Double)]): Unit = {
     modelType match {
       case RandomForestRegressor => boundaryValidation(randomForestNumeric.keys.toSet, value.keys.toSet)
       case RandomForestClassifier => boundaryValidation(randomForestNumeric.keys.toSet, value.keys.toSet)
@@ -138,12 +139,12 @@ trait BuilderDefaults {
     }
   }
 
-  private[build] def validateNumericBoundariesValues(values: Map[String, (Double, Double)]): Unit = {
+  private[config] def validateNumericBoundariesValues(values: Map[String, (Double, Double)]): Unit = {
     values.foreach(k => require(k._2._1 < k._2._2, s"Numeric Boundary key ${k._1} is set incorrectly! " +
       s"Boundary definitions must be in the form: (min, max)"))
   }
 
-  private[build] def numericBoundariesAssignment(modelType: ModelSelector): Map[String, (Double, Double)] = {
+  private[config] def numericBoundariesAssignment(modelType: ModelSelector): Map[String, (Double, Double)] = {
     modelType match {
       case RandomForestRegressor => randomForestNumeric
       case RandomForestClassifier => randomForestNumeric
@@ -161,7 +162,7 @@ trait BuilderDefaults {
     }
   }
 
-  private[build] def validateStringBoundariesKeys(modelType: ModelSelector, value: Map[String, List[String]]): Unit = {
+  private[config] def validateStringBoundariesKeys(modelType: ModelSelector, value: Map[String, List[String]]): Unit = {
     modelType match {
       case RandomForestRegressor => boundaryValidation(randomForestString.keys.toSet, value.keys.toSet)
       case RandomForestClassifier => boundaryValidation(randomForestString.keys.toSet, value.keys.toSet)
@@ -175,7 +176,7 @@ trait BuilderDefaults {
     }
   }
 
-  private[build] def stringBoundariesAssignment(modelType: ModelSelector): Map[String, List[String]] = {
+  private[config] def stringBoundariesAssignment(modelType: ModelSelector): Map[String, List[String]] = {
     modelType match {
       case RandomForestRegressor => randomForestString
       case RandomForestClassifier => randomForestString
@@ -197,11 +198,19 @@ trait BuilderDefaults {
     * Generate the default configuration objects
     */
 
-  def genericConfig(predictionType: PredictionType): GenericConfig = GenericConfig( "label", "features", "split",
-    Array.empty[String], familyScoringCheck(predictionType), familyScoringDirection(predictionType))
+  def genericConfig(predictionType: PredictionType): GenericConfig = {
+    val labelCol = "label"
+    val featuresCol = "features"
+    val dateTimeConversionType = "split"
+    val fieldsToIgnoreInVector = Array.empty[String]
+    val scoringMetric = familyScoringCheck(predictionType)
+    val scoringOptimizationStrategy = familyScoringDirection(predictionType)
+
+    GenericConfig( labelCol, featuresCol, dateTimeConversionType, fieldsToIgnoreInVector, scoringMetric,
+      scoringOptimizationStrategy)
+  }
 
   def switchConfig(family: FamilyValidator): SwitchConfig = {
-
     val naFillFlag = true
     val varianceFilterFlag = true
     val outlierFilterFlag = false
@@ -255,9 +264,7 @@ trait BuilderDefaults {
     )
   }
 
-  //TODO: named configs
   def tunerConfig(): TunerConfig = {
-
     val tunerAutoStoppingScore = 0.99
     val tunerParallelism = 20
     val tunerKFold = 5
@@ -303,7 +310,6 @@ trait BuilderDefaults {
       tunerInitialGenerationPermutationCount, tunerInitialGenerationIndexMixingMode, tunerInitialGenerationArraySeed)
   }
   def loggingConfig(): LoggingConfig = {
-
     val mlFlowLoggingFlag = true
     val mlFlowLogArtifactsFlag = false
     val mlFlowTrackingURI = "hosted"
