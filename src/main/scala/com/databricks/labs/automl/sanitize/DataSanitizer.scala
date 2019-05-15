@@ -139,37 +139,17 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private def getFieldsAndFillable(df: DataFrame, columnList: List[String], statistics: String): DataFrame = {
 
-    //    batch the columns if over 30
-    val x = if (columnList.size > 30) {
-      val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
-      if (statistics.isEmpty) {
-        val colBatches = getBatches(columnList).par
-        colBatches.tasksupport = taskSupport
-        colBatches.map { batch =>
-          df.select(batch map col: _*)
-            .summary()
-            .select("Summary" +: batch map col: _*)
-        }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
+    val selectionColumns = "Summary" +: columnList
+    val x = if (statistics.isEmpty) {
+      val colBatches = getBatches(columnList)
+      colBatches.map { batch =>
+        df.coalesce(20).select(batch map col: _*).summary().select("Summary" +: batch map col: _*)
+      }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
 
-      } else {
-        val colBatches = getBatches(columnList).par
-        colBatches.tasksupport = taskSupport
-        colBatches.map { batch =>
-          df.select(batch map col: _*)
-            .summary(statistics.replaceAll(" ", "").split(","): _*)
-            .select("Summary" +: batch map col: _*)
-        }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
-
-
-        //      df.summary(statistics.replaceAll(" ", "").split(","): _*)
-        //        .select(selectionColumns map col: _*)
-      }
-    } else { // Don't batch since < 30 cols
-      val selectionColumns = "Summary" +: columnList
-      if (statistics.isEmpty) df.summary().select(selectionColumns map col: _*)
-      else df.summary(statistics.replaceAll(" ", "").split(","): _*).select(selectionColumns map col: _*)
+    } else {
+      df.coalesce(20).summary(statistics.replaceAll(" ", "").split(","): _*)
+        .select(selectionColumns map col: _*)
     }
-    System.gc //Clean up all the broadcast dataframes
     x
   }
 
@@ -186,41 +166,33 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
 
-    val numericMapping = if (numericFields.nonEmpty) {
-      val numericPayload = assemblePayload(df, numericFields, metricConversion(_numericFillStat)).par
+    val numericPayload = assemblePayload(df, numericFields, metricConversion(_numericFillStat))
+    val characterPayload = assemblePayload(df, characterFields, metricConversion(_characterFillStat))
 
-      val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
-      numericPayload.tasksupport = taskSupport
+    val numericFilterBuffer = new ArrayBuffer[(String, Double)]
+    val characterFilterBuffer = new ArrayBuffer[(String, String)]
 
-      val numericFilterBuffer = new ArrayBuffer[(String, Double)]()
-      numericPayload.map(x => x._1 match {
-        case x._1 if x._1 != _labelCol => try {
-          numericFilterBuffer += ((x._1, x._2.toString.toDouble))
-        } catch {
-          case _: Exception => None
-        }
-        case _ => None
-      })
+    numericPayload.map(x => x._1 match {
+      case x._1 if x._1 != _labelCol => try {
+        numericFilterBuffer += ((x._1, x._2.toString.toDouble))
+      } catch {
+        case _: Exception => None
+      }
+      case _ => None
+    })
 
-      numericFilterBuffer.toArray.toMap
+    characterPayload.map(x => x._1 match {
+      case x._1 if x._1 != _labelCol => try {
+        characterFilterBuffer += ((x._1, x._2.toString))
+      } catch {
+        case _: Exception => None
+      }
+      case _ => None
+    })
 
-    } else new ArrayBuffer[(String, Double)]().toArray.toMap
+    val numericMapping = numericFilterBuffer.toArray.toMap
 
-    val characterMapping = if (characterFields.nonEmpty) {
-      val characterPayload = assemblePayload(df, characterFields, metricConversion(_characterFillStat))
-
-      val characterFilterBuffer = new ArrayBuffer[(String, String)]
-
-      characterPayload.map(x => x._1 match {
-        case x._1 if x._1 != _labelCol => try {
-          characterFilterBuffer += ((x._1, x._2.toString))
-        } catch {
-          case _: Exception => None
-        }
-        case _ => None
-      })
-      characterFilterBuffer.toArray.toMap
-    } else new ArrayBuffer[(String, String)]().toArray.toMap
+    val characterMapping = characterFilterBuffer.toArray.toMap
 
     NaFillConfig(
       numericColumns = numericMapping,

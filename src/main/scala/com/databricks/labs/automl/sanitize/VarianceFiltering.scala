@@ -71,20 +71,8 @@ class VarianceFiltering(data: DataFrame) {
       .setDateTimeConversionType(_dateTimeConversionType)
       .makeFeaturePipeline(fieldsToIgnore)
 
-    val stddevInformation = if (fields.length > 5) {
-      val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
-      val colBatches = getBatches(fields.toList).par
-      colBatches.tasksupport = taskSupport
-
-      colBatches.map { batch =>
-        featurizedData.select(batch map col: _*)
-          .summary("stddev").select("Summary" +: batch map col: _*)
-      }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
-          .drop(col("Summary")).collect()(0).toSeq.toArray
-    } else {
-      featurizedData.summary("stddev")
-        .select(fields map col: _*).collect()(0).toSeq.toArray
-    }
+    val stddevInformation = featurizedData.coalesce(20).summary("stddev")
+      .select(fields map col: _*).collect()(0).toSeq.toArray
 
     val stddevData = fields.zip(stddevInformation)
 
@@ -92,7 +80,7 @@ class VarianceFiltering(data: DataFrame) {
     val removedColumns = new ArrayBuffer[String]
 
     stddevData.foreach { x =>
-      if (x._2.toString.toDouble != 0.0) {
+      if (x._2.toString.toDouble != 0.0){
         preserveColumns.append(x._1)
       } else {
         removedColumns.append(x._1)
@@ -105,7 +93,7 @@ class VarianceFiltering(data: DataFrame) {
     //    logger.log(Level.WARN, s"The following columns were removed due to zero variance: $removedColumnsString")
     val finalFields = preserveColumns.result ++ Array(_labelCol) ++ fieldsToIgnore
 
-    (data.select(finalFields map col: _*), removedColumns.toArray)
+    (data.select(finalFields map col:_*), removedColumns.toArray)
 
   }
 
