@@ -47,6 +47,11 @@ class BatteryGenerator(predictionType: String) extends BatteryDefaults with Conf
     this
   }
 
+  def setModelsToTest(modelFamilies: String*): this.type = {
+    setModelsToTest(modelFamilies.toArray)
+    this
+  }
+
   def getModelsToTest: Array[ModelSelector] = _modelsToTest
 
   /**

@@ -665,9 +665,6 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def getInstanceConfig: InstanceConfig = _instanceConfig
 
-  //TODO : json input and extract for case class definitions
-  //TODO: implicit reflection for map type config?
-
   def generateMainConfig: MainConfig = ConfigurationGenerator.generateMainConfig(_instanceConfig)
 
   def generateFeatureImportanceConfig: MainConfig = ConfigurationGenerator.generateMainConfig(_instanceConfig)
@@ -701,6 +698,21 @@ object ConfigurationGenerator extends ConfigurationDefaults {
 
   }
 
+  private def standardizeModelFamilyStrings(value: String): String = {
+    value match {
+      case "randomforest" => "RandomForest"
+      case "gbt" => "GBT"
+      case "linearregression" => "LinearRegression"
+      case "logisticregression" => "LogisticRegression"
+      case "mlpc" => "MLPC"
+      case "svm" => "SVM"
+      case "trees" => "Trees"
+      case "xgboost" => "XGBoost"
+      case _ => throw new IllegalArgumentException(s"standardizeModelFamilyStrings does not have a supported" +
+        s"type of: $value")
+    }
+  }
+
   /**
     *
     * @param config
@@ -708,7 +720,7 @@ object ConfigurationGenerator extends ConfigurationDefaults {
     */
   def generateMainConfig(config: InstanceConfig): MainConfig = {
     MainConfig(
-      modelFamily = config.modelFamily,
+      modelFamily = standardizeModelFamilyStrings(config.modelFamily),
       labelCol = config.genericConfig.labelCol,
       featuresCol = config.genericConfig.featuresCol,
       naFillFlag = config.switchConfig.naFillFlag,

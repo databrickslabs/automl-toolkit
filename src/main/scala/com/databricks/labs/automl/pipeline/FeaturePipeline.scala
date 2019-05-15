@@ -51,10 +51,16 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
     // Extract all of the field types
     val (fieldsReady, fieldsToConvert, dateFields, timeFields) = extractTypes(data, _labelCol, ignoreList)
 
+    // TODO: validation of fieldsToConvert -> if cardinality is too high (i.e. 1000, remove the field.)
+    //TODO: add in config objects here for cardinality limits and parallelism!!
+    val validatedStringFields = validateCardinality(data, fieldsToConvert)
+
     // Support exclusions of fields
     val excludedFieldsReady = fieldsReady.filterNot(x => ignoreList.contains(x))
 
+    // TODO: ensure that this new additional filter works as intended (removing high cardinality fields)
     val excludedFieldsToConvert = fieldsToConvert.filterNot(x => ignoreList.contains(x))
+      .filterNot(x => validatedStringFields.invalidFields.contains(x))
 
     val excludedDateFields = dateFields.filterNot(x => ignoreList.contains(x))
 

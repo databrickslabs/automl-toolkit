@@ -1105,7 +1105,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       dataSubset.persist(StorageLevel.MEMORY_AND_DISK)
       dataSubset.count
     }
-    
+
 //    orig
 //    val payload = DataGeneration(dataSubset, selectableFields, featureImportanceResults.modelType)
 

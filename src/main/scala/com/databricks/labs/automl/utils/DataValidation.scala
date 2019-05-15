@@ -7,6 +7,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DataType, StructType}
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 trait DataValidation {
 
@@ -195,4 +197,31 @@ trait DataValidation {
     require(df.count() > 0, "Input dataset cannot be empty")
   }
 
+  def validateCardinality(df: DataFrame, stringFields: List[String], cardinalityLimit: Int=500,
+                          parallelism: Int=20): ValidatedCategoricalFields = {
+
+    var validStringFields = ListBuffer[String]()
+    var invalidStringFields = ListBuffer[String]()
+
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(parallelism))
+    val collection = stringFields.par
+    collection.tasksupport = taskSupport
+
+    collection.foreach{ x =>
+      val uniqueValues = df.select(x).distinct().count()
+      if(uniqueValues <= cardinalityLimit){
+        validStringFields += x
+      } else {
+        invalidStringFields += x
+      }
+    }
+
+    ValidatedCategoricalFields(validStringFields.toList, invalidStringFields.toList)
+
+  }
 }
+
+case class ValidatedCategoricalFields(
+                                     validFields: List[String],
+                                     invalidFields: List[String]
+                                     )
