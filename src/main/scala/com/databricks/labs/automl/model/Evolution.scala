@@ -387,11 +387,9 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     * @param seed random seed for splitting the data into train/test.
     * @return An Array of Dataframes: Array[<trainData>, <testData>]
     */
-  def stratifiedSplit(data: DataFrame, seed: Long): Array[DataFrame] = {
+  def stratifiedSplit(data: DataFrame, seed: Long, uniqueLabels: Array[Row]): Array[DataFrame] = {
 
     var (trainData, testData) = generateEmptyTrainTest(data)
-
-    val uniqueLabels = data.select(_labelCol).distinct().collect()
 
     uniqueLabels.foreach{ x =>
 
@@ -490,11 +488,9 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
 
   }
 
-  def stratifyReduce(data: DataFrame, reductionFactor: Double, seed:Long): Array[DataFrame] = {
+  def stratifyReduce(data: DataFrame, reductionFactor: Double, seed:Long, uniqueLabels: Array[Row]): Array[DataFrame] = {
 
     var (trainData, testData) = generateEmptyTrainTest(data)
-
-    val uniqueLabels = data.select(_labelCol).distinct().collect()
 
     uniqueLabels.foreach{ x =>
 
@@ -559,15 +555,15 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
 
   }
 
-  def genTestTrain(data: DataFrame, seed: Long): Array[DataFrame] = {
+  def genTestTrain(data: DataFrame, seed: Long, uniqueLables: Array[Row]): Array[DataFrame] = {
 
     _trainSplitMethod match {
       case "random" => data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
       case "chronological" => chronologicalSplit(data, seed)
-      case "stratified" => stratifiedSplit(data, seed)
+      case "stratified" => stratifiedSplit(data, seed, uniqueLables)
       case "overSample" => overSampleSplit(data, seed)
       case "underSample" => underSampleSplit(data, seed)
-      case "stratifyReduce" => stratifyReduce(data, _dataReduce, seed)
+      case "stratifyReduce" => stratifyReduce(data, _dataReduce, seed, uniqueLables)
       case _ => throw new IllegalArgumentException(s"Cannot conduct train test split in mode: '${_trainSplitMethod}'")
     }
 

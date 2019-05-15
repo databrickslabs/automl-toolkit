@@ -6,7 +6,7 @@ import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.regression.RandomForestRegressor
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -226,6 +226,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     runs.foreach { x =>
 
       val runId = java.util.UUID.randomUUID()
@@ -237,7 +239,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
+        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreRandomForestModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]

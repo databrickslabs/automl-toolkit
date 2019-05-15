@@ -5,7 +5,7 @@ import com.databricks.labs.automl.params.{Defaults, XGBoostConfig, XGBoostModels
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassifier, XGBoostRegressor}
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -209,6 +209,8 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     runs.foreach { x =>
 
       val runId = java.util.UUID.randomUUID()
@@ -220,7 +222,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val kFoldBuffer = new ArrayBuffer[XGBoostModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
+        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreXGBoostModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]

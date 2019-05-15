@@ -5,7 +5,7 @@ import com.databricks.labs.automl.params.{Defaults, LinearRegressionConfig, Line
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.regression.LinearRegression
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -163,6 +163,8 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     runs.foreach { x =>
 
       val runId = java.util.UUID.randomUUID()
@@ -174,7 +176,7 @@ class LinearRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defa
       val kFoldBuffer = new ArrayBuffer[LinearRegressionModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
+        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreLinearRegression(train, test, x)
       }
       val scores = new ArrayBuffer[Double]

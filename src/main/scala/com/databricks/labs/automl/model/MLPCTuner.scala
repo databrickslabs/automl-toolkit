@@ -6,7 +6,7 @@ import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.linalg.DenseVector
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -174,6 +174,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     runs.foreach { x =>
 
       val runId = java.util.UUID.randomUUID()
@@ -185,7 +187,7 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       val kFoldBuffer = new ArrayBuffer[MLPCModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
+        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreMLPCModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]

@@ -5,7 +5,7 @@ import com.databricks.labs.automl.params.{Defaults, SVMConfig, SVMModelsWithResu
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.LinearSVC
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -135,6 +135,8 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     runs.foreach { x =>
 
       val runId = java.util.UUID.randomUUID()
@@ -146,7 +148,7 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       val kFoldBuffer = new ArrayBuffer[SVMModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
+        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreSVM(train, test, x)
       }
       val scores = new ArrayBuffer[Double]

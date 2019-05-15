@@ -7,7 +7,7 @@ import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.regression.DecisionTreeRegressor
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -216,6 +216,8 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     runs.foreach { x =>
       val runId = java.util.UUID.randomUUID()
       println(s"Starting run $runId with Params: ${x.toString}")
@@ -225,7 +227,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String) extends SparkSess
       val kFoldBuffer = new ArrayBuffer[TreesModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
+        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreTreesModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
