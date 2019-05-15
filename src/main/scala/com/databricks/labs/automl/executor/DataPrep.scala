@@ -313,21 +313,22 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
     val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol) ++ includeFieldsFinalData
 
-    val featurizedDataCleaned = featurizedData.select(featureFieldCleanup map col: _*)
-
-    val (persistFeaturizedDataCleaned, featurizedDataCleanedRowCount) =
-      dataPersist(persistDataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
+    val featurizedDataCleaned = if(_mainConfig.dataPrepCachingFlag) {
+      dataPersist(persistDataStage3, featurizedData.select(featureFieldCleanup map col: _*), cacheLevel, unpersistBlock)._1
+    } else {
+      featurizedData.select(featureFieldCleanup map col: _*)
+    }
 
     //DEBUG
     logger.log(Level.DEBUG, printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString)
 
     // Covariance Filtering
     val dataStage4 = if (_mainConfig.covarianceFilteringFlag) {
-      covarianceFilter(persistFeaturizedDataCleaned, initialFields)
-    } else DataPrepReturn(persistFeaturizedDataCleaned, Array.empty[String])
+      covarianceFilter(featurizedDataCleaned, initialFields)
+    } else DataPrepReturn(featurizedDataCleaned, Array.empty[String])
 
     val (persistDataStage4, dataStage4RowCount) = if(_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistFeaturizedDataCleaned, dataStage4.outputData, cacheLevel, unpersistBlock)
+      dataPersist(featurizedDataCleaned, dataStage4.outputData, cacheLevel, unpersistBlock)
     } else {
       (dataStage4.outputData, "no count when data prep caching is disabled")
     }

@@ -169,6 +169,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
       if (statistics.isEmpty) df.summary().select(selectionColumns map col: _*)
       else df.summary(statistics.replaceAll(" ", "").split(","): _*).select(selectionColumns map col: _*)
     }
+    System.gc //Clean up all the broadcast dataframes
     x
   }
 

@@ -153,14 +153,14 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
     val runs = battery.par
     runs.tasksupport = taskSupport
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
       calculateModelingFamilyRemainingTime(generation, modelCnt)
     }%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
-
-    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
     runs.foreach { x =>
 
