@@ -71,7 +71,9 @@ class VarianceFiltering(data: DataFrame) {
       .setDateTimeConversionType(_dateTimeConversionType)
       .makeFeaturePipeline(fieldsToIgnore)
 
-    val stddevInformation = featurizedData.coalesce(20).summary("stddev")
+    val dfParts = featurizedData.rdd.partitions.length.toDouble
+    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
+    val stddevInformation = featurizedData.coalesce(summaryParts).summary("stddev")
       .select(fields map col: _*).collect()(0).toSeq.toArray
 
     val stddevData = fields.zip(stddevInformation)
@@ -91,7 +93,7 @@ class VarianceFiltering(data: DataFrame) {
     //    println(s"The following columns were removed due to zero variance: $removedColumnsString")
     //
     //    logger.log(Level.WARN, s"The following columns were removed due to zero variance: $removedColumnsString")
-    val finalFields = preserveColumns.result ++ Array(_labelCol) ++ fieldsToIgnore
+    val finalFields = preserveColumns.result ++ Array(_labelCol)
 
     (data.select(finalFields map col:_*), removedColumns.toArray)
 

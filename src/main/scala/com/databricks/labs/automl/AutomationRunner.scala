@@ -67,6 +67,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
       .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
       .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+      .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
     if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -160,6 +161,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
       .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
       .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+      .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
     if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -257,6 +259,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
           .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
           .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+          .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
         if(_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -356,6 +359,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
        .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
        .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
        .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+       .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
     if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -453,6 +457,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
           .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
           .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+          .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
         if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -553,6 +558,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
           .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
           .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+          .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
         if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -653,6 +659,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
           .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
           .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+          .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
         if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -750,6 +757,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
      .setFirstGenPermutations(_mainConfig.geneticConfig.initialGenerationConfig.permutationCount)
      .setFirstGenIndexMixingMode(_mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode)
      .setFirstGenArraySeed(_mainConfig.geneticConfig.initialGenerationConfig.arraySeed)
+     .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
 
    if (_modelSeedSetStatus) initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
 
@@ -1044,11 +1052,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val cachedData = if(_mainConfig.dataPrepCachingFlag) {
       payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      payload.data.count()
+      payload.data
     } else {
       payload.data
     }
-
-    if(_mainConfig.dataPrepCachingFlag) payload.data.count()
 
 
     val featureResults = new RandomForestFeatureImportance(cachedData, _featureImportancesConfig, payload.modelType)
@@ -1113,6 +1121,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val runner = new AutomationRunner(dataSubset).setMainConfig(_mainConfig)
 
     val payload = runner.prepData()
+
 
 //    orig
 //    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning(payload)

@@ -315,7 +315,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val (featurizedData, initialFields, initialFullFields) = vectorPipeline(persistDataStage3)
 
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
-    val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol) ++ includeFieldsFinalData
+    val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol)
 
     val featurizedDataCleaned = if (_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistDataStage3, featurizedData.select(featureFieldCleanup map col: _*), cacheLevel, unpersistBlock)._1
@@ -408,7 +408,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
         (dataStage7, "no count when data prep caching is disabled")
       }
 
-    if (_mainConfig.scalingFlag) {
+    if (_mainConfig.scalingFlag && _mainConfig.dataPrepCachingFlag) {
       println(dataStage7RowCount)
       logger.log(Level.INFO, dataStage7RowCount)
     }
@@ -416,17 +416,23 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Record the Inference Settings for Scaling
     InferenceConfig.setInferenceScalingConfig(_mainConfig.scalingConfig)
 
-    val finalSchema = s"Final Schema: \n    ${stage65Fields.mkString(", ")}"
-    val finalFullSchema = s"Final Full Schema: \n    ${stage65FullFields.mkString(", ")}"
+    val finalStageDF = persistDataStage7.select(persistDataStage7.columns map col: _*)
+    if (_mainConfig.dataPrepCachingFlag) dataPersist(persistDataStage7, finalStageDF, cacheLevel, unpersistBlock)
+    else finalStageDF.persist(cacheLevel)
 
-    val finalStatement = s"Data Prep complete.  Final Dataframe cached."
+    val finalCount = finalStageDF.count
+
+    val finalSchema = s"Final Schema: \n    ${stage65Fields.mkString(", ")}"
+    val finalFullSchema = s"Final Full Schema: \n    ${finalStageDF.columns.mkString(", ")}"
+
+    val finalStatement = s"Data Prep complete.  Final Dataframe cached. Total Observations: $finalCount"
     // DEBUG
     logger.log(Level.INFO, finalSchema)
     logger.log(Level.INFO, finalFullSchema)
     logger.log(Level.INFO, finalStatement)
     println(finalStatement)
 
-    DataGeneration(persistDataStage7, stage65Fields, detectedModelType)
+    DataGeneration(finalStageDF, finalStageDF.columns, detectedModelType)
 
   }
 

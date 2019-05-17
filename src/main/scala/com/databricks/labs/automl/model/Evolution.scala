@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.model
 
-import com.databricks.labs.automl.params.{EvolutionDefaults, RandomForestConfig}
+import com.databricks.labs.automl.params.{Defaults, EvolutionDefaults, RandomForestConfig}
 import com.databricks.labs.automl.utils.{DataValidation, SeedConverters, SparkSessionWrapper}
 import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.sql.expressions.Window
@@ -10,7 +10,8 @@ import org.apache.spark.sql.{DataFrame, Row}
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe._
 
-trait Evolution extends DataValidation with EvolutionDefaults with SeedConverters with SparkSessionWrapper {
+trait Evolution extends DataValidation with EvolutionDefaults with SeedConverters
+  with SparkSessionWrapper with Defaults {
 
   var _labelCol: String = _defaultLabel
   var _featureCol: String = _defaultFeature
@@ -47,6 +48,7 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
   var _initialGenerationPermutationCount: Int = _defaultFirstGenPermutations
   var _initialGenerationIndexMixingMode: String = _defaultFirstGenIndexMixingMode
   var _initialGenerationArraySeed: Long = _defaultFirstGenArraySeed
+  var _hyperSpaceModelCount: Int = _defaultHyperSpaceModelCount
 
   var _modelSeedSet: Boolean = false
   var _modelSeed: Map[String, Any] = Map.empty
@@ -269,6 +271,11 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
     this
   }
 
+  def setHyperSpaceModelCount(value: Int): this.type = {
+    _hyperSpaceModelCount = value
+    this
+  }
+
   def setFirstGenIndexMixingMode(value: String): this.type = {
     require(allowableInitialGenerationIndexMixingModes.contains(value), s"First Generation Mode '$value' is not a" +
       s"supported mode.  Must be one of ${
@@ -290,6 +297,8 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
   def getFirstGenPermutations: Int = _initialGenerationPermutationCount
 
   def getFirstGenMode: String = _initialGenerationMode
+
+  def getHyperSpaceModelCount: Int = _hyperSpaceModelCount
 
   def getLabelCol: String = _labelCol
 
@@ -349,8 +358,10 @@ trait Evolution extends DataValidation with EvolutionDefaults with SeedConverter
 
   def getDataReductionFactor: Double = _dataReduce
 
+  // TODO - Calculation should take into account early stopping
   def totalModels: Int = _evolutionStrategy match {
-    case "batch" => (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool
+    case "batch" => (_numberOfMutationsPerGeneration * _numberOfMutationGenerations) + _firstGenerationGenePool +
+      _initialGenerationPermutationCount + _hyperSpaceModelCount
     case "continuous" => _continuousEvolutionMaxIterations - _continuousEvolutionParallelism + _firstGenerationGenePool
     case _ => throw new MatchError(s"EvolutionStrategy mode ${_evolutionStrategy} is not supported." +
       s"\n  Choose one of: ${allowableEvolutionStrategies.mkString(", ")}")

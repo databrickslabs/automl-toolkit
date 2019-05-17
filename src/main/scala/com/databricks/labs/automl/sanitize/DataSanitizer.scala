@@ -139,15 +139,17 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private def getFieldsAndFillable(df: DataFrame, columnList: List[String], statistics: String): DataFrame = {
 
+    val dfParts = df.rdd.partitions.length.toDouble
+    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {
       val colBatches = getBatches(columnList)
       colBatches.map { batch =>
-        df.coalesce(20).select(batch map col: _*).summary().select("Summary" +: batch map col: _*)
+        df.coalesce(summaryParts).select(batch map col: _*).summary().select("Summary" +: batch map col: _*)
       }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
 
     } else {
-      df.coalesce(20).summary(statistics.replaceAll(" ", "").split(","): _*)
+      df.coalesce(summaryParts).summary(statistics.replaceAll(" ", "").split(","): _*)
         .select(selectionColumns map col: _*)
     }
     x
