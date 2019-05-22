@@ -15,6 +15,7 @@ class RandomForestFeatureImportance(data: DataFrame, featConfig: MainConfig, mod
 
   private var _cutoffValue = 15.0
 
+
   def setCutoffType(value: String): this.type = {
     require(allowableCutoffTypes.contains(value),
       s"Cutoff type $value is not in ${allowableCutoffTypes.mkString(", ")}")
@@ -26,6 +27,7 @@ class RandomForestFeatureImportance(data: DataFrame, featConfig: MainConfig, mod
     _cutoffValue = value
     this
   }
+
 
   def getCutoffType: String = _cutoffType
 

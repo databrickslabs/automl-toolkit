@@ -10,10 +10,11 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 
-class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
+class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   //    TODO: parallelism config for non genetic parallel control should be added
   private val logger: Logger = Logger.getLogger(this.getClass)
+
 
   private def logConfig(): Unit = {
 
@@ -95,6 +96,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
 
     val (varianceFilteredData, removedColumns) = varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
 
@@ -240,7 +242,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
 
     logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
 
-    val entryPointDataRestrict = entryPointDf.select(selectFields map col:_*)
+    val entryPointDataRestrict = entryPointDf.select(selectFields map col: _*)
 
     // this ignores the fieldsToIgnore and reparses the date and time fields.
     val (dataStage1, fillMap, detectedModelType) = fillNA(entryPointDataRestrict)
@@ -249,13 +251,14 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
     InferenceConfig.setInferenceNaFillConfig(fillMap.categoricalColumns, fillMap.numericColumns)
 
     // uncache the main DataFrame, force the GC
-    val (persistDataStage1, dataStage1RowCount) = if(_mainConfig.dataPrepCachingFlag) {
-      dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
-    } else {
-      (dataStage1, "no count when data prep caching is disabled")
-    }
+    val (persistDataStage1, dataStage1RowCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.naFillFlag) {
+        dataPersist(df, dataStage1, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage1, "no count when data prep caching is disabled")
+      }
 
-    if(_mainConfig.naFillFlag) {
+    if (_mainConfig.naFillFlag) {
       println(dataStage1RowCount)
       logger.log(Level.INFO, dataStage1RowCount)
     }
@@ -266,18 +269,19 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
 
     // Variance Filtering
     val dataStage2 = if (_mainConfig.varianceFilterFlag) varianceFilter(persistDataStage1)
-      else DataPrepReturn(persistDataStage1, Array.empty[String])
+    else DataPrepReturn(persistDataStage1, Array.empty[String])
 
     // Record the Inference Settings for Variance Filtering
     InferenceConfig.setInferenceVarianceFilterConfig(dataStage2.fieldListing)
 
-    val (persistDataStage2, dataStage2RowCount) = if(_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistDataStage1, dataStage2.outputData, cacheLevel, unpersistBlock)
-    } else {
-      (dataStage2.outputData, "no count when data prep caching is disabled")
-    }
+    val (persistDataStage2, dataStage2RowCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.varianceFilterFlag) {
+        dataPersist(persistDataStage1, dataStage2.outputData, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage2.outputData, "no count when data prep caching is disabled")
+      }
 
-    if(_mainConfig.varianceFilterFlag) {
+    if (_mainConfig.varianceFilterFlag) {
       println(dataStage2RowCount)
       logger.log(Level.INFO, dataStage2RowCount)
     }
@@ -287,15 +291,16 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
 
     // Outlier Filtering
     val dataStage3 = if (_mainConfig.outlierFilterFlag) outlierFilter(persistDataStage2)
-      else OutlierFilteringReturn(persistDataStage2, Map.empty[String, (Double, String)])
+    else OutlierFilteringReturn(persistDataStage2, Map.empty[String, (Double, String)])
 
-    val (persistDataStage3, dataStage3RowCount) = if(_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistDataStage2, dataStage3.outputData, cacheLevel, unpersistBlock)
-    } else {
-      (dataStage3.outputData, "no count when data prep caching is disabled")
-    }
+    val (persistDataStage3, dataStage3RowCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.outlierFilterFlag) {
+        dataPersist(persistDataStage2, dataStage3.outputData, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage3.outputData, "no count when data prep caching is disabled")
+      }
 
-    if(_mainConfig.outlierFilterFlag) {
+    if (_mainConfig.outlierFilterFlag) {
       println(dataStage2RowCount)
       logger.log(Level.INFO, dataStage3RowCount)
     }
@@ -310,28 +315,30 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
     val (featurizedData, initialFields, initialFullFields) = vectorPipeline(persistDataStage3)
 
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
-    val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol) ++ includeFieldsFinalData
+    val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol)
 
-    val featurizedDataCleaned = featurizedData.select(featureFieldCleanup map col: _*)
-
-    val (persistFeaturizedDataCleaned, featurizedDataCleanedRowCount) =
-      dataPersist(persistDataStage3, featurizedDataCleaned, cacheLevel, unpersistBlock)
+    val featurizedDataCleaned = if (_mainConfig.dataPrepCachingFlag) {
+      dataPersist(persistDataStage3, featurizedData.select(featureFieldCleanup map col: _*), cacheLevel, unpersistBlock)._1
+    } else {
+      featurizedData.select(featureFieldCleanup map col: _*)
+    }
 
     //DEBUG
     logger.log(Level.DEBUG, printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString)
 
     // Covariance Filtering
     val dataStage4 = if (_mainConfig.covarianceFilteringFlag) {
-      covarianceFilter(persistFeaturizedDataCleaned, initialFields)
-    } else DataPrepReturn(persistFeaturizedDataCleaned, Array.empty[String])
+      covarianceFilter(featurizedDataCleaned, initialFields)
+    } else DataPrepReturn(featurizedDataCleaned, Array.empty[String])
 
-    val (persistDataStage4, dataStage4RowCount) = if(_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistFeaturizedDataCleaned, dataStage4.outputData, cacheLevel, unpersistBlock)
-    } else {
-      (dataStage4.outputData, "no count when data prep caching is disabled")
-    }
+    val (persistDataStage4, dataStage4RowCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.covarianceFilteringFlag) {
+        dataPersist(featurizedDataCleaned, dataStage4.outputData, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage4.outputData, "no count when data prep caching is disabled")
+      }
 
-    if(_mainConfig.covarianceFilteringFlag) {
+    if (_mainConfig.covarianceFilteringFlag) {
       println(dataStage4RowCount)
       logger.log(Level.INFO, dataStage4RowCount)
     }
@@ -345,7 +352,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
     // All stages after this point require a feature vector.
     val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(persistDataStage4)
 
-    val (persistDataStage5, dataStage5RowCount) = if(_mainConfig.dataPrepCachingFlag) {
+    val (persistDataStage5, dataStage5RowCount) = if (_mainConfig.dataPrepCachingFlag) {
       dataPersist(persistDataStage4, dataStage5, cacheLevel, unpersistBlock)
     } else {
       (dataStage5, "no count when data prep caching is disabled")
@@ -366,27 +373,42 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
       (persistDataStage5, stage5Fields, stage5FullFields)
     }
 
+    val (persistDataStage6, dataStage6RowCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.pearsonFilteringFlag) {
+        dataPersist(persistDataStage5, dataStage6, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage5, "no count when data prep caching is disabled")
+      }
+
     //DEBUG
-    logger.log(Level.DEBUG, printSchema(dataStage6, "stage6").toString)
+    logger.log(Level.DEBUG, printSchema(persistDataStage6, "stage6").toString)
 
     // OneHotEncoding Option
-    val (dataStage65, stage65Fields, stage65FullFields) = if(_mainConfig.oneHotEncodeFlag) {
-      oneHotEncodeVector(dataStage6, stage6Fields, stage6FullFields)
-    } else (dataStage6, stage6Fields, stage6FullFields)
+    val (dataStage65, stage65Fields, stage65FullFields) = if (_mainConfig.oneHotEncodeFlag) {
+      oneHotEncodeVector(persistDataStage6, stage6Fields, stage6FullFields)
+    } else (persistDataStage6, stage6Fields, stage6FullFields)
+
+    val (persistDataStage65, dataStage65RowCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.oneHotEncodeFlag) {
+        dataPersist(persistDataStage6, dataStage65, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage65, "no count when data prep caching is disabled")
+      }
 
     //DEBUG
-    logger.log(Level.DEBUG, printSchema(dataStage65, "stage65").toString)
+    logger.log(Level.DEBUG, printSchema(persistDataStage65, "stage65").toString)
 
     // Scaler
     val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage65) else dataStage65
 
-    val (persistDataStage7, dataStage7RowCount) = if(_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistDataStage5, dataStage7, cacheLevel, unpersistBlock)
-    } else {
-      (dataStage7, "no count when data prep caching is disabled")
-    }
+    val (persistDataStage7, dataStage7RowCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.scalingFlag) {
+        dataPersist(persistDataStage65, dataStage7, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage7, "no count when data prep caching is disabled")
+      }
 
-    if(_mainConfig.scalingFlag) {
+    if (_mainConfig.scalingFlag && _mainConfig.dataPrepCachingFlag) {
       println(dataStage7RowCount)
       logger.log(Level.INFO, dataStage7RowCount)
     }
@@ -394,17 +416,23 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools{
     // Record the Inference Settings for Scaling
     InferenceConfig.setInferenceScalingConfig(_mainConfig.scalingConfig)
 
-    val finalSchema = s"Final Schema: \n    ${stage65Fields.mkString(", ")}"
-    val finalFullSchema = s"Final Full Schema: \n    ${stage65FullFields.mkString(", ")}"
+    val finalStageDF = persistDataStage7.select(persistDataStage7.columns map col: _*)
+    if (_mainConfig.dataPrepCachingFlag) dataPersist(persistDataStage7, finalStageDF, cacheLevel, unpersistBlock)
+    else finalStageDF.persist(cacheLevel)
 
-    val finalStatement = s"Data Prep complete.  Final Dataframe cached."
+    val finalCount = finalStageDF.count
+
+    val finalSchema = s"Final Schema: \n    ${stage65Fields.mkString(", ")}"
+    val finalFullSchema = s"Final Full Schema: \n    ${finalStageDF.columns.mkString(", ")}"
+
+    val finalStatement = s"Data Prep complete.  Final Dataframe cached. Total Observations: $finalCount"
     // DEBUG
     logger.log(Level.INFO, finalSchema)
     logger.log(Level.INFO, finalFullSchema)
     logger.log(Level.INFO, finalStatement)
     println(finalStatement)
 
-    DataGeneration(persistDataStage7, stage65Fields, detectedModelType)
+    DataGeneration(finalStageDF, finalStageDF.columns, detectedModelType)
 
   }
 

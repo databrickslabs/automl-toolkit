@@ -5,6 +5,7 @@ import java.io.File
 import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools}
 import com.databricks.labs.automl.inference.InferenceConfig._
 import com.databricks.labs.automl.params.{GenericModelReturn, MLFlowConfig}
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 import org.mlflow.api.proto.Service.CreateRun
@@ -82,7 +83,7 @@ class MLFlowTracker extends InferenceTools{
     * @return the experiment id from either an existing run or the newly created one.
     */
 
-  private def getOrCreateExperimentId(client: MlflowClient, experimentName: String = _mlFlowExperimentName): Long = {
+  private def getOrCreateExperimentId(client: MlflowClient, experimentName: String = _mlFlowExperimentName): String = {
 
     val experiment = client.getExperimentByName(experimentName)
     if(experiment.isPresent) experiment.get().getExperimentId else client.createExperiment(experimentName)
@@ -107,7 +108,7 @@ class MLFlowTracker extends InferenceTools{
     */
   private def generateMlFlowRun(client: MlflowClient, runIdentifier: String): String = {
 
-    val experimentId = getOrCreateExperimentId(client)
+    val experimentId = getOrCreateExperimentId(client).toString
 
 //    client.logArtifacts("7bdee580de5f4ee58543b1d70283295f",new File("/tmp/house_prices"))
     val runId = client.createRun(experimentId, runIdentifier).getRunUuid
@@ -116,7 +117,7 @@ class MLFlowTracker extends InferenceTools{
 
   }
 
-  private def generateMlFlowRun(client: MlflowClient, experimentID: Long, runIdentifier: String,
+  private def generateMlFlowRun(client: MlflowClient, experimentID: String, runIdentifier: String,
                                 runName: String, sourceVer: String): String = {
 
     val request: CreateRun.Builder = CreateRun.newBuilder()
@@ -164,8 +165,9 @@ class MLFlowTracker extends InferenceTools{
               //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
               // Jackson dependency issues.  Disabling manual model storage for now.
 
-              //modelReturn.model.asInstanceOf[XGBoostRegressionModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+//              modelReturn.model.asInstanceOf[XGBoostRegressionModel].write.overwrite().save(path)
+//              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              println("Saving XGBoost Models is not supported at this time. It will be available soon")
               client.setTag(runId, s"SparkModel_$modelId", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_XGBoost" =>
@@ -173,8 +175,9 @@ class MLFlowTracker extends InferenceTools{
               //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
               // Jackson dependency issues.  Disabling manual model storage for now.
 
-              //modelReturn.model.asInstanceOf[XGBoostClassificationModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+//              modelReturn.model.asInstanceOf[XGBoostClassificationModel].write.overwrite().save(path)
+//              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+              println("Saving XGBoost Models is not supported at this time. It will be available soon")
               client.setTag(runId, s"SparkModel_$modelId", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "regressor_GBT" =>
@@ -251,7 +254,7 @@ class MLFlowTracker extends InferenceTools{
 
     val mlflowLoggingClient = createHostedMlFlowClient()
 
-    val experimentId = getOrCreateExperimentId(mlflowLoggingClient, _mlFlowExperimentName + _mlFlowBestSuffix)
+    val experimentId = getOrCreateExperimentId(mlflowLoggingClient, _mlFlowExperimentName + _mlFlowBestSuffix).toString
 
     var totalVersion = mlflowLoggingClient.getExperiment(experimentId).getRunsCount
 
@@ -331,7 +334,7 @@ class MLFlowTracker extends InferenceTools{
 
     val mlflowLoggingClient = createHostedMlFlowClient()
 
-    val experimentId = getOrCreateExperimentId(mlflowLoggingClient)
+    val experimentId = getOrCreateExperimentId(mlflowLoggingClient).toString
 
     var totalVersion = mlflowLoggingClient.getExperiment(experimentId).getRunsCount
 

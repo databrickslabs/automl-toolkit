@@ -73,9 +73,9 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
       .setStages(indexers :+ assembler)
 
     val fieldsToInclude = if (!isInferenceRun) {
-      assembledColumns ++ Array(_featureCol, _labelCol) ++ ignoreList
+      assembledColumns ++ Array(_featureCol, _labelCol)
     } else {
-      assembledColumns ++ Array(_featureCol) ++ ignoreList
+      assembledColumns ++ Array(_featureCol)
     }
 
 
