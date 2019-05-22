@@ -152,12 +152,12 @@ class MLFlowTracker extends InferenceTools{
             case "regressor_RandomForest" =>
               modelReturn.model.asInstanceOf[RandomForestRegressionModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_RandomForest" =>
               modelReturn.model.asInstanceOf[RandomForestClassificationModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "regressor_XGBoost" =>
 
@@ -166,7 +166,7 @@ class MLFlowTracker extends InferenceTools{
 
               //modelReturn.model.asInstanceOf[XGBoostRegressionModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_XGBoost" =>
 
@@ -175,47 +175,47 @@ class MLFlowTracker extends InferenceTools{
 
               //modelReturn.model.asInstanceOf[XGBoostClassificationModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "regressor_GBT" =>
               modelReturn.model.asInstanceOf[GBTRegressionModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_GBT" =>
               modelReturn.model.asInstanceOf[GBTClassificationModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_MLPC" =>
               modelReturn.model.asInstanceOf[MultilayerPerceptronClassificationModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "regressor_LinearRegression" =>
               modelReturn.model.asInstanceOf[LinearRegressionModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_LogisticRegression" =>
               modelReturn.model.asInstanceOf[LogisticRegressionModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "regressor_SVM" =>
               modelReturn.model.asInstanceOf[LinearSVCModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "regressor_Trees" =>
               modelReturn.model.asInstanceOf[DecisionTreeRegressionModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case "classifier_Trees" =>
               modelReturn.model.asInstanceOf[DecisionTreeClassificationModel].write.overwrite().save(path)
               if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
+              client.setTag(runId, "ModelSaveLocation", path)
               client.setTag(runId, "TrainingPayload", modelReturn.toString)
             case _ => throw new UnsupportedOperationException(
               s"Model Type $modelDescriptor is not supported for mlflow logging.")

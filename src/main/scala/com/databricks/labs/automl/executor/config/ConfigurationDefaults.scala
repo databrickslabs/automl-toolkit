@@ -181,7 +181,6 @@ trait ConfigurationDefaults {
       case GBTClassifier => boundaryValidation(gbtString.keys.toSet, value.keys.toSet)
       case LinearRegression => boundaryValidation(linearRegressionString.keys.toSet, value.keys.toSet)
       case _ => None
-      //throw new IllegalArgumentException(s"${modelType.toString} has no StringBoundaries to configure.")
     }
   }
 
@@ -207,7 +206,7 @@ trait ConfigurationDefaults {
     * Generate the default configuration objects
     */
 
-  def genericConfig(predictionType: PredictionType): GenericConfig = {
+  private[config] def genericConfig(predictionType: PredictionType): GenericConfig = {
     val labelCol = "label"
     val featuresCol = "features"
     val dateTimeConversionType = "split"
@@ -219,7 +218,7 @@ trait ConfigurationDefaults {
       scoringOptimizationStrategy)
   }
 
-  def switchConfig(family: FamilyValidator): SwitchConfig = {
+  private[config] def switchConfig(family: FamilyValidator): SwitchConfig = {
     val naFillFlag = true
     val varianceFilterFlag = true
     val outlierFilterFlag = false
@@ -234,10 +233,10 @@ trait ConfigurationDefaults {
       oheFlag, scaleFlag, dataPrepCachingFlag, autoStoppingFlag)
   }
 
-  def algorithmConfig(modelType: ModelSelector): AlgorithmConfig = AlgorithmConfig(
+  private[config] def algorithmConfig(modelType: ModelSelector): AlgorithmConfig = AlgorithmConfig(
       stringBoundariesAssignment(modelType), numericBoundariesAssignment(modelType))
 
-  def featureEngineeringConfig(): FeatureEngineeringConfig = {
+  private[config] def featureEngineeringConfig(): FeatureEngineeringConfig = {
     val numericFillStat = "mean"
     val characterFillStat = "max"
     val modelSelectionDistinctThreshold = 50
@@ -273,7 +272,7 @@ trait ConfigurationDefaults {
     )
   }
 
-  def tunerConfig(): TunerConfig = {
+  private[config] def tunerConfig(): TunerConfig = {
     val tunerAutoStoppingScore = 0.99
     val tunerParallelism = 20
     val tunerKFold = 5
@@ -318,7 +317,8 @@ trait ConfigurationDefaults {
       tunerHyperSpaceInferenceCount, tunerHyperSpaceModelCount, tunerHyperSpaceModelType, tunerInitialGenerationMode,
       tunerInitialGenerationPermutationCount, tunerInitialGenerationIndexMixingMode, tunerInitialGenerationArraySeed)
   }
-  def loggingConfig(): LoggingConfig = {
+
+  private[config] def loggingConfig(): LoggingConfig = {
     val mlFlowLoggingFlag = true
     val mlFlowLogArtifactsFlag = false
     val mlFlowTrackingURI = "hosted"
@@ -333,7 +333,7 @@ trait ConfigurationDefaults {
       mlFlowModelSaveDirectory, mlFlowLoggingMode, mlFlowBestSuffix, inferenceSaveLocation)
   }
 
-  def instanceConfig(modelFamily: String, predictionType: String): InstanceConfig = {
+  private[config] def instanceConfig(modelFamily: String, predictionType: String): InstanceConfig = {
     val modelingType = predictionTypeEvaluator(predictionType)
     val family = familyTypeEvaluator(modelFamily)
     val modelType = modelTypeEvaluator(modelFamily, predictionType)
