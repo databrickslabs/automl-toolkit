@@ -10,7 +10,20 @@ import org.apache.spark.sql.functions._
 import scala.collection.mutable.ArrayBuffer
 
 
+case class ModelReportSchema(
+                            generation: Int,
+                            score: Double,
+                            model: String
+                            )
 
+case class GenerationReportSchema(
+                                 model_family: String,
+                                 model_type: String,
+                                 generation: Int,
+                                 generation_mean_score: Double,
+                                 generation_std_dev_score: Double,
+                                 model: String
+                                 )
 
 class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig]) extends SparkSessionWrapper{
 
@@ -27,10 +40,12 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig]) extends Spar
   //TODO: move this.
   private def unifyFamilyOutput(outputArray: Array[FamilyOutput]): FamilyFinalOutput = {
 
+    import spark.implicits._
+
     var modelReport = ArrayBuffer[GroupedModelReturn]()
     var generationReport = ArrayBuffer[GenerationalReport]()
-    var modelReportDataFrame = spark.emptyDataFrame
-    var generationReportDataFrame = spark.emptyDataFrame
+    var modelReportDataFrame = spark.emptyDataset[ModelReportSchema].toDF
+    var generationReportDataFrame = spark.emptyDataset[GenerationReportSchema].toDF
 
     outputArray.map{ x =>
 
@@ -93,17 +108,6 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig]) extends Spar
 
   }
 
-
-
-
-  // Method listing:
-  // 1. DataPrep / fillna operations
-  // 2. cache if requested
-  // 3. set the configuration for different models
-  // 4. execute the modeling runs
-  // 5. log all to mlflow
-  // 6.
-
-
-
 }
+
+// TODO: In companion object, allow for submission of Array[InstanceConfig] or Array[Map] for configs

@@ -1,9 +1,11 @@
 package com.databricks.labs.automl.executor.config
 
 import com.databricks.labs.automl.params._
-import org.json4s.{Formats, NoTypeHints}
 import org.json4s.jackson.Serialization
-import org.json4s.jackson.Serialization.{writePretty, read}
+import org.json4s.jackson.Serialization.{read, writePretty}
+import org.json4s.{Formats, NoTypeHints}
+
+import scala.collection.mutable.ListBuffer
 
 
 class GenericConfigGenerator(predictionType: String) extends ConfigurationDefaults {
@@ -71,6 +73,8 @@ class GenericConfigGenerator(predictionType: String) extends ConfigurationDefaul
 
 object GenericConfigGenerator {
 
+  def apply(predictionType: String): GenericConfigGenerator = new GenericConfigGenerator(predictionType)
+
   def generateDefaultClassifierConfig: GenericConfig = new GenericConfigGenerator("classifier").getConfig
 
   def generateDefaultRegressorConfig: GenericConfig = new GenericConfigGenerator("regressor").getConfig
@@ -91,6 +95,8 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   private var _instanceConfig = instanceConfig(modelFamily, predictionType)
 
+  _instanceConfig.genericConfig = genericConfig
+
   /**
     * Switch Config
     */
@@ -105,6 +111,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
     this
   }
 
+  def setNaFillFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.naFillFlag = value
+    this
+  }
+
   def varianceFilterOn(): this.type = {
     _instanceConfig.switchConfig.varianceFilterFlag = true
     this
@@ -112,6 +123,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def varianceFilterOff(): this.type = {
     _instanceConfig.switchConfig.varianceFilterFlag = false
+    this
+  }
+
+  def setVarianceFilterFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.varianceFilterFlag = value
     this
   }
 
@@ -125,6 +141,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
     this
   }
 
+  def setOutlierFilterFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.varianceFilterFlag = value
+    this
+  }
+
   def pearsonFilterOn(): this.type = {
     _instanceConfig.switchConfig.pearsonFilterFlag = true
     this
@@ -132,6 +153,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def pearsonFilterOff(): this.type = {
     _instanceConfig.switchConfig.pearsonFilterFlag = false
+    this
+  }
+
+  def setPearsonFilterFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.pearsonFilterFlag = value
     this
   }
 
@@ -145,10 +171,16 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
     this
   }
 
+  def setCovarianceFilterFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.covarianceFilterFlag = value
+    this
+  }
+
   def oneHotEncodeOn(): this.type = {
     family match {
       case Trees => println("WARNING! OneHotEncoding set on a trees algorithm will likely create a poor model.  " +
         "Proceed at your own risk!")
+      case _ => None
     }
     _instanceConfig.switchConfig.oneHotEncodeFlag = true
     this
@@ -156,6 +188,12 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def oneHotEncodeOff(): this.type = {
     _instanceConfig.switchConfig.oneHotEncodeFlag = false
+    this
+  }
+
+  def setOneHotEncodeFlag(value: Boolean): this.type = {
+    if (value) oneHotEncodeOn()
+    else oneHotEncodeOff()
     this
   }
 
@@ -169,6 +207,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
     this
   }
 
+  def setScalingFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.scalingFlag = value
+    this
+  }
+
   def dataPrepCachingOn(): this.type = {
     _instanceConfig.switchConfig.dataPrepCachingFlag = true
     this
@@ -179,6 +222,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
     this
   }
 
+  def setDataPrepCachingFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.dataPrepCachingFlag = value
+    this
+  }
+
   def autoStoppingOn(): this.type = {
     _instanceConfig.switchConfig.autoStoppingFlag = true
     this
@@ -186,6 +234,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def autoStoppingOff(): this.type = {
     _instanceConfig.switchConfig.autoStoppingFlag = false
+    this
+  }
+
+  def setAutoStoppingFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.autoStoppingFlag = value
     this
   }
 
@@ -317,6 +370,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
     this
   }
 
+  def setScalingStandardMeanFlag(value: Boolean): this.type = {
+    _instanceConfig.featureEngineeringConfig.scalingStandardMeanFlag = value
+    this
+  }
+
   def setScalingStdDevFlagOn(): this.type = {
     _instanceConfig.featureEngineeringConfig.scalingStdDevFlag = true
     this
@@ -324,6 +382,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def setScalingStdDevFlagOff(): this.type = {
     _instanceConfig.featureEngineeringConfig.scalingStdDevFlag = false
+    this
+  }
+
+  def setScalingStdDevFlag(value: Boolean): this.type = {
+    _instanceConfig.featureEngineeringConfig.scalingStdDevFlag = value
     this
   }
 
@@ -406,8 +469,10 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def setTunerTrainSplitChronologicalColumn(value: String): this.type = {
     _instanceConfig.tunerConfig.tunerTrainSplitChronologicalColumn = value
-    val updatedFieldsToIgnore = genericConfig.fieldsToIgnoreInVector ++: Array(value)
-    genericConfig.fieldsToIgnoreInVector = updatedFieldsToIgnore
+    if (value.length > 0) {
+      val updatedFieldsToIgnore = genericConfig.fieldsToIgnoreInVector ++: Array(value)
+      genericConfig.fieldsToIgnoreInVector = updatedFieldsToIgnore
+    }
     this
   }
 
@@ -447,7 +512,7 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
     this
   }
 
-  def setTunerNumberOfMutationPerGeneration(value: Int): this.type = {
+  def setTunerNumberOfMutationsPerGeneration(value: Int): this.type = {
     _instanceConfig.tunerConfig.tunerNumberOfMutationsPerGeneration = value
     this
   }
@@ -538,6 +603,11 @@ class ConfigurationGenerator(modelFamily: String, predictionType: String, var ge
 
   def setTunerHyperSpaceInferenceOff(): this.type = {
     _instanceConfig.tunerConfig.tunerHyperSpaceInference = false
+    this
+  }
+
+  def setTunerHyperSpaceInferenceFlag(value: Boolean): this.type = {
+    _instanceConfig.tunerConfig.tunerHyperSpaceInference = value
     this
   }
 
@@ -699,7 +769,7 @@ object ConfigurationGenerator extends ConfigurationDefaults {
   }
 
   private def standardizeModelFamilyStrings(value: String): String = {
-    value match {
+    value.toLowerCase match {
       case "randomforest" => "RandomForest"
       case "gbt" => "GBT"
       case "linearregression" => "LinearRegression"
@@ -856,6 +926,204 @@ object ConfigurationGenerator extends ConfigurationDefaults {
     implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
     read[InstanceConfig](json)
   }
+
+  private def validateMapConfig(defaultMap: Map[String, Any], submittedMap: Map[String, Any]): Unit = {
+
+    val definedKeys = defaultMap.keys
+    val submittedKeys = submittedMap.keys
+
+    // Perform a quick-check
+
+    val contained = submittedKeys.forall(definedKeys.toList.contains)
+    if (!contained) {
+
+      val invalidKeys = ListBuffer[String]()
+
+      submittedKeys.map(x =>
+        if (!definedKeys.toList.contains(x)) invalidKeys += x
+      )
+
+      throw new IllegalArgumentException(s"Invalid map key(s) submitted for configuration generation. \nInvalid Keys: " +
+        s"'${invalidKeys.mkString("','")}'. \n\tTo see a list of available keys, submit: \n\n\t\t" +
+        s"ConfigurationGenerator.getConfigMapKeys \n\t\t\tor \n\t\tConfigurationGenerator.printConfigMapKeys \n\t\t\t " +
+        s"to visualize in stdout.\n")
+    }
+
+  }
+
+  /**
+    *
+    * @param modelFamily
+    * @param predictionType
+    * @param config
+    * @return
+    */
+  def generateConfigFromMap(modelFamily: String, predictionType: String, config: Map[String, Any]): InstanceConfig = {
+
+    val defaultMap = defaultConfigMap(modelFamily, predictionType)
+
+    // Validate the submitted keys to ensure that there are no invalid or mispelled entries
+    validateMapConfig(defaultMap, config)
+
+    lazy val genericConfigObject = new GenericConfigGenerator(predictionType)
+      .setLabelCol(config.getOrElse("labelCol", defaultMap("labelCol")).toString)
+      .setFeaturesCol(config.getOrElse("featuresCol", defaultMap("featuresCol")).toString)
+      .setDateTimeConversionType(config.getOrElse("dateTimeConversionType",
+        defaultMap("dateTimeConversionType")).toString)
+      .setFieldsToIgnoreInVector(config.getOrElse("fieldsToIgnoreInVector",
+        defaultMap("fieldsToIgnoreInVector")).asInstanceOf[Array[String]])
+      .setScoringMetric(config.getOrElse("scoringMetric", defaultMap("scoringMetric")).toString)
+      .setScoringOptimizationStrategy(config.getOrElse("scoringOptimizationStrategy",
+        defaultMap("scoringOptimizationStrategy")).toString)
+
+
+    lazy val configObject = new ConfigurationGenerator(modelFamily, predictionType, genericConfigObject.getConfig)
+      .setNaFillFlag(config.getOrElse("naFillFlag", defaultMap("naFillFlag")).toString.toBoolean)
+      .setVarianceFilterFlag(config.getOrElse("varianceFilterFlag",
+        defaultMap("varianceFilterFlag")).toString.toBoolean)
+      .setOutlierFilterFlag(config.getOrElse("outlierFilterFlag", defaultMap("outlierFilterFlag")).toString.toBoolean)
+      .setPearsonFilterFlag(config.getOrElse("pearsonFilterFlag", defaultMap("pearsonFilterFlag")).toString.toBoolean)
+      .setCovarianceFilterFlag(config.getOrElse("covarianceFilterFlag",
+        defaultMap("covarianceFilterFlag")).toString.toBoolean)
+      .setOneHotEncodeFlag(config.getOrElse("oneHotEncodeFlag", defaultMap("oneHotEncodeFlag")).toString.toBoolean)
+      .setScalingFlag(config.getOrElse("scalingFlag", defaultMap("scalingFlag")).toString.toBoolean)
+      .setDataPrepCachingFlag(config.getOrElse("dataPrepCachingFlag",
+        defaultMap("dataPrepCachingFlag")).toString.toBoolean)
+      .setAutoStoppingFlag(config.getOrElse("autoStoppingFlag", defaultMap("autoStoppingFlag")).toString.toBoolean)
+      .setFillConfigNumericFillStat(config.getOrElse("fillConfigNumericFillStat",
+        defaultMap("fillConfigNumericFillStat")).toString)
+      .setFillConfigCharacterFillStat(config.getOrElse("fillConfigCharacterFillStat",
+        defaultMap("fillConfigCharacterFillStat")).toString)
+      .setFillConfigModelSelectionDistinctThreshold(config.getOrElse("fillConfigModelSelectionDistinctThreshold",
+        defaultMap("fillConfigModelSelectionDistinctThreshold")).toString.toInt)
+      .setOutlierFilterBounds(config.getOrElse("outlierFilterBounds", defaultMap("outlierFilterBounds")).toString)
+      .setOutlierLowerFilterNTile(config.getOrElse("outlierLowerFilterNTile",
+        defaultMap("outlierLowerFilterNTile")).toString.toDouble)
+      .setOutlierUpperFilterNTile(config.getOrElse("outlierUpperFilterNTile",
+        defaultMap("outlierUpperFilterNTile")).toString.toDouble)
+      .setOutlierFilterPrecision(config.getOrElse("outlierFilterPrecision",
+        defaultMap("outlierFilterPrecision")).toString.toDouble)
+      .setOutlierContinuousDataThreshold(config.getOrElse("outlierContinuousDataThreshold",
+        defaultMap("outlierContinuousDataThreshold")).toString.toInt)
+      .setOutlierFieldsToIgnore(config.getOrElse("outlierFieldsToIgnore",
+        defaultMap("outlierFieldsToIgnore")).asInstanceOf[Array[String]])
+      .setPearsonFilterStatistic(config.getOrElse("pearsonFilterStatistic",
+        defaultMap("pearsonFilterStatistic")).toString)
+      .setPearsonFilterDirection(config.getOrElse("pearsonFilterDirection",
+        defaultMap("pearsonFilterDirection")).toString)
+      .setPearsonFilterManualValue(config.getOrElse("pearsonFilterManualValue",
+        defaultMap("pearsonFilterManualValue")).toString.toDouble)
+      .setPearsonFilterMode(config.getOrElse("pearsonFilterMode", defaultMap("pearsonFilterMode")).toString)
+      .setPearsonAutoFilterNTile(config.getOrElse("pearsonAutoFilterNTile",
+        defaultMap("pearsonAutoFilterNTile")).toString.toDouble)
+      .setCovarianceCutoffLow(config.getOrElse("covarianceCutoffLow",
+        defaultMap("covarianceCutoffLow")).toString.toDouble)
+      .setCovarianceCutoffHigh(config.getOrElse("covarianceCutoffHigh",
+        defaultMap("covarianceCutoffHigh")).toString.toDouble)
+      .setScalingType(config.getOrElse("scalingType", defaultMap("scalingType")).toString)
+      .setScalingMin(config.getOrElse("scalingMin", defaultMap("scalingMin")).toString.toDouble)
+      .setScalingMax(config.getOrElse("scalingMax", defaultMap("scalingMax")).toString.toDouble)
+      .setScalingStandardMeanFlag(config.getOrElse("scalingStandardMeanFlag",
+        defaultMap("scalingStandardMeanFlag")).toString.toBoolean)
+      .setScalingStdDevFlag(config.getOrElse("scalingStdDevFlag", defaultMap("scalingStdDevFlag")).toString.toBoolean)
+      .setScalingPNorm(config.getOrElse("scalingPNorm", defaultMap("scalingPNorm")).toString.toDouble)
+      .setFeatureImportanceCutoffType(config.getOrElse("featureImportanceCutoffType",
+        defaultMap("featureImportanceCutoffType")).toString)
+      .setFeatureImportanceCutoffValue(config.getOrElse("featureImportanceCutoffValue",
+        defaultMap("featureImportanceCutoffValue")).toString.toDouble)
+      .setDataReductionFactor(config.getOrElse("dataReductionFactor",
+        defaultMap("dataReductionFactor")).toString.toDouble)
+      .setStringBoundaries(config.getOrElse("stringBoundaries",
+        defaultMap("stringBoundaries")).asInstanceOf[Map[String, List[String]]])
+      .setNumericBoundaries(config.getOrElse("numericBoundaries",
+        defaultMap("numericBoundaries")).asInstanceOf[Map[String, (Double, Double)]])
+      .setTunerAutoStoppingScore(config.getOrElse("tunerAutoStoppingScore",
+        defaultMap("tunerAutoStoppingScore")).toString.toDouble)
+      .setTunerParallelism(config.getOrElse("tunerParallelism", defaultMap("tunerParallelism")).toString.toInt)
+      .setTunerKFold(config.getOrElse("tunerKFold", defaultMap("tunerKFold")).toString.toInt)
+      .setTunerTrainPortion(config.getOrElse("tunerTrainPortion", defaultMap("tunerTrainPortion")).toString.toDouble)
+      .setTunerTrainSplitMethod(config.getOrElse("tunerTrainSplitMethod", defaultMap("tunerTrainSplitMethod")).toString)
+      .setTunerTrainSplitChronologicalColumn(config.getOrElse("tunerTrainSplitChronologicalColumn",
+        defaultMap("tunerTrainSplitChronologicalColumn")).toString)
+      .setTunerTrainSplitChronologicalRandomPercentage(config.getOrElse("tunerTrainSplitChronologicalRandomPercentage",
+        defaultMap("tunerTrainSplitChronologicalRandomPercentage")).toString.toDouble)
+      .setTunerSeed(config.getOrElse("tunerSeed", defaultMap("tunerSeed")).toString.toLong)
+      .setTunerFirstGenerationGenePool(config.getOrElse("tunerFirstGenerationGenePool",
+        defaultMap("tunerFirstGenerationGenePool")).toString.toInt)
+      .setTunerNumberOfGenerations(config.getOrElse("tunerNumberOfGenerations",
+        defaultMap("tunerNumberOfGenerations")).toString.toInt)
+      .setTunerNumberOfParentsToRetain(config.getOrElse("tunerNumberOfParentsToRetain",
+        defaultMap("tunerNumberOfParentsToRetain")).toString.toInt)
+      .setTunerNumberOfMutationsPerGeneration(config.getOrElse("tunerNumberOfMutationsPerGeneration",
+        defaultMap("tunerNumberOfMutationsPerGeneration")).toString.toInt)
+      .setTunerGeneticMixing(config.getOrElse("tunerGeneticMixing",
+        defaultMap("tunerGeneticMixing")).toString.toDouble)
+      .setTunerGenerationalMutationStrategy(config.getOrElse("tunerGenerationalMutationStrategy",
+        defaultMap("tunerGenerationalMutationStrategy")).toString)
+      .setTunerFixedMutationValue(config.getOrElse("tunerFixedMutationValue",
+        defaultMap("tunerFixedMutationValue")).toString.toInt)
+      .setTunerMutationMagnitudeMode(config.getOrElse("tunerMutationMagnitudeMode",
+        defaultMap("tunerMutationMagnitudeMode")).toString)
+      .setTunerEvolutionStrategy(config.getOrElse("tunerEvolutionStrategy",
+        defaultMap("tunerEvolutionStrategy")).toString)
+      .setTunerContinuousEvolutionMaxIterations(config.getOrElse("tunerContinuousEvolutionMaxIterations",
+        defaultMap("tunerContinuousEvolutionMaxIterations")).toString.toInt)
+      .setTunerContinuousEvolutionStoppingScore(config.getOrElse("tunerContinuousEvolutionStoppingScore",
+        defaultMap("tunerContinuousEvolutionStoppingScore")).toString.toDouble)
+      .setTunerContinuousEvolutionParallelism(config.getOrElse("tunerContinuousEvolutionParallelism",
+        defaultMap("tunerContinuousEvolutionParallelism")).toString.toInt)
+      .setTunerContinuousEvolutionMutationAggressiveness(config.getOrElse(
+        "tunerContinuousEvolutionMutationAggressiveness",
+        defaultMap("tunerContinuousEvolutionMutationAggressiveness")).toString.toInt)
+      .setTunerContinuousEvolutionGeneticMixing(config.getOrElse("tunerContinuousEvolutionGeneticMixing",
+        defaultMap("tunerContinuousEvolutionGeneticMixing")).toString.toDouble)
+      .setTunerContinuousEvolutionRollingImprovementCount(config.getOrElse(
+        "tunerContinuousEvolutionRollingImprovementCount",
+        defaultMap("tunerContinuousEvolutionRollingImprovementCount")).toString.toInt)
+      .setTunerModelSeed(config.getOrElse("tunerModelSeed",
+        defaultMap("tunerModelSeed")).asInstanceOf[Map[String, Any]])
+      .setTunerHyperSpaceInferenceFlag(config.getOrElse("tunerHyperSpaceInferenceFlag",
+        defaultMap("tunerHyperSpaceInferenceFlag")).toString.toBoolean)
+      .setTunerHyperSpaceInferenceCount(config.getOrElse("tunerHyperSpaceInferenceCount",
+        defaultMap("tunerHyperSpaceInferenceCount")).toString.toInt)
+      .setTunerHyperSpaceModelCount(config.getOrElse("tunerHyperSpaceModelCount",
+        defaultMap("tunerHyperSpaceModelCount")).toString.toInt)
+      .setTunerHyperSpaceModelType(config.getOrElse("tunerHyperSpaceModelType",
+        defaultMap("tunerHyperSpaceModelType")).toString)
+      .setTunerInitialGenerationMode(config.getOrElse("tunerInitialGenerationMode",
+        defaultMap("tunerInitialGenerationMode")).toString)
+      .setTunerInitialGenerationPermutationCount(config.getOrElse("tunerInitialGenerationPermutationCount",
+        defaultMap("tunerInitialGenerationPermutationCount")).toString.toInt)
+      .setTunerInitialGenerationIndexMixingMode(config.getOrElse("tunerInitialGenerationIndexMixingMode",
+        defaultMap("tunerInitialGenerationIndexMixingMode")).toString)
+      .setTunerInitialGenerationArraySeed(config.getOrElse("tunerInitialGenerationArraySeed",
+        defaultMap("tunerInitialGenerationArraySeed")).toString.toLong)
+      .setMlFlowLoggingFlag(config.getOrElse("mlFlowLoggingFlag", defaultMap("mlFlowLoggingFlag")).toString.toBoolean)
+      .setMlFlowLogArtifactsFlag(config.getOrElse("mlFlowLogArtifactsFlag",
+        defaultMap("mlFlowLogArtifactsFlag")).toString.toBoolean)
+      .setMlFlowTrackingURI(config.getOrElse("mlFlowTrackingURI", defaultMap("mlFlowTrackingURI")).toString)
+      .setMlFlowExperimentName(config.getOrElse("mlFlowExperimentName", defaultMap("mlFlowExperimentName")).toString)
+      .setMlFlowAPIToken(config.getOrElse("mlFlowAPIToken", defaultMap("mlFlowAPIToken")).toString)
+      .setMlFlowModelSaveDirectory(config.getOrElse("mlFlowModelSaveDirectory",
+        defaultMap("mlFlowModelSaveDirectory")).toString)
+      .setMlFlowLoggingMode(config.getOrElse("mlFlowLoggingMode", defaultMap("mlFlowLoggingMode")).toString)
+      .setMlFlowBestSuffix(config.getOrElse("mlFlowBestSuffix", defaultMap("mlFlowBestSuffix")).toString)
+      .setInferenceConfigSaveLocation(config.getOrElse("inferenceConfigSaveLocation",
+        defaultMap("inferenceConfigSaveLocation")).toString)
+
+
+    configObject.getInstanceConfig
+
+  }
+
+
+  def getDefaultConfigMap(modelFamily: String, predictionType: String): Map[String, Any] =
+    defaultConfigMap(modelFamily, predictionType)
+
+  def getConfigMapKeys: Iterable[String] =
+    defaultConfigMap("randomForest", "classifier").keys
+
+  def printConfigMapKeys = getConfigMapKeys.foreach(println(_))
 
 }
 

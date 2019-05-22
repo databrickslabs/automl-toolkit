@@ -279,6 +279,8 @@ class MLFlowTracker extends InferenceTools{
       mlflowLoggingClient.logMetric(runId, x, valueData.toString.toDouble)
     }
 
+    mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
+
     val modelDir = s"$baseDirectory${modelDescriptor}_$runId/bestModel"
 
     saveModel(mlflowLoggingClient, modelDir, runId, bestModel, modelDescriptor, "BestRun")
@@ -384,6 +386,8 @@ class MLFlowTracker extends InferenceTools{
           val valueData = x.metrics(k)
           mlflowLoggingClient.logMetric(runId, k, valueData.toString.toDouble)
         }
+
+        mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
 
         // Generate a new unique uuid for the model to ensure there are no overwrites.
         val uniqueModelId = java.util.UUID.randomUUID().toString.replace("-", "")

@@ -96,6 +96,10 @@ trait ConfigurationDefaults {
     }
   }
 
+  private def familyScoringCheck(predictionType: String): String = {
+    familyScoringCheck(predictionTypeEvaluator(predictionType))
+  }
+
   private def treesBooleanSwitch(modelType: FamilyValidator): Boolean = {
     modelType match {
       case Trees => false
@@ -111,6 +115,10 @@ trait ConfigurationDefaults {
       case Regressor => "minimize"
       case _ => "maximize"
     }
+  }
+
+  private def familyScoringDirection(predictionType: String): String = {
+    familyScoringDirection(predictionTypeEvaluator(predictionType))
   }
 
   /**
@@ -172,7 +180,8 @@ trait ConfigurationDefaults {
       case GBTRegressor => boundaryValidation(gbtString.keys.toSet, value.keys.toSet)
       case GBTClassifier => boundaryValidation(gbtString.keys.toSet, value.keys.toSet)
       case LinearRegression => boundaryValidation(linearRegressionString.keys.toSet, value.keys.toSet)
-      case _ => throw new IllegalArgumentException(s"${modelType.toString} has no StringBoundaries to configure.")
+      case _ => None
+      //throw new IllegalArgumentException(s"${modelType.toString} has no StringBoundaries to configure.")
     }
   }
 
@@ -270,7 +279,7 @@ trait ConfigurationDefaults {
     val tunerKFold = 5
     val tunerTrainPortion = 0.8
     val tunerTrainSplitMethod = "random"
-    val tunerTrainSplitChronologicalColumn = "datetime"
+    val tunerTrainSplitChronologicalColumn = ""
     val tunerTrainSplitChronologicalRandomPercentage = 0.0
     val tunerSeed = 42L
     val tunerFirstGenerationGenePool = 20
@@ -332,6 +341,102 @@ trait ConfigurationDefaults {
       modelFamily, predictionType, genericConfig(modelingType), switchConfig(family), featureEngineeringConfig(),
       algorithmConfig(modelType), tunerConfig(), loggingConfig()
 
+    )
+  }
+
+  private[config] def defaultConfigMap(modelFamily: String, predictionType: String): Map[String, Any] = {
+
+    val genDef = genericConfig(predictionTypeEvaluator(predictionType))
+    val switchDef = switchConfig(familyTypeEvaluator(modelFamily))
+    val featDef = featureEngineeringConfig()
+    val algDef = algorithmConfig(modelTypeEvaluator(modelFamily, predictionType))
+    val tunerDef = tunerConfig()
+
+    val logDef = loggingConfig()
+
+    Map("labelCol" -> genDef.labelCol,
+      "featuresCol" -> genDef.featuresCol,
+      "dateTimeConversionType" -> genDef.dateTimeConversionType,
+      "fieldsToIgnoreInVector" -> genDef.fieldsToIgnoreInVector,
+      "scoringMetric" -> genDef.scoringMetric,
+      "scoringOptimizationStrategy" -> genDef.scoringOptimizationStrategy,
+      "naFillFlag" -> switchDef.naFillFlag,
+      "varianceFilterFlag" -> switchDef.varianceFilterFlag,
+      "outlierFilterFlag" -> switchDef.outlierFilterFlag,
+      "pearsonFilterFlag" -> switchDef.pearsonFilterFlag,
+      "covarianceFilterFlag" -> switchDef.covarianceFilterFlag,
+      "oneHotEncodeFlag" -> switchDef.oneHotEncodeFlag,
+      "scalingFlag" -> switchDef.scalingFlag,
+      "dataPrepCachingFlag" -> switchDef.dataPrepCachingFlag,
+      "autoStoppingFlag" -> switchDef.autoStoppingFlag,
+      "fillConfigNumericFillStat" -> featDef.numericFillStat,
+      "fillConfigCharacterFillStat" -> featDef.characterFillStat,
+      "fillConfigModelSelectionDistinctThreshold" -> featDef.modelSelectionDistinctThreshold,
+      "outlierFilterBounds" -> featDef.outlierFilterBounds,
+      "outlierLowerFilterNTile" -> featDef.outlierLowerFilterNTile,
+      "outlierUpperFilterNTile" -> featDef.outlierUpperFilterNTile,
+      "outlierFilterPrecision" -> featDef.outlierFilterPrecision,
+      "outlierContinuousDataThreshold" -> featDef.outlierContinuousDataThreshold,
+      "outlierFieldsToIgnore" -> featDef.outlierFieldsToIgnore,
+      "pearsonFilterStatistic" -> featDef.pearsonFilterStatistic,
+      "pearsonFilterDirection" -> featDef.pearsonFilterDirection,
+      "pearsonFilterManualValue" -> featDef.pearsonFilterManualValue,
+      "pearsonFilterMode" -> featDef.pearsonFilterMode,
+      "pearsonAutoFilterNTile" -> featDef.pearsonAutoFilterNTile,
+      "covarianceCutoffLow" -> featDef.covarianceCorrelationCutoffLow,
+      "covarianceCutoffHigh" -> featDef.covarianceCorrelationCutoffHigh,
+      "scalingType" -> featDef.scalingType,
+      "scalingMin" -> featDef.scalingMin,
+      "scalingMax" -> featDef.scalingMax,
+      "scalingStandardMeanFlag" -> featDef.scalingStandardMeanFlag,
+      "scalingStdDevFlag" -> featDef.scalingStdDevFlag,
+      "scalingPNorm" -> featDef.scalingPNorm,
+      "featureImportanceCutoffType" -> featDef.featureImportanceCutoffType,
+      "featureImportanceCutoffValue" -> featDef.featureImportanceCutoffValue,
+      "dataReductionFactor" -> featDef.dataReductionFactor,
+      "stringBoundaries" -> algDef.stringBoundaries,
+      "numericBoundaries" -> algDef.numericBoundaries,
+      "tunerAutoStoppingScore" -> tunerDef.tunerAutoStoppingScore,
+      "tunerParallelism" -> tunerDef.tunerParallelism,
+      "tunerKFold" -> tunerDef.tunerKFold,
+      "tunerTrainPortion" -> tunerDef.tunerTrainPortion,
+      "tunerTrainSplitMethod" -> tunerDef.tunerTrainSplitMethod,
+      "tunerTrainSplitChronologicalColumn" -> tunerDef.tunerTrainSplitChronologicalColumn,
+      "tunerTrainSplitChronologicalRandomPercentage" -> tunerDef.tunerTrainSplitChronologicalRandomPercentage,
+      "tunerSeed" -> tunerDef.tunerSeed,
+      "tunerFirstGenerationGenePool" -> tunerDef.tunerFirstGenerationGenePool,
+      "tunerNumberOfGenerations" -> tunerDef.tunerNumberOfGenerations,
+      "tunerNumberOfParentsToRetain" -> tunerDef.tunerNumberOfParentsToRetain,
+      "tunerNumberOfMutationsPerGeneration" -> tunerDef.tunerNumberOfMutationsPerGeneration,
+      "tunerGeneticMixing" -> tunerDef.tunerGeneticMixing,
+      "tunerGenerationalMutationStrategy" -> tunerDef.tunerGenerationalMutationStrategy,
+      "tunerFixedMutationValue" -> tunerDef.tunerFixedMutationValue,
+      "tunerMutationMagnitudeMode" -> tunerDef.tunerMutationMagnitudeMode,
+      "tunerEvolutionStrategy" -> tunerDef.tunerEvolutionStrategy,
+      "tunerContinuousEvolutionMaxIterations" -> tunerDef.tunerContinuousEvolutionMaxIterations,
+      "tunerContinuousEvolutionStoppingScore" -> tunerDef.tunerContinuousEvolutionStoppingScore,
+      "tunerContinuousEvolutionParallelism" -> tunerDef.tunerContinuousEvolutionParallelism,
+      "tunerContinuousEvolutionMutationAggressiveness" -> tunerDef.tunerContinuousEvolutionMutationAggressiveness,
+      "tunerContinuousEvolutionGeneticMixing" -> tunerDef.tunerContinuousEvolutionGeneticMixing,
+      "tunerContinuousEvolutionRollingImprovementCount" -> tunerDef.tunerContinuousEvolutionRollingImprovingCount,
+      "tunerModelSeed" -> tunerDef.tunerModelSeed,
+      "tunerHyperSpaceInferenceFlag" -> tunerDef.tunerHyperSpaceInference,
+      "tunerHyperSpaceInferenceCount" -> tunerDef.tunerHyperSpaceInferenceCount,
+      "tunerHyperSpaceModelCount" -> tunerDef.tunerHyperSpaceModelCount,
+      "tunerHyperSpaceModelType" -> tunerDef.tunerHyperSpaceModelType,
+      "tunerInitialGenerationMode" -> tunerDef.tunerInitialGenerationMode,
+      "tunerInitialGenerationPermutationCount" -> tunerDef.tunerInitialGenerationPermutationCount,
+      "tunerInitialGenerationIndexMixingMode" -> tunerDef.tunerInitialGenerationIndexMixingMode,
+      "tunerInitialGenerationArraySeed" -> tunerDef.tunerInitialGenerationArraySeed,
+      "mlFlowLoggingFlag" -> logDef.mlFlowLoggingFlag,
+      "mlFlowLogArtifactsFlag" -> logDef.mlFlowLogArtifactsFlag,
+      "mlFlowTrackingURI" -> logDef.mlFlowTrackingURI,
+      "mlFlowExperimentName" -> logDef.mlFlowExperimentName,
+      "mlFlowAPIToken" -> logDef.mlFlowAPIToken,
+      "mlFlowModelSaveDirectory" -> logDef.mlFlowModelSaveDirectory,
+      "mlFlowLoggingMode" -> logDef.mlFlowLoggingMode,
+      "mlFlowBestSuffix" -> logDef.mlFlowBestSuffix,
+      "inferenceConfigSaveLocation" -> logDef.inferenceConfigSaveLocation
     )
   }
 
