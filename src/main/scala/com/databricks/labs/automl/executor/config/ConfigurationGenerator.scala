@@ -106,10 +106,10 @@ class GenericConfigGenerator(predictionType: String)
   /**
     * Setter
     *
-    * @param value Direction of optimization. Options:
-    *              'maximize' - will sort returned scores in descending order and take the top(n)
-    *              'minimize' - will sort returned scores in ascending order and take the top(n)
-    * @throws IllegalArgumentException() if an invalid entry is made.
+    * @param value Direction of optimization. Options:<br>
+    *              <i>'maximize'</i> - will sort returned scores in descending order and take the top(n)<br>
+    *              <i>'minimize'</i> - will sort returned scores in ascending order and take the top(n)
+    * @throws IllegalArgumentException if an invalid entry is made.
     */
   @throws(classOf[IllegalArgumentException])
   def setScoringOptimizationStrategy(value: String): this.type = {
@@ -239,9 +239,8 @@ class ConfigurationGenerator(modelFamily: String,
     modelTypeEvaluator(modelFamily, predictionType)
   private val family: FamilyValidator = familyTypeEvaluator(modelFamily)
 
-  /**
-    * Default configuration generation
-    */
+  // Default configuration generation
+
   private var _instanceConfig = instanceConfig(modelFamily, predictionType)
 
   _instanceConfig.genericConfig = genericConfig
@@ -249,6 +248,7 @@ class ConfigurationGenerator(modelFamily: String,
   //Switch Config
   /**
     * Boolean switch for turning on naFill actions
+    *
     * @note Default: On
     * @note HIGHLY RECOMMENDED TO LEAVE ON.
     */
@@ -259,6 +259,7 @@ class ConfigurationGenerator(modelFamily: String,
 
   /**
     * Boolean switch for turning off naFill actions
+    *
     * @note Default: On
     * @note HIGHLY RECOMMENDED TO NOT TURN OFF
     */
@@ -269,6 +270,7 @@ class ConfigurationGenerator(modelFamily: String,
 
   /**
     * Boolean switch for setting the state of naFillFlag
+    *
     * @param value Boolean
     *              (whether to execute filling of na values on the DataFrame's non-ignored fields)
     */
@@ -279,6 +281,7 @@ class ConfigurationGenerator(modelFamily: String,
 
   /**
     * Boolean switch for turning variance filtering on
+    *
     * @note Default: On
     */
   def varianceFilterOn(): this.type = {
@@ -288,6 +291,7 @@ class ConfigurationGenerator(modelFamily: String,
 
   /**
     * Boolean switch for turning variance filtering off
+    *
     * @note Default: On
     */
   def varianceFilterOff(): this.type = {
@@ -297,6 +301,7 @@ class ConfigurationGenerator(modelFamily: String,
 
   /**
     * Boolean switch for setting the state of varianceFilterFlag
+    *
     * @param value Boolean
     *              (whether or not to filter out fields from the feature vector that all have the same value)
     */
@@ -305,51 +310,106 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Boolean switch for turning outlier filtering on
+    *
+    * @note Default: Off
+    */
   def outlierFilterOn(): this.type = {
     _instanceConfig.switchConfig.outlierFilterFlag = true
     this
   }
 
+  /**
+    * Boolean switch for turning outlier filtering off
+    *
+    * @note Default: Off
+    */
   def outlierFilterOff(): this.type = {
     _instanceConfig.switchConfig.outlierFilterFlag = false
     this
   }
 
+  /**
+    * Boolean switch for setting the state of outlierFilterFlag
+    *
+    * @param value Boolean
+    */
   def setOutlierFilterFlag(value: Boolean): this.type = {
     _instanceConfig.switchConfig.varianceFilterFlag = value
     this
   }
 
+  /**
+    * Boolean switch for turning Pearson filtering on
+    *
+    * @note Default: Off
+    */
   def pearsonFilterOn(): this.type = {
     _instanceConfig.switchConfig.pearsonFilterFlag = true
     this
   }
 
+  /**
+    * Boolean switch for turning Pearson filtering off
+    *
+    * @note Default: Off
+    */
   def pearsonFilterOff(): this.type = {
     _instanceConfig.switchConfig.pearsonFilterFlag = false
     this
   }
 
+  /**
+    * Boolean switch for setting the state of pearsonFilterFlag
+    *
+    * @param value Boolean
+    */
   def setPearsonFilterFlag(value: Boolean): this.type = {
     _instanceConfig.switchConfig.pearsonFilterFlag = value
     this
   }
 
+  /**
+    * Boolean switch for turning Covariance filtering on
+    *
+    * @note Default: Off
+    */
   def covarianceFilterOn(): this.type = {
     _instanceConfig.switchConfig.covarianceFilterFlag = true
     this
   }
 
+  /**
+    * Boolean switch for turning Covariance filtering off
+    *
+    * @note Default: Off
+    */
   def covarianceFilterOff(): this.type = {
     _instanceConfig.switchConfig.covarianceFilterFlag = false
     this
   }
 
+  /**
+    * Boolean switch for setting the state of covarianceFilterFlag
+    *
+    * @param value Boolean
+    */
   def setCovarianceFilterFlag(value: Boolean): this.type = {
     _instanceConfig.switchConfig.covarianceFilterFlag = value
     this
   }
 
+  /**
+    * Boolean switch for turning One Hot Encoding of string and character features on
+    *
+    * @note Default: Off for Tree based algorithms, On for all others.
+    * @note Turning One Hot Encoding on for a tree-based algorithm (XGBoost, RandomForest, Trees, GBT) is not
+    *       recommended.  Introducing synthetic dummy variables in a tree algorithm will force the creation of
+    *       sparse tree splits.
+    * @see See [[https://towardsdatascience.com/one-hot-encoding-is-making-your-tree-based-ensembles-worse-heres-why-d64b282b5769]]
+    *      for a full explanation.
+    */
   def oneHotEncodeOn(): this.type = {
     family match {
       case Trees =>
@@ -363,65 +423,139 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Boolean switch for turning off One Hot Encoding
+    *
+    * @note Default: Off for Tree based algorithms, On for all others.
+    */
   def oneHotEncodeOff(): this.type = {
     _instanceConfig.switchConfig.oneHotEncodeFlag = false
     this
   }
 
+  /**
+    * Boolean switch for setting the state of oneHotEncodeFlag
+    *
+    * @param value Boolean
+    */
   def setOneHotEncodeFlag(value: Boolean): this.type = {
     if (value) oneHotEncodeOn()
     else oneHotEncodeOff()
     this
   }
 
+  /**
+    * Boolean switch for turning scaling On
+    *
+    * @note Default: Off for Tree based algorithms, On for all others.
+    * @note For Tree based algorithms (RandomForest, XGBoost, GBT, Trees), it is not necessary (and can adversely
+    *       affect the model performance) that this be turned on.
+    */
   def scalingOn(): this.type = {
     _instanceConfig.switchConfig.scalingFlag = true
     this
   }
 
+  /**
+    * Boolean switch for turning scaling Off
+    *
+    * @note Default: Off for Tree based algorithms, On for all others.
+    */
   def scalingOff(): this.type = {
     _instanceConfig.switchConfig.scalingFlag = false
     this
   }
 
+  /**
+    * Boolean switch for setting the state of the scalingFlag
+    *
+    * @param value Boolean
+    */
   def setScalingFlag(value: Boolean): this.type = {
     _instanceConfig.switchConfig.scalingFlag = value
     this
   }
 
+  /**
+    * Boolean switch for setting the Data Prep Caching On
+    *
+    * @note Default: On
+    * @note Depending on the size and partitioning of the data set, caching may or may not improve performance.
+    */
   def dataPrepCachingOn(): this.type = {
     _instanceConfig.switchConfig.dataPrepCachingFlag = true
     this
   }
 
+  /**
+    * Boolean switch for setting the Data Prep Caching Off
+    *
+    * @note Default: On
+    * @note Depending on the size and partitioning of the data set, caching may or may not improve performance.
+    */
   def dataPrepCachingOff(): this.type = {
     _instanceConfig.switchConfig.dataPrepCachingFlag = false
     this
   }
 
+  /**
+    * Boolean switch for setting the state of DataPrepCachingFlag
+    *
+    * @param value Boolean
+    */
   def setDataPrepCachingFlag(value: Boolean): this.type = {
     _instanceConfig.switchConfig.dataPrepCachingFlag = value
     this
   }
 
+  /**
+    * Boolean switch for setting Auto Stopping On
+    *
+    * @note Default: Off
+    * @note Early stopping will invalidate the progress measurement system (due to non-determinism)
+    *       Early termination will not occur immediately.  Futures objects already committed will continue to run, but
+    *       no new actions will be enqueued when a stopping criteria is met.
+    */
   def autoStoppingOn(): this.type = {
     _instanceConfig.switchConfig.autoStoppingFlag = true
     this
   }
 
+  /**
+    * Boolean switch for setting Auto Stopping Off
+    *
+    * @note Default: Off
+    */
   def autoStoppingOff(): this.type = {
     _instanceConfig.switchConfig.autoStoppingFlag = false
     this
   }
 
+  /**
+    * Boolean switch for setting the state of autoStoppingFlag
+    *
+    * @param value Boolean
+    */
   def setAutoStoppingFlag(value: Boolean): this.type = {
     _instanceConfig.switchConfig.autoStoppingFlag = value
     this
   }
 
+  // Feature Engineering Config
+
   /**
-    * Feature Engineering Config
+    * Setter
+    * Specifies the behavior of the naFill algorithm for numeric (continuous) fields.<br>
+    * Values that are generated as potential fill candidates are set according to the available statistics that are
+    * calculated from a df.summary() method.<br>
+    * Available options are:<br>
+    *     <i>"min", "25p", "mean", "median", "75p", or "max"</i>
+    *
+    * @param value String: member of allowable list.
+    * @note Default: "mean"
+    * @throws IllegalArgumentException if an invalid entry is made.
     */
+  @throws(classOf[IllegalArgumentException])
   def setFillConfigNumericFillStat(value: String): this.type = {
     validateMembership(
       value,
@@ -432,6 +566,20 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Setter
+    * Specifies the behavior of the naFill algorithm for character (String, Char, Boolean, Byte, etc.) fields.
+    * Generated through a df.summary() method<br>
+    * Available options are:<br>
+    *     <i>"min"</i> (least frequently occurring value)<br>
+    *       or<br>
+    *     <i>"max"</i> (most frequently occurring value)
+    *
+    * @param value String: member of allowable list
+    * @note Default: "max"
+    * @throws IllegalArgumentException if an invalid entry is made.
+    */
+  @throws(classOf[IllegalArgumentException])
   def setFillConfigCharacterFillStat(value: String): this.type = {
     validateMembership(
       value,
@@ -442,14 +590,52 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
-  //TODO: In the new world of this config, this POJO and its underlying methodology needs to be expunged.
-
+  /**
+    * Setter<br>
+    * The threshold value that is used to detect, based on the supplied labelCol, the cardinality of the label through
+    * a .distinct().count() being issued to the label column.  Values from this cardinality determination that are
+    * above this setter's value will be considered to be a Regression Task, those below will be considered a
+    * Classification Task.
+    *
+    * @note In the case of exceptions being thrown for incorrect type (detected a classifier, but intended usage is for
+    *       a regression, lower this value.  Conversely, if a classification problem has a significant number of
+    *       classes, above the default threshold of this setting (50), increase this value.)
+    * @param value Int: Threshold value for the labelCol cardinality check.  Values above this setting will be
+    *              determined to be a regression task; below to be a classification task.
+    * @note Default: 50
+    */
+  @deprecated(
+    "This setter, and the logic underlying it for automatically detecting modeling type, will be removed" +
+      "in future versions, as it is now required to be specified for utilizing a ConfigurationGenerator Object."
+  )
   def setFillConfigModelSelectionDistinctThreshold(value: Int): this.type = {
     _instanceConfig.featureEngineeringConfig.modelSelectionDistinctThreshold =
       value
     this
   }
 
+  /**
+    * Setter
+    * <p>Configures the tails of a distribution to filter out, along with the ntile settings defined in:
+    *   .setOutlierLowerFilterNTile() and/or .setOutlierUpperFilterNTile()
+    * <p>Available Modes:<br>
+    *   <i>"lower"</i> -> filters out rows from the data that are below the value set in
+    *   ```.setOutlierLowerFilterNTile()```<br>
+    *   <i>"upper"</i> -> filter out rows from the data that are above the the value set in
+    *   ```.setOutlierUpperFilterNTile()```<br>
+    *   <i>"both"</i> -> two-tailed filter that combines both an "upper" and "lower" filter.<br>
+    *
+    * </p>
+    * </p>
+    *
+    * @param value String: Tailed direction setting for outlier filtering.
+    * @note Default: "both"
+    * @note This filter action is disabled by default.  Before enabling, please ensure the fields to be filtered are
+    *       adequately reflected in the ```.setOutlierFieldsToIgnore()``` inverse selection, as well as verifying the
+    *       general distribution of the fields that have outlier data in order to select an appropriate NTile value.
+    *       <u>This feature should only be supplied in rare instances and a full understanding of the impacts that this
+    *       filter may have should be understood before enabling it.</u>
+    */
   def setOutlierFilterBounds(value: String): this.type = {
     validateMembership(
       value,
@@ -460,19 +646,53 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    *Setter<br>
+    * Defines the NTILE value of the distributions of feature fields below which rows that fall beneath this value will
+    * be filtered from the data.
+    *
+    * @param value Double: Lower Threshold boundary NTILE for Outlier Filtering
+    * @note Only used if Outlier filtering is set to 'On' and Filter Direction is either 'both' or 'lower'
+    * @throws IllegalArgumentException if the value supplied is outside of the Range(0.0,1.0)
+    */
+  @throws(classOf[IllegalArgumentException])
   def setOutlierLowerFilterNTile(value: Double): this.type = {
     zeroToOneValidation(value, "OutlierLowerFilterNTile")
     _instanceConfig.featureEngineeringConfig.outlierLowerFilterNTile = value
     this
   }
 
+  /**
+    * Setter<br>
+    *   Defines the NTILE value of the distributions of feature fields above which rows that fall above this value will
+    *   be filtered from the data
+    *
+    * @param value Double: Upper Threshold boundary NTILE value for Outlier Filtering
+    * @note Only used if Outlier filtering is set to 'On' and Filter Direction is either 'both' or 'upper'
+    * @throws IllegalArgumentException if the value supplied is outside of the Range(0.0,1.0)
+    */
+  @throws(classOf[IllegalArgumentException])
   def setOutlierUpperFilterNTile(value: Double): this.type = {
     zeroToOneValidation(value, "OutlierUpperFilterNTile")
     _instanceConfig.featureEngineeringConfig.outlierUpperFilterNTile = value
     this
   }
 
+  /**
+    *Setter<br>
+    *   Defines the precision (RSD) in which each field's cardinality is calculated through the use of
+    *   ```approx_count_distinct``` SparkSQL function.  Lower values specify higher accuracy, but consume
+    *   more computational resources.
+    *
+    * @param value Double: In range of 0.0, 1.0
+    * @note A Value of 0.0 will be an exact computation of distinct values.  Therefore, all data must be shuffled,
+    *       which is an expensive task.
+    * @see [[https://en.wikipedia.org/wiki/Coefficient_of_variation]] for explanation of RSD
+    * @throws IllegalArgumentException if the value supplied is outside of the Range(0.0, 1.0)
+    */
+  @throws(classOf[IllegalArgumentException])
   def setOutlierFilterPrecision(value: Double): this.type = {
+    zeroToOneValidation(value, "OutlierFilterPrecision")
     if (value == 0.0)
       println(
         "Warning! Precision of 0 is an exact calculation of quantiles and may not be performant!"
@@ -481,19 +701,41 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Setter<br>
+    *   Defines the determination of whether to classify a numeric field as ordinal (categorical) or
+    *   continuous.
+    *
+    * @param value Int: Threshold for distinct counts within a numeric feature field.
+    * @note Continuous data fields are eligible for outlier filtering.  Categorical fields are not, and if below
+    *       cardinality thresholds set by this value setter, those fields will be ignored by the filtering action.
+    */
   def setOutlierContinuousDataThreshold(value: Int): this.type = {
     if (value < 50)
-      println("Warning! Values less than 50 may indicate oridinal data!")
+      println(
+        "Warning! Values less than 50 may indicate ordinal (categorical numeric) data!"
+      )
     _instanceConfig.featureEngineeringConfig.outlierContinuousDataThreshold =
       value
     this
   }
 
+  /**
+    * Setter<br>
+    *   Defines an Array of fields to be ignored from outlier filtering.
+    *
+    * @param value Array[String]: field names to be ignored from outlier filtering.
+    */
   def setOutlierFieldsToIgnore(value: Array[String]): this.type = {
     _instanceConfig.featureEngineeringConfig.outlierFieldsToIgnore = value
     this
   }
 
+  /**
+    *
+    * @param value
+    * @return
+    */
   def setPearsonFilterStatistic(value: String): this.type = {
     validateMembership(
       value,
