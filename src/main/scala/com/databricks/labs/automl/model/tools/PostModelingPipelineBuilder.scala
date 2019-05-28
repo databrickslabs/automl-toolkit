@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model.tools
 
+import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.regression.{LinearRegression, RandomForestRegressor}
 import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
@@ -24,8 +25,11 @@ class PostModelingPipelineBuilder(modelResults: DataFrame) {
   }
 
   def setModelType(value: String): this.type = {
-    require(List("RandomForest", "LinearRegression").contains(value), s"Model type '$value' is not supported for " +
-      s"post-run optimization.")
+    require(
+      List("RandomForest", "LinearRegression", "XGBoost").contains(value),
+      s"Model type '$value' is not supported for " +
+        s"post-run optimization."
+    )
     _modelType = value
     this
   }
@@ -64,14 +68,26 @@ class PostModelingPipelineBuilder(modelResults: DataFrame) {
     pipelineBuffer += vectorizer
 
     val model = _modelType match {
-      case "RandomForest" => new RandomForestRegressor()
+      case "RandomForest" =>
+        new RandomForestRegressor()
           .setMinInfoGain(1E-8)
           .setNumTrees(600)
           .setMaxDepth(10)
       case "LinearRegression" => new LinearRegression()
+      case "XGBoost" =>
+        new XGBoostRegressor()
+          .setAlpha(0.5)
+          .setEta(0.25)
+          .setGamma(3.0)
+          .setLambda(10.0)
+          .setMaxBins(200)
+          .setMaxDepth(10)
+          .setMinChildWeight(3.0)
+          .setNumRound(10)
     }
 
-    model.setLabelCol("score")
+    model
+      .setLabelCol("score")
       .setFeaturesCol("features")
 
     pipelineBuffer += model

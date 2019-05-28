@@ -17,7 +17,7 @@ libraryDependencies += "junit" % "junit" % "4.8.1" % "test"
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.6" % "test"
 
 lazy val commonSettings = Seq(
-  version := "0.5.0.2",
+  version := "0.5.0.3",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )

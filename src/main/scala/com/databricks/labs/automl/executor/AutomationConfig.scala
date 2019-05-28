@@ -5,7 +5,6 @@ import com.databricks.labs.automl.sanitize.SanitizerDefaults
 
 trait AutomationConfig extends Defaults with SanitizerDefaults {
 
-
   var _modelingFamily: String = _defaultModelingFamily
 
   var _labelCol: String = _defaultLabelCol
@@ -28,13 +27,15 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _dataPrepCachingFlag: Boolean = _defaultDataPrepCachingFlag
 
-  var _numericBoundaries: Map[String, (Double, Double)] = _rfDefaultNumBoundaries
+  var _numericBoundaries: Map[String, (Double, Double)] =
+    _rfDefaultNumBoundaries
 
   var _stringBoundaries: Map[String, List[String]] = _rfDefaultStringBoundaries
 
   var _scoringMetric: String = _scoringDefaultClassifier
 
-  var _scoringOptimizationStrategy: String = _scoringOptimizationStrategyClassifier
+  var _scoringOptimizationStrategy: String =
+    _scoringOptimizationStrategyClassifier
 
   var _numericFillStat: String = _fillConfigDefaults.numericFillStat
 
@@ -44,7 +45,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _fieldsToIgnoreInVector: Array[String] = _defaultFieldsToIgnoreInVector
 
-  var _modelSelectionDistinctThreshold: Int = _fillConfigDefaults.modelSelectionDistinctThreshold
+  var _modelSelectionDistinctThreshold: Int =
+    _fillConfigDefaults.modelSelectionDistinctThreshold
 
   var _fillConfig: FillConfig = _fillConfigDefaults
 
@@ -56,7 +58,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _filterPrecision: Double = _outlierConfigDefaults.filterPrecision
 
-  var _continuousDataThreshold: Int = _outlierConfigDefaults.continuousDataThreshold
+  var _continuousDataThreshold: Int =
+    _outlierConfigDefaults.continuousDataThreshold
 
   var _fieldsToIgnore: Array[String] = _outlierConfigDefaults.fieldsToIgnore
 
@@ -66,7 +69,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _pearsonFilterDirection: String = _pearsonConfigDefaults.filterDirection
 
-  var _pearsonFilterManualValue: Double = _pearsonConfigDefaults.filterManualValue
+  var _pearsonFilterManualValue: Double =
+    _pearsonConfigDefaults.filterManualValue
 
   var _pearsonFilterMode: String = _pearsonConfigDefaults.filterMode
 
@@ -74,9 +78,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _pearsonConfig: PearsonConfig = _pearsonConfigDefaults
 
-  var _correlationCutoffLow: Double = _covarianceConfigDefaults.correlationCutoffLow
+  var _correlationCutoffLow: Double =
+    _covarianceConfigDefaults.correlationCutoffLow
 
-  var _correlationCutoffHigh: Double = _covarianceConfigDefaults.correlationCutoffHigh
+  var _correlationCutoffHigh: Double =
+    _covarianceConfigDefaults.correlationCutoffHigh
 
   var _covarianceConfig: CovarianceConfig = _covarianceConfigDefaults
 
@@ -102,41 +108,52 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _trainSplitMethod: String = _geneticTunerDefaults.trainSplitMethod
 
-  var _trainSplitChronologicalColumn: String = _geneticTunerDefaults.trainSplitChronologicalColumn
+  var _trainSplitChronologicalColumn: String =
+    _geneticTunerDefaults.trainSplitChronologicalColumn
 
-  var _trainSplitChronologicalRandomPercentage: Double = _geneticTunerDefaults.trainSplitChronologicalRandomPercentage
+  var _trainSplitChronologicalRandomPercentage: Double =
+    _geneticTunerDefaults.trainSplitChronologicalRandomPercentage
 
   var _trainSplitColumnSet: Boolean = false
 
   var _seed: Long = _geneticTunerDefaults.seed
 
-  var _firstGenerationGenePool: Int = _geneticTunerDefaults.firstGenerationGenePool
+  var _firstGenerationGenePool: Int =
+    _geneticTunerDefaults.firstGenerationGenePool
 
   var _numberOfGenerations: Int = _geneticTunerDefaults.numberOfGenerations
 
-  var _numberOfParentsToRetain: Int = _geneticTunerDefaults.numberOfParentsToRetain
+  var _numberOfParentsToRetain: Int =
+    _geneticTunerDefaults.numberOfParentsToRetain
 
-  var _numberOfMutationsPerGeneration: Int = _geneticTunerDefaults.numberOfMutationsPerGeneration
+  var _numberOfMutationsPerGeneration: Int =
+    _geneticTunerDefaults.numberOfMutationsPerGeneration
 
   var _geneticMixing: Double = _geneticTunerDefaults.geneticMixing
 
-  var _generationalMutationStrategy: String = _geneticTunerDefaults.generationalMutationStrategy
+  var _generationalMutationStrategy: String =
+    _geneticTunerDefaults.generationalMutationStrategy
 
   var _fixedMutationValue: Int = _geneticTunerDefaults.fixedMutationValue
 
-  var _mutationMagnitudeMode: String = _geneticTunerDefaults.mutationMagnitudeMode
+  var _mutationMagnitudeMode: String =
+    _geneticTunerDefaults.mutationMagnitudeMode
 
   var _modelSeedMap: Map[String, Any] = Map.empty
 
   var _modelSeedSetStatus: Boolean = false
 
-  var _firstGenerationConfig: FirstGenerationConfig = _defaultFirstGenerationConfig
+  var _firstGenerationConfig: FirstGenerationConfig =
+    _defaultFirstGenerationConfig
 
-  var _firstGenerationPermutationCount: Int = _geneticTunerDefaults.initialGenerationConfig.permutationCount
+  var _firstGenerationPermutationCount: Int =
+    _geneticTunerDefaults.initialGenerationConfig.permutationCount
 
-  var _firstGenerationIndexMixingMode: String = _geneticTunerDefaults.initialGenerationConfig.indexMixingMode
+  var _firstGenerationIndexMixingMode: String =
+    _geneticTunerDefaults.initialGenerationConfig.indexMixingMode
 
-  var _firstGenerationArraySeed: Long = _geneticTunerDefaults.initialGenerationConfig.arraySeed
+  var _firstGenerationArraySeed: Long =
+    _geneticTunerDefaults.initialGenerationConfig.arraySeed
 
   var _hyperSpaceInference: Boolean = _defaultHyperSpaceInference
 
@@ -168,7 +185,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _mlFlowAPIToken: String = _mlFlowConfigDefaults.mlFlowAPIToken
 
-  var _mlFlowModelSaveDirectory: String = _mlFlowConfigDefaults.mlFlowModelSaveDirectory
+  var _mlFlowModelSaveDirectory: String =
+    _mlFlowConfigDefaults.mlFlowModelSaveDirectory
 
   var _mlFlowLoggingMode: String = _mlFlowConfigDefaults.mlFlowLoggingMode
 
@@ -180,21 +198,28 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _featureImportanceCutoffType: String = _defaultFeatureImportanceCutoffType
 
-  var _featureImportanceCutoffValue: Double = _defaultFeatureImportanceCutoffValue
+  var _featureImportanceCutoffValue: Double =
+    _defaultFeatureImportanceCutoffValue
 
   var _evolutionStrategy: String = _geneticTunerDefaults.evolutionStrategy
 
-  var _continuousEvolutionMaxIterations: Int = _geneticTunerDefaults.continuousEvolutionMaxIterations
+  var _continuousEvolutionMaxIterations: Int =
+    _geneticTunerDefaults.continuousEvolutionMaxIterations
 
-  var _continuousEvolutionStoppingScore: Double = _geneticTunerDefaults.continuousEvolutionStoppingScore
+  var _continuousEvolutionStoppingScore: Double =
+    _geneticTunerDefaults.continuousEvolutionStoppingScore
 
-  var _continuousEvolutionParallelism: Int = _geneticTunerDefaults.continuousEvolutionParallelism
+  var _continuousEvolutionParallelism: Int =
+    _geneticTunerDefaults.continuousEvolutionParallelism
 
-  var _continuousEvolutionMutationAggressiveness: Int = _geneticTunerDefaults.continuousEvolutionMutationAggressiveness
+  var _continuousEvolutionMutationAggressiveness: Int =
+    _geneticTunerDefaults.continuousEvolutionMutationAggressiveness
 
-  var _continuousEvolutionGeneticMixing: Double = _geneticTunerDefaults.continuousEvolutionGeneticMixing
+  var _continuousEvolutionGeneticMixing: Double =
+    _geneticTunerDefaults.continuousEvolutionGeneticMixing
 
-  var _continuousEvolutionRollingImprovementCount: Int = _geneticTunerDefaults.continuousEvolutionRollingImprovementCount
+  var _continuousEvolutionRollingImprovementCount: Int =
+    _geneticTunerDefaults.continuousEvolutionRollingImprovementCount
 
   var _inferenceConfigSaveLocation: String = _inferenceConfigSaveLocationDefault
 
@@ -209,26 +234,32 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def setModelingFamily(value: String): this.type = {
     _modelingFamily = value
     _numericBoundaries = value match {
-      case "RandomForest" => _rfDefaultNumBoundaries
-      case "MLPC" => _mlpcDefaultNumBoundaries
-      case "Trees" => _treesDefaultNumBoundaries
-      case "GBT" => _gbtDefaultNumBoundaries
-      case "LinearRegression" => _linearRegressionDefaultNumBoundaries
+      case "RandomForest"       => _rfDefaultNumBoundaries
+      case "MLPC"               => _mlpcDefaultNumBoundaries
+      case "Trees"              => _treesDefaultNumBoundaries
+      case "GBT"                => _gbtDefaultNumBoundaries
+      case "LinearRegression"   => _linearRegressionDefaultNumBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultNumBoundaries
-      case "SVM" => _svmDefaultNumBoundaries
-      case "XGBoost" => _xgboostDefaultNumBoundaries
-      case _ => throw new IllegalArgumentException(s"$value is an unsupported Model Type")
+      case "SVM"                => _svmDefaultNumBoundaries
+      case "XGBoost"            => _xgboostDefaultNumBoundaries
+      case _ =>
+        throw new IllegalArgumentException(
+          s"$value is an unsupported Model Type"
+        )
     }
     _stringBoundaries = value match {
-      case "RandomForest" => _rfDefaultStringBoundaries
-      case "MLPC" => _mlpcDefaultStringBoundaries
-      case "Trees" => _treesDefaultStringBoundaries
-      case "GBT" => _gbtDefaultStringBoundaries
-      case "LinearRegression" => _linearRegressionDefaultStringBoundaries
+      case "RandomForest"       => _rfDefaultStringBoundaries
+      case "MLPC"               => _mlpcDefaultStringBoundaries
+      case "Trees"              => _treesDefaultStringBoundaries
+      case "GBT"                => _gbtDefaultStringBoundaries
+      case "LinearRegression"   => _linearRegressionDefaultStringBoundaries
       case "LogisticRegression" => _logisticRegressionDefaultStringBoundaries
-      case "SVM" => _svmDefaultStringBoundaries
-      case "XGBoost" => Map()
-      case _ => throw new IllegalArgumentException(s"$value is an unsupported Model Type")
+      case "SVM"                => _svmDefaultStringBoundaries
+      case "XGBoost"            => Map()
+      case _ =>
+        throw new IllegalArgumentException(
+          s"$value is an unsupported Model Type"
+        )
     }
     setConfigs()
     this
@@ -361,8 +392,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setScoringOptimizationStrategy(value: String): this.type = {
-    require(Array("minimize", "maximize").contains(value), s"$value is not a member of allowed scoring optimizations: " +
-      s"'minimize' or 'maximize'")
+    require(
+      Array("minimize", "maximize").contains(value),
+      s"$value is not a member of allowed scoring optimizations: " +
+        s"'minimize' or 'maximize'"
+    )
     _scoringOptimizationStrategy = value
     setConfigs()
     this
@@ -604,7 +638,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setParallelism(value: Integer): this.type = {
     //TODO: FIND OUT WHAT THIS RESTRICTION NEEDS TO BE FOR PARALLELISM.
-    require(_parallelism < 10000, s"Parallelism above 10000 will result in cluster instability.")
+    require(
+      _parallelism < 10000,
+      s"Parallelism above 10000 will result in cluster instability."
+    )
     _parallelism = value
     setGeneticConfig()
     setConfigs()
@@ -626,12 +663,16 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setTrainSplitMethod(value: String): this.type = {
-    require(trainSplitMethods.contains(value),
-      s"TrainSplitMethod $value must be one of: ${trainSplitMethods.mkString(", ")}")
+    require(
+      trainSplitMethods.contains(value),
+      s"TrainSplitMethod $value must be one of: ${trainSplitMethods.mkString(", ")}"
+    )
     _trainSplitMethod = value
     if (value == "chronological")
-      println("[WARNING] setTrainSplitMethod() -> Chronological splits is shuffle-intensive and will increase " +
-        "runtime significantly.  Only use if necessary for modeling scenario!")
+      println(
+        "[WARNING] setTrainSplitMethod() -> Chronological splits is shuffle-intensive and will increase " +
+          "runtime significantly.  Only use if necessary for modeling scenario!"
+      )
     setGeneticConfig()
     setConfigs()
     this
@@ -649,9 +690,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setTrainSplitChronologicalRandomPercentage(value: Double): this.type = {
     _trainSplitChronologicalRandomPercentage = value
-    if(value > 10) println("[WARNING] setTrainSplitChronologicalRandomPercentage() setting this value above 10 " +
-      "percent will cause significant per-run train/test skew and variability in row counts during training.  " +
-      "Use higher values only if this is desired.")
+    if (value > 10)
+      println(
+        "[WARNING] setTrainSplitChronologicalRandomPercentage() setting this value above 10 " +
+          "percent will cause significant per-run train/test skew and variability in row counts during training.  " +
+          "Use higher values only if this is desired."
+      )
     setGeneticConfig()
     setConfigs()
     this
@@ -754,9 +798,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setFirstGenerationIndexMixingMode(value: String): this.type = {
-    require(_allowableInitialGenerationIndexMixingModes.contains(value), s"Invalid First Generation Index Mixing " +
-      s"Mode: $value .  First Generation Index Mixing Mode must be one of: " +
-      s"${_allowableInitialGenerationIndexMixingModes.mkString(", ")}")
+    require(
+      _allowableInitialGenerationIndexMixingModes.contains(value),
+      s"Invalid First Generation Index Mixing " +
+        s"Mode: $value .  First Generation Index Mixing Mode must be one of: " +
+        s"${_allowableInitialGenerationIndexMixingModes.mkString(", ")}"
+    )
     _firstGenerationIndexMixingMode = value
     setFirstGenerationConfig()
     this
@@ -783,9 +830,15 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setHyperSpaceInferenceCount(value: Int): this.type = {
-    if(value > 500000) println("WARNING! Setting permutation counts above 500,000 will put stress on the driver.")
-    if(value > 1000000) throw new UnsupportedOperationException(s"Setting permutation above 1,000,000 is not supported" +
-      s" due to runtime considerations.  $value is too large of a value.")
+    if (value > 500000)
+      println(
+        "WARNING! Setting permutation counts above 500,000 will put stress on the driver."
+      )
+    if (value > 1000000)
+      throw new UnsupportedOperationException(
+        s"Setting permutation above 1,000,000 is not supported" +
+          s" due to runtime considerations.  $value is too large of a value."
+      )
     _hyperSpaceInferenceCount = value
     setGeneticConfig()
     setConfigs()
@@ -793,8 +846,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setHyperSpaceModelType(value: String): this.type = {
-    require(Array("RandomForest", "LinearRegression").contains(value), s"Model type $value is not supported for post " +
-      s"modeling hyper space optimization!  Please choose either RandomForest or LinearRegression")
+    require(
+      Array("RandomForest", "LinearRegression", "XGBoost").contains(value),
+      s"Model type $value is not supported for post " +
+        s"modeling hyper space optimization!  Please choose either RandomForest or LinearRegression"
+    )
     _hyperSpaceModelType = value
     setGeneticConfig()
     setConfigs()
@@ -802,8 +858,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setHyperSpaceModelCount(value: Int): this.type = {
-    if(value > 50) println("WARNING! Setting this value above 50 will incur 50 additional models to be built.  Proceed" +
-      "only if this is intended.")
+    if (value > 50)
+      println(
+        "WARNING! Setting this value above 50 will incur 50 additional models to be built.  Proceed" +
+          "only if this is intended."
+      )
     _hyperSpaceModelCount = value
     setGeneticConfig()
     setConfigs()
@@ -811,8 +870,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setFirstGenerationMode(value: String): this.type = {
-    require(_allowableInitialGenerationModes.contains(value), s"Invalid First Generation Mode: $value . " +
-      s"First Generation Mode must be one of : ${_allowableInitialGenerationModes.mkString(", ")}")
+    require(
+      _allowableInitialGenerationModes.contains(value),
+      s"Invalid First Generation Mode: $value . " +
+        s"First Generation Mode must be one of : ${_allowableInitialGenerationModes.mkString(", ")}"
+    )
     _firstGenerationMode = value
     setGeneticConfig()
     setConfigs()
@@ -878,8 +940,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setMlFlowLoggingMode(value: String): this.type = {
-    require(_allowableMlFlowLoggingModes.contains(value), s"MlFlow logging mode $value is not permitted.  Must be " +
-      s"one of: ${_allowableMlFlowLoggingModes.mkString(",")}")
+    require(
+      _allowableMlFlowLoggingModes.contains(value),
+      s"MlFlow logging mode $value is not permitted.  Must be " +
+        s"one of: ${_allowableMlFlowLoggingModes.mkString(",")}"
+    )
     _mlFlowLoggingMode = value
     setMlFlowConfig()
     setConfigs()
@@ -925,9 +990,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setFeatureImportanceCutoffType(value: String): this.type = {
 
-    require(_supportedFeatureImportanceCutoffTypes.contains(value),
+    require(
+      _supportedFeatureImportanceCutoffTypes.contains(value),
       s"Feature Importance Cutoff Type '$value' is not supported.  Allowable values: " +
-        s"${_supportedFeatureImportanceCutoffTypes.mkString(" ,")}")
+        s"${_supportedFeatureImportanceCutoffTypes.mkString(" ,")}"
+    )
     _featureImportanceCutoffType = value
     setConfigs()
     this
@@ -940,10 +1007,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setEvolutionStrategy(value: String): this.type = {
-    require(_allowableEvolutionStrategies.contains(value),
-      s"Evolution Strategy '$value' is not a supported mode.  Must be one of: ${
-        _allowableEvolutionStrategies.mkString(", ")
-      }")
+    require(
+      _allowableEvolutionStrategies.contains(value),
+      s"Evolution Strategy '$value' is not a supported mode.  Must be one of: ${_allowableEvolutionStrategies
+        .mkString(", ")}"
+    )
     _evolutionStrategy = value
     setGeneticConfig()
     setConfigs()
@@ -951,8 +1019,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setContinuousEvolutionMaxIterations(value: Int): this.type = {
-    if (value > 500) println(s"[WARNING] Total Modeling count $value is higher than recommended limit of 500.  " +
-      s"This tuning will take a long time to run.")
+    if (value > 500)
+      println(
+        s"[WARNING] Total Modeling count $value is higher than recommended limit of 500.  " +
+          s"This tuning will take a long time to run."
+      )
     _continuousEvolutionMaxIterations = value
     setGeneticConfig()
     setConfigs()
@@ -967,9 +1038,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setContinuousEvolutionParallelism(value: Int): this.type = {
-    if (value > 10) println(s"[WARNING] ContinuousEvolutionParallelism -> $value is higher than recommended " +
-      s"concurrency for efficient optimization for convergence." +
-      s"\n  Setting this value below 11 will converge faster in most cases.")
+    if (value > 10)
+      println(
+        s"[WARNING] ContinuousEvolutionParallelism -> $value is higher than recommended " +
+          s"concurrency for efficient optimization for convergence." +
+          s"\n  Setting this value below 11 will converge faster in most cases."
+      )
     _continuousEvolutionParallelism = value
     setGeneticConfig()
     setConfigs()
@@ -977,9 +1051,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setContinuousEvolutionMutationAggressiveness(value: Int): this.type = {
-    if (value > 4) println(s"[WARNING] ContinuousEvolutionMutationAggressiveness -> $value. " +
-      s"\n  Setting this higher than 4 will result in extensive random search and will take longer to converge " +
-      s"to optimal hyperparameters.")
+    if (value > 4)
+      println(
+        s"[WARNING] ContinuousEvolutionMutationAggressiveness -> $value. " +
+          s"\n  Setting this higher than 4 will result in extensive random search and will take longer to converge " +
+          s"to optimal hyperparameters."
+      )
     _continuousEvolutionMutationAggressiveness = value
     setGeneticConfig()
     setConfigs()
@@ -987,8 +1064,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setContinuousEvolutionGeneticMixing(value: Double): this.type = {
-    require(value < 1.0 & value > 0.0,
-      s"Mutation Aggressiveness must be in range (0,1). Current Setting of $value is not permitted.")
+    require(
+      value < 1.0 & value > 0.0,
+      s"Mutation Aggressiveness must be in range (0,1). Current Setting of $value is not permitted."
+    )
     _continuousEvolutionGeneticMixing = value
     setGeneticConfig()
     setConfigs()
@@ -996,9 +1075,15 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setContinuousEvolutionRollingImprovementCount(value: Int): this.type = {
-    require(value > 0, s"ContinuousEvolutionRollingImprovementCount must be > 0. $value is invalid.")
-    if (value < 10) println(s"[WARNING] ContinuousEvolutionRollingImprovementCount -> $value setting is low.  " +
-      s"Optimal Convergence may not occur due to early stopping.")
+    require(
+      value > 0,
+      s"ContinuousEvolutionRollingImprovementCount must be > 0. $value is invalid."
+    )
+    if (value < 10)
+      println(
+        s"[WARNING] ContinuousEvolutionRollingImprovementCount -> $value setting is low.  " +
+          s"Optimal Convergence may not occur due to early stopping."
+      )
     _continuousEvolutionRollingImprovementCount = value
     setGeneticConfig()
     setConfigs()
@@ -1026,7 +1111,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       trainPortion = _trainPortion,
       trainSplitMethod = _trainSplitMethod,
       trainSplitChronologicalColumn = _trainSplitChronologicalColumn,
-      trainSplitChronologicalRandomPercentage = _trainSplitChronologicalRandomPercentage,
+      trainSplitChronologicalRandomPercentage =
+        _trainSplitChronologicalRandomPercentage,
       seed = _seed,
       firstGenerationGenePool = _firstGenerationGenePool,
       numberOfGenerations = _numberOfGenerations,
@@ -1040,9 +1126,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       continuousEvolutionMaxIterations = _continuousEvolutionMaxIterations,
       continuousEvolutionStoppingScore = _continuousEvolutionStoppingScore,
       continuousEvolutionParallelism = _continuousEvolutionParallelism,
-      continuousEvolutionMutationAggressiveness = _continuousEvolutionMutationAggressiveness,
+      continuousEvolutionMutationAggressiveness =
+        _continuousEvolutionMutationAggressiveness,
       continuousEvolutionGeneticMixing = _continuousEvolutionGeneticMixing,
-      continuousEvolutionRollingImprovementCount = _continuousEvolutionRollingImprovementCount,
+      continuousEvolutionRollingImprovementCount =
+        _continuousEvolutionRollingImprovementCount,
       modelSeed = _modelSeedMap,
       hyperSpaceInference = _hyperSpaceInference,
       hyperSpaceInferenceCount = _hyperSpaceInferenceCount,
@@ -1137,8 +1225,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setFeatConfig(value: MainConfig): this.type = {
     _featureImportancesConfig = value
-    require(value.modelFamily == "RandomForest",
-      s"Model Family for Feature Importances must be 'RandomForest'. ${value.modelFamily} is not supported.")
+    require(
+      value.modelFamily == "RandomForest",
+      s"Model Family for Feature Importances must be 'RandomForest'. ${value.modelFamily} is not supported."
+    )
     setConfigs()
     this
   }
@@ -1183,8 +1273,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setTreeSplitsConfig(value: MainConfig): this.type = {
     _treeSplitsConfig = value
-    require(value.modelFamily == "Trees",
-      s"Model Family for Trees Splits must be 'Trees'. ${value.modelFamily} is not supported.")
+    require(
+      value.modelFamily == "Trees",
+      s"Model Family for Trees Splits must be 'Trees'. ${value.modelFamily} is not supported."
+    )
     setConfigs()
     this
   }
@@ -1287,7 +1379,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def getTrainSplitChronologicalColumn: String = _trainSplitChronologicalColumn
 
-  def getTrainSplitChronologicalRandomPercentage: Double = _trainSplitChronologicalRandomPercentage
+  def getTrainSplitChronologicalRandomPercentage: Double =
+    _trainSplitChronologicalRandomPercentage
 
   def getSeed: Long = _seed
 
@@ -1313,7 +1406,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def getFirstGenerationPermutationCount: Int = _firstGenerationPermutationCount
 
-  def getFirstGenerationIndexMixingMode: String = _firstGenerationIndexMixingMode
+  def getFirstGenerationIndexMixingMode: String =
+    _firstGenerationIndexMixingMode
 
   def getFirstGenerationArraySeed: Long = _firstGenerationArraySeed
 
@@ -1363,17 +1457,22 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def getEvolutionStrategy: String = _evolutionStrategy
 
-  def getContinuousEvolutionMaxIterations: Int = _continuousEvolutionMaxIterations
+  def getContinuousEvolutionMaxIterations: Int =
+    _continuousEvolutionMaxIterations
 
-  def getContinuousEvolutionStoppingScore: Double = _continuousEvolutionStoppingScore
+  def getContinuousEvolutionStoppingScore: Double =
+    _continuousEvolutionStoppingScore
 
   def getContinuousEvolutionParallelism: Int = _continuousEvolutionParallelism
 
-  def getContinuousEvolutionMutationAggressiveness: Int = _continuousEvolutionMutationAggressiveness
+  def getContinuousEvolutionMutationAggressiveness: Int =
+    _continuousEvolutionMutationAggressiveness
 
-  def getContinuousEvolutionGeneticMixing: Double = _continuousEvolutionGeneticMixing
+  def getContinuousEvolutionGeneticMixing: Double =
+    _continuousEvolutionGeneticMixing
 
-  def getContinuousEvolutionRollingImporvementCount: Int = _continuousEvolutionRollingImprovementCount
+  def getContinuousEvolutionRollingImporvementCount: Int =
+    _continuousEvolutionRollingImprovementCount
 
   def getInferenceConfigSaveLocation: String = _inferenceConfigSaveLocation
 
@@ -1388,15 +1487,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     * @return A Map Object that can be parsed into the requisite case class definition to set a seed for a particular
     *         type of model run.
     */
-  private def extractGenericModelReturnMap(fullModelReturn: String): Map[String, Any] = {
+  private def extractGenericModelReturnMap(
+    fullModelReturn: String
+  ): Map[String, Any] = {
 
     val patternToMatch = "(?<=\\()[^()]*".r
 
-    val configElements = patternToMatch.findAllIn(fullModelReturn).toList(1).split(",")
+    val configElements =
+      patternToMatch.findAllIn(fullModelReturn).toList(1).split(",")
 
     var configMap = Map[String, Any]()
 
-    configElements.foreach{x =>
+    configElements.foreach { x =>
       val components = x.trim.split(" -> ")
       configMap += (components(0) -> components(1))
     }

@@ -2,12 +2,19 @@ package com.databricks.labs.automl.tracking
 
 import java.io.File
 
-import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools}
 import com.databricks.labs.automl.inference.InferenceConfig._
+import com.databricks.labs.automl.inference.{
+  InferenceModelConfig,
+  InferenceTools
+}
 import com.databricks.labs.automl.params.{GenericModelReturn, MLFlowConfig}
-import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.spark.ml.classification._
-import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
+import org.apache.spark.ml.regression.{
+  DecisionTreeRegressionModel,
+  GBTRegressionModel,
+  LinearRegressionModel,
+  RandomForestRegressionModel
+}
 import org.mlflow.api.proto.Service.CreateRun
 import org.mlflow.tracking.MlflowClient
 import org.mlflow.tracking.creds._
@@ -16,8 +23,7 @@ import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class MLFlowTracker extends InferenceTools{
-
+class MLFlowTracker extends InferenceTools {
 
   private var _mlFlowTrackingURI: String = _
   private var _mlFlowExperimentName: String = "default"
@@ -76,17 +82,19 @@ class MLFlowTracker extends InferenceTools{
   def getMlFlowLoggingMode: String = _mlFlowLoggingMode
   def getMlFlowBestSuffix: String = _mlFlowBestSuffix
 
-
   /**
     * Method for either getting an existing experiment by name, or creating a new one by name and returning the id
+    *
     * @param client: MlflowClient to get access to the mlflow service agent
     * @return the experiment id from either an existing run or the newly created one.
     */
-
-  private def getOrCreateExperimentId(client: MlflowClient, experimentName: String = _mlFlowExperimentName): String = {
+  private def getOrCreateExperimentId(client: MlflowClient,
+                                      experimentName: String =
+                                        _mlFlowExperimentName): String = {
 
     val experiment = client.getExperimentByName(experimentName)
-    if(experiment.isPresent) experiment.get().getExperimentId else client.createExperiment(experimentName)
+    if (experiment.isPresent) experiment.get().getExperimentId
+    else client.createExperiment(experimentName)
 
   }
 
@@ -95,7 +103,9 @@ class MLFlowTracker extends InferenceTools{
     val hosted: Boolean = _mlFlowTrackingURI.contains("databricks.com")
 
     if (hosted) {
-      new MlflowClient(new BasicMlflowHostCreds(_mlFlowTrackingURI, _mlFlowHostedAPIToken))
+      new MlflowClient(
+        new BasicMlflowHostCreds(_mlFlowTrackingURI, _mlFlowHostedAPIToken)
+      )
     } else {
       new MlflowClient(_mlFlowTrackingURI)
     }
@@ -103,10 +113,12 @@ class MLFlowTracker extends InferenceTools{
 
   /**
     * Method for generating an entry to log to for the
+    *
     * @param runIdentifier A unique String that identifies the run
     * @return :(MlflowClient, String) The client logging object and the runId uuid for use in logging.
     */
-  private def generateMlFlowRun(client: MlflowClient, runIdentifier: String): String = {
+  private def generateMlFlowRun(client: MlflowClient,
+                                runIdentifier: String): String = {
 
     val experimentId = getOrCreateExperimentId(client).toString
 
@@ -117,10 +129,14 @@ class MLFlowTracker extends InferenceTools{
 
   }
 
-  private def generateMlFlowRun(client: MlflowClient, experimentID: String, runIdentifier: String,
-                                runName: String, sourceVer: String): String = {
+  private def generateMlFlowRun(client: MlflowClient,
+                                experimentID: String,
+                                runIdentifier: String,
+                                runName: String,
+                                sourceVer: String): String = {
 
-    val request: CreateRun.Builder = CreateRun.newBuilder()
+    val request: CreateRun.Builder = CreateRun
+      .newBuilder()
       .setExperimentId(experimentID)
       .setRunName(runName)
       .setSourceVersion(sourceVer)
@@ -138,6 +154,7 @@ class MLFlowTracker extends InferenceTools{
 
   /**
     * Private method for saving an individual model, creating a Fuse mount for it, and registering the artifact.
+    *
     * @param client MlFlow client that has been registered.
     * @param path Path in blob store for saving the SparkML Model
     * @param runId Unique runID for the run to log model artifacts to.
@@ -145,152 +162,251 @@ class MLFlowTracker extends InferenceTools{
     * @param modelDescriptor Text Assignment for the model family + type of model that was run
     * @param modelId Unique uuid identifier for the model.
     */
-  private def saveModel(client: MlflowClient, path: String, runId: String, modelReturn: GenericModelReturn,
-                        modelDescriptor: String, modelId: String): Unit = {
+  private def saveModel(client: MlflowClient,
+                        path: String,
+                        runId: String,
+                        modelReturn: GenericModelReturn,
+                        modelDescriptor: String,
+                        modelId: String): Unit = {
 
     println(s"Model will be saved to path $path")
     modelDescriptor match {
-            case "regressor_RandomForest" =>
-              modelReturn.model.asInstanceOf[RandomForestRegressionModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "classifier_RandomForest" =>
-              modelReturn.model.asInstanceOf[RandomForestClassificationModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "regressor_XGBoost" =>
-
-              //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
-              // Jackson dependency issues.  Disabling manual model storage for now.
+      case "regressor_RandomForest" =>
+        modelReturn.model
+          .asInstanceOf[RandomForestRegressionModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "classifier_RandomForest" =>
+        modelReturn.model
+          .asInstanceOf[RandomForestClassificationModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "regressor_XGBoost" =>
+        //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
+        // Jackson dependency issues.  Disabling manual model storage for now.
 
 //              modelReturn.model.asInstanceOf[XGBoostRegressionModel].write.overwrite().save(path)
 //              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              println("Saving XGBoost Models is not supported at this time. It will be available soon")
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "classifier_XGBoost" =>
-
-              //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
-              // Jackson dependency issues.  Disabling manual model storage for now.
+        if (_logArtifacts)
+          println(
+            "Saving XGBoost Models is not supported at this time. It will be available soon"
+          )
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "classifier_XGBoost" =>
+        //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
+        // Jackson dependency issues.  Disabling manual model storage for now.
 
 //              modelReturn.model.asInstanceOf[XGBoostClassificationModel].write.overwrite().save(path)
 //              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              println("Saving XGBoost Models is not supported at this time. It will be available soon")
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "regressor_GBT" =>
-              modelReturn.model.asInstanceOf[GBTRegressionModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "classifier_GBT" =>
-              modelReturn.model.asInstanceOf[GBTClassificationModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "classifier_MLPC" =>
-              modelReturn.model.asInstanceOf[MultilayerPerceptronClassificationModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "regressor_LinearRegression" =>
-              modelReturn.model.asInstanceOf[LinearRegressionModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "classifier_LogisticRegression" =>
-              modelReturn.model.asInstanceOf[LogisticRegressionModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "regressor_SVM" =>
-              modelReturn.model.asInstanceOf[LinearSVCModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "regressor_Trees" =>
-              modelReturn.model.asInstanceOf[DecisionTreeRegressionModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case "classifier_Trees" =>
-              modelReturn.model.asInstanceOf[DecisionTreeClassificationModel].write.overwrite().save(path)
-              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
-              client.setTag(runId, s"SparkModel_$modelId", path)
-              client.setTag(runId, "TrainingPayload", modelReturn.toString)
-            case _ => throw new UnsupportedOperationException(
-              s"Model Type $modelDescriptor is not supported for mlflow logging.")
-          }
+        if (_logArtifacts)
+          println(
+            "Saving XGBoost Models is not supported at this time. It will be available soon"
+          )
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "regressor_GBT" =>
+        modelReturn.model
+          .asInstanceOf[GBTRegressionModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "classifier_GBT" =>
+        modelReturn.model
+          .asInstanceOf[GBTClassificationModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "classifier_MLPC" =>
+        modelReturn.model
+          .asInstanceOf[MultilayerPerceptronClassificationModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "regressor_LinearRegression" =>
+        modelReturn.model
+          .asInstanceOf[LinearRegressionModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "classifier_LogisticRegression" =>
+        modelReturn.model
+          .asInstanceOf[LogisticRegressionModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "regressor_SVM" =>
+        modelReturn.model
+          .asInstanceOf[LinearSVCModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "regressor_Trees" =>
+        modelReturn.model
+          .asInstanceOf[DecisionTreeRegressionModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case "classifier_Trees" =>
+        modelReturn.model
+          .asInstanceOf[DecisionTreeClassificationModel]
+          .write
+          .overwrite()
+          .save(path)
+        if (_logArtifacts)
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        client.setTag(runId, "ModelSaveLocation", path)
+        client.setTag(runId, "TrainingPayload", modelReturn.toString)
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Model Type $modelDescriptor is not supported for mlflow logging."
+        )
+    }
   }
 
   /**
     * Public method for logging a model, parameters, and metrics to MlFlow
+    *
     * @param runData Full collection parameters, results, and models for the autoML experiment
     * @param modelFamily Type of Model Family used (e.g. "RandomForest")
     * @param modelType Type of Model used (e.g. "regression")
     */
-  def logMlFlowDataAndModels(runData: Array[GenericModelReturn], modelFamily: String, modelType: String,
-                             inferenceSaveLocation: String, optimizationStrategy: String): Unit = {
+  def logMlFlowDataAndModels(runData: Array[GenericModelReturn],
+                             modelFamily: String,
+                             modelType: String,
+                             inferenceSaveLocation: String,
+                             optimizationStrategy: String): Unit = {
 
     _mlFlowLoggingMode match {
-      case "tuningOnly" => logTuning(runData, modelFamily, modelType, inferenceSaveLocation)
-      case "bestOnly" => logBest(runData, modelFamily, modelType, inferenceSaveLocation, optimizationStrategy)
+      case "tuningOnly" =>
+        logTuning(runData, modelFamily, modelType, inferenceSaveLocation)
+      case "bestOnly" =>
+        logBest(
+          runData,
+          modelFamily,
+          modelType,
+          inferenceSaveLocation,
+          optimizationStrategy
+        )
       case _ => {
         logTuning(runData, modelFamily, modelType, inferenceSaveLocation)
-        logBest(runData, modelFamily, modelType, inferenceSaveLocation, optimizationStrategy)
+        logBest(
+          runData,
+          modelFamily,
+          modelType,
+          inferenceSaveLocation,
+          optimizationStrategy
+        )
       }
     }
   }
 
-  private def logBest(runData: Array[GenericModelReturn], modelFamily: String, modelType: String,
-                      inferenceSaveLocation: String, optimizationStrategy: String): Unit = {
+  private def logBest(runData: Array[GenericModelReturn],
+                      modelFamily: String,
+                      modelType: String,
+                      inferenceSaveLocation: String,
+                      optimizationStrategy: String): Unit = {
 
     val bestModel = optimizationStrategy match {
       case "minimize" => runData.sortWith(_.score < _.score)(0)
-      case _ => runData.sortWith(_.score > _.score)(0)
+      case _          => runData.sortWith(_.score > _.score)(0)
     }
 
     val mlflowLoggingClient = createHostedMlFlowClient()
 
-    val experimentId = getOrCreateExperimentId(mlflowLoggingClient, _mlFlowExperimentName + _mlFlowBestSuffix).toString
+    val experimentId = getOrCreateExperimentId(
+      mlflowLoggingClient,
+      _mlFlowExperimentName + _mlFlowBestSuffix
+    ).toString
 
-    var totalVersion = mlflowLoggingClient.getExperiment(experimentId).getRunsCount
+    var totalVersion =
+      mlflowLoggingClient.getExperiment(experimentId).getRunsCount
 
     val baseDirectory = _modelSaveDirectory.takeRight(1) match {
       case "/" => s"${_modelSaveDirectory}BestRun/"
-      case _ => s"${_modelSaveDirectory}/BestRun/"
+      case _   => s"${_modelSaveDirectory}/BestRun/"
     }
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 
     val runVersion: Int = totalVersion + 1
 
-    val runId = generateMlFlowRun(mlflowLoggingClient, experimentId, modelDescriptor, "BestRun",
-      runVersion.toString)
+    val runId = generateMlFlowRun(
+      mlflowLoggingClient,
+      experimentId,
+      modelDescriptor,
+      "BestRun",
+      runVersion.toString
+    )
 
     val modelHyperParams = bestModel.hyperParams.keys
     val metrics = bestModel.metrics.keys
 
-    modelHyperParams.foreach{ x =>
+    modelHyperParams.foreach { x =>
       val valueData = bestModel.hyperParams(x)
       mlflowLoggingClient.logParam(runId, x, valueData.toString)
     }
-    metrics.foreach{ x =>
+    metrics.foreach { x =>
       val valueData = bestModel.metrics(x)
       mlflowLoggingClient.logMetric(runId, x, valueData.toString.toDouble)
     }
 
+    mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
+
     val modelDir = s"$baseDirectory${modelDescriptor}_$runId/bestModel"
 
-    saveModel(mlflowLoggingClient, modelDir, runId, bestModel, modelDescriptor, "BestRun")
+    saveModel(
+      mlflowLoggingClient,
+      modelDir,
+      runId,
+      bestModel,
+      modelDescriptor,
+      "BestRun"
+    )
     mlflowLoggingClient.logParam(runId, "generation", "Best")
 
     //Inference data save
     val inferencePath = inferenceSaveLocation.takeRight(1) match {
       case "/" => s"$inferenceSaveLocation$experimentId${_mlFlowBestSuffix}/"
-      case _ => s"$inferenceSaveLocation/$experimentId/${_mlFlowBestSuffix}/"
+      case _   => s"$inferenceSaveLocation/$experimentId/${_mlFlowBestSuffix}/"
     }
     val inferenceLocation = inferencePath + runId + _mlFlowBestSuffix
     val inferenceMlFlowConfig = MLFlowConfig(
@@ -323,36 +439,45 @@ class MLFlowTracker extends InferenceTools{
     println(s"Inference DF will be saved to $inferenceLocation")
     inferenceConfigAsDF.write.save(inferenceLocation)
 
-    mlflowLoggingClient.setTag(runId, "InferenceConfig", inferenceConfigAsJSON.compactJson)
+    mlflowLoggingClient.setTag(
+      runId,
+      "InferenceConfig",
+      inferenceConfigAsJSON.compactJson
+    )
 
-    mlflowLoggingClient.setTag(runId, "InferenceDataFrameLocation", inferenceLocation)
+    mlflowLoggingClient.setTag(
+      runId,
+      "InferenceDataFrameLocation",
+      inferenceLocation
+    )
 
   }
 
-  private def logTuning(runData: Array[GenericModelReturn], modelFamily: String, modelType: String,
-                             inferenceSaveLocation: String): Unit = {
+  private def logTuning(runData: Array[GenericModelReturn],
+                        modelFamily: String,
+                        modelType: String,
+                        inferenceSaveLocation: String): Unit = {
 
     val mlflowLoggingClient = createHostedMlFlowClient()
 
     val experimentId = getOrCreateExperimentId(mlflowLoggingClient).toString
 
-    var totalVersion = mlflowLoggingClient.getExperiment(experimentId).getRunsCount
+    var totalVersion =
+      mlflowLoggingClient.getExperiment(experimentId).getRunsCount
 
     val generationSet = mutable.Set[Int]()
     runData.map(x => generationSet += x.generation)
-    val uniqueGenerations = generationSet.result.toArray.sortWith(_<_)
+    val uniqueGenerations = generationSet.result.toArray.sortWith(_ < _)
 
     val baseDirectory = _modelSaveDirectory.takeRight(1) match {
-        case "/" => s"${_modelSaveDirectory}"
-        case _ => s"${_modelSaveDirectory}/"
-      }
-
+      case "/" => s"${_modelSaveDirectory}"
+      case _   => s"${_modelSaveDirectory}/"
+    }
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 
     // loop through each generation and log the data
-    uniqueGenerations.foreach{g =>
-
+    uniqueGenerations.foreach { g =>
       // get the runs from this generation
       val currentGen = runData.filter(x => x.generation == g)
 
@@ -363,52 +488,64 @@ class MLFlowTracker extends InferenceTools{
       val generations = currentGen.par
       generations.tasksupport = taskSupport
 
-      generations.foreach{x =>
-
+      generations.foreach { x =>
         totalVersion += 1
 
-        val uniqueRunIdent = s"${modelFamily}_${modelType}_${x.generation.toString}_${withinRunId.toString}_${
-          x.score.toString}"
+        val uniqueRunIdent =
+          s"${modelFamily}_${modelType}_${x.generation.toString}_${withinRunId.toString}_${x.score.toString}"
 
         val runName = "run_" + x.generation.toString + "_" + withinRunId.toString
 
-        val runId = generateMlFlowRun(mlflowLoggingClient, experimentId, uniqueRunIdent, runName,
-          totalVersion.toString)
+        val runId = generateMlFlowRun(
+          mlflowLoggingClient,
+          experimentId,
+          uniqueRunIdent,
+          runName,
+          totalVersion.toString
+        )
 
         val hyperParamKeys = x.hyperParams.keys
 
-        hyperParamKeys.foreach{k =>
+        hyperParamKeys.foreach { k =>
           val valueData = x.hyperParams(k)
           mlflowLoggingClient.logParam(runId, k, valueData.toString)
         }
         val metricKeys = x.metrics.keys
 
-        metricKeys.foreach{k =>
+        metricKeys.foreach { k =>
           val valueData = x.metrics(k)
           mlflowLoggingClient.logMetric(runId, k, valueData.toString.toDouble)
         }
 
+        mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
+
         // Generate a new unique uuid for the model to ensure there are no overwrites.
-        val uniqueModelId = java.util.UUID.randomUUID().toString.replace("-", "")
+        val uniqueModelId =
+          java.util.UUID.randomUUID().toString.replace("-", "")
 
         // Set a location to write the model to
         val modelDir = s"$baseDirectory${modelDescriptor}_$runId/$uniqueModelId"
 
         // log the model artifact
-        saveModel(mlflowLoggingClient, modelDir, runId, x, modelDescriptor, uniqueModelId)
+        saveModel(
+          mlflowLoggingClient,
+          modelDir,
+          runId,
+          x,
+          modelDescriptor,
+          uniqueModelId
+        )
 
         // log the generation
         mlflowLoggingClient.logParam(runId, "generation", x.generation.toString)
 
-
         /**
           * Set the remaining aspect of InferenceConfig for this run
           */
-
         // set the model save directory
         val inferencePath = inferenceSaveLocation.takeRight(1) match {
           case "/" => s"$inferenceSaveLocation$experimentId/"
-          case _ => s"$inferenceSaveLocation/$experimentId/"
+          case _   => s"$inferenceSaveLocation/$experimentId/"
         }
 
         val inferenceLocation = inferencePath + runId
@@ -436,25 +573,31 @@ class MLFlowTracker extends InferenceTools{
 
         val inferenceConfig = getInferenceConfig
 
-        val inferenceConfigAsJSON = convertInferenceConfigToJson(inferenceConfig)
+        val inferenceConfigAsJSON =
+          convertInferenceConfigToJson(inferenceConfig)
 
-        val inferenceConfigAsDF = convertInferenceConfigToDataFrame(inferenceConfig)
+        val inferenceConfigAsDF =
+          convertInferenceConfigToDataFrame(inferenceConfig)
 
         //Save the inference config to the save location
         inferenceConfigAsDF.write.save(inferenceLocation)
 
-        mlflowLoggingClient.setTag(runId, "InferenceConfig", inferenceConfigAsJSON.compactJson)
+        mlflowLoggingClient.setTag(
+          runId,
+          "InferenceConfig",
+          inferenceConfigAsJSON.compactJson
+        )
 
-        mlflowLoggingClient.setTag(runId, "InferenceDataFrameLocation", inferenceLocation)
+        mlflowLoggingClient.setTag(
+          runId,
+          "InferenceDataFrameLocation",
+          inferenceLocation
+        )
 
         withinRunId += 1
 
       }
     }
   }
-
-
-
-
 
 }

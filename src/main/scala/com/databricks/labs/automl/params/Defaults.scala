@@ -13,7 +13,8 @@ trait Defaults {
     "XGBoost"
   )
 
-  final val trainSplitMethods: List[String] = List("random", "chronological", "stratifyReduce", "stratified", "overSample", "underSample")
+  final val trainSplitMethods: List[String] = List("random", "chronological", "stratifyReduce", "stratified",
+    "overSample", "underSample")
 
   final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
 

@@ -195,6 +195,15 @@ case class GenericModelReturn(
                                generation: Int
                              )
 
+case class GroupedModelReturn(
+                              modelFamily: String,
+                              hyperParams: Map[String, Any],
+                              model: Any,
+                              score: Double,
+                              metrics: Map[String, Double],
+                              generation: Int
+                             )
+
 case class GenerationalReport(
                                modelFamily: String,
                                modelType: String,
@@ -251,6 +260,15 @@ abstract case class FeatureImportancePredictionOutput(featureImportances: DataFr
                                                       predictionData: DataFrame) extends Output
 
 abstract case class ConfusionOutput(predictionData: DataFrame, confusionData: DataFrame) extends Output
+
+abstract case class FamilyOutput(modelType: String) extends Output
+
+case class FamilyFinalOutput(
+                            modelReport: Array[GroupedModelReturn],
+                            generationReport: Array[GenerationalReport],
+                            modelReportDataFrame: DataFrame,
+                            generationReportDataFrame: DataFrame
+                            )
 
 sealed trait ModelType[A, B]
 
