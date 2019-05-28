@@ -336,7 +336,7 @@ class ConfigurationGenerator(modelFamily: String,
     * @param value Boolean
     */
   def setOutlierFilterFlag(value: Boolean): this.type = {
-    _instanceConfig.switchConfig.varianceFilterFlag = value
+    _instanceConfig.switchConfig.outlierFilterFlag = value
     this
   }
 

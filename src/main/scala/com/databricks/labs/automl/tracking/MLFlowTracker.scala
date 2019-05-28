@@ -195,24 +195,32 @@ class MLFlowTracker extends InferenceTools {
         //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
         // Jackson dependency issues.  Disabling manual model storage for now.
 
-//              modelReturn.model.asInstanceOf[XGBoostRegressionModel].write.overwrite().save(path)
-//              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+//        modelReturn.model
+//          .asInstanceOf[XGBoostRegressionModel]
+//          .write
+//          .overwrite()
+//          .save(path)
         if (_logArtifacts)
-          println(
-            "Saving XGBoost Models is not supported at this time. It will be available soon"
-          )
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        println(
+          "Saving XGBoost Models is not supported at this time. It will be available soon"
+        )
         client.setTag(runId, "ModelSaveLocation", path)
         client.setTag(runId, "TrainingPayload", modelReturn.toString)
       case "classifier_XGBoost" =>
         //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
         // Jackson dependency issues.  Disabling manual model storage for now.
 
-//              modelReturn.model.asInstanceOf[XGBoostClassificationModel].write.overwrite().save(path)
-//              if(_logArtifacts) client.logArtifacts(runId, new File(createFusePath(path)))
+//        modelReturn.model
+//          .asInstanceOf[XGBoostClassificationModel]
+//          //.write
+//          //.overwrite()
+//          .save(path)
         if (_logArtifacts)
-          println(
-            "Saving XGBoost Models is not supported at this time. It will be available soon"
-          )
+          client.logArtifacts(runId, new File(createFusePath(path)))
+        println(
+          "Saving XGBoost Models is not supported at this time. It will be available soon"
+        )
         client.setTag(runId, "ModelSaveLocation", path)
         client.setTag(runId, "TrainingPayload", modelReturn.toString)
       case "regressor_GBT" =>
