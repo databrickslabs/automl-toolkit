@@ -1,7 +1,14 @@
 package com.databricks.labs.automl.utils
 
-import com.databricks.labs.automl.inference.{InferenceDataConfig, InferenceSwitchSettings}
-import com.databricks.labs.automl.params.{GenerationalReport, GenericModelReturn, MainConfig}
+import com.databricks.labs.automl.inference.{
+  InferenceDataConfig,
+  InferenceSwitchSettings
+}
+import com.databricks.labs.automl.params.{
+  GenerationalReport,
+  GenericModelReturn,
+  MainConfig
+}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
@@ -15,12 +22,14 @@ trait AutomationTools extends SparkSessionWrapper {
     cc.getClass.getDeclaredFields.map {
       _.getName -> (values.next() match {
         case p: Product if p.productArity > 0 => extractPayload(p)
-        case x => x
+        case x                                => x
       })
     }.toMap
   }
 
-  def extractGenerationData(payload: Array[GenericModelReturn]): Map[Int, (Double, Double)] = {
+  def extractGenerationData(
+    payload: Array[GenericModelReturn]
+  ): Map[Int, (Double, Double)] = {
 
     val scoreBuffer = new ListBuffer[(Int, Double)]
     payload.foreach { x =>
@@ -35,7 +44,9 @@ trait AutomationTools extends SparkSessionWrapper {
     }
   }
 
-  def dataPersist(preDF: DataFrame, postDF: DataFrame, cacheLevel: StorageLevel,
+  def dataPersist(preDF: DataFrame,
+                  postDF: DataFrame,
+                  cacheLevel: StorageLevel,
                   blockUnpersist: Boolean): (DataFrame, String) = {
 
     postDF.persist(cacheLevel)
@@ -44,18 +55,27 @@ trait AutomationTools extends SparkSessionWrapper {
     (postDF, newDFRowCount)
   }
 
-  def fieldRemovalCompare(preFilterFields: Array[String], postFilterFields: Array[String]): List[String] = {
+  def fieldRemovalCompare(preFilterFields: Array[String],
+                          postFilterFields: Array[String]): List[String] = {
 
     preFilterFields.toList.filterNot(postFilterFields.toList.contains(_))
 
   }
 
-  def extractGenerationalScores(payload: Array[GenericModelReturn], scoringOptimizationStrategy: String,
-                                modelFamily: String, modelType: String): Array[GenerationalReport] = {
+  def extractGenerationalScores(
+    payload: Array[GenericModelReturn],
+    scoringOptimizationStrategy: String,
+    modelFamily: String,
+    modelType: String
+  ): Array[GenerationalReport] = {
 
-    val uniqueGenerations = payload.map(x => x.generation).toList.foldLeft(Nil: List[Int]) { (curr, next) =>
-      if (curr contains next) curr else next :: curr
-    }.sortWith(_ < _)
+    val uniqueGenerations = payload
+      .map(x => x.generation)
+      .toList
+      .foldLeft(Nil: List[Int]) { (curr, next) =>
+        if (curr contains next) curr else next :: curr
+      }
+      .sortWith(_ < _)
 
     val outputPayload = new ArrayBuffer[GenerationalReport]
 
@@ -70,8 +90,10 @@ trait AutomationTools extends SparkSessionWrapper {
       val bestGenerationRun = scoringOptimizationStrategy match {
         case "maximize" => generationData.sortWith(_.score > _.score)(0)
         case "minimize" => generationData.sortWith(_.score < _.score)(0)
-        case _ => throw new UnsupportedOperationException(
-          s"Optimization Strategy $scoringOptimizationStrategy is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Optimization Strategy $scoringOptimizationStrategy is not supported."
+          )
       }
 
       val bestModel = bestGenerationRun.model
@@ -87,19 +109,35 @@ trait AutomationTools extends SparkSessionWrapper {
       )
     }
     scoringOptimizationStrategy match {
-      case "maximize" => outputPayload.toArray.sortWith(_.generationMeanScore > _.generationMeanScore)
-      case "minimize" => outputPayload.toArray.sortWith(_.generationMeanScore < _.generationMeanScore)
-      case _ => throw new UnsupportedOperationException(
-        s"Optimization Strategy $scoringOptimizationStrategy is not supported.")
+      case "maximize" =>
+        outputPayload.toArray.sortWith(
+          _.generationMeanScore > _.generationMeanScore
+        )
+      case "minimize" =>
+        outputPayload.toArray.sortWith(
+          _.generationMeanScore < _.generationMeanScore
+        )
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Optimization Strategy $scoringOptimizationStrategy is not supported."
+        )
     }
   }
 
-  def generationDataFrameReport(generationalData: Array[GenerationalReport], sortingStrategy: String): DataFrame = {
+  def generationDataFrameReport(generationalData: Array[GenerationalReport],
+                                sortingStrategy: String): DataFrame = {
 
     import spark.sqlContext.implicits._
 
-    val rawDf = spark.sparkContext.parallelize(generationalData).toDF("model_family", "model_type",
-      "generation", "generation_mean_score", "generation_std_dev_score")
+    val rawDf = spark.sparkContext
+      .parallelize(generationalData)
+      .toDF(
+        "model_family",
+        "model_type",
+        "generation",
+        "generation_mean_score",
+        "generation_std_dev_score"
+      )
 
     sortingStrategy match {
       case "maximize" => rawDf.orderBy(col("generation_mean_score").desc)
@@ -120,12 +158,16 @@ trait AutomationTools extends SparkSessionWrapper {
 
   }
 
-  def trainSplitValidation(trainSplitMethod: String, modelSelection: String): String = {
+  def trainSplitValidation(trainSplitMethod: String,
+                           modelSelection: String): String = {
 
     modelSelection match {
       case "regressor" =>
         trainSplitMethod match {
-          case "stratified" => println("[WARNING] Stratified Method is NOT ALLOWED on Regressors. Setting to Random.")
+          case "stratified" =>
+            println(
+              "[WARNING] Stratified Method is NOT ALLOWED on Regressors. Setting to Random."
+            )
             "random"
           case _ => trainSplitMethod
         }
@@ -139,7 +181,9 @@ trait AutomationTools extends SparkSessionWrapper {
     * Single-pass method for recording all switch settings to the InferenceConfig Object.
     * @param config MainConfig used for starting the training AutoML run
     */
-  def recordInferenceSwitchSettings(config: MainConfig): InferenceSwitchSettings = {
+  def recordInferenceSwitchSettings(
+    config: MainConfig
+  ): InferenceSwitchSettings = {
 
     // Set the switch settings
     InferenceSwitchSettings(
@@ -153,12 +197,50 @@ trait AutomationTools extends SparkSessionWrapper {
     )
   }
 
-  def recordInferenceDataConfig(config: MainConfig, startingFields: Array[String]): InferenceDataConfig = {
+  /**
+    * Helper method for removing any of the mutators that have occurred during pre-processing of the field types
+    * @param names Array: The collection of column names from the DataFrame immediately after data pre-processing
+    *              tasks of type validation and conversion.
+    * @since 0.5.1
+    * @author Ben Wilson, Databricks
+    * @return A wrapped Array of distinct field names to use for re-producability of the model for inference runs
+    *         that is cleaned of the _si or _oh suffixes as a result of feature engineering tasks.
+    */
+  private[utils] def cleanFieldNames(names: Array[String]): Array[String] = {
+
+    names.map { x =>
+      x.takeRight(3) match {
+        case "_si" => x.dropRight(3)
+        case "_oh" => x.dropRight(3)
+        case _     => x
+      }
+    }.distinct
+
+  }
+
+  /**
+    * Helper method for generating the Inference Config object for the data configuration steps needed to perform to
+    * reproduce the modeling for subsequent inference runs.
+    * @param config The full main Config that is utilized for the execution of the run.
+    * @param startingFields The fields that are are returned from type casting and validation (may contain artificial
+    *                       suffixes for StringIndexer (_si) and OneHotEncoder(_oh).  These will be removed before
+    *                       recording.
+    * @since 0.4.0
+    * @return and Instance of InferenceDataConfig
+    */
+  def recordInferenceDataConfig(
+    config: MainConfig,
+    startingFields: Array[String]
+  ): InferenceDataConfig = {
+
+    // Strip out any of the trailing encoding modifications that may have been done to the starting fields.
+
+    val cleanedStartingFields = cleanFieldNames(startingFields)
 
     InferenceDataConfig(
       labelCol = config.labelCol,
       featuresCol = config.featuresCol,
-      startingColumns = startingFields,
+      startingColumns = cleanedStartingFields,
       fieldsToIgnore = config.fieldsToIgnoreInVector,
       dateTimeConversionType = config.dateTimeConversionType
     )
