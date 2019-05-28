@@ -6,7 +6,7 @@ import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.regression.GBTRegressor
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -223,6 +223,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     val runs = battery.par
     runs.tasksupport = taskSupport
 
+    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
+
     val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
       calculateModelingFamilyRemainingTime(generation, modelCnt)
     }%2.4f%%"
@@ -241,7 +243,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong)
+        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreGBTModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]

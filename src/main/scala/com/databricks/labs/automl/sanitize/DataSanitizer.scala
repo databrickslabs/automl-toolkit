@@ -11,22 +11,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
-object DataSanitizerPythonHelper {
-  var _decision: String = _
-
-  def generateCleanData(sanitizer: DataSanitizer, dfName: String): Unit = {
-    val (cleanDf, naFillConfig, decision) = sanitizer.generateCleanData()
-    _decision = decision
-    cleanDf.createOrReplaceTempView(dfName)
-    println("Dataframe has been cleaned and registered as " + dfName + " " + cleanDf)
-    println("Model decision was for " + decision)
-  }
-
-  def getModelDecision: String = {
-    _decision
-  }
-}
-
 class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private var _labelCol = "label"
@@ -97,6 +81,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
 
   private var _labelValidation: Boolean = false
+
   private def labelValidationOn(): Boolean = true
 
 
@@ -154,17 +139,17 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private def getFieldsAndFillable(df: DataFrame, columnList: List[String], statistics: String): DataFrame = {
 
-    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
+    val dfParts = df.rdd.partitions.length.toDouble
+    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {
-      val colBatches = getBatches(columnList).par
-      colBatches.tasksupport = taskSupport
+      val colBatches = getBatches(columnList)
       colBatches.map { batch =>
-        df.select(batch map col: _*).summary().select("Summary" +: batch map col: _*)
+        df.coalesce(summaryParts).select(batch map col: _*).summary().select("Summary" +: batch map col: _*)
       }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
 
     } else {
-      df.summary(statistics.replaceAll(" ", "").split(","): _*)
+      df.coalesce(summaryParts).summary(statistics.replaceAll(" ", "").split(","): _*)
         .select(selectionColumns map col: _*)
     }
     x
