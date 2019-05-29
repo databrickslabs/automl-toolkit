@@ -1,6 +1,5 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.inference.InferenceConfig._
 import com.databricks.labs.automl.utils.DataValidation
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.Pipeline
@@ -8,8 +7,8 @@ import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
-
-class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends DataValidation {
+class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false)
+    extends DataValidation {
 
   private var _labelCol = "label"
   private var _featureCol = "features"
@@ -18,9 +17,12 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
 
   final private val _dataFieldNames = data.schema.fieldNames
 
-
   def setLabelCol(value: String): this.type = {
-    if (!isInferenceRun) assert(_dataFieldNames.contains(value), s"Label field $value is not in DataFrame!")
+    if (!isInferenceRun)
+      assert(
+        _dataFieldNames.contains(value),
+        s"Label field $value is not in DataFrame!"
+      )
     _labelCol = value
     this
   }
@@ -31,8 +33,11 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
   }
 
   def setDateTimeConversionType(value: String): this.type = {
-    assert(_allowableDateTimeConversions.contains(value), s"Supplied conversion type '$value' is not in: " +
-      s"${invalidateSelection(value, _allowableDateTimeConversions)}")
+    assert(
+      _allowableDateTimeConversions.contains(value),
+      s"Supplied conversion type '$value' is not in: " +
+        s"${invalidateSelection(value, _allowableDateTimeConversions)}"
+    )
     _dateTimeConversionType = value
     this
   }
@@ -43,23 +48,36 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
 
   def getDateTimeConversionType: String = _dateTimeConversionType
 
-  def makeFeaturePipeline(ignoreList: Array[String]): (DataFrame, Array[String], Array[String]) = {
+  def makeFeaturePipeline(
+    ignoreList: Array[String]
+  ): (DataFrame, Array[String], Array[String]) = {
 
     val dfSchema = data.schema
-    if(!isInferenceRun) assert(dfSchema.fieldNames.contains(_labelCol), s"Dataframe does not contain label column named: ${_labelCol}")
+    if (!isInferenceRun)
+      assert(
+        dfSchema.fieldNames.contains(_labelCol),
+        s"Dataframe does not contain label column named: ${_labelCol}"
+      )
 
     // Extract all of the field types
-    val (fieldsReady, fieldsToConvert, dateFields, timeFields) = extractTypes(data, _labelCol, ignoreList)
+    val (fieldsReady, fieldsToConvert, dateFields, timeFields) =
+      extractTypes(data, _labelCol, ignoreList)
 
     // TODO: validation of fieldsToConvert -> if cardinality is too high (i.e. 1000, remove the field.)
     //TODO: add in config objects here for cardinality limits and parallelism!!
-    val validatedStringFields = validateCardinality(data, fieldsToConvert)
+
+    val fieldsToConvertExclusionsSet =
+      fieldsToConvert.filterNot(x => ignoreList.contains(x))
+
+    val validatedStringFields =
+      validateCardinality(data, fieldsToConvertExclusionsSet)
 
     // Support exclusions of fields
     val excludedFieldsReady = fieldsReady.filterNot(x => ignoreList.contains(x))
 
     // TODO: ensure that this new additional filter works as intended (removing high cardinality fields)
-    val excludedFieldsToConvert = fieldsToConvert.filterNot(x => ignoreList.contains(x))
+    val excludedFieldsToConvert = fieldsToConvert
+      .filterNot(x => ignoreList.contains(x))
       .filterNot(x => validatedStringFields.invalidFields.contains(x))
 
     val excludedDateFields = dateFields.filterNot(x => ignoreList.contains(x))
@@ -67,13 +85,18 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
     val excludedTimeFields = timeFields.filterNot(x => ignoreList.contains(x))
 
     // Modify the Dataframe for datetime / date types
-    val (dateTimeModData, dateTimeFields) = convertDateAndTime(data, excludedDateFields,
-      excludedTimeFields, _dateTimeConversionType)
+    val (dateTimeModData, dateTimeFields) = convertDateAndTime(
+      data,
+      excludedDateFields,
+      excludedTimeFields,
+      _dateTimeConversionType
+    )
 
     // Concatenate the numeric field listing with the new numeric converted datetime fields
     val mergedFields = excludedFieldsReady ++ dateTimeFields
 
-    val (indexers, assembledColumns, assembler) = generateAssembly(mergedFields, excludedFieldsToConvert, _featureCol)
+    val (indexers, assembledColumns, assembler) =
+      generateAssembly(mergedFields, excludedFieldsToConvert, _featureCol)
 
     val createPipe = new Pipeline()
       .setStages(indexers :+ assembler)
@@ -84,13 +107,18 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
       assembledColumns ++ Array(_featureCol)
     }
 
-
     //DEBUG
-    logger.log(Level.DEBUG, s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}")
+    logger.log(
+      Level.DEBUG,
+      s" MAKE FEATURE PIPELINE FIELDS TO INCLUDE: ${fieldsToInclude.mkString(", ")}"
+    )
 
-    val transformedData = createPipe.fit(dateTimeModData).transform(dateTimeModData).select(fieldsToInclude map col:_*)
+    val transformedData = createPipe
+      .fit(dateTimeModData)
+      .transform(dateTimeModData)
+      .select(fieldsToInclude map col: _*)
 
-    val transformedExtract = if(fieldsToConvert.contains(_labelCol)){
+    val transformedExtract = if (fieldsToConvert.contains(_labelCol)) {
       transformedData
         .drop(_labelCol)
         .withColumnRenamed(s"${_labelCol}_si", _labelCol)
@@ -98,34 +126,47 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
       transformedData
     }
 
-    val assembledColumnsOutput = if(fieldsToConvert.contains(_labelCol)) {
+    val assembledColumnsOutput = if (fieldsToConvert.contains(_labelCol)) {
       assembledColumns.filterNot(x => x.contains(s"${_labelCol}_si"))
     } else assembledColumns
 
-    val fieldsToIncludeOutput = if(fieldsToConvert.contains(_labelCol)) {
+    val fieldsToIncludeOutput = if (fieldsToConvert.contains(_labelCol)) {
       fieldsToInclude.filterNot(x => x.contains(s"${_labelCol}_si"))
     } else fieldsToInclude
 
-    (transformedExtract, assembledColumnsOutput, fieldsToIncludeOutput.filterNot(_.contains(_featureCol)))
+    (
+      transformedExtract,
+      assembledColumnsOutput,
+      fieldsToIncludeOutput.filterNot(_.contains(_featureCol))
+    )
 
   }
 
-  def applyOneHotEncoding(featureColumns: Array[String], totalFields: Array[String]):
-  (DataFrame, Array[String], Array[String]) = {
+  def applyOneHotEncoding(
+    featureColumns: Array[String],
+    totalFields: Array[String]
+  ): (DataFrame, Array[String], Array[String]) = {
 
     // From the featureColumns collection, get the string indexed fields.
-    val stringIndexedFields = featureColumns.filter(x => x.takeRight(3) == "_si").filterNot(x => x.contains(_labelCol))
+    val stringIndexedFields = featureColumns
+      .filter(x => x.takeRight(3) == "_si")
+      .filterNot(x => x.contains(_labelCol))
 
     // Get the fields that are not String Indexed.
-    val remainingFeatureFields = featureColumns.filterNot(x => x.takeRight(3) == "_si")
+    val remainingFeatureFields =
+      featureColumns.filterNot(x => x.takeRight(3) == "_si")
 
     // Drop the feature field that has already been created.
-    val adjustedData = if (data.schema.fieldNames.contains(_featureCol)) data.drop(_featureCol) else data
+    val adjustedData =
+      if (data.schema.fieldNames.contains(_featureCol)) data.drop(_featureCol)
+      else data
 
     // One hot encode the StringIndexed fields, if present and generate the feature vector.
-    val (outputData, featureFields) = if(stringIndexedFields.length > 0) {
+    val (outputData, featureFields) = if (stringIndexedFields.length > 0) {
 
-      val (encoder, encodedColumns) = oneHotEncodeStrings(stringIndexedFields.toList)
+      val (encoder, encodedColumns) = oneHotEncodeStrings(
+        stringIndexedFields.toList
+      )
 
       val fullFeatureColumns = remainingFeatureFields ++ encodedColumns
 
@@ -157,12 +198,15 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false) extends 
 
     val fullFinalSchema = outputData.schema.fieldNames.diff(stringIndexedFields)
 
-    val dataReturn = outputData.select(fullFinalSchema map col:_*)
+    val dataReturn = outputData.select(fullFinalSchema map col: _*)
 
     val dataSchema = fullFinalSchema.filterNot(_.contains(_featureCol))
 
     //DEBUG
-    logger.log(Level.DEBUG, s" Post OneHotEncoding Fields: ${fullFinalSchema.mkString(", ")}")
+    logger.log(
+      Level.DEBUG,
+      s" Post OneHotEncoding Fields: ${fullFinalSchema.mkString(", ")}"
+    )
 
     (dataReturn, featureFields, dataSchema)
 

@@ -1629,15 +1629,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       dataSubset.count
     }
 
-//    orig
-//    val payload = DataGeneration(dataSubset, selectableFields, featureImportanceResults.modelType)
-
     val runner = new AutomationRunner(dataSubset).setMainConfig(_mainConfig)
 
     val payload = runner.prepData()
-
-//    orig
-//    val runResults = new AutomationRunner(dataSubset).setMainConfig(_mainConfig).executeTuning(payload)
 
     val runResults = runner.executeTuning(payload)
 
@@ -1744,7 +1738,4 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  //TODO: add a generational runner to find the best model in a modelType (classification / regression)
-  //TODO: this will require a new configuration methodology (generationalRunnerConfig) that has all of the families
-  //TODO: default configs within it. with setters to override individual parts.  Might want to make it its own class.
 }
