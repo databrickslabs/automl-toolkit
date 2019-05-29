@@ -1718,8 +1718,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val predictionPayload = runWithPrediction()
 
     val confusionData = predictionPayload.dataWithPredictions
-      .select("prediction", _labelCol)
-      .groupBy("prediction", _labelCol)
+      .select("prediction", _mainConfig.labelCol)
+      .groupBy("prediction", _mainConfig.labelCol)
       .agg(count("*").alias("count"))
 
     new ConfusionOutput(
