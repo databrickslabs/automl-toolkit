@@ -123,6 +123,17 @@ class GenericConfigGenerator(predictionType: String)
   }
 
   /**
+    * Setter<br>
+    *
+    * Aids in creating multiple instances of a Generic Config (useful for Feature Importance usages)
+    * @param value an Instance of a GenericConfig Object
+    */
+  def setConfig(value: GenericConfig): this.type = {
+    _genericConfig = value
+    this
+  }
+
+  /**
     * Getter
     *
     * @return Currently assigned name of the label column for modeling.
@@ -210,6 +221,7 @@ object GenericConfigGenerator {
     */
   def generateDefaultRegressorConfig: GenericConfig =
     new GenericConfigGenerator("regressor").getConfig
+
 }
 
 /**
@@ -244,6 +256,15 @@ class ConfigurationGenerator(modelFamily: String,
   private var _instanceConfig = instanceConfig(modelFamily, predictionType)
 
   _instanceConfig.genericConfig = genericConfig
+
+  /**
+    * Helper method for copying a pre-defined InstanceConfig to a new instance.
+    * @param value InstanceConfig object
+    */
+  def setConfig(value: InstanceConfig): this.type = {
+    _instanceConfig = value
+    this
+  }
 
   //Switch Config
   /**
