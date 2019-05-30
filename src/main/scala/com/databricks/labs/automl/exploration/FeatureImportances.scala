@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.exploration
 
+import com.databricks.labs.automl.sanitize.DataSanitizer
 import org.apache.spark.sql.DataFrame
 
 object CutoffTypes extends Enumeration {
@@ -41,6 +42,7 @@ case class FeatureImportanceConfig(
   fieldsToIgnore: Array[String],
   numericFillStat: String,
   characterFillStat: String,
+  modelSelectionDistinctThreshold: Int,
   modelType: String
 )
 
@@ -53,7 +55,25 @@ class FeatureImportances(data: DataFrame, config: FeatureImportanceConfig)
   // 3. Extract FI based on model type (figure out how to get XGBoost importances!)
   // 4. Output everything that would be needed to then automatically tune and configure a run.
 
-  def prepareDataSet(): DataFrame = {}
+  def fillNaValues(): DataFrame = {
+
+    val (cleanedData, fillMap, modelDetectedType) = new DataSanitizer(data)
+      .setLabelCol(config.labelCol)
+      .setFeatureCol(config.featuresCol)
+      .setNumericFillStat(config.numericFillStat)
+      .setCharacterFillStat(config.characterFillStat)
+      .setModelSelectionDistinctThreshold(
+        config.modelSelectionDistinctThreshold
+      )
+      .setFieldsToIgnoreInVector(config.fieldsToIgnore)
+      .setParallelism(config.parallelism)
+      .setFilterPrecision(0.01)
+      .generateCleanData()
+
+    cleanedData
+  }
+
+  def createFeatureVector(df: DataFrame): DataFrame = {}
 
 }
 
