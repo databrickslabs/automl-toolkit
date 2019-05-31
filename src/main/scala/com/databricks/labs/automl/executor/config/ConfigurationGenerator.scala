@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.executor.config
 
+import com.databricks.labs.automl.exploration.structures.FeatureImportanceConfig
 import com.databricks.labs.automl.params._
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.{read, writePretty}
@@ -1494,6 +1495,78 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       inferenceConfigSaveLocation =
         config.loggingConfig.inferenceConfigSaveLocation,
       dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor
+    )
+
+  }
+
+  /**
+    * Helper method for generating the configuration for executing an exploratory FeatureImportance run
+    * @param config InstanceConfig Object
+    * @return Instance of FeatureImportanceConfig
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def generateFeatureImportanceConfig(
+    config: InstanceConfig
+  ): FeatureImportanceConfig = {
+
+    FeatureImportanceConfig(
+      labelCol = config.genericConfig.labelCol,
+      featuresCol = config.genericConfig.featuresCol,
+      numericBoundaries = config.algorithmConfig.numericBoundaries,
+      stringBoundaries = config.algorithmConfig.stringBoundaries,
+      scoringMetric = config.genericConfig.scoringMetric,
+      trainPortion = config.tunerConfig.tunerTrainPortion,
+      trainSplitMethod = config.tunerConfig.tunerTrainSplitMethod,
+      trainSplitChronologicalColumn =
+        config.tunerConfig.tunerTrainSplitChronologicalColumn,
+      trainSplitChronlogicalRandomPercentage =
+        config.tunerConfig.tunerTrainSplitChronologicalRandomPercentage,
+      parallelism = config.tunerConfig.tunerParallelism,
+      kFold = config.tunerConfig.tunerKFold,
+      seed = config.tunerConfig.tunerSeed,
+      scoringOptimizationStrategy =
+        config.genericConfig.scoringOptimizationStrategy,
+      firstGenerationGenePool = config.tunerConfig.tunerFirstGenerationGenePool,
+      numberOfGenerations = config.tunerConfig.tunerNumberOfGenerations,
+      numberOfMutationsPerGeneration =
+        config.tunerConfig.tunerNumberOfMutationsPerGeneration,
+      numberOfParentsToRetain = config.tunerConfig.tunerNumberOfParentsToRetain,
+      geneticMixing = config.tunerConfig.tunerGeneticMixing,
+      generationalMutationStrategy =
+        config.tunerConfig.tunerGenerationalMutationStrategy,
+      mutationMagnitudeMode = config.tunerConfig.tunerMutationMagnitudeMode,
+      fixedMutationValue = config.tunerConfig.tunerFixedMutationValue,
+      autoStoppingScore = config.tunerConfig.tunerAutoStoppingScore,
+      autoStoppingFlag = config.switchConfig.autoStoppingFlag,
+      evolutionStrategy = config.tunerConfig.tunerEvolutionStrategy,
+      continuousEvolutionMaxIterations =
+        config.tunerConfig.tunerContinuousEvolutionMaxIterations,
+      continuousEvolutionStoppingScore =
+        config.tunerConfig.tunerContinuousEvolutionStoppingScore,
+      continuousEvolutionParallelism =
+        config.tunerConfig.tunerContinuousEvolutionParallelism,
+      continuousEvolutionMutationAggressiveness =
+        config.tunerConfig.tunerContinuousEvolutionMutationAggressiveness,
+      continuousEvolutionGeneticMixing =
+        config.tunerConfig.tunerContinuousEvolutionGeneticMixing,
+      continuousEvolutionRollingImprovementCount =
+        config.tunerConfig.tunerContinuousEvolutionRollingImprovingCount,
+      dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor,
+      firstGenMode = config.tunerConfig.tunerInitialGenerationMode,
+      firstGenPermutations =
+        config.tunerConfig.tunerInitialGenerationPermutationCount,
+      firstGenIndexMixingMode =
+        config.tunerConfig.tunerInitialGenerationIndexMixingMode,
+      firstGenArraySeed = config.tunerConfig.tunerInitialGenerationArraySeed,
+      fieldsToIgnore = config.genericConfig.fieldsToIgnoreInVector,
+      numericFillStat = config.featureEngineeringConfig.numericFillStat,
+      characterFillStat = config.featureEngineeringConfig.characterFillStat,
+      modelSelectionDistinctThreshold =
+        config.featureEngineeringConfig.modelSelectionDistinctThreshold,
+      dateTimeConversionType = config.genericConfig.dateTimeConversionType,
+      modelType = config.predictionType,
+      featureImportanceModelFamily = config.modelFamily
     )
 
   }

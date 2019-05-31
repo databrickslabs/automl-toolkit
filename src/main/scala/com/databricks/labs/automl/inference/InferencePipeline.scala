@@ -4,7 +4,10 @@ import com.databricks.labs.automl.executor.AutomationConfig
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize.Scaler
 import com.databricks.labs.automl.utils.{AutomationTools, DataValidation}
-import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
+import ml.dmlc.xgboost4j.scala.spark.{
+  XGBoostClassificationModel,
+  XGBoostRegressionModel
+}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.regression._
@@ -12,10 +15,11 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import com.databricks.labs.automl.inference.InferenceConfig._
 
-
-class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationTools with DataValidation
-  with InferenceTools {
-
+class InferencePipeline(df: DataFrame)
+    extends AutomationConfig
+    with AutomationTools
+    with DataValidation
+    with InferenceTools {
 
   /**
     * Data Prep to:
@@ -36,15 +40,23 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     val featurePipelineObject = new FeaturePipeline(df, isInferenceRun = true)
       .setLabelCol(_inferenceConfig.inferenceDataConfig.labelCol)
       .setFeatureCol(_inferenceConfig.inferenceDataConfig.featuresCol)
-      .setDateTimeConversionType(_inferenceConfig.inferenceDataConfig.dateTimeConversionType)
+      .setDateTimeConversionType(
+        _inferenceConfig.inferenceDataConfig.dateTimeConversionType
+      )
 
     // Get the StringIndexed DataFrame, the fields that are set for modeling, and all fields combined.
     val (indexedData, columnsForModeling, allColumns) = featurePipelineObject
       .makeFeaturePipeline(_inferenceConfig.inferenceDataConfig.fieldsToIgnore)
 
-    val outputData = if(_inferenceConfig.inferenceSwitchSettings.naFillFlag) {
-      indexedData.na.fill(_inferenceConfig.featureEngineeringConfig.naFillConfig.categoricalColumns)
-        .na.fill(_inferenceConfig.featureEngineeringConfig.naFillConfig.numericColumns)
+    val outputData = if (_inferenceConfig.inferenceSwitchSettings.naFillFlag) {
+      indexedData.na
+        .fill(
+          _inferenceConfig.featureEngineeringConfig.naFillConfig.categoricalColumns
+        )
+        .na
+        .fill(
+          _inferenceConfig.featureEngineeringConfig.naFillConfig.numericColumns
+        )
     } else {
       indexedData
     }
@@ -61,7 +73,9 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     *                - The Full List of Columns (including ignored columns used for post-inference joining, etc.)
     * @return a new InferencePayload object (with the DataFrame now including a feature vector)
     */
-  private def createFeatureVector(payload: InferencePayload): InferencePayload = {
+  private def createFeatureVector(
+    payload: InferencePayload
+  ): InferencePayload = {
 
     val vectorAssembler = new VectorAssembler()
       .setInputCols(payload.modelingColumns)
@@ -69,8 +83,13 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
     val vectorAppliedDataFrame = vectorAssembler.transform(payload.data)
 
-    createInferencePayload(vectorAppliedDataFrame, payload.modelingColumns,
-      payload.allColumns ++ Array(_inferenceConfig.inferenceDataConfig.featuresCol))
+    createInferencePayload(
+      vectorAppliedDataFrame,
+      payload.modelingColumns,
+      payload.allColumns ++ Array(
+        _inferenceConfig.inferenceDataConfig.featuresCol
+      )
+    )
 
   }
 
@@ -80,15 +99,22 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     * @return a new InferencePayload object (the DataFrame, with and updated feature vector, and the field listings
     *         now having any previous  StringIndexed fields converted to OneHotEncoded fields.)
     */
-  private def oneHotEncodingTransform(payload: InferencePayload): InferencePayload = {
+  private def oneHotEncodingTransform(
+    payload: InferencePayload
+  ): InferencePayload = {
 
-    val featurePipeline = new FeaturePipeline(payload.data, isInferenceRun = true)
-      .setLabelCol(_inferenceConfig.inferenceDataConfig.labelCol)
-      .setFeatureCol(_inferenceConfig.inferenceDataConfig.featuresCol)
-      .setDateTimeConversionType(_inferenceConfig.inferenceDataConfig.dateTimeConversionType)
+    val featurePipeline =
+      new FeaturePipeline(payload.data, isInferenceRun = true)
+        .setLabelCol(_inferenceConfig.inferenceDataConfig.labelCol)
+        .setFeatureCol(_inferenceConfig.inferenceDataConfig.featuresCol)
+        .setDateTimeConversionType(
+          _inferenceConfig.inferenceDataConfig.dateTimeConversionType
+        )
 
-    val (returnData, vectorCols, allCols) = featurePipeline.applyOneHotEncoding(payload.modelingColumns,
-      payload.allColumns)
+    val (returnData, vectorCols, allCols) = featurePipeline.applyOneHotEncoding(
+      payload.modelingColumns,
+      payload.allColumns
+    )
 
     createInferencePayload(returnData, vectorCols, allCols)
 
@@ -100,86 +126,106 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     * @return new InferencePayload object with all actions applied to the Dataframe and associated field listings
     *         that were originally performed in model training.
     */
-  private def executeFeatureEngineering(payload: InferencePayload): InferencePayload = {
+  private def executeFeatureEngineering(
+    payload: InferencePayload
+  ): InferencePayload = {
 
     // Variance Filtering
-    val variancePayload = if (_inferenceConfig.inferenceSwitchSettings.varianceFilterFlag) {
+    val variancePayload =
+      if (_inferenceConfig.inferenceSwitchSettings.varianceFilterFlag) {
 
-      val fieldsToRemove = _inferenceConfig.featureEngineeringConfig.varianceFilterConfig.fieldsRemoved
+        val fieldsToRemove =
+          _inferenceConfig.featureEngineeringConfig.varianceFilterConfig.fieldsRemoved
 
-      removeArrayOfColumns(payload, fieldsToRemove)
+        removeArrayOfColumns(payload, fieldsToRemove)
 
-    } else payload
+      } else payload
 
     // Outlier Filtering
-    val outlierPayload = if (_inferenceConfig.inferenceSwitchSettings.outlierFilterFlag) {
+    val outlierPayload =
+      if (_inferenceConfig.inferenceSwitchSettings.outlierFilterFlag) {
 
-      // apply filtering in a foreach
-      var outlierData = variancePayload.data
+        // apply filtering in a foreach
+        var outlierData = variancePayload.data
 
-      _inferenceConfig.featureEngineeringConfig.outlierFilteringConfig.fieldRemovalMap.foreach{x =>
+        _inferenceConfig.featureEngineeringConfig.outlierFilteringConfig.fieldRemovalMap
+          .foreach { x =>
+            val field = x._1
+            val direction = x._2._2
+            val value = x._2._1
 
-        val field = x._1
-        val direction = x._2._2
-        val value = x._2._1
+            outlierData = direction match {
+              case "greater" => outlierData.filter(col(field) <= value)
+              case "lesser"  => outlierData.filter(col(field) >= value)
+            }
 
-        outlierData = direction match {
-          case "greater" => outlierData.filter(col(field) <= value)
-          case "lesser" => outlierData.filter(col(field) >= value )
-        }
+          }
 
-      }
+        createInferencePayload(
+          outlierData,
+          variancePayload.modelingColumns,
+          variancePayload.allColumns
+        )
 
-      createInferencePayload(outlierData, variancePayload.modelingColumns, variancePayload.allColumns)
-
-    } else variancePayload
+      } else variancePayload
 
     // Covariance Filtering
-    val covariancePayload = if (_inferenceConfig.inferenceSwitchSettings.covarianceFilterFlag) {
+    val covariancePayload =
+      if (_inferenceConfig.inferenceSwitchSettings.covarianceFilterFlag) {
 
-      val fieldsToRemove = _inferenceConfig.featureEngineeringConfig.covarianceFilteringConfig.fieldsRemoved
+        val fieldsToRemove =
+          _inferenceConfig.featureEngineeringConfig.covarianceFilteringConfig.fieldsRemoved
 
-      removeArrayOfColumns(outlierPayload, fieldsToRemove)
+        removeArrayOfColumns(outlierPayload, fieldsToRemove)
 
-    } else outlierPayload
+      } else outlierPayload
 
     // Pearson Filtering
-    val pearsonPayload = if (_inferenceConfig.inferenceSwitchSettings.pearsonFilterFlag) {
+    val pearsonPayload =
+      if (_inferenceConfig.inferenceSwitchSettings.pearsonFilterFlag) {
 
-      val fieldsToRemove = _inferenceConfig.featureEngineeringConfig.pearsonFilteringConfig.fieldsRemoved
+        val fieldsToRemove =
+          _inferenceConfig.featureEngineeringConfig.pearsonFilteringConfig.fieldsRemoved
 
-      removeArrayOfColumns(covariancePayload, fieldsToRemove)
+        removeArrayOfColumns(covariancePayload, fieldsToRemove)
 
-    } else covariancePayload
+      } else covariancePayload
 
     // Build the Feature Vector
     val featureVectorPayload = createFeatureVector(pearsonPayload)
 
     // OneHotEncoding
-    val oneHotEncodedPayload = if (_inferenceConfig.inferenceSwitchSettings.oneHotEncodeFlag) {
+    val oneHotEncodedPayload =
+      if (_inferenceConfig.inferenceSwitchSettings.oneHotEncodeFlag) {
 
-      oneHotEncodingTransform(featureVectorPayload)
+        oneHotEncodingTransform(featureVectorPayload)
 
-    } else featureVectorPayload
+      } else featureVectorPayload
 
     // Scaling
-    val scaledPayload = if (_inferenceConfig.inferenceSwitchSettings.scalingFlag) {
+    val scaledPayload =
+      if (_inferenceConfig.inferenceSwitchSettings.scalingFlag) {
 
-      val scalerConfig = _inferenceConfig.featureEngineeringConfig.scalingConfig
+        val scalerConfig =
+          _inferenceConfig.featureEngineeringConfig.scalingConfig
 
-      val scaledData = new Scaler(oneHotEncodedPayload.data)
-        .setFeaturesCol(_inferenceConfig.inferenceDataConfig.featuresCol)
-        .setScalerType(scalerConfig.scalerType)
-        .setScalerMin(scalerConfig.scalerMin)
-        .setScalerMax(scalerConfig.scalerMax)
-        .setStandardScalerMeanMode(scalerConfig.standardScalerMeanFlag)
-        .setStandardScalerStdDevMode(scalerConfig.standardScalerStdDevFlag)
-        .setPNorm(scalerConfig.pNorm)
-        .scaleFeatures()
+        val scaledData = new Scaler(oneHotEncodedPayload.data)
+          .setFeaturesCol(_inferenceConfig.inferenceDataConfig.featuresCol)
+          .setScalerType(scalerConfig.scalerType)
+          .setScalerMin(scalerConfig.scalerMin)
+          .setScalerMax(scalerConfig.scalerMax)
+          .setStandardScalerMeanMode(scalerConfig.standardScalerMeanFlag)
+          .setStandardScalerStdDevMode(scalerConfig.standardScalerStdDevFlag)
+          .setPNorm(scalerConfig.pNorm)
+          .scaleFeatures()
 
-      createInferencePayload(scaledData, oneHotEncodedPayload.modelingColumns, oneHotEncodedPayload.allColumns)
+        createInferencePayload(
+          scaledData,
+          oneHotEncodedPayload.modelingColumns,
+          oneHotEncodedPayload.allColumns
+        )
 
-    } else oneHotEncodedPayload
+      } else oneHotEncodedPayload
 
     // yield the Data and the Columns for the payload
 
@@ -207,7 +253,8 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
             val xgboostRegressor = XGBoostRegressionModel.load(modelLoadPath)
             xgboostRegressor.transform(data)
           case "classifier" =>
-            val xgboostClassifier = XGBoostClassificationModel.load(modelLoadPath)
+            val xgboostClassifier =
+              XGBoostClassificationModel.load(modelLoadPath)
             xgboostClassifier.transform(data)
         }
       case "RandomForest" =>
@@ -216,7 +263,8 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
             val rfRegressor = RandomForestRegressionModel.load(modelLoadPath)
             rfRegressor.transform(data)
           case "classifier" =>
-            val rfClassifier = RandomForestClassificationModel.load(modelLoadPath)
+            val rfClassifier =
+              RandomForestClassificationModel.load(modelLoadPath)
             rfClassifier.transform(data)
         }
       case "GBT" =>
@@ -234,11 +282,13 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
             val treesRegressor = DecisionTreeRegressionModel.load(modelLoadPath)
             treesRegressor.transform(data)
           case "classifier" =>
-            val treesClassifier = DecisionTreeClassificationModel.load(modelLoadPath)
+            val treesClassifier =
+              DecisionTreeClassificationModel.load(modelLoadPath)
             treesClassifier.transform(data)
         }
       case "MLPC" =>
-        val mlpcClassifier = MultilayerPerceptronClassificationModel.load(modelLoadPath)
+        val mlpcClassifier =
+          MultilayerPerceptronClassificationModel.load(modelLoadPath)
         mlpcClassifier.transform(data)
       case "LinearRegression" =>
         val linearRegressor = LinearRegressionModel.load(modelLoadPath)
@@ -259,7 +309,9 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     * class' MainInferenceConfig.
     * @param inferenceDataFrameSaveLocation The storage location path of the Dataframe.
     */
-  private def getAndSetConfigFromDataFrame(inferenceDataFrameSaveLocation: String): Unit = {
+  private def getAndSetConfigFromDataFrame(
+    inferenceDataFrameSaveLocation: String
+  ): Unit = {
 
     val inferenceDataFrame = spark.read.load(inferenceDataFrameSaveLocation)
 
@@ -291,7 +343,9 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
     * @param inferenceConfigDFPath Path on storage of where the Dataframe was written during the training run.
     * @return A Dataframe with predictions based on a pre-trained model.
     */
-  def runInferenceFromStoredDataFrame(inferenceConfigDFPath: String): DataFrame = {
+  def runInferenceFromStoredDataFrame(
+    inferenceConfigDFPath: String
+  ): DataFrame = {
 
     // Load the Dataframe containing the configuration and set the InferenceMainConfig
     getAndSetConfigFromDataFrame(inferenceConfigDFPath)
@@ -315,6 +369,6 @@ class InferencePipeline(df: DataFrame) extends AutomationConfig with AutomationT
 
   }
 
-
+  def getInferenceConfig: InferenceMainConfig = _inferenceConfig
 
 }
