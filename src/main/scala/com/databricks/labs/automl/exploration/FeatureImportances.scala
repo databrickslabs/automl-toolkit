@@ -43,6 +43,9 @@ class FeatureImportances(data: DataFrame,
   )
   private val modelType = modelTypeEvaluator(config.modelType)
 
+  val importanceCol = "Importance"
+  val featureCol = "Feature"
+
   private def fillNaValues(): DataFrame = {
 
     val (cleanedData, fillMap, modelDetectedType) = new DataSanitizer(data)
@@ -63,7 +66,7 @@ class FeatureImportances(data: DataFrame,
 
   private def createFeatureVector(df: DataFrame): FeatureImportanceOutput = {
 
-    val (pipelinedData, fieldsInVector, allFields) = new FeaturePipeline(df)
+    val (pipelinedData, vectorFields, totalFields) = new FeaturePipeline(df)
       .setLabelCol(config.labelCol)
       .setFeatureCol(config.featuresCol)
       .setDateTimeConversionType(config.dateTimeConversionType)
@@ -72,17 +75,29 @@ class FeatureImportances(data: DataFrame,
     new FeatureImportanceOutput {
       override def data: DataFrame = pipelinedData
 
-      override def fieldsInVector: Array[String] = fieldsInVector
+      override def fieldsInVector: Array[String] = vectorFields
 
-      override def allFields: Array[String] = allFields
+      override def allFields: Array[String] = totalFields
     }
 
+  }
+
+  private def cleanFieldNames(fields: Array[String]): Array[String] = {
+    fields.map { x =>
+      x.takeRight(3) match {
+        case "_si" => x.dropRight(3)
+        case "_oh" => x.dropRight(3)
+        case _     => x
+      }
+    }
   }
 
   private def getImportances(
     df: DataFrame,
     vectorFields: Array[String]
   ): Map[String, Double] = {
+
+    val adjustedFieldNames = cleanFieldNames(vectorFields)
 
     val result = modelFamily match {
       case RandomForest =>
@@ -143,14 +158,14 @@ class FeatureImportances(data: DataFrame,
               .asInstanceOf[RandomForestRegressionModel]
               .featureImportances
               .toArray
-            vectorFields.zip(importances).toMap[String, Double]
+            adjustedFieldNames.zip(importances).toMap[String, Double]
 
           case Classifier =>
             val importances = rfModel
               .asInstanceOf[RandomForestClassificationModel]
               .featureImportances
               .toArray
-            vectorFields.zip(importances).toMap[String, Double]
+            adjustedFieldNames.zip(importances).toMap[String, Double]
         }
       case XGBoost =>
         val xgModel = new XGBoostTuner(df, config.modelType)
@@ -208,44 +223,42 @@ class FeatureImportances(data: DataFrame,
             xgModel
               .asInstanceOf[XGBoostRegressionModel]
               .nativeBooster
-              .getScore(vectorFields, "gain")
+              .getFeatureScore(adjustedFieldNames)
+              .map { case (k, v) => k -> v.toDouble }
+              .toMap
           case Classifier =>
             xgModel
               .asInstanceOf[XGBoostClassificationModel]
               .nativeBooster
-              .getScore(vectorFields, "gain")
+              .getFeatureScore(adjustedFieldNames)
+              .map { case (k, v) => k -> v.toDouble }
+              .toMap
         }
     }
     result
   }
 
-  private[exploration] def getTopFeaturesCount(
-    featureDataFrame: DataFrame,
-    featureCount: Int
-  ): Array[String] = {
+  private def getTopFeaturesCount(featureDataFrame: DataFrame,
+                                  featureCount: Int): Array[String] = {
     featureDataFrame
-      .sort(col("Importances").desc)
+      .sort(col(importanceCol).desc)
       .limit(featureCount)
       .collect()
       .map(x => x(0).toString)
   }
 
-  private[exploration] def getTopFeaturesValue(
-    featureDataFrame: DataFrame,
-    importanceValue: Double
-  ): Array[String] = {
+  private def getTopFeaturesValue(featureDataFrame: DataFrame,
+                                  importanceValue: Double): Array[String] = {
     featureDataFrame
-      .filter(col("Importance") >= importanceValue)
-      .sort(col("Importance").desc)
+      .filter(col(importanceCol) >= importanceValue)
+      .sort(col(importanceCol).desc)
       .collect()
       .map(x => x(0).toString)
   }
 
-  private[exploration] def getAllImportances(
-    featureDataFrame: DataFrame
-  ): Array[String] = {
+  private def getAllImportances(featureDataFrame: DataFrame): Array[String] = {
     featureDataFrame
-      .sort(col("Importances").desc)
+      .sort(col(importanceCol).desc)
       .collect()
       .map(x => x(0).toString)
   }
@@ -259,15 +272,24 @@ class FeatureImportances(data: DataFrame,
     import spark.implicits._
 
     val cleanedData = fillNaValues()
+
     val vectorOutput = createFeatureVector(cleanedData)
     val importances =
       getImportances(vectorOutput.data, vectorOutput.fieldsInVector)
 
     val importancesDF = importances.toSeq
-      .toDF("Feature", "Importance")
-      .orderBy(col("Importance").desc)
-      .withColumn("Importance", col("Importance") * 100.0)
-      .withColumn("Feature", split(col("Feature"), "_si$")(0))
+      .toDF(featureCol, importanceCol)
+      .orderBy(col(importanceCol).desc)
+
+    val importancesDFOutput = modelFamily match {
+      case XGBoost =>
+        importancesDF
+          .withColumn(featureCol, split(col(featureCol), "_si$")(0))
+      case _ =>
+        importancesDF
+          .withColumn(importanceCol, col(importanceCol) * 100.0)
+          .withColumn(featureCol, split(col(featureCol), "_si$")(0))
+    }
 
     val topFieldArray = cutOff match {
       case Count     => getTopFeaturesCount(importancesDF, cutoffValue.toInt)
@@ -276,7 +298,7 @@ class FeatureImportances(data: DataFrame,
     }
 
     new FeatureImportanceReturn(
-      importances = importancesDF,
+      importances = importancesDFOutput,
       topFields = topFieldArray
     ) {
       override def data: DataFrame = vectorOutput.data

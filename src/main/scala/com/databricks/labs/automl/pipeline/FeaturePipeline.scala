@@ -104,7 +104,7 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false)
     val fieldsToInclude = if (!isInferenceRun) {
       assembledColumns ++ Array(_featureCol, _labelCol)
     } else {
-      assembledColumns ++ Array(_featureCol)
+      assembledColumns ++ Array(_featureCol) ++ ignoreList
     }
 
     //DEBUG
