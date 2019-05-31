@@ -29,7 +29,7 @@ class InferencePipeline(df: DataFrame)
     *   - Fill NA with the values that were used during the training run for each column
     * @return The courier object InferencePayload[<DataFrame>, <ColumnsForFeatureVector>, <AllColumns>]
     */
-  def dataPreparation(): InferencePayload = {
+  private def dataPreparation(): InferencePayload = {
 
     // Filter out any non-used fields that may be included in future data sets that weren't part of model training
 //    TODO - Have to remove this temporarily
@@ -73,7 +73,9 @@ class InferencePipeline(df: DataFrame)
     *                - The Full List of Columns (including ignored columns used for post-inference joining, etc.)
     * @return a new InferencePayload object (with the DataFrame now including a feature vector)
     */
-  def createFeatureVector(payload: InferencePayload): InferencePayload = {
+  private def createFeatureVector(
+    payload: InferencePayload
+  ): InferencePayload = {
 
     val vectorAssembler = new VectorAssembler()
       .setInputCols(payload.modelingColumns)
@@ -97,7 +99,9 @@ class InferencePipeline(df: DataFrame)
     * @return a new InferencePayload object (the DataFrame, with and updated feature vector, and the field listings
     *         now having any previous  StringIndexed fields converted to OneHotEncoded fields.)
     */
-  def oneHotEncodingTransform(payload: InferencePayload): InferencePayload = {
+  private def oneHotEncodingTransform(
+    payload: InferencePayload
+  ): InferencePayload = {
 
     val featurePipeline =
       new FeaturePipeline(payload.data, isInferenceRun = true)
@@ -122,7 +126,9 @@ class InferencePipeline(df: DataFrame)
     * @return new InferencePayload object with all actions applied to the Dataframe and associated field listings
     *         that were originally performed in model training.
     */
-  def executeFeatureEngineering(payload: InferencePayload): InferencePayload = {
+  private def executeFeatureEngineering(
+    payload: InferencePayload
+  ): InferencePayload = {
 
     // Variance Filtering
     val variancePayload =
@@ -232,7 +238,7 @@ class InferencePipeline(df: DataFrame)
     * @param data The Dataframe from feature engineering output.
     * @return A Dataframe with a prediction and/or probability column applied.
     */
-  def loadModelAndInfer(data: DataFrame): DataFrame = {
+  private def loadModelAndInfer(data: DataFrame): DataFrame = {
 
     val modelFamily = _inferenceConfig.inferenceModelConfig.modelFamily
     val modelType = _inferenceConfig.inferenceModelConfig.modelType
@@ -303,7 +309,7 @@ class InferencePipeline(df: DataFrame)
     * class' MainInferenceConfig.
     * @param inferenceDataFrameSaveLocation The storage location path of the Dataframe.
     */
-  def getAndSetConfigFromDataFrame(
+  private def getAndSetConfigFromDataFrame(
     inferenceDataFrameSaveLocation: String
   ): Unit = {
 
@@ -319,7 +325,7 @@ class InferencePipeline(df: DataFrame)
     * Main private method for executing an inference run.
     * @return A Dataframe with an applied model prediction.
     */
-  def inferencePipeline(): DataFrame = {
+  private def inferencePipeline(): DataFrame = {
 
     // Run through the Data Preparation steps as a prelude to Feature Engineering
     val prep = dataPreparation()
