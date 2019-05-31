@@ -21,10 +21,29 @@ import org.apache.spark.sql.functions._
 
 /**
   *
-  * @param data
-  * @param config
-  * @param cutoffType
-  * @param cutoffValue
+  * @param data DataFrame: A data to determine which fields are most important when used to predict a label column.
+  * @param config FeatureImportanceConfig: A configuration object for the Feature Importance run.
+  * @param cutoffType String: The type of cutoff to use, either: 'count', 'none', or 'value' <br>
+  *                     @note Count => Return the top n most important fields maxing the naming of the original data,
+  *                           in descending order, are returned.<br>
+  *                           None => A sorted list of columns, in descending order of importance, are returned.<br>
+  *                           Value => All values above the thresholded value set in cutoffValue are returned
+  *                           in descending order.
+  * @param cutoffValue Double: Linked to cutoffType, providing a threshold value for how many fields to return.
+  *                    @note for cutoffType 'None', this value can be set to 0.0
+  * @example ```
+  *
+  *          val genericMapOverrides = Map("labelCol" -> "label", "tunerKFold" -> 2, "tunerTrainSplitMethod" ->
+  *          "stratified", "tunerNumberOfGenerations" -> 4, "tunerNumberOfMutationsPerGeneration" -> 6,
+  *          "tunerInitialGenerationPermutationCount" -> 25,
+  *           "fieldsToIgnoreInVector" -> Array("final_weight"),"tunerInitialGenerationMode" -> "permutations")
+  *
+  *           val xgbConfig = ConfigurationGenerator.generateConfigFromMap("XGBoost", "classifier", genericMapOverrides)
+  *
+  *           val featConfig = ConfigurationGenerator.generateFeatureImportanceConfig(xgbConfig)
+  *
+  *           val importances = new FeatureImportances(data, featConfig, "count", 5.0).generateFeatureImportances()
+  *          ```
   */
 class FeatureImportances(data: DataFrame,
                          config: FeatureImportanceConfig,
@@ -150,6 +169,11 @@ class FeatureImportances(data: DataFrame,
           .setContinuousEvolutionRollingImporvementCount(
             config.continuousEvolutionRollingImprovementCount
           )
+          .setDataReductionFactor(config.dataReductionFactor)
+          .setFirstGenMode(config.firstGenMode)
+          .setFirstGenPermutations(config.firstGenPermutations)
+          .setFirstGenIndexMixingMode(config.firstGenIndexMixingMode)
+          .setFirstGenArraySeed(config.firstGenArraySeed)
           .evolveBest()
           .model
         modelType match {
@@ -216,6 +240,11 @@ class FeatureImportances(data: DataFrame,
           .setContinuousEvolutionRollingImporvementCount(
             config.continuousEvolutionRollingImprovementCount
           )
+          .setDataReductionFactor(config.dataReductionFactor)
+          .setFirstGenMode(config.firstGenMode)
+          .setFirstGenPermutations(config.firstGenPermutations)
+          .setFirstGenIndexMixingMode(config.firstGenIndexMixingMode)
+          .setFirstGenArraySeed(config.firstGenArraySeed)
           .evolveBest()
           .model
         modelType match {
@@ -264,8 +293,9 @@ class FeatureImportances(data: DataFrame,
   }
 
   /**
-    *
-    * @return
+    * Main method for retrieving Feature Importances
+    * @return FeatureImportanceReturn: DataFrame of Importances, sorted top fields in an Array[String], the raw data
+    *         with vector applied, the fields included in the vector as Array[String], and all fields as Array[String]
     */
   def generateFeatureImportances(): FeatureImportanceReturn = {
 

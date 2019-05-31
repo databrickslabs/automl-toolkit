@@ -1552,6 +1552,13 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         config.tunerConfig.tunerContinuousEvolutionGeneticMixing,
       continuousEvolutionRollingImprovementCount =
         config.tunerConfig.tunerContinuousEvolutionRollingImprovingCount,
+      dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor,
+      firstGenMode = config.tunerConfig.tunerInitialGenerationMode,
+      firstGenPermutations =
+        config.tunerConfig.tunerInitialGenerationPermutationCount,
+      firstGenIndexMixingMode =
+        config.tunerConfig.tunerInitialGenerationIndexMixingMode,
+      firstGenArraySeed = config.tunerConfig.tunerInitialGenerationArraySeed,
       fieldsToIgnore = config.genericConfig.fieldsToIgnoreInVector,
       numericFillStat = config.featureEngineeringConfig.numericFillStat,
       characterFillStat = config.featureEngineeringConfig.characterFillStat,

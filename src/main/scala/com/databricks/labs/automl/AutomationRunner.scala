@@ -1543,6 +1543,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
+  @deprecated(
+    "This method will be removed and replaced with the standalone version in " +
+      "com.databricks.labs.automl.exploration.FeatureImportances in a future release."
+  )
   def exploreFeatureImportances(): FeatureImportanceReturn = {
 
     val payload = prepData()
@@ -1575,6 +1579,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     )
   }
 
+  @deprecated(
+    "This method will be removed and replaced with the standalone version in " +
+      "com.databricks.labs.automl.exploration.FeatureImportances in a future release."
+  )
   def runWithFeatureCulling(): FeatureImportanceOutput = {
 
     // Get the Feature Importances
@@ -1612,6 +1620,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
+  @deprecated(
+    "This method will be removed and replaced with the standalone version in " +
+      "com.databricks.labs.automl.exploration.FeatureImportances in a future release."
+  )
   def runFeatureCullingWithPrediction(): FeatureImportancePredictionOutput = {
 
     val featureImportanceResults = exploreFeatureImportances()
