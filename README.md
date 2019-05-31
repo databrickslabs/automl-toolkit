@@ -112,143 +112,161 @@ giving a count of their pairwise combinations.
 
 From this Dataframe, an efficient means of visualizing the true and false rates of classification can be done.
 
+### Working with the Configuration
+There are two main types of configurations, an `InstanceConfig` and a `MainConfig` both of which are 
+managed by a `ConfigurationGenerator`. The instance config 
+is just what it sounds like, it's an instance of a configuration but is not sufficient for a runner
+but rather it is used to create the MainConfig which will then be passed into the runner.
+
+```scala
+// Generate an instance config which will create an instance config with appropriate defaults
+// for the modelingType and Family
+val conf = ConfigurationGenerator.generateDefaultConfig(modelingType, "classifier")
+
+// Now that we have an instance config we can override all the defaults as necessary
+conf.genericConfig.scoringMetric = "areaUnderROC"
+conf.switchConfig.autoStoppingFlag = true
+conf.tunerConfig.tunerAutoStoppingScore = 0.9
+// etc
+
+// Now we have a config the way we want to use it so we create the MainConfig that is to be used in the model
+val mainConfig = ConfigurationGenerator.generateMainConfig(conf)
+```
+
 #### Example usage of the full AutomationRunner API (Basic)
 
 ```scala
-import com.databricks.spark.automatedml.AutomationRunner
+import com.databricks.labs.automl.AutomationRunner
 
 // Read data from a pre-defined Delta Table that has the labeled data in a column named 'label'
 val myData: DataFrame = spark.table("my_db.my_data")
 
-val (fullReport, generationalReport, generationalScoreDF, generationalReportDF) = new AutomationRunner(myData).run()
+val conf = ConfigurationGenerator.generateDefaultConfig(modelingType, "classifier")
+val modelConfig = ConfigurationGenerator.generateMainConfig(conf)
 
+val runner = new AutomationRunner(myData)
+  .setMainConfig(modelConfig)
+  .runFeatureCullingWithPrediction()
 ```
-This will extract the default configuration set in Providentia, run through feature engineering tasks, data cleanup, categorical data conversion, vectorization, modeling, and scoring.  However, in most cases, overriding these default values is desirable.  Overriding is done through setters, like other aspects of SparkMllib.
-
-#### Example overriding of defaults
-
-```scala
-import com.databricks.spark.automatedml.AutomationRunner
-
-// Read data from a pre-defined Delta Table that has the labeled data in a column named 'label'
-val myData: DataFrame = spark.table("my_db.my_other_data")
-
-val automationConf = new AutomationRunner(myData)
-  .setModelingFamily("RandomForest")
-  .setLabelCol("predicted_value")
-  .setParallelism(6)
-  .setKFold(5)
-  .setTrainPortion(0.7)
-  .setNumberOfGenerations(12)
-  .setNumberOfParentsToRetain(2)
-  .setGeneticMixing(0.6)
-  .pearsonFilterOff()
-  .scalingOn()
-  .oneHotEncodingOn()
-  .mlFlowLoggingOff()
-  .setFeatureImportanceCutoffType("count")
-  .setFeatureImportanceCutoffValue(0.2)
-  .autoStoppingOn()
-  .setAutoStoppingScore(0.94)
-  .setTrainSplitMethod("chronological")
-  .setTrainSplitChronologicalColumn("date_timestamp")
-  .setFieldsToIgnoreInVector(Array("time_event_occur", "user_id"))
-  .setTrainSplitChronologicalRandomPercentage(8)
-  
-val (fullReport, generationalReport, generationalScoreDF, generationalReportDF) = new AutomationRunner(myData).run()
-```
+This will extract the default configuration set in Providentia, run through feature engineering tasks, data cleanup, categorical data conversion, vectorization, modeling, and scoring.
 
 The usage above overrides a number of the defaults (discussed in detail below).
 
 #### Full Configuration for the AutomationRunner() class 
 ```scala
-case class MainConfig(
-                       modelFamily: String,
-                       labelCol: String,
-                       featuresCol: String,
-                       naFillFlag: Boolean,
-                       varianceFilterFlag: Boolean,
-                       outlierFilterFlag: Boolean,
-                       pearsonFilteringFlag: Boolean,
-                       covarianceFilteringFlag: Boolean,
-                       oneHotEncodeFlag: Boolean,
-                       scalingFlag: Boolean,
-                       autoStoppingFlag: Boolean,
-                       autoStoppingScore: Double,
-                       featureImportanceCutoffType: String,
-                       featureImportanceCutoffValue: Double,
-                       dateTimeConversionType: String,
-                       fieldsToIgnoreInVector: Array[String],
-                       numericBoundaries: Map[String, (Double, Double)],
-                       stringBoundaries: Map[String, List[String]],
-                       scoringMetric: String,
-                       scoringOptimizationStrategy: String,
-                       fillConfig: FillConfig(
-                                              numericFillStat: String,
-                                              characterFillStat: String,
-                                              modelSelectionDistinctThreshold: Int
-                                             ),
-                       outlierConfig: OutlierConfig(
-                                                    filterBounds: String,
-                                                    lowerFilterNTile: Double,
-                                                    upperFilterNTile: Double,
-                                                    filterPrecision: Double,
-                                                    continuousDataThreshold: Int,
-                                                    fieldsToIgnore: Array[String]
-                                                   ),
-                       pearsonConfig: PearsonConfig(
-                                                    filterStatistic: String,
-                                                    filterDirection: String,
-                                                    filterManualValue: Double,
-                                                    filterMode: String,
-                                                    autoFilterNTile: Double
-                                                   ),
-                       covarianceConfig: CovarianceConfig(
-                                                          correlationCutoffLow: Double,
-                                                          correlationCutoffHigh: Double
-                                                         ),
-                       scalingConfig: ScalingConfig(
-                                                    scalerType: String,
-                                                    scalerMin: Double,
-                                                    scalerMax: Double,
-                                                    standardScalerMeanFlag: Boolean,
-                                                    standardScalerStdDevFlag: Boolean,
-                                                    pNorm: Double
-                                                   ),
-                       geneticConfig: GeneticConfig(
-                                                    parallelism: Int,
-                                                    kFold: Int,
-                                                    trainPortion: Double,
-                                                    trainSplitMethod: String,
-                                                    trainSplitChronologicalColumn: String,
-                                                    trainSplitChronologicalRandomPercentage: Double,
-                                                    seed: Long,
-                                                    firstGenerationGenePool: Int,
-                                                    numberOfGenerations: Int,
-                                                    numberOfParentsToRetain: Int,
-                                                    numberOfMutationsPerGeneration: Int,
-                                                    geneticMixing: Double,
-                                                    generationalMutationStrategy: String,
-                                                    fixedMutationValue: Int,
-                                                    mutationMagnitudeMode: String,
-                                                    evolutionStrategy: String,
-                                                    continuousEvolutionMaxIterations: Int,
-                                                    continuousEvolutionStoppingScore: Double,
-                                                    continuousEvolutionParallelism: Int,
-                                                    continuousEvolutionMutationAggressiveness: Int,
-                                                    continuousEvolutionGeneticMixing: Double,
-                                                    continuousEvolutionRollingImprovementCount: Int,
-                                                    modelSeed = Map[String, Any]
-                                                   ),
-                       mlFlowLoggingFlag: Boolean,
-                       mlFlowLogArtifactsFlag: Boolean,
-                       mlFlowConfig: MLFlowConfig(
-                                                  mlFlowTrackingURI: String,
-                                                  mlFlowExperimentName: String,
-                                                  mlFlowAPIToken: String,
-                                                  mlFlowModelSaveDirectory: String
-                                                 )
-                     )
+case class GenericConfig(
+                          var labelCol: String,
+                          var featuresCol: String,
+                          var dateTimeConversionType: String,
+                          var fieldsToIgnoreInVector: Array[String],
+                          var scoringMetric: String,
+                          var scoringOptimizationStrategy: String
+                        )
+
+case class FeatureEngineeringConfig(
+                                     var numericFillStat: String,
+                                     var characterFillStat: String,
+                                     var modelSelectionDistinctThreshold: Int,
+                                     var outlierFilterBounds: String,
+                                     var outlierLowerFilterNTile: Double,
+                                     var outlierUpperFilterNTile: Double,
+                                     var outlierFilterPrecision: Double,
+                                     var outlierContinuousDataThreshold: Int,
+                                     var outlierFieldsToIgnore: Array[String],
+                                     var pearsonFilterStatistic: String,
+                                     var pearsonFilterDirection: String,
+                                     var pearsonFilterManualValue: Double,
+                                     var pearsonFilterMode: String,
+                                     var pearsonAutoFilterNTile: Double,
+                                     var covarianceCorrelationCutoffLow: Double,
+                                     var covarianceCorrelationCutoffHigh: Double,
+                                     var scalingType: String,
+                                     var scalingMin: Double,
+                                     var scalingMax: Double,
+                                     var scalingStandardMeanFlag: Boolean,
+                                     var scalingStdDevFlag: Boolean,
+                                     var scalingPNorm: Double,
+                                     var featureImportanceCutoffType: String,
+                                     var featureImportanceCutoffValue: Double,
+                                     var dataReductionFactor: Double
+                                   )
+
+case class SwitchConfig(
+                         var naFillFlag: Boolean,
+                         var varianceFilterFlag: Boolean,
+                         var outlierFilterFlag: Boolean,
+                         var pearsonFilterFlag: Boolean,
+                         var covarianceFilterFlag: Boolean,
+                         var oneHotEncodeFlag: Boolean,
+                         var scalingFlag: Boolean,
+                         var dataPrepCachingFlag: Boolean,
+                         var autoStoppingFlag: Boolean
+                       )
+
+
+case class TunerConfig(
+                        var tunerAutoStoppingScore: Double,
+                        var tunerParallelism: Int,
+                        var tunerKFold: Int,
+                        var tunerTrainPortion: Double,
+                        var tunerTrainSplitMethod: String,
+                        var tunerTrainSplitChronologicalColumn: String,
+                        var tunerTrainSplitChronologicalRandomPercentage: Double,
+                        var tunerSeed: Long,
+                        var tunerFirstGenerationGenePool: Int,
+                        var tunerNumberOfGenerations: Int,
+                        var tunerNumberOfParentsToRetain: Int,
+                        var tunerNumberOfMutationsPerGeneration: Int,
+                        var tunerGeneticMixing: Double,
+                        var tunerGenerationalMutationStrategy: String,
+                        var tunerFixedMutationValue: Int,
+                        var tunerMutationMagnitudeMode: String,
+                        var tunerEvolutionStrategy: String,
+                        var tunerContinuousEvolutionMaxIterations: Int,
+                        var tunerContinuousEvolutionStoppingScore: Double,
+                        var tunerContinuousEvolutionParallelism: Int,
+                        var tunerContinuousEvolutionMutationAggressiveness: Int,
+                        var tunerContinuousEvolutionGeneticMixing: Double,
+                        var tunerContinuousEvolutionRollingImprovingCount: Int,
+                        var tunerModelSeed: Map[String, Any],
+                        var tunerHyperSpaceInference: Boolean,
+                        var tunerHyperSpaceInferenceCount: Int,
+                        var tunerHyperSpaceModelCount: Int,
+                        var tunerHyperSpaceModelType: String,
+                        var tunerInitialGenerationMode: String,
+                        var tunerInitialGenerationPermutationCount: Int,
+                        var tunerInitialGenerationIndexMixingMode: String,
+                        var tunerInitialGenerationArraySeed: Long
+                      )
+
+case class AlgorithmConfig(
+                            var stringBoundaries: Map[String, List[String]],
+                            var numericBoundaries: Map[String, (Double, Double)]
+                          )
+
+case class LoggingConfig(
+                          var mlFlowLoggingFlag: Boolean,
+                          var mlFlowLogArtifactsFlag: Boolean,
+                          var mlFlowTrackingURI: String,
+                          var mlFlowExperimentName: String,
+                          var mlFlowAPIToken: String,
+                          var mlFlowModelSaveDirectory: String,
+                          var mlFlowLoggingMode: String,
+                          var mlFlowBestSuffix: String,
+                          var inferenceConfigSaveLocation: String
+                        )
+
+
+case class InstanceConfig(
+                           var modelFamily: String,
+                           var predictionType: String,
+                           var genericConfig: GenericConfig,
+                           var switchConfig: SwitchConfig,
+                           var featureEngineeringConfig: FeatureEngineeringConfig,
+                           var algorithmConfig: AlgorithmConfig,
+                           var tunerConfig: TunerConfig,
+                           var loggingConfig: LoggingConfig
+                         )
 ```
 Access to override each of the defaults that are provided is done through getters and setters that are shown below 
 ```text
@@ -259,210 +277,147 @@ the below example is simply used to expose all available options and would not b
 ```
 
 #### Full Main Config Defaults
+Below are all the settings that can be overridden using the instance config. For example Let's say I want to turn 
+on outlier filtering, override a few defaults for outlier filtering and change the scoring metric
+since I have an unbalanced class and want to use AUROC instead of the default. I also want to 
+change the parallelism to 24.
 
 ```scala
-val defaultSettings = MainConfig(
-                          modelFamily = "RandomForest",
-                          labelCol = "label",
-                          featuresCol = "features",
-                          naFillFlag = true,
-                          varianceFilterFlag = true,
-                          outlierFilterFlag = false,
-                          pearsonFilteringFlag = false,
-                          covarianceFilteringFlag = false,
-                          oneHotEncodeFlag = false,
-                          scalingFlag = false,
-                          autoStoppingFlag = true,
-                          autoStoppingScore = 0.95,
-                          featureImportanceCutoffType = "count",
-                          featureImportanceCutoffValue = 15.0,
-                          dateTimeConversionType = "split",
-                          fieldsToIgnoreInVector = Array(""),
-                          numericBoundaries = Map(
-                                                  "numTrees" -> Tuple2(50.0, 1000.0),
-                                                  "maxBins" -> Tuple2(10.0, 100.0),
-                                                  "maxDepth" -> Tuple2(2.0, 20.0),
-                                                  "minInfoGain" -> Tuple2(0.0, 1.0),
-                                                  "subSamplingRate" -> Tuple2(0.5, 1.0)
-                                                ),
-                          stringBoundaries = Map(
-                                                 "impurity" -> List("gini", "entropy"),
-                                                 "featureSubsetStrategy" -> List("auto")
-                                               ),
-                          scoringMetric = "f1",
-                          scoringOptimizationStrategy = "maximize",
-                          fillConfig = FillConfig(
-                                           numericFillStat = "mean",
-                                           characterFillStat = "max",
-                                           modelSelectionDistinctThreshold = 10
-                                         ),
-                          outlierConfig = OutlierConfig(
-                                              filterBounds = "both",
-                                              lowerFilterNTile = 0.02,
-                                              upperFilterNTile = 0.98,
-                                              filterPrecision = 0.01,
-                                              continuousDataThreshold = 50,
-                                              fieldsToIgnore = Array("")
-                                            ),
-                          pearsonConfig = PearsonConfig(
-                                              filterStatistic = "pearsonStat",
-                                              filterDirection = "greater",
-                                              filterManualValue = 0.0,
-                                              filterMode = "auto",
-                                              autoFilterNTile = 0.75
-                                            ),
-                          covarianceConfig = CovarianceConfig(
-                                                 correlationCutoffLow = -0.8,
-                                                 correlationCutoffHigh = 0.8
-                                               ),
-                          scalingConfig = ScalingConfig(
-                                              scalerType = "minMax",
-                                              scalerMin = 0.0,
-                                              scalerMax = 1.0,
-                                              standardScalerMeanFlag = false,
-                                              standardScalerStdDevFlag = true,
-                                              pNorm = 2.0
-                                            ),
-                          geneticConfig = GeneticConfig(
-                                              parallelism = 20,
-                                              kFold = 5,
-                                              trainPortion = 0.8,
-                                              trainSplitMethod = "random",
-                                              trainSplitChronologicalColumn = "datetime",
-                                              trainSplitChronologicalRandomPercentage = 0.0,
-                                              seed = 42L,
-                                              firstGenerationGenePool = 20,
-                                              numberOfGenerations = 10,
-                                              numberOfParentsToRetain = 3,
-                                              numberOfMutationsPerGeneration = 10,
-                                              geneticMixing = 0.7,
-                                              generationalMutationStrategy = "linear",
-                                              fixedMutationValue = 1,
-                                              mutationMagnitudeMode = "fixed",
-                                              evolutionStrategy = "batch",
-                                              continuousEvolutionMaxIterations = 200,
-                                              continuousEvolutionStoppingScore = 1.0,
-                                              continuousEvolutionParallelism = 4,
-                                              continuousEvolutionMutationAggressiveness = 3,
-                                              continuousEvolutionGeneticMixing = 0.7,
-                                              continuousEvolutionRollingImprovementCount = 20,
-                                              modelSeed = Map.empty
-                                            ),
-                          mlFlowLoggingFlag = false,
-                          mlFlowLogArtifactsFlag = false,
-                          mlFlowConfig = MLFlowConfig(
-                                             mlFlowTrackingURI = "hosted",
-                                             mlFlowExperimentName = "default",
-                                             mlFlowAPIToken = "default",
-                                             mlFlowModelSaveDirectory = "s3://mlflow/experiments/"
-                                           )
-                        )
-```
+// Generate an instance Config
+import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+val conf = ConfigurationGenerator.generateDefaultConfig("RandomForest", "classifier")
 
+// Reference the info below to override the values
+conf.genericConfig.labelCol = "TARGET"
+conf.switchConfig.outlierFilterFlag = true
+conf.featureEngineeringConfig.outlierFilterPrecision = 0.05
+conf.featureEngineeringConfig.outlierLowerFilterNTile = 0.05
+conf.featureEngineeringConfig.outlierUpperFilterNTile = 0.95
 
-##### Setters
+// Generate the MainConfig from the instance Config
+val modelMainConfig = ConfigurationGenerator.generateMainConfig(conf)
+
+// Now Start the Runner
+val runner = new AutomationRunner(train)
+    .setMainConfig(modelMainConfig)
+    .run()
+``` 
 
 ```scala
+  private[config] def genericConfig(
+    predictionType: PredictionType
+  ): GenericConfig = {
+    val labelCol = "label"
+    val featuresCol = "features"
+    val dateTimeConversionType = "split"
+    val fieldsToIgnoreInVector = Array.empty[String]
+    val scoringMetric = familyScoringCheck(predictionType)
+    val scoringOptimizationStrategy = familyScoringDirection(predictionType)
+  }
 
-import com.databricks.spark.automatedml.AutomationRunner
+  private[config] def switchConfig(family: FamilyValidator): SwitchConfig = {
+    val naFillFlag = true
+    val varianceFilterFlag = true
+    val outlierFilterFlag = false
+    val pearsonFilterFlag = false
+    val covarianceFilterFlag = false
+    val oheFlag = oneHotEncodeFlag(family) // Depends on Model Family
+    val scaleFlag = scalingFlag(family) // Depends on Model Family
+    val dataPrepCachingFlag = true
+    val autoStoppingFlag = false
+  }
 
-// Read data from a pre-defined Delta Table that has the labeled data in a column named 'label'
-val myData: DataFrame = spark.table("my_db.my_sample_data")
+  private[config] def algorithmConfig(
+    modelType: ModelSelector
+  ): AlgorithmConfig =
+    AlgorithmConfig(
+      stringBoundariesAssignment(modelType),
+      numericBoundariesAssignment(modelType)
+    )
 
-val fullConfig = new AutomationRunner(myData)
-    .setModelingFamily("MLPC")
-    .setLabelCol("ground_truth")
-    .setFeaturesCol("feature_vector")
-    .naFillOff()                        // alternative: .naFillOn()
-    .varianceFilterOn()                 // alternative: .varianceFilterOff()
-    .outlierFilterOff()                 // alternative: .outlierFilterOn()
-    .pearsonFilterOff()                 // alternative: .pearsonFilterOn()
-    .covarianceFilterOn()               // alternative: .covarianceFilterOff()
-    .oneHotEncodingOn()                 // alternative: .oneHotEncodingOff()
-    .scalingOn()                        // alternative: .scalingOff()
-    .setStandardScalerMeanFlagOff()     // alternative: .setStandardScalerMeanFlagOn()
-    .setStandardScalerStdDevFlagOff()   // alternative: .setStandardScalerMeanFlagOn()  
-    .mlFlowLoggingOn()                  // alternative: .mlFlowLoggingOff()  
-    .mlFlowLogArtifactsOn()             // alternative: .mlFlowLogArtifactsOff()
-    .autoStoppingOff()                  // alternative: .autoStoppingOn()
-    .setNumericBoundaries(Map(
-                              "layers" -> Tuple2(4.0, 20.0),
-                              "maxIter" -> Tuple2(10.0, 200.0),
-                              "stepSize" -> Tuple2(0.01, 0.5),
-                              "tolerance" -> Tuple2(1E-9, 1E-6),
-                              "hiddenLayerSizeAdjust" -> Tuple2(5.0, 50.0)
-                            ))
-    .setStringBoundaries(Map(
-                             "solver" -> List("l-bfgs")
-                             ))
-    .setNumericFillStat("median")
-    .setCharacterFillStat("min")
-    .setDateTimeConversionType("unix")
-    .setFieldsToIgnoreInVector(Array("user_id", "event_time", "system_id"))
-    .setModelSelectionDistinctThreshold(15) 
-    .setFilterBounds("upper")
-    .setLowerFilterNTile(0.01)
-    .setUpperFilterNTile(0.99)
-    .setFilterPrecision(0.9)
-    .setContinuousDataThreshold(100)
-    .setFieldsToIgnore(Array("user_id", "event_time", "system_id"))
-    .setPearsonFilterStatistic("pvalue")
-    .setPearsonFilterDirection("greater")
-    .setPearsonFilterManualValue(0.5)
-    .setPearsonFilterMode("auto")
-    .setPearsonAutoFilterNTile(0.8)
-    .setCorrelationCutoffLow(-0.95)
-    .setCorrelationCutoffHigh(0.95)
-    .setScalerType("normalize")
-    .setScalerMin(0.0)                 
-    .setScalerMax(1.0)
-    .setPNorm(3)                        
-    .setParallelism(8)
-    .setKFold(4)
-    .setTrainPortion(0.85)
-    .setTrainSplitMethod("chronological")
-    .setTrainSplitChronologicalColumn("event_date")
-    .setTrainSplitChronologicalRandomPercentage(5.0)
-    .setSeed(12345L)
-    .setFirstGenerationGenePool(30)
-    .setNumberOfGenerations(8)
-    .setNumberOfParentsToRetain(2)
-    .setNumberOfMutationsPerGeneration(10)
-    .setGeneticMixing(0.5)
-    .setGenerationalMutationStrategy("fixed")
-    .setMlFlowTrackingURI("https://mydatabrickscluster.cloud.databricks.com")
-    .setMlFlowExperimentName("testing")
-    .setMlFlowAPIToken(dbutils.notebook.getContext().apiToken.get)
-    .setMlFlowModelSaveDirectory("/ml/mymodels/testModel")
-    .setAutoStoppingScore(0.88)
-    .setFeatureImportanceCutoffType("count")
-    .setFeatureImportanceCutoffValue(20.0)
-    .setEvolutionStrategy("continuous")
-    .setContinuousEvolutionMaxIterations(300)
-    .setContinuousEvolutionStoppingScore(0.88)
-    .setContinuousEvolutionParallelism(6)
-    .setContinuousEvolutionMutationAggressiveness(3)
-    .setContinuousEvolutionGeneticMixing(0.4)
-    .setContinuousEvolutionRollingImprovementCount(15)
-    .setModelSeedMap(Map("layers" -> Array(5), 
-    "maxIter" -> 80, 
-    "stepSize" -> 0.05, 
-    "tolerance" -> 1E-8, 
-    "hiddenLayersSizeAdjust" -> 14))       // alternative: .setModelSeedString(<Paste Generic Model Return payload>)
+  private[config] def featureEngineeringConfig(): FeatureEngineeringConfig = {
+    val numericFillStat = "mean"
+    val characterFillStat = "max"
+    val modelSelectionDistinctThreshold = 50
+    val outlierFilterBounds = "both"
+    val outlierLowerFilterNTile = 0.02
+    val outlierUpperFilterNTile = 0.98
+    val outlierFilterPrecision = 0.01
+    val outlierContinuousDataThreshold = 50
+    val outlierFieldsToIgnore = Array.empty[String]
+    val pearsonFilterStatistic = "pearsonStat"
+    val pearsonFilterDirection = "greater"
+    val pearsonFilterManualValue = 0.0
+    val pearsonFilterMode = "auto"
+    val pearsonAutoFilterNTile = 0.75
+    val covarianceCorrelationCutoffLow = -0.99
+    val covarianceCorrelctionCutoffHigh = 0.99
+    val scalingType = "minMax"
+    val scalingMin = 0.0
+    val scalingMax = 1.0
+    val scalingStandardMeanFlag = false
+    val scalingStdDevFlag = true
+    val scalingPNorm = 2.0
+    val featureImportanceCutoffType = "count"
+    val featureImportanceCutoffValue = 15.0
+    val dataReductionFactor = 0.5
+  }
+
+  private[config] def tunerConfig(): TunerConfig = {
+    val tunerAutoStoppingScore = 0.99
+    val tunerParallelism = 20
+    val tunerKFold = 5
+    val tunerTrainPortion = 0.8
+    val tunerTrainSplitMethod = "random"
+    val tunerTrainSplitChronologicalColumn = ""
+    val tunerTrainSplitChronologicalRandomPercentage = 0.0
+    val tunerSeed = 42L
+    val tunerFirstGenerationGenePool = 20
+    val tunerNumberOfGenerations = 10
+    val tunerNumberOfParentsToRetain = 3
+    val tunerNumberOfMutationsPerGeneration = 10
+    val tunerGeneticMixing = 0.7
+    val tunerGenerationMutationStrategy = "linear"
+    val tunerFixedMutationValue = 1
+    val tunerMutationMagnitudeMode = "fixed"
+    val tunerEvolutionStrategy = "batch"
+    val tunerContinuousEvolutionMaxIterations = 200
+    val tunerContinuousEvolutionStoppingScore = 1.0
+    val tunerContinuousEvolutionParallelism = 4
+    val tunerContinuousEvolutionMutationAggressiveness = 3
+    val tunerContinuousEvolutionGeneticMixing = 0.7
+    val tunerContinuousEvolutionRollingImprovementCount = 20
+    val tunerModelSeed = Map.empty[String, Any]
+    val tunerHyperSpaceInference = true
+    val tunerHyperSpaceInferenceCount = 200000
+    val tunerHyperSpaceModelCount = 10
+    val tunerHyperSpaceModelType = "RandomForest"
+    val tunerInitialGenerationMode = "random"
+    val tunerInitialGenerationPermutationCount = 10
+    val tunerInitialGenerationIndexMixingMode = "linear"
+    val tunerInitialGenerationArraySeed = 42L
+  }
+
+  private[config] def loggingConfig(): LoggingConfig = {
+    val mlFlowLoggingFlag = true
+    val mlFlowLogArtifactsFlag = false
+    val mlFlowTrackingURI = "hosted"
+    val mlFlowExperimentName = "default"
+    val mlFlowAPIToken = "default"
+    val mlFlowModelSaveDirectory = "/mlflow/experiments/"
+    val mlFlowLoggingMode = "full"
+    val mlFlowBestSuffix = "_best"
+    val inferenceSaveLocation = "/inference/"
+  }
 ```
-##### Note
-```text
-There are public setters exposed to set the entire config 
-(i.e. defining a MainConfig case class object, which can then be used through the public setter 
-.setMainConfig(myMainConfig: MainConfig) )
-```
+
 > For MLFlow config, ensure to check the model save directory carefully. The example above will write to the dbfs root location.
 >> It is advised to ***specify a blob storage path directly***.
 
 If at any time the current configuration is needed to be exposed, each setter, as well as the overall main Config and 
 the individual module configs can be acquired by using the appropriate getter.  For example:
 ```scala
-import com.databricks.spark.automatedml.AutomationRunner
+import com.databricks.labs.automl.AutomationRunner
 
 val myData: DataFrame = spark.table("my_db.my_sample_data")
 
