@@ -15,10 +15,10 @@ trait ModelConfigGenerators extends SeedGenerator {
     * @tparam T The class type as derived through reflection
     * @return The List of all case class member names
     */
-  def getCaseClassNames[T: TypeTag]: List[String] = typeOf[T].members.sorted.collect {
-    case m: MethodSymbol if m.isCaseAccessor => m.name.toString
-  }
-
+  def getCaseClassNames[T: TypeTag]: List[String] =
+    typeOf[T].members.sorted.collect {
+      case m: MethodSymbol if m.isCaseAccessor => m.name.toString
+    }
 
   // RANDOM FOREST METHODS
   /**
@@ -29,8 +29,9 @@ trait ModelConfigGenerators extends SeedGenerator {
     *                                          permutation collection creation
     * @return Array of Random Forest configurations based on permutations of each value within the arrays supplied.
     */
-  def randomForestConfigGenerator(randomForestPermutationCollection: RandomForestPermutationCollection):
-  Array[RandomForestConfig] = {
+  def randomForestConfigGenerator(
+    randomForestPermutationCollection: RandomForestPermutationCollection
+  ): Array[RandomForestConfig] = {
 
     for {
       numTrees <- randomForestPermutationCollection.numTreesArray
@@ -40,8 +41,16 @@ trait ModelConfigGenerators extends SeedGenerator {
       minInfoGain <- randomForestPermutationCollection.minInfoGainArray
       subSamplingRate <- randomForestPermutationCollection.subSamplingRateArray
       featureSubsetStrategy <- randomForestPermutationCollection.featureSubsetStrategyArray
-    } yield RandomForestConfig(numTrees.toInt, impurity, maxBins.toInt, maxDepth.toInt, minInfoGain, subSamplingRate,
-      featureSubsetStrategy)
+    } yield
+      RandomForestConfig(
+        numTrees.toInt,
+        impurity,
+        maxBins.toInt,
+        maxDepth.toInt,
+        minInfoGain,
+        subSamplingRate,
+        featureSubsetStrategy
+      )
   }
 
   /**
@@ -49,20 +58,33 @@ trait ModelConfigGenerators extends SeedGenerator {
     * @param config Configuration value for the generation of permutation arrays
     * @return Arrays for all numeric parameters that will be generated for input into the permutation generator
     */
-  protected[tools] def randomForestNumericArrayGenerator(config: PermutationConfiguration):
-  RandomForestNumericArrays = {
+  protected[tools] def randomForestNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): RandomForestNumericArrays = {
 
     RandomForestNumericArrays(
-      numTreesArray = generateLinearIntSpace(extractContinuousBoundaries(config.numericBoundaries("numTrees")),
-        config.permutationTarget),
+      numTreesArray = generateLinearIntSpace(
+        extractContinuousBoundaries(config.numericBoundaries("numTrees")),
+        config.permutationTarget
+      ),
       maxBinsArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxBins")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxBins")),
+        config.permutationTarget
+      ),
       maxDepthArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxDepth")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxDepth")),
+        config.permutationTarget
+      ),
       minInfoGainArray = generateLogSpace(
-        extractContinuousBoundaries(config.numericBoundaries("minInfoGain")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("minInfoGain")),
+        config.permutationTarget
+      ),
       subSamplingRateArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("subSamplingRate")), config.permutationTarget)
+        extractContinuousBoundaries(
+          config.numericBoundaries("subSamplingRate")
+        ),
+        config.permutationTarget
+      )
     )
   }
 
@@ -75,13 +97,16 @@ trait ModelConfigGenerators extends SeedGenerator {
     *             of permutations that are generated to search the space effectively.
     * @return An Array of RandomForest Configurations to be used in generating model runs.
     */
-  def randomForestPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[RandomForestConfig] = {
+  def randomForestPermutationGenerator(
+    config: PermutationConfiguration,
+    countTarget: Int,
+    seed: Long = 42L
+  ): Array[RandomForestConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = randomForestNumericArrayGenerator(config)
 
-    val impurityOverride = if(config.modelType == "regressor") {
+    val impurityOverride = if (config.modelType == "regressor") {
       Array("variance")
     } else {
       config.stringBoundaries("impurity").toArray
@@ -94,10 +119,13 @@ trait ModelConfigGenerators extends SeedGenerator {
       minInfoGainArray = numericPayloads.minInfoGainArray,
       subSamplingRateArray = numericPayloads.subSamplingRateArray,
       impurityArray = impurityOverride,
-      featureSubsetStrategyArray = config.stringBoundaries("featureSubsetStrategy").toArray
+      featureSubsetStrategyArray =
+        config.stringBoundaries("featureSubsetStrategy").toArray
     )
 
-    val permutationCollection = randomForestConfigGenerator(fullPermutationConfig)
+    val permutationCollection = randomForestConfigGenerator(
+      fullPermutationConfig
+    )
 
     randomSampleArray(permutationCollection, countTarget, seed)
 
@@ -109,16 +137,17 @@ trait ModelConfigGenerators extends SeedGenerator {
     * @param predictionDataFrame The predicted sets of highest probability hyper parameter collections
     * @return An Array of RandomForest Configurations to be used in generating model runs.
     */
-  def convertRandomForestResultToConfig(predictionDataFrame: DataFrame): Array[RandomForestConfig] = {
+  def convertRandomForestResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[RandomForestConfig] = {
 
     val collectionBuffer = new ArrayBuffer[RandomForestConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[RandomForestConfig] map col :_*)
+      .select(getCaseClassNames[RandomForestConfig] map col: _*)
       .collect()
 
-    dataCollection.foreach{ x =>
-
+    dataCollection.foreach { x =>
       collectionBuffer += RandomForestConfig(
         numTrees = x(0).toString.toInt,
         impurity = x(1).toString,
@@ -135,8 +164,9 @@ trait ModelConfigGenerators extends SeedGenerator {
   }
 
   // DECISION TREE METHODS
-  def treesConfigGenerator(treesPermutationCollection: TreesPermutationCollection):
-  Array[TreesConfig] = {
+  def treesConfigGenerator(
+    treesPermutationCollection: TreesPermutationCollection
+  ): Array[TreesConfig] = {
 
     for {
       impurity <- treesPermutationCollection.impurityArray
@@ -144,31 +174,50 @@ trait ModelConfigGenerators extends SeedGenerator {
       maxDepth <- treesPermutationCollection.maxDepthArray
       minInfoGain <- treesPermutationCollection.minInfoGainArray
       minInstancesPerNode <- treesPermutationCollection.minInstancesPerNodeArray
-    } yield TreesConfig(impurity, maxBins.toInt, maxDepth.toInt, minInfoGain, minInstancesPerNode.toInt)
+    } yield
+      TreesConfig(
+        impurity,
+        maxBins.toInt,
+        maxDepth.toInt,
+        minInfoGain,
+        minInstancesPerNode.toInt
+      )
   }
 
-  protected[tools] def treesNumericArrayGenerator(config: PermutationConfiguration):
-  TreesNumericArrays = {
+  protected[tools] def treesNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): TreesNumericArrays = {
 
     TreesNumericArrays(
       maxBinsArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxBins")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxBins")),
+        config.permutationTarget
+      ),
       maxDepthArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxDepth")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxDepth")),
+        config.permutationTarget
+      ),
       minInfoGainArray = generateLogSpace(
-        extractContinuousBoundaries(config.numericBoundaries("minInfoGain")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("minInfoGain")),
+        config.permutationTarget
+      ),
       minInstancesPerNodeArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("minInstancesPerNode")), config.permutationTarget)
+        extractContinuousBoundaries(
+          config.numericBoundaries("minInstancesPerNode")
+        ),
+        config.permutationTarget
+      )
     )
   }
 
-  def treesPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[TreesConfig] = {
+  def treesPermutationGenerator(config: PermutationConfiguration,
+                                countTarget: Int,
+                                seed: Long = 42L): Array[TreesConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = treesNumericArrayGenerator(config)
 
-    val impurityOverride = if(config.modelType == "regressor") {
+    val impurityOverride = if (config.modelType == "regressor") {
       Array("variance")
     } else {
       config.stringBoundaries("impurity").toArray
@@ -188,16 +237,17 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   }
 
-  def convertTreesResultToConfig(predictionDataFrame: DataFrame): Array[TreesConfig] = {
+  def convertTreesResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[TreesConfig] = {
 
     val collectionBuffer = new ArrayBuffer[TreesConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[TreesConfig] map col :_*)
+      .select(getCaseClassNames[TreesConfig] map col: _*)
       .collect()
 
-    dataCollection.foreach{ x =>
-
+    dataCollection.foreach { x =>
       collectionBuffer += TreesConfig(
         impurity = x(0).toString,
         maxBins = x(1).toString.toInt,
@@ -212,8 +262,9 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   // GRADIENT BOOSTED TREES METHODS
 
-  def gbtConfigGenerator(gbtPermutationCollection: GBTPermutationCollection):
-  Array[GBTConfig] = {
+  def gbtConfigGenerator(
+    gbtPermutationCollection: GBTPermutationCollection
+  ): Array[GBTConfig] = {
 
     for {
       impurity <- gbtPermutationCollection.impurityArray
@@ -224,42 +275,67 @@ trait ModelConfigGenerators extends SeedGenerator {
       minInfoGain <- gbtPermutationCollection.minInfoGainArray
       minInstancesPerNode <- gbtPermutationCollection.minInstancesPerNodeArray
       stepSize <- gbtPermutationCollection.stepSizeArray
-    } yield GBTConfig(impurity, lossType, maxBins.toInt, maxDepth.toInt, maxIter.toInt, minInfoGain,
-      minInstancesPerNode.toInt, stepSize)
+    } yield
+      GBTConfig(
+        impurity,
+        lossType,
+        maxBins.toInt,
+        maxDepth.toInt,
+        maxIter.toInt,
+        minInfoGain,
+        minInstancesPerNode.toInt,
+        stepSize
+      )
   }
 
-  protected[tools] def gbtNumericArrayGenerator(config: PermutationConfiguration):
-  GBTNumericArrays = {
+  protected[tools] def gbtNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): GBTNumericArrays = {
 
     GBTNumericArrays(
       maxBinsArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxBins")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxBins")),
+        config.permutationTarget
+      ),
       maxDepthArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxDepth")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxDepth")),
+        config.permutationTarget
+      ),
       maxIterArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxIter")),
+        config.permutationTarget
+      ),
       minInfoGainArray = generateLogSpace(
-        extractContinuousBoundaries(config.numericBoundaries("minInfoGain")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("minInfoGain")),
+        config.permutationTarget
+      ),
       minInstancesPerNodeArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("minInstancesPerNode")), config.permutationTarget),
+        extractContinuousBoundaries(
+          config.numericBoundaries("minInstancesPerNode")
+        ),
+        config.permutationTarget
+      ),
       stepSizeArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("stepSize")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("stepSize")),
+        config.permutationTarget
+      )
     )
   }
 
-  def gbtPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[GBTConfig] = {
+  def gbtPermutationGenerator(config: PermutationConfiguration,
+                              countTarget: Int,
+                              seed: Long = 42L): Array[GBTConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = gbtNumericArrayGenerator(config)
 
-    val impurityOverride = if(config.modelType == "regressor") {
+    val impurityOverride = if (config.modelType == "regressor") {
       Array("variance")
     } else {
       config.stringBoundaries("impurity").toArray
     }
 
-    val lossTypeOverride = if(config.modelType == "regressor") {
+    val lossTypeOverride = if (config.modelType == "regressor") {
       Array("squared", "absolute")
     } else {
       config.stringBoundaries("lossType").toArray
@@ -282,15 +358,17 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   }
 
-  def convertGBTResultToConfig(predictionDataFrame: DataFrame): Array[GBTConfig] = {
+  def convertGBTResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[GBTConfig] = {
 
     val collectionBuffer = new ArrayBuffer[GBTConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[GBTConfig] map col :_*)
-        .collect()
+      .select(getCaseClassNames[GBTConfig] map col: _*)
+      .collect()
 
-    dataCollection.foreach{ x =>
+    dataCollection.foreach { x =>
       collectionBuffer += GBTConfig(
         impurity = x(0).toString,
         lossType = x(1).toString,
@@ -306,8 +384,9 @@ trait ModelConfigGenerators extends SeedGenerator {
   }
 
   // LINEAR REGRESSION METHODS
-  def linearRegressionConfigGenerator(linearRegressionPermutationCollection: LinearRegressionPermutationCollection):
-  Array[LinearRegressionConfig] = {
+  def linearRegressionConfigGenerator(
+    linearRegressionPermutationCollection: LinearRegressionPermutationCollection
+  ): Array[LinearRegressionConfig] = {
 
     for {
       elasticNetParams <- linearRegressionPermutationCollection.elasticNetParamsArray
@@ -317,27 +396,49 @@ trait ModelConfigGenerators extends SeedGenerator {
       regParam <- linearRegressionPermutationCollection.regParamArray
       standardization <- linearRegressionPermutationCollection.standardizationArray
       tolerance <- linearRegressionPermutationCollection.toleranceArray
-    } yield LinearRegressionConfig(elasticNetParams, fitIntercept, loss, maxIter.toInt, regParam, standardization,
-      tolerance)
+    } yield
+      LinearRegressionConfig(
+        elasticNetParams,
+        fitIntercept,
+        loss,
+        maxIter.toInt,
+        regParam,
+        standardization,
+        tolerance
+      )
   }
 
-  protected[tools] def linearRegressionNumericArrayGenerator(config: PermutationConfiguration):
-  LinearRegressionNumericArrays = {
+  protected[tools] def linearRegressionNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): LinearRegressionNumericArrays = {
 
     LinearRegressionNumericArrays(
       elasticNetParamsArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("elasticNetParams")), config.permutationTarget),
+        extractContinuousBoundaries(
+          config.numericBoundaries("elasticNetParams")
+        ),
+        config.permutationTarget
+      ),
       maxIterArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxIter")),
+        config.permutationTarget
+      ),
       regParamArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("regParam")),
+        config.permutationTarget
+      ),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")),
+        config.permutationTarget
+      )
     )
   }
 
-  def linearRegressionPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[LinearRegressionConfig] = {
+  def linearRegressionPermutationGenerator(
+    config: PermutationConfiguration,
+    countTarget: Int,
+    seed: Long = 42L
+  ): Array[LinearRegressionConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = linearRegressionNumericArrayGenerator(config)
@@ -352,20 +453,24 @@ trait ModelConfigGenerators extends SeedGenerator {
       toleranceArray = numericPayloads.toleranceArray
     )
 
-    val permutationCollection = linearRegressionConfigGenerator(fullPermutationConfig)
+    val permutationCollection = linearRegressionConfigGenerator(
+      fullPermutationConfig
+    )
 
     randomSampleArray(permutationCollection, countTarget, seed)
   }
 
-  def convertLinearRegressionResultToConfig(predictionDataFrame: DataFrame): Array[LinearRegressionConfig] = {
+  def convertLinearRegressionResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[LinearRegressionConfig] = {
 
     val collectionBuffer = new ArrayBuffer[LinearRegressionConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[LinearRegressionConfig] map col :_*)
-        .collect()
+      .select(getCaseClassNames[LinearRegressionConfig] map col: _*)
+      .collect()
 
-    dataCollection.foreach{ x =>
+    dataCollection.foreach { x =>
       collectionBuffer += LinearRegressionConfig(
         elasticNetParams = x(0).toString.toDouble,
         fitIntercept = x(1).toString.toBoolean,
@@ -380,8 +485,9 @@ trait ModelConfigGenerators extends SeedGenerator {
   }
 
   // LOGISTIC REGRESSION METHODS
-  def logisticRegressionConfigGenerator(logisticRegressionPermutationCollection: LogisticRegressionPermutationCollection):
-  Array[LogisticRegressionConfig] = {
+  def logisticRegressionConfigGenerator(
+    logisticRegressionPermutationCollection: LogisticRegressionPermutationCollection
+  ): Array[LogisticRegressionConfig] = {
 
     for {
       elasticNetParams <- logisticRegressionPermutationCollection.elasticNetParamsArray
@@ -390,27 +496,48 @@ trait ModelConfigGenerators extends SeedGenerator {
       regParam <- logisticRegressionPermutationCollection.regParamArray
       standardization <- logisticRegressionPermutationCollection.standardizationArray
       tolerance <- logisticRegressionPermutationCollection.toleranceArray
-    } yield LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter.toInt, regParam, standardization,
-      tolerance)
+    } yield
+      LogisticRegressionConfig(
+        elasticNetParams,
+        fitIntercept,
+        maxIter.toInt,
+        regParam,
+        standardization,
+        tolerance
+      )
   }
 
-  protected[tools] def logisticRegressionNumericArrayGenerator(config: PermutationConfiguration):
-  LogisticRegressionNumericArrays = {
+  protected[tools] def logisticRegressionNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): LogisticRegressionNumericArrays = {
 
     LogisticRegressionNumericArrays(
       elasticNetParamsArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("elasticNetParams")), config.permutationTarget),
+        extractContinuousBoundaries(
+          config.numericBoundaries("elasticNetParams")
+        ),
+        config.permutationTarget
+      ),
       maxIterArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxIter")),
+        config.permutationTarget
+      ),
       regParamArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("regParam")),
+        config.permutationTarget
+      ),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")),
+        config.permutationTarget
+      )
     )
   }
 
-  def logisticRegressionPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[LogisticRegressionConfig] = {
+  def logisticRegressionPermutationGenerator(
+    config: PermutationConfiguration,
+    countTarget: Int,
+    seed: Long = 42L
+  ): Array[LogisticRegressionConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = logisticRegressionNumericArrayGenerator(config)
@@ -424,21 +551,25 @@ trait ModelConfigGenerators extends SeedGenerator {
       toleranceArray = numericPayloads.toleranceArray
     )
 
-    val permutationCollection = logisticRegressionConfigGenerator(fullPermutationConfig)
+    val permutationCollection = logisticRegressionConfigGenerator(
+      fullPermutationConfig
+    )
 
     randomSampleArray(permutationCollection, countTarget, seed)
 
   }
 
-  def convertLogisticRegressionResultToConfig(predictionDataFrame: DataFrame): Array[LogisticRegressionConfig] = {
+  def convertLogisticRegressionResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[LogisticRegressionConfig] = {
 
     val collectionBuffer = new ArrayBuffer[LogisticRegressionConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[LogisticRegressionConfig] map col :_*)
+      .select(getCaseClassNames[LogisticRegressionConfig] map col: _*)
       .collect()
 
-    dataCollection.foreach{ x =>
+    dataCollection.foreach { x =>
       collectionBuffer += LogisticRegressionConfig(
         elasticNetParams = x(0).toString.toDouble,
         fitIntercept = x(1).toString.toBoolean,
@@ -452,7 +583,9 @@ trait ModelConfigGenerators extends SeedGenerator {
   }
 
   // SUPPORT VECTOR MACHINE METHODS
-  def svmConfigGenerator(svmPermutationCollection: SVMPermutationCollection): Array[SVMConfig] = {
+  def svmConfigGenerator(
+    svmPermutationCollection: SVMPermutationCollection
+  ): Array[SVMConfig] = {
 
     for {
       fitIntercept <- svmPermutationCollection.fitInterceptArray
@@ -460,23 +593,39 @@ trait ModelConfigGenerators extends SeedGenerator {
       regParam <- svmPermutationCollection.regParamArray
       standardization <- svmPermutationCollection.standardizationArray
       tolerance <- svmPermutationCollection.toleranceArray
-    } yield SVMConfig(fitIntercept, maxIter.toInt, regParam, standardization, tolerance)
+    } yield
+      SVMConfig(
+        fitIntercept,
+        maxIter.toInt,
+        regParam,
+        standardization,
+        tolerance
+      )
   }
 
-  protected[tools] def svmNumericArrayGenerator(config: PermutationConfiguration): SVMNumericArrays = {
+  protected[tools] def svmNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): SVMNumericArrays = {
 
     SVMNumericArrays(
       maxIterArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxIter")),
+        config.permutationTarget
+      ),
       regParamArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("regParam")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("regParam")),
+        config.permutationTarget
+      ),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")),
+        config.permutationTarget
+      )
     )
   }
 
-  def svmPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[SVMConfig] = {
+  def svmPermutationGenerator(config: PermutationConfiguration,
+                              countTarget: Int,
+                              seed: Long = 42L): Array[SVMConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = svmNumericArrayGenerator(config)
@@ -495,15 +644,17 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   }
 
-  def convertSVMResultToConfig(predictionDataFrame: DataFrame): Array[SVMConfig] = {
+  def convertSVMResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[SVMConfig] = {
 
     val collectionBuffer = new ArrayBuffer[SVMConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[SVMConfig] map col :_*)
+      .select(getCaseClassNames[SVMConfig] map col: _*)
       .collect()
 
-    dataCollection.foreach{ x =>
+    dataCollection.foreach { x =>
       collectionBuffer += SVMConfig(
         fitIntercept = x(0).toString.toBoolean,
         maxIter = x(1).toString.toInt,
@@ -516,7 +667,9 @@ trait ModelConfigGenerators extends SeedGenerator {
   }
 
   // XGBOOST METHODS
-  def xgboostConfigGenerator(xgboostPermutationCollection: XGBoostPermutationCollection): Array[XGBoostConfig] = {
+  def xgboostConfigGenerator(
+    xgboostPermutationCollection: XGBoostPermutationCollection
+  ): Array[XGBoostConfig] = {
 
     for {
       alpha <- xgboostPermutationCollection.alphaArray
@@ -529,38 +682,72 @@ trait ModelConfigGenerators extends SeedGenerator {
       numRound <- xgboostPermutationCollection.numRoundArray
       maxBins <- xgboostPermutationCollection.maxBinsArray
       trainTestRatio <- xgboostPermutationCollection.trainTestRatioArray
-    } yield XGBoostConfig(alpha, eta, gamma, lambda, maxDepth.toInt, subSample, minChildWeight, numRound.toInt,
-      maxBins.toInt, trainTestRatio)
+    } yield
+      XGBoostConfig(
+        alpha,
+        eta,
+        gamma,
+        lambda,
+        maxDepth.toInt,
+        subSample,
+        minChildWeight,
+        numRound.toInt,
+        maxBins.toInt,
+        trainTestRatio
+      )
   }
 
-  protected[tools] def xgboostNumericArrayGenerator(config: PermutationConfiguration): XGBoostNumericArrays = {
+  protected[tools] def xgboostNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): XGBoostNumericArrays = {
 
     XGBoostNumericArrays(
       alphaArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("alpha")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("alpha")),
+        config.permutationTarget
+      ),
       etaArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("eta")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("eta")),
+        config.permutationTarget
+      ),
       gammaArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("gamma")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("gamma")),
+        config.permutationTarget
+      ),
       lambdaArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("lambda")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("lambda")),
+        config.permutationTarget
+      ),
       maxDepthArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxDepth")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxDepth")),
+        config.permutationTarget
+      ),
       subSampleArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("subSample")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("subSample")),
+        config.permutationTarget
+      ),
       minChildWeightArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("minChildWeight")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("minChildWeight")),
+        config.permutationTarget
+      ),
       numRoundArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("numRound")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("numRound")),
+        config.permutationTarget
+      ),
       maxBinsArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxBins")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxBins")),
+        config.permutationTarget
+      ),
       trainTestRatioArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("trainTestRatio")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("trainTestRatio")),
+        config.permutationTarget
+      )
     )
   }
 
-  def xgboostPermutationGenerator(config: PermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[XGBoostConfig] = {
+  def xgboostPermutationGenerator(config: PermutationConfiguration,
+                                  countTarget: Int,
+                                  seed: Long = 42L): Array[XGBoostConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = xgboostNumericArrayGenerator(config)
@@ -584,15 +771,17 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   }
 
-  def convertXGBoostResultToConfig(predictionDataFrame: DataFrame): Array[XGBoostConfig] = {
+  def convertXGBoostResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[XGBoostConfig] = {
 
     val collectionBuffer = new ArrayBuffer[XGBoostConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[XGBoostConfig] map col :_*)
+      .select(getCaseClassNames[XGBoostConfig] map col: _*)
       .collect()
 
-    dataCollection.foreach{ x =>
+    dataCollection.foreach { x =>
       collectionBuffer += XGBoostConfig(
         alpha = x(0).toString.toDouble,
         eta = x(1).toString.toDouble,
@@ -611,7 +800,9 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   // MULTILAYER PERCEPTRON CLASSIFIER METHODS
 
-  def mlpcConfigGenerator(mlpcPermutationCollection: MLPCPermutationCollection): Array[MLPCConfig] = {
+  def mlpcConfigGenerator(
+    mlpcPermutationCollection: MLPCPermutationCollection
+  ): Array[MLPCConfig] = {
 
     for {
 
@@ -624,24 +815,38 @@ trait ModelConfigGenerators extends SeedGenerator {
     } yield MLPCConfig(layers, maxIter.toInt, solver, stepSize, tolerance)
   }
 
-  protected[tools] def mlpcNumericArrayGenerator(config: MLPCPermutationConfiguration): MLPCNumericArrays = {
+  protected[tools] def mlpcNumericArrayGenerator(
+    config: MLPCPermutationConfiguration
+  ): MLPCNumericArrays = {
 
     MLPCNumericArrays(
-      layersArray = generateArraySpace(config.numericBoundaries("layers")._1.toInt,
-        config.numericBoundaries("layers")._2.toInt, config.numericBoundaries("hiddenLayersSizeAdjust")._1.toInt,
-        config.numericBoundaries("hiddenLayersSizeAdjust")._2.toInt, config.inputFeatureSize, config.distinctClasses,
-        config.permutationTarget),
+      layersArray = generateArraySpace(
+        config.numericBoundaries("layers")._1.toInt,
+        config.numericBoundaries("layers")._2.toInt,
+        config.numericBoundaries("hiddenLayerSizeAdjust")._1.toInt,
+        config.numericBoundaries("hiddenLayerSizeAdjust")._2.toInt,
+        config.inputFeatureSize,
+        config.distinctClasses,
+        config.permutationTarget
+      ),
       maxIterArray = generateLinearIntSpace(
-        extractContinuousBoundaries(config.numericBoundaries("maxIter")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("maxIter")),
+        config.permutationTarget
+      ),
       stepSizeArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("stepSize")), config.permutationTarget),
+        extractContinuousBoundaries(config.numericBoundaries("stepSize")),
+        config.permutationTarget
+      ),
       toleranceArray = generateLinearSpace(
-        extractContinuousBoundaries(config.numericBoundaries("tolerance")), config.permutationTarget)
+        extractContinuousBoundaries(config.numericBoundaries("tolerance")),
+        config.permutationTarget
+      )
     )
   }
 
-  def mlpcPermutationGenerator(config: MLPCPermutationConfiguration, countTarget: Int, seed: Long = 42L):
-  Array[MLPCConfig] = {
+  def mlpcPermutationGenerator(config: MLPCPermutationConfiguration,
+                               countTarget: Int,
+                               seed: Long = 42L): Array[MLPCConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = mlpcNumericArrayGenerator(config)
@@ -660,15 +865,17 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   }
 
-  def convertMLPCResultToConfig(predictionDataFrame: DataFrame): Array[MLPCConfig] = {
+  def convertMLPCResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[MLPCConfig] = {
 
     val collectionBuffer = new ArrayBuffer[MLPCConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[MLPCConfig] map col :_*)
+      .select(getCaseClassNames[MLPCConfig] map col: _*)
       .collect()
 
-    dataCollection.foreach{ x =>
+    dataCollection.foreach { x =>
       collectionBuffer += MLPCConfig(
         layers = x(0).asInstanceOf[Array[Int]],
         maxIter = x(1).toString.toInt,
