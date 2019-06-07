@@ -1,7 +1,11 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
-import com.databricks.labs.automl.params.{Defaults, SVMConfig, SVMModelsWithResults}
+import com.databricks.labs.automl.params.{
+  Defaults,
+  SVMConfig,
+  SVMModelsWithResults
+}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.LinearSVC
@@ -13,7 +17,10 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
+class SVMTuner(df: DataFrame)
+    extends SparkSessionWrapper
+    with Evolution
+    with Defaults {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -22,21 +29,25 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
   private var _svmNumericBoundaries = _svmDefaultNumBoundaries
 
   def setScoringMetric(value: String): this.type = {
-    require(regressionMetrics.contains(value), s"Regressor scoring metric '$value' is not a valid member of ${
-      invalidateSelection(value, regressionMetrics)
-    }")
+    require(
+      regressionMetrics.contains(value),
+      s"Regressor scoring metric '$value' is not a valid member of ${invalidateSelection(value, regressionMetrics)}"
+    )
     _scoringMetric = value
     this
   }
 
-  def setSvmNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+  def setSvmNumericBoundaries(
+    value: Map[String, (Double, Double)]
+  ): this.type = {
     _svmNumericBoundaries = value
     this
   }
 
   def getScoringMetric: String = _scoringMetric
 
-  def getSvmNumericBoundaries: Map[String, (Double, Double)] = _svmNumericBoundaries
+  def getSvmNumericBoundaries: Map[String, (Double, Double)] =
+    _svmNumericBoundaries
 
   def getRegressionMetrics: List[String] = regressionMetrics
 
@@ -51,43 +62,52 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       .setTol(modelConfig.tolerance)
   }
 
-  private def returnBestHyperParameters(collection: ArrayBuffer[SVMModelsWithResults]):
-  (SVMConfig, Double) = {
+  private def returnBestHyperParameters(
+    collection: ArrayBuffer[SVMModelsWithResults]
+  ): (SVMConfig, Double) = {
 
     val bestEntry = _optimizationStrategy match {
-      case "minimize" => collection.result.toArray.sortWith(_.score < _.score).head
+      case "minimize" =>
+        collection.result.toArray.sortWith(_.score < _.score).head
       case _ => collection.result.toArray.sortWith(_.score > _.score).head
     }
     (bestEntry.modelHyperParams, bestEntry.score)
   }
 
-  private def evaluateStoppingScore(currentBestScore: Double, stopThreshold: Double): Boolean = {
+  private def evaluateStoppingScore(currentBestScore: Double,
+                                    stopThreshold: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (currentBestScore > stopThreshold) true else false
-      case _ => if (currentBestScore < stopThreshold) true else false
+      case _          => if (currentBestScore < stopThreshold) true else false
     }
   }
 
-  private def evaluateBestScore(runScore: Double, bestScore: Double): Boolean = {
+  private def evaluateBestScore(runScore: Double,
+                                bestScore: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (runScore < bestScore) true else false
-      case _ => if (runScore > bestScore) true else false
+      case _          => if (runScore > bestScore) true else false
     }
   }
 
-  private def sortAndReturnAll(results: ArrayBuffer[SVMModelsWithResults]):
-  Array[SVMModelsWithResults] = {
+  private def sortAndReturnAll(
+    results: ArrayBuffer[SVMModelsWithResults]
+  ): Array[SVMModelsWithResults] = {
     _optimizationStrategy match {
       case "minimize" => results.result.toArray.sortWith(_.score < _.score)
-      case _ => results.result.toArray.sortWith(_.score > _.score)
+      case _          => results.result.toArray.sortWith(_.score > _.score)
     }
   }
 
-  private def sortAndReturnBestScore(results: ArrayBuffer[SVMModelsWithResults]): Double = {
+  private def sortAndReturnBestScore(
+    results: ArrayBuffer[SVMModelsWithResults]
+  ): Double = {
     sortAndReturnAll(results).head.score
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[SVMConfig] = {
+  private def generateThresholdedParams(
+    iterationCount: Int
+  ): Array[SVMConfig] = {
     val iterations = new ArrayBuffer[SVMConfig]
 
     var i = 0
@@ -97,13 +117,21 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       val regParam = generateRandomDouble("regParam", _svmNumericBoundaries)
       val standardization = coinFlip()
       val tolerance = generateRandomDouble("tolerance", _svmNumericBoundaries)
-      iterations += SVMConfig(fitIntercept, maxIter, regParam, standardization, tolerance)
+      iterations += SVMConfig(
+        fitIntercept,
+        maxIter,
+        regParam,
+        standardization,
+        tolerance
+      )
     } while (i < iterationCount)
     iterations.toArray
   }
 
-  private def generateAndScoreSVM(train: DataFrame, test: DataFrame,
-                                  modelConfig: SVMConfig, generation: Int = 1): SVMModelsWithResults = {
+  private def generateAndScoreSVM(train: DataFrame,
+                                  test: DataFrame,
+                                  modelConfig: SVMConfig,
+                                  generation: Int = 1): SVMModelsWithResults = {
 
     val svmModel = configureModel(modelConfig)
     val builtModel = svmModel.fit(train)
@@ -113,11 +141,17 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     for (i <- regressionMetrics) {
       scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
     }
-    SVMModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric),
-      scoringMap.toMap, generation)
+    SVMModelsWithResults(
+      modelConfig,
+      builtModel,
+      scoringMap(_scoringMetric),
+      scoringMap.toMap,
+      generation
+    )
   }
 
-  private def runBattery(battery: Array[SVMConfig], generation: Int = 1): Array[SVMModelsWithResults] = {
+  private def runBattery(battery: Array[SVMConfig],
+                         generation: Int = 1): Array[SVMModelsWithResults] = {
 
     val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
@@ -130,25 +164,26 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)
-    }%2.4f%%"
+    val currentStatus =
+      f"Starting Generation $generation \n\t\t Completion Status: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
-
       val runId = java.util.UUID.randomUUID()
 
-      println(s"Starting run $runId with Params: ${x.toString}")
+      println(
+        s"Starting run $runId with Params: ${convertSVMConfigToHumanReadable(x, " ")}"
+      )
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[SVMModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
+        val Array(train, test) =
+          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreSVM(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
@@ -170,18 +205,24 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
       val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
 
-      val runAvg = SVMModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
-        scoringMap.toMap, generation)
+      val runAvg = SVMModelsWithResults(
+        x,
+        kFoldBuffer.result.head.model,
+        scores.sum / scores.length,
+        scoringMap.toMap,
+        generation
+      )
 
       results += runAvg
       modelCnt += 1
 
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+        s"\n\t using params: ${convertSVMConfigToHumanReadable(x, "\n\t\t\t\t")} \n\t\tin " +
+        s"$runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
 
-      val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)
-      }%2.4f%%"
+      val progressStatement =
+        f"\t\t Current modeling progress complete in family: " +
+          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
       println(runScoreStatement)
       println(progressStatement)
@@ -193,14 +234,36 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
   }
 
-  private def irradiateGeneration(parents: Array[SVMConfig], mutationCount: Int,
-                                  mutationAggression: Int, mutationMagnitude: Double): Array[SVMConfig] = {
+  /**
+    * Private method for making stdout and logging of params much more readable, particularly for the array objects
+    *
+    * @param conf The configuration of the run (hyper parameters)
+    * @return A string representation that is readable.
+    */
+  private def convertSVMConfigToHumanReadable(conf: SVMConfig,
+                                              formatter: String): String = {
+    s"\n\t\t\tConfig: $formatter[fitIntercept] -> [${conf.fitIntercept.toString}]" +
+      s"$formatter[maxIter] -> [${conf.maxIter.toString}]" +
+      s"$formatter[regParam] -> [${conf.regParam.toString}]" +
+      s"$formatter[standardization] -> [${conf.standardization.toString}]" +
+      s"$formatter[tolerance] -> [${conf.tolerance.toString}]"
+  }
+
+  private def irradiateGeneration(
+    parents: Array[SVMConfig],
+    mutationCount: Int,
+    mutationAggression: Int,
+    mutationMagnitude: Double
+  ): Array[SVMConfig] = {
 
     val mutationPayload = new ArrayBuffer[SVMConfig]
     val totalConfigs = modelConfigLength[SVMConfig]
-    val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
+    val indexMutation =
+      if (mutationAggression >= totalConfigs) totalConfigs - 1
+      else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
-    val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
+    val mutationIndeces =
+      generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
 
     for (i <- mutationCandidates.indices) {
 
@@ -209,20 +272,40 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       val mutationIndexIteration = mutationIndeces(i)
 
       mutationPayload += SVMConfig(
-        if (mutationIndexIteration.contains(0)) coinFlip(randomParent.fitIntercept,
-          mutationIteration.fitIntercept, mutationMagnitude)
+        if (mutationIndexIteration.contains(0))
+          coinFlip(
+            randomParent.fitIntercept,
+            mutationIteration.fitIntercept,
+            mutationMagnitude
+          )
         else randomParent.fitIntercept,
-        if (mutationIndexIteration.contains(1)) geneMixing(randomParent.maxIter,
-          mutationIteration.maxIter, mutationMagnitude)
+        if (mutationIndexIteration.contains(1))
+          geneMixing(
+            randomParent.maxIter,
+            mutationIteration.maxIter,
+            mutationMagnitude
+          )
         else randomParent.maxIter,
-        if (mutationIndexIteration.contains(2)) geneMixing(randomParent.regParam,
-          mutationIteration.regParam, mutationMagnitude)
+        if (mutationIndexIteration.contains(2))
+          geneMixing(
+            randomParent.regParam,
+            mutationIteration.regParam,
+            mutationMagnitude
+          )
         else randomParent.regParam,
-        if (mutationIndexIteration.contains(3)) coinFlip(randomParent.standardization,
-          mutationIteration.standardization, mutationMagnitude)
+        if (mutationIndexIteration.contains(3))
+          coinFlip(
+            randomParent.standardization,
+            mutationIteration.standardization,
+            mutationMagnitude
+          )
         else randomParent.standardization,
-        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.tolerance,
-          mutationIteration.tolerance, mutationMagnitude)
+        if (mutationIndexIteration.contains(4))
+          geneMixing(
+            randomParent.tolerance,
+            mutationIteration.tolerance,
+            mutationMagnitude
+          )
         else randomParent.tolerance
       )
     }
@@ -231,7 +314,9 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
   private def continuousEvolution(): Array[SVMModelsWithResults] = {
 
-    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
+    val taskSupport = new ForkJoinTaskSupport(
+      new ForkJoinPool(_continuousEvolutionParallelism)
+    )
 
     var runResults = new ArrayBuffer[SVMModelsWithResults]
 
@@ -253,8 +338,12 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
           val genArray = new ArrayBuffer[SVMConfig]
           val startingModelSeed = generateSVMConfig(_modelSeed)
           genArray += startingModelSeed
-          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          genArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           ParHashSet(genArray.result.toArray: _*)
         } else {
           ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
@@ -287,28 +376,36 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
           runResults += run.head
           scoreHistory += run.head.score
 
-          val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+          val (bestConfig, currentBestScore) =
+            returnBestHyperParameters(runResults)
 
           bestScore = currentBestScore
 
           // Add a mutated version of the current best model to the ParHashSet
-          runSet += irradiateGeneration(Array(bestConfig), 1,
-            _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+          runSet += irradiateGeneration(
+            Array(bestConfig),
+            1,
+            _continuousEvolutionMutationAggressiveness,
+            _continuousEvolutionGeneticMixing
+          ).head
 
           // Evaluate whether the scores are staying static over the last configured rolling window.
           val currentWindowValues = scoreHistory.slice(
-            scoreHistory.length - _continuousEvolutionRollingImprovementCount, scoreHistory.length)
+            scoreHistory.length - _continuousEvolutionRollingImprovementCount,
+            scoreHistory.length
+          )
 
           // Check for static values
           val staticCheck = currentWindowValues.toSet.size
 
           // If there is more than one value, proceed with validation check on whether the model is improving over time.
           if (staticCheck > 1) {
-            val (early, later) = currentWindowValues.splitAt(scala.math.round(currentWindowValues.size / 2))
+            val (early, later) = currentWindowValues.splitAt(
+              scala.math.round(currentWindowValues.size / 2)
+            )
             if (later.sum / later.length < early.sum / early.length) {
               incrementalImprovementCount += 1
-            }
-            else {
+            } else {
               incrementalImprovementCount -= 1
             }
           } else {
@@ -325,14 +422,24 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
         } catch {
           case e: java.lang.NullPointerException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
           case f: java.lang.ArrayIndexOutOfBoundsException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
         }
       })
@@ -344,11 +451,15 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
   }
 
-  def generateIdealParents(results: Array[SVMModelsWithResults]): Array[SVMConfig] = {
+  def generateIdealParents(
+    results: Array[SVMModelsWithResults]
+  ): Array[SVMConfig] = {
     val bestParents = new ArrayBuffer[SVMConfig]
-    results.take(_numberOfParentsToRetain).map(x => {
-      bestParents += x.modelHyperParams
-    })
+    results
+      .take(_numberOfParentsToRetain)
+      .map(x => {
+        bestParents += x.modelHyperParams
+      })
     bestParents.result.toArray
   }
 
@@ -367,11 +478,18 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
           val generativeArray = new ArrayBuffer[SVMConfig]
           val startingModelSeed = generateSVMConfig(_modelSeed)
           generativeArray += startingModelSeed
-          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          generativeArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           runBattery(generativeArray.result.toArray, generation)
         } else {
-          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+          runBattery(
+            generateThresholdedParams(_firstGenerationGenePool),
+            generation
+          )
         }
       case "permutations" =>
         val startingPool = new HyperParameterFullSearch()
@@ -395,19 +513,25 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
       if (evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
         while (currentIteration <= _numberOfMutationGenerations &&
-          evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
+               evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
 
           val mutationAggressiveness = _generationalMutationStrategy match {
-            case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else
-              totalConfigs - (currentIteration + 1)
+            case "linear" =>
+              if (totalConfigs - (currentIteration + 1) < 1) 1
+              else
+                totalConfigs - (currentIteration + 1)
             case _ => _fixedMutationValue
           }
 
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-            mutationAggressiveness, _geneticMixing)
+          val evolution = irradiateGeneration(
+            generateIdealParents(currentState),
+            _numberOfMutationsPerGeneration,
+            mutationAggressiveness,
+            _geneticMixing
+          )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -415,7 +539,8 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
 
           val postRunBestScore = sortAndReturnBestScore(fossilRecord)
 
-          if (evaluateBestScore(postRunBestScore, currentBestResult)) currentBestResult = postRunBestScore
+          if (evaluateBestScore(postRunBestScore, currentBestResult))
+            currentBestResult = postRunBestScore
 
           currentIteration += 1
 
@@ -430,14 +555,19 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
       (1 to _numberOfMutationGenerations).map(i => {
 
         val mutationAggressiveness = _generationalMutationStrategy match {
-          case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
+          case "linear" =>
+            if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
           case _ => _fixedMutationValue
         }
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-          mutationAggressiveness, _geneticMixing)
+        val evolution = irradiateGeneration(
+          generateIdealParents(currentState),
+          _numberOfMutationsPerGeneration,
+          mutationAggressiveness,
+          _geneticMixing
+        )
 
         var evolve = runBattery(evolution, generation)
         generation += 1
@@ -455,21 +585,25 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     evolveParameters().head
   }
 
-  def generateScoredDataFrame(results: Array[SVMModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(
+    results: Array[SVMModelsWithResults]
+  ): DataFrame = {
 
     import spark.sqlContext.implicits._
 
     val scoreBuffer = new ListBuffer[(Int, Double)]
     results.map(x => scoreBuffer += ((x.generation, x.score)))
     val scored = scoreBuffer.result
-    spark.sparkContext.parallelize(scored)
-      .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
+    spark.sparkContext
+      .parallelize(scored)
+      .toDF("generation", "score")
+      .orderBy(col("generation").asc, col("score").asc)
   }
 
   def evolveWithScoringDF(): (Array[SVMModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters()
+      case "batch"      => evolveParameters()
       case "continuous" => continuousEvolution()
     }
 
@@ -485,9 +619,12 @@ class SVMTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with De
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(paramsToTest: Array[SVMConfig]): (Array[SVMModelsWithResults], DataFrame) = {
+  def postRunModeledHyperParams(
+    paramsToTest: Array[SVMConfig]
+  ): (Array[SVMModelsWithResults], DataFrame) = {
 
-    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+    val finalRunResults =
+      runBattery(paramsToTest, _numberOfMutationGenerations + 2)
 
     (finalRunResults, generateScoredDataFrame(finalRunResults))
   }

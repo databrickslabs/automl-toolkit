@@ -1349,7 +1349,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           val (results, stats, selection, data) = runMLPC(payload)
           results.foreach { x =>
             genericResults += GenericModelReturn(
-              hyperParams = extractPayload(x.modelHyperParams),
+              hyperParams = extractMLPCPayload(x.modelHyperParams),
               model = x.model,
               score = x.score,
               metrics = x.evalMetrics,
@@ -1631,7 +1631,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val selectableFields = featureImportanceResults.fields :+ _mainConfig.labelCol
 
     println(
-      s"Feature Selected: ${featureImportanceResults.fields.mkString(", ")}"
+      s"Features Selected: ${featureImportanceResults.fields.mkString(", ")}"
     )
 
     val dataSubset = df.select(selectableFields.map(col): _*)

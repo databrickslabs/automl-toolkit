@@ -164,11 +164,28 @@ case class SVMModelRunReport(fitIntercept: Boolean,
 
 //MLPC
 
-case class MLPCPermutationCollection(layersArray: Array[Array[Int]],
+case class MLPCGenerator(layerCount: Int,
+                         hiddenLayerSizeAdjust: Int,
+                         maxIter: Int,
+                         solver: String,
+                         stepSize: Double,
+                         tolerance: Double)
+
+case class MLPCPermutationCollection(layerCountArray: Array[Int],
+                                     layersArray: Array[Array[Int]],
                                      maxIterArray: Array[Double],
                                      solverArray: Array[String],
                                      stepSizeArray: Array[Double],
-                                     toleranceArray: Array[Double])
+                                     toleranceArray: Array[Double],
+                                     hiddenLayerSizeAdjustArray: Array[Int])
+
+case class MLPCModelingConfig(layerCount: Int,
+                              layers: Array[Int],
+                              maxIter: Int,
+                              solver: String,
+                              stepSize: Double,
+                              tolerance: Double,
+                              hiddenLayerSizeAdjust: Int)
 
 case class MLPCNumericArrays(layersArray: Array[Array[Int]],
                              maxIterArray: Array[Double],

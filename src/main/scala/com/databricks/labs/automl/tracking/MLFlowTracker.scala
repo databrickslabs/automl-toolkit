@@ -515,7 +515,18 @@ class MLFlowTracker extends InferenceTools {
         val hyperParamKeys = x.hyperParams.keys
 
         hyperParamKeys.foreach { k =>
-          val valueData = x.hyperParams(k)
+          //TODO: convert MLPC layers into a string here
+          val valueData = modelFamily match {
+            case "MLPC" =>
+              x.hyperParams(k) match {
+                case "layers" =>
+                  x.hyperParams(k).asInstanceOf[Array[Int]].mkString(",")
+                case _ => x.hyperParams(k)
+              }
+            case _ => x.hyperParams(k)
+          }
+
+          //val valueData = x.hyperParams(k)
           mlflowLoggingClient.logParam(runId, k, valueData.toString)
         }
         val metricKeys = x.metrics.keys

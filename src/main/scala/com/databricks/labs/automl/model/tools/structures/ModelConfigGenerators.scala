@@ -802,18 +802,36 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   def mlpcConfigGenerator(
     mlpcPermutationCollection: MLPCPermutationCollection
-  ): Array[MLPCConfig] = {
+  ): Array[MLPCModelingConfig] = {
 
     for {
-
+      layerCount <- mlpcPermutationCollection.layerCountArray
       layers <- mlpcPermutationCollection.layersArray
       maxIter <- mlpcPermutationCollection.maxIterArray
       solver <- mlpcPermutationCollection.solverArray
       stepSize <- mlpcPermutationCollection.stepSizeArray
       tolerance <- mlpcPermutationCollection.toleranceArray
+      hiddenLayerSizeAdjust <- mlpcPermutationCollection.hiddenLayerSizeAdjustArray
 
-    } yield MLPCConfig(layers, maxIter.toInt, solver, stepSize, tolerance)
+    } yield
+      MLPCModelingConfig(
+        layerCount.toInt,
+        layers,
+        maxIter.toInt,
+        solver,
+        stepSize,
+        tolerance,
+        hiddenLayerSizeAdjust.toInt
+      )
   }
+
+  case class MLPCModelingConfig(layerCount: Int,
+                                layers: Array[Int],
+                                maxIter: Int,
+                                solver: String,
+                                stepSize: Double,
+                                tolerance: Double,
+                                hiddenLayerSizeAdjust: Int)
 
   protected[tools] def mlpcNumericArrayGenerator(
     config: MLPCPermutationConfiguration
@@ -846,17 +864,29 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   def mlpcPermutationGenerator(config: MLPCPermutationConfiguration,
                                countTarget: Int,
-                               seed: Long = 42L): Array[MLPCConfig] = {
+                               seed: Long = 42L): Array[MLPCModelingConfig] = {
 
     // Get the number of permutations to generate
     val numericPayloads = mlpcNumericArrayGenerator(config)
 
+    val layerCountBuffer = ArrayBuffer[Int]()
+    val hiddenLayerBuffer = ArrayBuffer[Int]()
+
+    numericPayloads.layersArray.foreach { x =>
+      val layerCountCalc = x.length - 2
+      val hiddenLayerCalc = x(1) - x(0)
+      layerCountBuffer += layerCountCalc
+      hiddenLayerBuffer += hiddenLayerCalc
+    }
+
     val fullPermutationConfig = MLPCPermutationCollection(
+      layerCountArray = layerCountBuffer.toArray,
       layersArray = numericPayloads.layersArray,
       maxIterArray = numericPayloads.maxIterArray,
       solverArray = config.stringBoundaries("solver").toArray,
       stepSizeArray = numericPayloads.stepSizeArray,
-      toleranceArray = numericPayloads.toleranceArray
+      toleranceArray = numericPayloads.toleranceArray,
+      hiddenLayerSizeAdjustArray = hiddenLayerBuffer.toArray
     )
 
     val permutationCollection = mlpcConfigGenerator(fullPermutationConfig)
@@ -865,23 +895,28 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   }
 
-  def convertMLPCResultToConfig(
-    predictionDataFrame: DataFrame
-  ): Array[MLPCConfig] = {
+  def convertMLPCResultToConfig(predictionDataFrame: DataFrame,
+                                inputFeatureSize: Int,
+                                distinctClasses: Int): Array[MLPCConfig] = {
 
     val collectionBuffer = new ArrayBuffer[MLPCConfig]()
 
     val dataCollection = predictionDataFrame
-      .select(getCaseClassNames[MLPCConfig] map col: _*)
+      .select(getCaseClassNames[MLPCGenerator] map col: _*)
       .collect()
 
     dataCollection.foreach { x =>
       collectionBuffer += MLPCConfig(
-        layers = x(0).asInstanceOf[Array[Int]],
-        maxIter = x(1).toString.toInt,
-        solver = x(2).toString,
-        stepSize = x(3).toString.toDouble,
-        tolerance = x(4).toString.toDouble
+        layers = constructLayerArray(
+          inputFeatureSize,
+          distinctClasses,
+          x(0).toString.toInt,
+          x(1).toString.toInt
+        ),
+        maxIter = x(2).toString.toInt,
+        solver = x(3).toString,
+        stepSize = x(4).toString.toDouble,
+        tolerance = x(5).toString.toDouble
       )
     }
     collectionBuffer.result.toArray

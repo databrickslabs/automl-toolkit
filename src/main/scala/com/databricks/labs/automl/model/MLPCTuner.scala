@@ -218,7 +218,9 @@ class MLPCTuner(df: DataFrame)
     runs.foreach { x =>
       val runId = java.util.UUID.randomUUID()
 
-      println(s"Starting run $runId with Params: ${x.toString}")
+      println(
+        s"Starting run $runId with Params: ${convertMLPCConfigToHumanReadable(x, " ")}"
+      )
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
@@ -259,10 +261,12 @@ class MLPCTuner(df: DataFrame)
       modelCnt += 1
 
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+        s"\n\t using params: ${convertMLPCConfigToHumanReadable(x, "\n\t\t\t\t")} \n\t\tin $runTimeOfModel " +
+        s"seconds.  Total run time: $totalTimeOfBattery seconds"
 
       val progressStatement =
-        f"\t\t Current modeling progress complete in family: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+        f"\t\t Current modeling progress complete in family: " +
+          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
       println(runScoreStatement)
       println(progressStatement)
@@ -272,6 +276,18 @@ class MLPCTuner(df: DataFrame)
 
     sortAndReturnAll(results)
 
+  }
+
+  /**
+    * Private method for making stdout and logging of params much more readable, particularly for the array objects
+    * @param conf The configuration of the run (hyper parameters)
+    * @return A string representation that is readable.
+    */
+  private def convertMLPCConfigToHumanReadable(conf: MLPCConfig,
+                                               formatter: String): String = {
+    s"\n\t\t\tConfig: $formatter[layers] -> [${conf.layers.mkString(",")}]" +
+      s"$formatter[maxIter] -> [${conf.maxIter.toString}] $formatter[solver] -> [${conf.solver}]" +
+      s"$formatter[stepSize] -> [${conf.stepSize.toString}]$formatter[tolerance] -> [${conf.tolerance.toString}]"
   }
 
   private def irradiateGeneration(

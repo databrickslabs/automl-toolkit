@@ -535,7 +535,7 @@ class PostModelingOptimization
   protected[tools] def generateMLPCSearchSpace(
     inputFeatureSize: Int,
     classCount: Int
-  ): Array[MLPCConfig] = {
+  ): Array[MLPCModelingConfig] = {
 
     val mlpcSearchSpace = MLPCPermutationConfiguration(
       permutationTarget = getPermutationCounts(
@@ -562,15 +562,6 @@ class PostModelingOptimization
     classCount: Int
   ): DataFrame = {
     spark.createDataFrame(generateMLPCSearchSpace(inputFeatureSize, classCount))
-  }
-
-  private def mlpcLayersExtractor(layers: Array[Int]): (Int, Int) = {
-
-    val hiddenLayersSizeAdjust =
-      if (layers.length > 2) layers(1) - layers(0) else 0
-    val layerCount = layers.length - 2
-
-    (layerCount, hiddenLayersSizeAdjust)
   }
 
   protected[tools] def mlpcResultMapping(
@@ -612,13 +603,21 @@ class PostModelingOptimization
 
     val fullSearchSpaceDataSet =
       generateMLPCSearchSpaceAsDataFrame(featureInputSize, classDistinctCount)
+        .withColumnRenamed("layers", "layerConstruct")
+        .withColumnRenamed("layerCount", "layers")
 
     val restrictedData = fittedPipeline
       .transform(fullSearchSpaceDataSet)
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
+      .withColumnRenamed("layers", "layerCount")
+      .withColumnRenamed("layerConstruct", "layers")
 
-    convertMLPCResultToConfig(restrictedData)
+    convertMLPCResultToConfig(
+      restrictedData,
+      featureInputSize,
+      classDistinctCount
+    )
   }
 
 }

@@ -66,10 +66,10 @@ trait SeedGenerator {
 
   }
 
-  private def constructLayerArray(inputFeatureSize: Int,
-                                  distinctClasses: Int,
-                                  layerCount: Int,
-                                  sizeAdjustment: Int): Array[Int] = {
+  private[tools] def constructLayerArray(inputFeatureSize: Int,
+                                         distinctClasses: Int,
+                                         layerCount: Int,
+                                         sizeAdjustment: Int): Array[Int] = {
 
     val layerConstruct = new ArrayBuffer[Int]
 
@@ -233,6 +233,15 @@ trait SeedGenerator {
       remainingArrays
     )
 
+  }
+
+  protected[tools] def mlpcLayersExtractor(layers: Array[Int]): (Int, Int) = {
+
+    val hiddenLayersSizeAdjust =
+      if (layers.length > 2) layers(1) - layers(0) else 0
+    val layerCount = layers.length - 2
+
+    (layerCount, hiddenLayersSizeAdjust)
   }
 
   protected[tools] def mlpcRandomIndexSelection(

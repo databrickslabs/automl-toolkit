@@ -7,6 +7,7 @@ import com.databricks.labs.automl.inference.{
 import com.databricks.labs.automl.params.{
   GenerationalReport,
   GenericModelReturn,
+  MLPCConfig,
   MainConfig
 }
 import org.apache.spark.sql.DataFrame
@@ -25,6 +26,18 @@ trait AutomationTools extends SparkSessionWrapper {
         case x                                => x
       })
     }.toMap
+  }
+
+  def extractMLPCPayload(payload: MLPCConfig): Map[String, Any] = {
+
+    Map(
+      "layers" -> payload.layers.mkString(","),
+      "maxIter" -> payload.maxIter,
+      "solver" -> payload.solver,
+      "stepSize" -> payload.stepSize,
+      "tolerance" -> payload.tolerance
+    )
+
   }
 
   def extractGenerationData(
