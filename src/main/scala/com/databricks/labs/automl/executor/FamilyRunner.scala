@@ -6,6 +6,7 @@ import com.databricks.labs.automl.executor.config.{
   InstanceConfig
 }
 import com.databricks.labs.automl.params._
+import com.databricks.labs.automl.tracking.MLFlowReportStructure
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -77,6 +78,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     var modelReportDataFrame = spark.emptyDataset[ModelReportSchema].toDF
     var generationReportDataFrame =
       spark.emptyDataset[GenerationReportSchema].toDF
+    var mlFlowOutput = ArrayBuffer[MLFlowReportStructure]()
 
     outputArray.map { x =>
       x.modelReport.map { y =>
@@ -92,13 +94,15 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
       generationReport +: x.generationReport
       modelReportDataFrame.union(x.modelReportDataFrame)
       generationReportDataFrame.union(x.generationReportDataFrame)
+      mlFlowOutput += x.mlFlowOutput
     }
 
     FamilyFinalOutput(
       modelReport = modelReport.toArray,
       generationReport = generationReport.toArray,
       modelReportDataFrame = modelReportDataFrame,
-      generationReportDataFrame = generationReportDataFrame
+      generationReportDataFrame = generationReportDataFrame,
+      mlFlowReport = mlFlowOutput.toArray
     )
 
   }
@@ -124,7 +128,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
       val output = runner.executeTuning(preppedDataOverride)
 
-      outputBuffer += new FamilyOutput(x.modelFamily) {
+      outputBuffer += new FamilyOutput(x.modelFamily, output.mlFlowOutput) {
         override def modelReport: Array[GenericModelReturn] = output.modelReport
         override def generationReport: Array[GenerationalReport] =
           output.generationReport

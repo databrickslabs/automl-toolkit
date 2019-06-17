@@ -13,7 +13,11 @@ import com.databricks.labs.automl.reports.{
   DecisionTreeSplits,
   RandomForestFeatureImportance
 }
-import com.databricks.labs.automl.tracking.MLFlowTracker
+import com.databricks.labs.automl.tracking.{
+  MLFlowReportStructure,
+  MLFlowReturn,
+  MLFlowTracker
+}
 import ml.dmlc.xgboost4j.scala.spark.{
   XGBoostClassificationModel,
   XGBoostRegressionModel
@@ -29,6 +33,9 @@ import org.apache.spark.ml.regression.{
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
+import org.json4s.jackson.Serialization
+import org.json4s.{Formats, NoTypeHints}
+import org.json4s.jackson.Serialization.writePretty
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -1268,7 +1275,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   private def logResultsToMlFlow(runData: Array[GenericModelReturn],
                                  modelFamily: String,
-                                 modelType: String): String = {
+                                 modelType: String): MLFlowReportStructure = {
 
     val mlFlowLogger = new MLFlowTracker()
       .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
@@ -1281,25 +1288,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     if (_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn()
     else mlFlowLogger.logArtifactsOff()
 
-    try {
-      mlFlowLogger.logMlFlowDataAndModels(
-        runData,
-        modelFamily,
-        modelType,
-        _mainConfig.inferenceConfigSaveLocation,
-        _mainConfig.scoringOptimizationStrategy
-      )
-      "Logged to MlFlow Successful"
-    } catch {
-      case e: Exception =>
-        val stack = e.toString
-        val topStackTrace: String = e.getStackTrace.mkString("\n")
-        println(
-          s"Failed to log to mlflow. Check configuration. \n  $stack \n Top trace: \t $topStackTrace"
-        )
-        logger.log(Level.INFO, stack)
-        "Failed to Log to MlFlow"
-    }
+    mlFlowLogger.logMlFlowDataAndModels(
+      runData,
+      modelFamily,
+      modelType,
+      _mainConfig.inferenceConfigSaveLocation,
+      _mainConfig.scoringOptimizationStrategy
+    )
 
   }
 
@@ -1409,7 +1404,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val genericResultData = genericResults.result.toArray
 
-    if (_mainConfig.mlFlowLoggingFlag) {
+    val mlFlow = if (_mainConfig.mlFlowLoggingFlag) {
 
       // set the Inference details in general for the run
       // TODO - Remove this - It's here and in the tracker but the values are different and should be set equal
@@ -1440,20 +1435,29 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
       logger.log(Level.INFO, inferenceLog)
 
-      val mlFlowResult = logResultsToMlFlow(
-        genericResultData,
-        _mainConfig.modelFamily,
-        modelSelection
-      )
-      println(mlFlowResult)
-      logger.log(Level.INFO, mlFlowResult)
-//    } else {
+      val mlFlowResult = try {
+        logResultsToMlFlow(
+          genericResultData,
+          _mainConfig.modelFamily,
+          modelSelection
+        )
+      } catch {
+        case e: Exception =>
+          println(
+            s"Failed to log to mlflow.  Check configuration. \n ${e.printStackTrace()} " +
+              s"\n ${e.getStackTraceString}"
+          )
+          logger.log(Level.FATAL, e.getStackTraceString)
+          generateDummyMLFlowReturn("error")
+      }
 
-//      if (_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory.nonEmpty) {
-//        val inferenceConfigAsDF = convertInferenceConfigToDataFrame(outputInferencePayload)
-//
-//        inferenceConfigAsDF.write.mode("overwrite").save(_mainConfig.inferenceConfigSaveLocation)
-//      }
+      implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
+      val pretty = writePretty(mlFlowResult)
+
+      logger.log(Level.INFO, pretty)
+      mlFlowResult
+    } else {
+      generateDummyMLFlowReturn("undefined")
     }
 
     val generationalData = extractGenerationalScores(
@@ -1463,7 +1467,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       modelSelection
     )
 
-    new TunerOutput(rawData = dataframe, modelSelection = modelSelection) {
+    new TunerOutput(
+      rawData = dataframe,
+      modelSelection = modelSelection,
+      mlFlowOutput = mlFlow
+    ) {
       override def modelReport: Array[GenericModelReturn] = genericResultData
       override def generationReport: Array[GenerationalReport] =
         generationalData
@@ -1475,6 +1483,22 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         )
     }
 
+  }
+
+  private def generateDummyMLFlowReturn(msg: String): MLFlowReportStructure = {
+    val genTracker = new MLFlowTracker()
+      .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
+      .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
+      .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
+      .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
+      .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
+      .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
+    val dummyLog = MLFlowReturn(
+      genTracker.createHostedMlFlowClient(),
+      msg,
+      Array((msg, 0.0))
+    )
+    MLFlowReportStructure(dummyLog, dummyLog)
   }
 
   protected[automl] def predictFromBestModel(
@@ -1607,7 +1631,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
 
-    new FeatureImportanceOutput(featureImportanceResults.data) {
+    new FeatureImportanceOutput(
+      featureImportanceResults.data,
+      mlFlowOutput = runResults.mlFlowOutput
+    ) {
       override def modelReport: Array[GenericModelReturn] =
         runResults.modelReport
       override def generationReport: Array[GenerationalReport] =
@@ -1659,7 +1686,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     new FeatureImportancePredictionOutput(
       featureImportances = featureImportanceResults.data,
-      predictionData = predictedData
+      predictionData = predictedData,
+      mlFlowOutput = runResults.mlFlowOutput
     ) {
       override def modelReport: Array[GenericModelReturn] =
         runResults.modelReport
@@ -1688,7 +1716,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) tunerResult.rawData.unpersist()
 
-    new AutomationOutput {
+    new AutomationOutput(mlFlowOutput = tunerResult.mlFlowOutput) {
       override def modelReport: Array[GenericModelReturn] =
         tunerResult.modelReport
       override def generationReport: Array[GenerationalReport] =
@@ -1713,7 +1741,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) tunerResult.rawData.unpersist()
 
-    new PredictionOutput(dataWithPredictions = predictedData) {
+    new PredictionOutput(
+      dataWithPredictions = predictedData,
+      mlFlowOutput = tunerResult.mlFlowOutput
+    ) {
       override def modelReport: Array[GenericModelReturn] =
         tunerResult.modelReport
       override def generationReport: Array[GenerationalReport] =
@@ -1736,7 +1767,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     new ConfusionOutput(
       predictionData = predictionPayload.dataWithPredictions,
-      confusionData = confusionData
+      confusionData = confusionData,
+      mlFlowOutput = predictionPayload.mlFlowOutput
     ) {
       override def modelReport: Array[GenericModelReturn] =
         predictionPayload.modelReport

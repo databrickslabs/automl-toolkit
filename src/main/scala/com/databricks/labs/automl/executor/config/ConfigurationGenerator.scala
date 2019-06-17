@@ -754,10 +754,14 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   /**
-    *
-    * @param value
-    * @return
+    * Setter<br>
+    *   Selection for filter statistic to be used in Pearson Filtering.<br>
+    *     Available modes: "pvalue", "degreesFreedom", or "pearsonStat"
+    * @note Default: pearsonStat
+    * @param value String: one of available modes.
+    * @throws IllegalArgumentException if the value provided is not in available modes list.
     */
+  @throws(classOf[IllegalArgumentException])
   def setPearsonFilterStatistic(value: String): this.type = {
     validateMembership(
       value,
@@ -768,6 +772,15 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Setter<br>
+    * Controls which direction of correlation values to filter out.  Allowable modes: <br>
+    *   "greater" or "lesser"
+    * @note Default: greater
+    * @param value String: one of available modes
+    * @throws IllegalArgumentException if the value provided is not in available modes list.
+    */
+  @throws(classOf[IllegalArgumentException])
   def setPearsonFilterDirection(value: String): this.type = {
     validateMembership(
       value,
@@ -778,23 +791,66 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Setter <br>
+    *   Controls the Pearson manual filter value, if the PearsonFilterMode is set to "manual"<br>
+    *     @example with .setPearsonFilterMode("manual") and .setPearsonFilterDirection("greater") <br>
+    *              the removal of fields that have a pearson correlation coefficient result above this <br>
+    *              value will be dropped from modeling runs.
+    * @param value Double: A value that is used as a cut-off point to filter fields whose correlation statistic is
+    *              either above or below will be culled from the feature vector.
+    */
   def setPearsonFilterManualValue(value: Double): this.type = {
     _instanceConfig.featureEngineeringConfig.pearsonFilterManualValue = value
     this
   }
 
+  /**
+    * Setter <br>
+    *   Controls whether to use "auto" mode (using the PearsonAutoFilterNTile) or "manual" mode (using the <br>
+    *     PearsonFilterManualValue) to cull fields from the feature vector.
+    * @param value String: either "auto" or "manual"
+    * @note Default: "auto"
+    * @throws IllegalArgumentException if the value provided is not in available modes list (auto and manual)
+    */
+  @throws(classOf[IllegalArgumentException])
   def setPearsonFilterMode(value: String): this.type = {
     validateMembership(value, allowablePearsonFilterModes, "PearsonFilterMode")
     _instanceConfig.featureEngineeringConfig.pearsonFilterMode = value
     this
   }
 
+  /**
+    * Setter <br>
+    *   Provides the ntile threshold above or below which (depending on PearsonFilterDirection setting) fields will<br>
+    *     be removed, depending on the distribution of pearson statistics from all feature columns.
+    * @note WARNING - this feature is ONLY recommended to be used for exploratory development work.
+    * @note Default: 0.75 (Q3)
+    * @param value Double: In range of (0.0, 1.0)
+    * @throws IllegalArgumentException if the value provided is outside of the range of (0.0, 1.0)
+    */
+  @throws(classOf[IllegalArgumentException])
   def setPearsonAutoFilterNTile(value: Double): this.type = {
     zeroToOneValidation(value, "PearsonAutoFilterNTile")
     _instanceConfig.featureEngineeringConfig.pearsonAutoFilterNTile = value
     this
   }
 
+  /**
+    * Setter<br>
+    *   Covariance Cutoff for specifying the feature-to-feature correlation statistic lower cutoff boundary
+    * @example For feature columns A, B, and C, if A->B is 0.02, A->C is 0.1, B->C is 0.85, with a value set of 0.05,
+    *          <br> Column A would be removed from the feature vector for having a low value of the correlation
+    *          statistic.
+    * @param value Double: Threshold Cutoff Value
+    * @note Default: -0.99
+    * @note WARNING This setting is not recommended to be used in a production use case and is only potentially
+    *       useful for data exploration and experimentation.
+    * @note WARNING the lower threshold boundary for correlation is less frequently used.  Filtering of auto-correlated
+    *       features is done primarily through .setCovarianceCutoffHigh values lower than the default of 0.99
+    * @throws IllegalArgumentException if the value is <= -1.0
+    */
+  @throws(classOf[IllegalArgumentException])
   def setCovarianceCutoffLow(value: Double): this.type = {
     require(
       value > -1.0,
@@ -806,6 +862,19 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Setter<br>
+    *   Covariance Cutoff for specifying the feature-to-feature correlation statistic upper cutoff boundary
+    * @example For feature columns A, B, and C, if A<->B is 0.02, A<->C is 0.1, B<->C is 0.85, with a value set of 0.8,
+    *          <br> Column C would be removed from the feature vector for having a high value of the correlation
+    *          statistic.
+    * @param value Double: Threshold Cutoff Value
+    * @note Default: 0.99
+    * @note WARNING This setting is not recommended to be used in a production use case and is only potentially
+    *       useful for data exploration and experimentation.
+    * @throws IllegalArgumentException if the value is <= -1.0
+    */
+  @throws(classOf[IllegalArgumentException])
   def setCovarianceCutoffHigh(value: Double): this.type = {
     require(
       value < 1.0,
@@ -1292,6 +1361,22 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   /**
+    * Setter<br>
+    *   Allows for setting a series of custom mlflow logging tags to an experiment run (universal across all
+    *   iterations and models of the run) to be logged in mlflow as a custom tag key value pair
+    * @param value Array of Map[String -> AnyVal]
+    * @note The mapped values can be of types: Double, Float, Long, Int, Short, Byte, Boolean, or String
+    */
+  def setMlFlowCustomRunTags(value: Map[String, AnyVal]): this.type = {
+
+    val parsedValue =
+      value.map { case (k, v) => k -> v.asInstanceOf[String] }
+
+    _instanceConfig.loggingConfig.mlFlowCustomRunTags = parsedValue
+    this
+  }
+
+  /**
     * Getters
     */
   def getInstanceConfig: InstanceConfig = _instanceConfig
@@ -1490,7 +1575,8 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         mlFlowAPIToken = config.loggingConfig.mlFlowAPIToken,
         mlFlowModelSaveDirectory = config.loggingConfig.mlFlowModelSaveDirectory,
         mlFlowLoggingMode = config.loggingConfig.mlFlowLoggingMode,
-        mlFlowBestSuffix = config.loggingConfig.mlFlowBestSuffix
+        mlFlowBestSuffix = config.loggingConfig.mlFlowBestSuffix,
+        mlFlowCustomRunTags = config.loggingConfig.mlFlowCustomRunTags
       ),
       inferenceConfigSaveLocation =
         config.loggingConfig.inferenceConfigSaveLocation,
@@ -2245,6 +2331,11 @@ object ConfigurationGenerator extends ConfigurationDefaults {
             defaultMap("inferenceConfigSaveLocation")
           )
           .toString
+      )
+      .setMlFlowCustomRunTags(
+        config
+          .getOrElse("mlFlowCustomRunTags", defaultMap("mlFlowCustomRunTags"))
+          .asInstanceOf[Map[String, AnyVal]]
       )
 
     configObject.getInstanceConfig

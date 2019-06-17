@@ -488,6 +488,7 @@ trait ConfigurationDefaults {
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"
     val inferenceSaveLocation = "/inference/"
+    val mlFlowCustomRunTags = Map[String, String]()
 
     LoggingConfig(
       mlFlowLoggingFlag,
@@ -498,7 +499,8 @@ trait ConfigurationDefaults {
       mlFlowModelSaveDirectory,
       mlFlowLoggingMode,
       mlFlowBestSuffix,
-      inferenceSaveLocation
+      inferenceSaveLocation,
+      mlFlowCustomRunTags
     )
   }
 
@@ -617,7 +619,8 @@ trait ConfigurationDefaults {
       "mlFlowModelSaveDirectory" -> logDef.mlFlowModelSaveDirectory,
       "mlFlowLoggingMode" -> logDef.mlFlowLoggingMode,
       "mlFlowBestSuffix" -> logDef.mlFlowBestSuffix,
-      "inferenceConfigSaveLocation" -> logDef.inferenceConfigSaveLocation
+      "inferenceConfigSaveLocation" -> logDef.inferenceConfigSaveLocation,
+      "mlFlowCustomRunTags" -> logDef.mlFlowCustomRunTags
     )
   }
 
