@@ -192,6 +192,9 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _mlFlowBestSuffix: String = _mlFlowConfigDefaults.mlFlowBestSuffix
 
+  var _mlFlowCustomRunTags: Map[String, String] =
+    _mlFlowConfigDefaults.mlFlowCustomRunTags
+
   var _autoStoppingFlag: Boolean = _defaultAutoStoppingFlag
 
   var _autoStoppingScore: Double = _defaultAutoStoppingScore
@@ -958,6 +961,13 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def setMlFlowCustomRunTags(value: Map[String, String]): this.type = {
+    _mlFlowCustomRunTags = value
+    setMlFlowConfig()
+    setConfigs()
+    this
+  }
+
   private def setMlFlowConfig(): this.type = {
     _mlFlowConfig = MLFlowConfig(
       mlFlowTrackingURI = _mlFlowTrackingURI,
@@ -965,7 +975,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowAPIToken = _mlFlowAPIToken,
       mlFlowModelSaveDirectory = _mlFlowModelSaveDirectory,
       mlFlowLoggingMode = _mlFlowLoggingMode,
-      mlFlowBestSuffix = _mlFlowBestSuffix
+      mlFlowBestSuffix = _mlFlowBestSuffix,
+      mlFlowCustomRunTags = _mlFlowCustomRunTags
     )
     this
   }
@@ -1436,6 +1447,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getMlFlowLoggingMode: String = _mlFlowLoggingMode
 
   def getMlFlowBestSuffix: String = _mlFlowBestSuffix
+
+  def getMlFlowCustomRunTags: Map[String, String] = _mlFlowCustomRunTags
 
   def getMlFlowConfig: MLFlowConfig = _mlFlowConfig
 

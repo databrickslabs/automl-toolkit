@@ -13,18 +13,27 @@ trait Defaults {
     "XGBoost"
   )
 
-  final val trainSplitMethods: List[String] = List("random", "chronological", "stratifyReduce", "stratified",
-    "overSample", "underSample")
+  final val trainSplitMethods: List[String] = List(
+    "random",
+    "chronological",
+    "stratifyReduce",
+    "stratified",
+    "overSample",
+    "underSample"
+  )
 
-  final val _supportedFeatureImportanceCutoffTypes: List[String] = List("none", "value", "count")
+  final val _supportedFeatureImportanceCutoffTypes: List[String] =
+    List("none", "value", "count")
 
   final val _allowableEvolutionStrategies = List("batch", "continuous")
 
-  final val _allowableMlFlowLoggingModes = List("tuningOnly", "bestOnly", "full")
+  final val _allowableMlFlowLoggingModes =
+    List("tuningOnly", "bestOnly", "full")
 
   final val _allowableInitialGenerationModes = List("random", "permutations")
 
-  final val _allowableInitialGenerationIndexMixingModes = List("random", "linear")
+  final val _allowableInitialGenerationIndexMixingModes =
+    List("random", "linear")
 
   def _defaultModelingFamily: String = "RandomForest"
 
@@ -125,10 +134,8 @@ trait Defaults {
     autoFilterNTile = 0.75
   )
 
-  def _covarianceConfigDefaults = CovarianceConfig(
-    correlationCutoffLow = -0.99,
-    correlationCutoffHigh = 0.99
-  )
+  def _covarianceConfigDefaults =
+    CovarianceConfig(correlationCutoffLow = -0.99, correlationCutoffHigh = 0.99)
 
   def _scalingConfigDefaults = ScalingConfig(
     scalerType = "minMax",
@@ -206,29 +213,28 @@ trait Defaults {
     "stepSize" -> Tuple2(1E-4, 1.0)
   )
 
-  def _gbtDefaultStringBoundaries: Map[String, List[String]] = Map(
-    "impurity" -> List("gini", "entropy"),
-    "lossType" -> List("logistic")
-  )
+  def _gbtDefaultStringBoundaries: Map[String, List[String]] =
+    Map("impurity" -> List("gini", "entropy"), "lossType" -> List("logistic"))
 
-  def _linearRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map (
-    "elasticNetParams" -> Tuple2(0.0, 1.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
-    "regParam" -> Tuple2(0.0, 1.0),
-    "tolerance" -> Tuple2(1E-9, 1E-5)
-  )
-  def _linearRegressionDefaultStringBoundaries: Map[String, List[String]] = Map (
+  def _linearRegressionDefaultNumBoundaries: Map[String, (Double, Double)] =
+    Map(
+      "elasticNetParams" -> Tuple2(0.0, 1.0),
+      "maxIter" -> Tuple2(100.0, 10000.0),
+      "regParam" -> Tuple2(0.0, 1.0),
+      "tolerance" -> Tuple2(1E-9, 1E-5)
+    )
+  def _linearRegressionDefaultStringBoundaries: Map[String, List[String]] = Map(
     "loss" -> List("squaredError", "huber")
   )
-  def _logisticRegressionDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
-    "elasticNetParams" -> Tuple2(0.0, 1.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
-    "regParam" -> Tuple2(0.0, 1.0),
-    "tolerance" -> Tuple2(1E-9, 1E-5)
-  )
-  def _logisticRegressionDefaultStringBoundaries: Map[String, List[String]] = Map(
-    "" -> List("")
-  )
+  def _logisticRegressionDefaultNumBoundaries: Map[String, (Double, Double)] =
+    Map(
+      "elasticNetParams" -> Tuple2(0.0, 1.0),
+      "maxIter" -> Tuple2(100.0, 10000.0),
+      "regParam" -> Tuple2(0.0, 1.0),
+      "tolerance" -> Tuple2(1E-9, 1E-5)
+    )
+  def _logisticRegressionDefaultStringBoundaries: Map[String, List[String]] =
+    Map("" -> List(""))
   def _svmDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
@@ -246,7 +252,6 @@ trait Defaults {
     "smoothing" -> Tuple2(0.0, 1.0)
   )
 
-
   def _scoringDefaultClassifier = "f1"
   def _scoringOptimizationStrategyClassifier = "maximize"
   def _scoringDefaultRegressor = "rmse"
@@ -260,7 +265,8 @@ trait Defaults {
     mlFlowAPIToken = "default",
     mlFlowModelSaveDirectory = "s3://mlflow/experiments/",
     mlFlowLoggingMode = "full",
-    mlFlowBestSuffix = "_best"
+    mlFlowBestSuffix = "_best",
+    mlFlowCustomRunTags = Map[String, String]()
   )
 
   def _inferenceConfigSaveLocationDefault: String = "/models"
@@ -377,7 +383,7 @@ trait Defaults {
     dataReductionFactor = _defaultDataReductionFactor
   )
 
-  def _treeSplitDefaults =  MainConfig(
+  def _treeSplitDefaults = MainConfig(
     modelFamily = "Trees",
     labelCol = "label",
     featuresCol = "features",

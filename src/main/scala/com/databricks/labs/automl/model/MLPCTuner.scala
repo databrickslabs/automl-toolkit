@@ -1,7 +1,11 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
-import com.databricks.labs.automl.params.{Defaults, MLPCConfig, MLPCModelsWithResults}
+import com.databricks.labs.automl.params.{
+  Defaults,
+  MLPCConfig,
+  MLPCModelsWithResults
+}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
@@ -14,7 +18,10 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with Defaults {
+class MLPCTuner(df: DataFrame)
+    extends SparkSessionWrapper
+    with Evolution
+    with Defaults {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -26,7 +33,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
   private var _classificationMetrics = classificationMetrics
 
   private def calcFeatureInputSize: this.type = {
-    _featureInputSize = df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
+    _featureInputSize =
+      df.select(_featureCol).head()(0).asInstanceOf[DenseVector].size
     this
   }
 
@@ -36,15 +44,17 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
   }
 
   def setScoringMetric(value: String): this.type = {
-    require(classificationMetrics.contains(value),
-      s"Classification scoring metric $value is not a valid member of ${
-        invalidateSelection(value, classificationMetrics)
-      }")
+    require(
+      classificationMetrics.contains(value),
+      s"Classification scoring metric $value is not a valid member of ${invalidateSelection(value, classificationMetrics)}"
+    )
     _scoringMetric = value
     this
   }
 
-  def setMlpcNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+  def setMlpcNumericBoundaries(
+    value: Map[String, (Double, Double)]
+  ): this.type = {
     _mlpcNumericBoundaries = value
     this
   }
@@ -56,7 +66,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   def getScoringMetric: String = _scoringMetric
 
-  def getMlpcNumericBoundaries: Map[String, (Double, Double)] = _mlpcNumericBoundaries
+  def getMlpcNumericBoundaries: Map[String, (Double, Double)] =
+    _mlpcNumericBoundaries
 
   def getMlpcStringBoundaries: Map[String, List[String]] = _mlpcStringBoundaries
 
@@ -66,15 +77,20 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   def getClassDistinctCount: Int = _classDistinctCount
 
-  private def resetClassificationMetrics: List[String] = classificationMetricValidator(classificationAdjudicator(df),
-    classificationMetrics)
+  private def resetClassificationMetrics: List[String] =
+    classificationMetricValidator(
+      classificationAdjudicator(df),
+      classificationMetrics
+    )
 
   private def setClassificationMetrics(value: List[String]): this.type = {
     _classificationMetrics = value
     this
   }
 
-  private def configureModel(modelConfig: MLPCConfig): MultilayerPerceptronClassifier = {
+  private def configureModel(
+    modelConfig: MLPCConfig
+  ): MultilayerPerceptronClassifier = {
     new MultilayerPerceptronClassifier()
       .setLabelCol(_labelCol)
       .setFeaturesCol(_featureCol)
@@ -85,50 +101,64 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       .setTol(modelConfig.tolerance)
   }
 
-  private def returnBestHyperParameters(collection: ArrayBuffer[MLPCModelsWithResults]):
-  (MLPCConfig, Double) = {
+  private def returnBestHyperParameters(
+    collection: ArrayBuffer[MLPCModelsWithResults]
+  ): (MLPCConfig, Double) = {
 
     val bestEntry = _optimizationStrategy match {
-      case "minimize" => collection.result.toArray.sortWith(_.score < _.score).head
+      case "minimize" =>
+        collection.result.toArray.sortWith(_.score < _.score).head
       case _ => collection.result.toArray.sortWith(_.score > _.score).head
     }
     (bestEntry.modelHyperParams, bestEntry.score)
   }
 
-  private def evaluateStoppingScore(currentBestScore: Double, stopThreshold: Double): Boolean = {
+  private def evaluateStoppingScore(currentBestScore: Double,
+                                    stopThreshold: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (currentBestScore > stopThreshold) true else false
-      case _ => if (currentBestScore < stopThreshold) true else false
+      case _          => if (currentBestScore < stopThreshold) true else false
     }
   }
 
-  private def evaluateBestScore(runScore: Double, bestScore: Double): Boolean = {
+  private def evaluateBestScore(runScore: Double,
+                                bestScore: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (runScore < bestScore) true else false
-      case _ => if (runScore > bestScore) true else false
+      case _          => if (runScore > bestScore) true else false
     }
   }
 
-  private def sortAndReturnAll(results: ArrayBuffer[MLPCModelsWithResults]):
-  Array[MLPCModelsWithResults] = {
+  private def sortAndReturnAll(
+    results: ArrayBuffer[MLPCModelsWithResults]
+  ): Array[MLPCModelsWithResults] = {
     _optimizationStrategy match {
       case "minimize" => results.result.toArray.sortWith(_.score < _.score)
-      case _ => results.result.toArray.sortWith(_.score > _.score)
+      case _          => results.result.toArray.sortWith(_.score > _.score)
     }
   }
 
-  private def sortAndReturnBestScore(results: ArrayBuffer[MLPCModelsWithResults]): Double = {
+  private def sortAndReturnBestScore(
+    results: ArrayBuffer[MLPCModelsWithResults]
+  ): Double = {
     sortAndReturnAll(results).head.score
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[MLPCConfig] = {
+  private def generateThresholdedParams(
+    iterationCount: Int
+  ): Array[MLPCConfig] = {
 
     val iterations = new ArrayBuffer[MLPCConfig]
 
     var i = 0
     do {
-      val layers = generateLayerArray("layers", "hiddenLayerSizeAdjust",
-        _mlpcNumericBoundaries, _featureInputSize, _classDistinctCount)
+      val layers = generateLayerArray(
+        "layers",
+        "hiddenLayerSizeAdjust",
+        _mlpcNumericBoundaries,
+        _featureInputSize,
+        _classDistinctCount
+      )
       val maxIter = generateRandomInteger("maxIter", _mlpcNumericBoundaries)
       val solver = generateRandomString("solver", _mlpcStringBoundaries)
       val stepSize = generateRandomDouble("stepSize", _mlpcNumericBoundaries)
@@ -139,9 +169,12 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     iterations.toArray
   }
 
-  private def generateAndScoreMLPCModel(train: DataFrame, test: DataFrame,
-                                        modelConfig: MLPCConfig,
-                                        generation: Int = 1): MLPCModelsWithResults = {
+  private def generateAndScoreMLPCModel(
+    train: DataFrame,
+    test: DataFrame,
+    modelConfig: MLPCConfig,
+    generation: Int = 1
+  ): MLPCModelsWithResults = {
 
     val mlpcModel = configureModel(modelConfig)
     val builtModel = mlpcModel.fit(train)
@@ -152,11 +185,18 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
     }
 
-    MLPCModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
+    MLPCModelsWithResults(
+      modelConfig,
+      builtModel,
+      scoringMap(_scoringMetric),
+      scoringMap.toMap,
+      generation
+    )
 
   }
 
-  private def runBattery(battery: Array[MLPCConfig], generation: Int = 1): Array[MLPCModelsWithResults] = {
+  private def runBattery(battery: Array[MLPCConfig],
+                         generation: Int = 1): Array[MLPCModelsWithResults] = {
 
     val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
@@ -169,25 +209,26 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)
-    }%2.4f%%"
+    val currentStatus =
+      f"Starting Generation $generation \n\t\t Completion Status: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
-
       val runId = java.util.UUID.randomUUID()
 
-      println(s"Starting run $runId with Params: ${x.toString}")
+      println(
+        s"Starting run $runId with Params: ${convertMLPCConfigToHumanReadable(x, " ")}"
+      )
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[MLPCModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
+        val Array(train, test) =
+          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreMLPCModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
@@ -208,18 +249,24 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
       val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
 
-      val runAvg = MLPCModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
-        scoringMap.toMap, generation)
+      val runAvg = MLPCModelsWithResults(
+        x,
+        kFoldBuffer.result.head.model,
+        scores.sum / scores.length,
+        scoringMap.toMap,
+        generation
+      )
 
       results += runAvg
       modelCnt += 1
 
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+        s"\n\t using params: ${convertMLPCConfigToHumanReadable(x, "\n\t\t\t\t")} \n\t\tin $runTimeOfModel " +
+        s"seconds.  Total run time: $totalTimeOfBattery seconds"
 
-      val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)
-      }%2.4f%%"
+      val progressStatement =
+        f"\t\t Current modeling progress complete in family: " +
+          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
       println(runScoreStatement)
       println(progressStatement)
@@ -231,14 +278,33 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   }
 
-  private def irradiateGeneration(parents: Array[MLPCConfig], mutationCount: Int,
-                                  mutationAggression: Int, mutationMagnitude: Double): Array[MLPCConfig] = {
+  /**
+    * Private method for making stdout and logging of params much more readable, particularly for the array objects
+    * @param conf The configuration of the run (hyper parameters)
+    * @return A string representation that is readable.
+    */
+  private def convertMLPCConfigToHumanReadable(conf: MLPCConfig,
+                                               formatter: String): String = {
+    s"\n\t\t\tConfig: $formatter[layers] -> [${conf.layers.mkString(",")}]" +
+      s"$formatter[maxIter] -> [${conf.maxIter.toString}] $formatter[solver] -> [${conf.solver}]" +
+      s"$formatter[stepSize] -> [${conf.stepSize.toString}]$formatter[tolerance] -> [${conf.tolerance.toString}]"
+  }
+
+  private def irradiateGeneration(
+    parents: Array[MLPCConfig],
+    mutationCount: Int,
+    mutationAggression: Int,
+    mutationMagnitude: Double
+  ): Array[MLPCConfig] = {
 
     val mutationPayload = new ArrayBuffer[MLPCConfig]
     val totalConfigs = modelConfigLength[MLPCConfig]
-    val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
+    val indexMutation =
+      if (mutationAggression >= totalConfigs) totalConfigs - 1
+      else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
-    val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
+    val mutationIndeces =
+      generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
 
     for (i <- mutationCandidates.indices) {
 
@@ -247,20 +313,36 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       val mutationIndexIteration = mutationIndeces(i)
 
       mutationPayload += MLPCConfig(
-        if (mutationIndexIteration.contains(0)) geneMixing(randomParent.layers,
-          mutationIteration.layers, mutationMagnitude)
+        if (mutationIndexIteration.contains(0))
+          geneMixing(
+            randomParent.layers,
+            mutationIteration.layers,
+            mutationMagnitude
+          )
         else randomParent.layers,
-        if (mutationIndexIteration.contains(1)) geneMixing(randomParent.maxIter,
-          mutationIteration.maxIter, mutationMagnitude)
+        if (mutationIndexIteration.contains(1))
+          geneMixing(
+            randomParent.maxIter,
+            mutationIteration.maxIter,
+            mutationMagnitude
+          )
         else randomParent.maxIter,
-        if (mutationIndexIteration.contains(2)) geneMixing(randomParent.solver,
-          mutationIteration.solver)
+        if (mutationIndexIteration.contains(2))
+          geneMixing(randomParent.solver, mutationIteration.solver)
         else randomParent.solver,
-        if (mutationIndexIteration.contains(3)) geneMixing(randomParent.stepSize,
-          mutationIteration.stepSize, mutationMagnitude)
+        if (mutationIndexIteration.contains(3))
+          geneMixing(
+            randomParent.stepSize,
+            mutationIteration.stepSize,
+            mutationMagnitude
+          )
         else randomParent.stepSize,
-        if (mutationIndexIteration.contains(4)) geneMixing(randomParent.tolerance,
-          mutationIteration.tolerance, mutationMagnitude)
+        if (mutationIndexIteration.contains(4))
+          geneMixing(
+            randomParent.tolerance,
+            mutationIteration.tolerance,
+            mutationMagnitude
+          )
         else randomParent.tolerance
       )
     }
@@ -275,7 +357,9 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     calcFeatureInputSize
     calcClassDistinctCount
 
-    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
+    val taskSupport = new ForkJoinTaskSupport(
+      new ForkJoinPool(_continuousEvolutionParallelism)
+    )
 
     var runResults = new ArrayBuffer[MLPCModelsWithResults]
 
@@ -298,8 +382,12 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
           val genArray = new ArrayBuffer[MLPCConfig]
           val startingModelSeed = generateMLPCConfig(_modelSeed)
           genArray += startingModelSeed
-          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          genArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           ParHashSet(genArray.result.toArray: _*)
         } else {
           ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
@@ -311,8 +399,12 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
           .setPermutationCount(_initialGenerationPermutationCount)
           .setIndexMixingMode(_initialGenerationIndexMixingMode)
           .setArraySeed(_initialGenerationArraySeed)
-          .initialGenerationSeedMLPC(_mlpcNumericBoundaries, _mlpcStringBoundaries, _featureInputSize,
-            _classDistinctCount)
+          .initialGenerationSeedMLPC(
+            _mlpcNumericBoundaries,
+            _mlpcStringBoundaries,
+            _featureInputSize,
+            _classDistinctCount
+          )
         ParHashSet(startingPool: _*)
     }
 
@@ -333,28 +425,36 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
           runResults += run.head
           scoreHistory += run.head.score
 
-          val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+          val (bestConfig, currentBestScore) =
+            returnBestHyperParameters(runResults)
 
           bestScore = currentBestScore
 
           // Add a mutated version of the current best model to the ParHashSet
-          runSet += irradiateGeneration(Array(bestConfig), 1,
-            _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+          runSet += irradiateGeneration(
+            Array(bestConfig),
+            1,
+            _continuousEvolutionMutationAggressiveness,
+            _continuousEvolutionGeneticMixing
+          ).head
 
           // Evaluate whether the scores are staying static over the last configured rolling window.
           val currentWindowValues = scoreHistory.slice(
-            scoreHistory.length - _continuousEvolutionRollingImprovementCount, scoreHistory.length)
+            scoreHistory.length - _continuousEvolutionRollingImprovementCount,
+            scoreHistory.length
+          )
 
           // Check for static values
           val staticCheck = currentWindowValues.toSet.size
 
           // If there is more than one value, proceed with validation check on whether the model is improving over time.
           if (staticCheck > 1) {
-            val (early, later) = currentWindowValues.splitAt(scala.math.round(currentWindowValues.size / 2))
+            val (early, later) = currentWindowValues.splitAt(
+              scala.math.round(currentWindowValues.size / 2)
+            )
             if (later.sum / later.length < early.sum / early.length) {
               incrementalImprovementCount += 1
-            }
-            else {
+            } else {
               incrementalImprovementCount -= 1
             }
           } else {
@@ -371,14 +471,24 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
         } catch {
           case e: java.lang.NullPointerException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
           case f: java.lang.ArrayIndexOutOfBoundsException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
         }
       })
@@ -390,11 +500,15 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
   }
 
-  def generateIdealParents(results: Array[MLPCModelsWithResults]): Array[MLPCConfig] = {
+  def generateIdealParents(
+    results: Array[MLPCModelsWithResults]
+  ): Array[MLPCConfig] = {
     val bestParents = new ArrayBuffer[MLPCConfig]
-    results.take(_numberOfParentsToRetain).map(x => {
-      bestParents += x.modelHyperParams
-    })
+    results
+      .take(_numberOfParentsToRetain)
+      .map(x => {
+        bestParents += x.modelHyperParams
+      })
     bestParents.result.toArray
   }
 
@@ -403,8 +517,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     setClassificationMetrics(resetClassificationMetrics)
 
     // Set the parameter guides for layers / label counts (only set once)
-    calcFeatureInputSize
-    calcClassDistinctCount
+    this.calcFeatureInputSize
+    this.calcClassDistinctCount
 
     var generation = 1
     // Record of all generations results
@@ -419,11 +533,18 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
           val generativeArray = new ArrayBuffer[MLPCConfig]
           val startingModelSeed = generateMLPCConfig(_modelSeed)
           generativeArray += startingModelSeed
-          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          generativeArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           runBattery(generativeArray.result.toArray, generation)
         } else {
-          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+          runBattery(
+            generateThresholdedParams(_firstGenerationGenePool),
+            generation
+          )
         }
       case "permutations" =>
         val startingPool = new HyperParameterFullSearch()
@@ -432,8 +553,12 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
           .setPermutationCount(_initialGenerationPermutationCount)
           .setIndexMixingMode(_initialGenerationIndexMixingMode)
           .setArraySeed(_initialGenerationArraySeed)
-          .initialGenerationSeedMLPC(_mlpcNumericBoundaries, _mlpcStringBoundaries, _featureInputSize,
-            _classDistinctCount)
+          .initialGenerationSeedMLPC(
+            _mlpcNumericBoundaries,
+            _mlpcStringBoundaries,
+            this.getFeatureInputSize,
+            this.getClassDistinctCount
+          )
         runBattery(startingPool, generation)
     }
 
@@ -448,19 +573,25 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
       if (evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
         while (currentIteration <= _numberOfMutationGenerations &&
-          evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
+               evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
 
           val mutationAggressiveness = _generationalMutationStrategy match {
-            case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else
-              totalConfigs - (currentIteration + 1)
+            case "linear" =>
+              if (totalConfigs - (currentIteration + 1) < 1) 1
+              else
+                totalConfigs - (currentIteration + 1)
             case _ => _fixedMutationValue
           }
 
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-            mutationAggressiveness, _geneticMixing)
+          val evolution = irradiateGeneration(
+            generateIdealParents(currentState),
+            _numberOfMutationsPerGeneration,
+            mutationAggressiveness,
+            _geneticMixing
+          )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -468,7 +599,8 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
 
           val postRunBestScore = sortAndReturnBestScore(fossilRecord)
 
-          if (evaluateBestScore(postRunBestScore, currentBestResult)) currentBestResult = postRunBestScore
+          if (evaluateBestScore(postRunBestScore, currentBestResult))
+            currentBestResult = postRunBestScore
 
           currentIteration += 1
 
@@ -483,14 +615,19 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
       (1 to _numberOfMutationGenerations).map(i => {
 
         val mutationAggressiveness = _generationalMutationStrategy match {
-          case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
+          case "linear" =>
+            if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
           case _ => _fixedMutationValue
         }
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-          mutationAggressiveness, _geneticMixing)
+        val evolution = irradiateGeneration(
+          generateIdealParents(currentState),
+          _numberOfMutationsPerGeneration,
+          mutationAggressiveness,
+          _geneticMixing
+        )
 
         var evolve = runBattery(evolution, generation)
         generation += 1
@@ -507,21 +644,25 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     evolveParameters().head
   }
 
-  def generateScoredDataFrame(results: Array[MLPCModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(
+    results: Array[MLPCModelsWithResults]
+  ): DataFrame = {
 
     import spark.sqlContext.implicits._
 
     val scoreBuffer = new ListBuffer[(Int, Double)]
     results.map(x => scoreBuffer += ((x.generation, x.score)))
     val scored = scoreBuffer.result
-    spark.sparkContext.parallelize(scored)
-      .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
+    spark.sparkContext
+      .parallelize(scored)
+      .toDF("generation", "score")
+      .orderBy(col("generation").asc, col("score").asc)
   }
 
   def evolveWithScoringDF(): (Array[MLPCModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters()
+      case "batch"      => evolveParameters()
       case "continuous" => continuousEvolution()
     }
 
@@ -537,14 +678,14 @@ class MLPCTuner(df: DataFrame) extends SparkSessionWrapper with Evolution with D
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(paramsToTest: Array[MLPCConfig]):
-  (Array[MLPCModelsWithResults], DataFrame) = {
+  def postRunModeledHyperParams(
+    paramsToTest: Array[MLPCConfig]
+  ): (Array[MLPCModelsWithResults], DataFrame) = {
 
-    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+    val finalRunResults =
+      runBattery(paramsToTest, _numberOfMutationGenerations + 2)
 
     (finalRunResults, generateScoredDataFrame(finalRunResults))
   }
 
 }
-
-

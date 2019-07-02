@@ -1,7 +1,11 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
-import com.databricks.labs.automl.params.{Defaults, GBTConfig, GBTModelsWithResults}
+import com.databricks.labs.automl.params.{
+  Defaults,
+  GBTConfig,
+  GBTModelsWithResults
+}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.GBTClassifier
@@ -14,14 +18,20 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWrapper with Evolution with Defaults {
+class GBTreesTuner(df: DataFrame, modelSelection: String)
+    extends SparkSessionWrapper
+    with Evolution
+    with Defaults {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
   private var _scoringMetric = modelSelection match {
-    case "regressor" => "rmse"
+    case "regressor"  => "rmse"
     case "classifier" => "f1"
-    case _ => throw new UnsupportedOperationException(s"Model $modelSelection is not a supported modeling mode")
+    case _ =>
+      throw new UnsupportedOperationException(
+        s"Model $modelSelection is not a supported modeling mode"
+      )
   }
 
   private var _gbtNumericBoundaries = _gbtDefaultNumBoundaries
@@ -32,21 +42,28 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   def setScoringMetric(value: String): this.type = {
     modelSelection match {
-      case "regressor" => require(regressionMetrics.contains(value),
-        s"Regressor scoring metric '$value' is not a valid member of ${
-          invalidateSelection(value, regressionMetrics)
-        }")
-      case "classifier" => require(classificationMetrics.contains(value),
-        s"Regressor scoring metric '$value' is not a valid member of ${
-          invalidateSelection(value, classificationMetrics)
-        }")
-      case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
+      case "regressor" =>
+        require(
+          regressionMetrics.contains(value),
+          s"Regressor scoring metric '$value' is not a valid member of ${invalidateSelection(value, regressionMetrics)}"
+        )
+      case "classifier" =>
+        require(
+          classificationMetrics.contains(value),
+          s"Regressor scoring metric '$value' is not a valid member of ${invalidateSelection(value, classificationMetrics)}"
+        )
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Unsupported modelType $modelSelection"
+        )
     }
     this._scoringMetric = value
     this
   }
 
-  def setGBTNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+  def setGBTNumericBoundaries(
+    value: Map[String, (Double, Double)]
+  ): this.type = {
     _gbtNumericBoundaries = value
     this
   }
@@ -58,7 +75,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   def getScoringMetric: String = _scoringMetric
 
-  def getGBTNumericBoundaries: Map[String, (Double, Double)] = _gbtNumericBoundaries
+  def getGBTNumericBoundaries: Map[String, (Double, Double)] =
+    _gbtNumericBoundaries
 
   def getGBTStringBoundaries: Map[String, List[String]] = _gbtStringBoundaries
 
@@ -68,7 +86,10 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   private def resetClassificationMetrics: List[String] = modelSelection match {
     case "classifier" =>
-      classificationMetricValidator(classificationAdjudicator(df), classificationMetrics)
+      classificationMetricValidator(
+        classificationAdjudicator(df),
+        classificationMetrics
+      )
     case _ => classificationMetrics
   }
 
@@ -106,65 +127,81 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
           .setMinInfoGain(modelConfig.minInfoGain)
           .setMinInstancesPerNode(modelConfig.minInstancesPerNode)
           .setStepSize(modelConfig.stepSize)
-      case _ => throw new UnsupportedOperationException(s"Unsupported modelType $modelSelection")
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Unsupported modelType $modelSelection"
+        )
     }
     builtModel
   }
 
-  override def generateRandomString(param: String, boundaryMap: Map[String, List[String]]): String = {
+  override def generateRandomString(
+    param: String,
+    boundaryMap: Map[String, List[String]]
+  ): String = {
 
     val stringListing = param match {
-      case "impurity" => modelSelection match {
-        case "regressor" => List("variance")
-        case _ => boundaryMap(param)
-      }
-      case "lossType" => modelSelection match {
-        case "regressor" => List("squared", "absolute")
-        case _ => boundaryMap(param)
-      }
+      case "impurity" =>
+        modelSelection match {
+          case "regressor" => List("variance")
+          case _           => boundaryMap(param)
+        }
+      case "lossType" =>
+        modelSelection match {
+          case "regressor" => List("squared", "absolute")
+          case _           => boundaryMap(param)
+        }
       case _ => boundaryMap(param)
     }
     _randomizer.shuffle(stringListing).head
   }
 
-
-  private def returnBestHyperParameters(collection: ArrayBuffer[GBTModelsWithResults]):
-  (GBTConfig, Double) = {
+  private def returnBestHyperParameters(
+    collection: ArrayBuffer[GBTModelsWithResults]
+  ): (GBTConfig, Double) = {
 
     val bestEntry = _optimizationStrategy match {
-      case "minimize" => collection.result.toArray.sortWith(_.score < _.score).head
+      case "minimize" =>
+        collection.result.toArray.sortWith(_.score < _.score).head
       case _ => collection.result.toArray.sortWith(_.score > _.score).head
     }
     (bestEntry.modelHyperParams, bestEntry.score)
   }
 
-  private def evaluateStoppingScore(currentBestScore: Double, stopThreshold: Double): Boolean = {
+  private def evaluateStoppingScore(currentBestScore: Double,
+                                    stopThreshold: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (currentBestScore > stopThreshold) true else false
-      case _ => if (currentBestScore < stopThreshold) true else false
+      case _          => if (currentBestScore < stopThreshold) true else false
     }
   }
 
-  private def evaluateBestScore(runScore: Double, bestScore: Double): Boolean = {
+  private def evaluateBestScore(runScore: Double,
+                                bestScore: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (runScore < bestScore) true else false
-      case _ => if (runScore > bestScore) true else false
+      case _          => if (runScore > bestScore) true else false
     }
   }
 
-  private def sortAndReturnAll(results: ArrayBuffer[GBTModelsWithResults]):
-  Array[GBTModelsWithResults] = {
+  private def sortAndReturnAll(
+    results: ArrayBuffer[GBTModelsWithResults]
+  ): Array[GBTModelsWithResults] = {
     _optimizationStrategy match {
       case "minimize" => results.result.toArray.sortWith(_.score < _.score)
-      case _ => results.result.toArray.sortWith(_.score > _.score)
+      case _          => results.result.toArray.sortWith(_.score > _.score)
     }
   }
 
-  private def sortAndReturnBestScore(results: ArrayBuffer[GBTModelsWithResults]): Double = {
+  private def sortAndReturnBestScore(
+    results: ArrayBuffer[GBTModelsWithResults]
+  ): Double = {
     sortAndReturnAll(results).head.score
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[GBTConfig] = {
+  private def generateThresholdedParams(
+    iterationCount: Int
+  ): Array[GBTConfig] = {
 
     val iterations = new ArrayBuffer[GBTConfig]
 
@@ -175,20 +212,33 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val maxBins = generateRandomInteger("maxBins", _gbtNumericBoundaries)
       val maxDepth = generateRandomInteger("maxDepth", _gbtNumericBoundaries)
       val maxIter = generateRandomInteger("maxIter", _gbtNumericBoundaries)
-      val minInfoGain = generateRandomDouble("minInfoGain", _gbtNumericBoundaries)
-      val minInstancesPerNode = generateRandomInteger("minInstancesPerNode", _gbtNumericBoundaries)
+      val minInfoGain =
+        generateRandomDouble("minInfoGain", _gbtNumericBoundaries)
+      val minInstancesPerNode =
+        generateRandomInteger("minInstancesPerNode", _gbtNumericBoundaries)
       val stepSize = generateRandomDouble("stepSize", _gbtNumericBoundaries)
-      iterations += GBTConfig(impurity, lossType, maxBins, maxDepth, maxIter, minInfoGain, minInstancesPerNode,
-        stepSize)
+      iterations += GBTConfig(
+        impurity,
+        lossType,
+        maxBins,
+        maxDepth,
+        maxIter,
+        minInfoGain,
+        minInstancesPerNode,
+        stepSize
+      )
       i += 1
     } while (i < iterationCount)
 
     iterations.toArray
   }
 
-  private def generateAndScoreGBTModel(train: DataFrame, test: DataFrame,
-                                       modelConfig: GBTConfig,
-                                       generation: Int = 1): GBTModelsWithResults = {
+  private def generateAndScoreGBTModel(
+    train: DataFrame,
+    test: DataFrame,
+    modelConfig: GBTConfig,
+    generation: Int = 1
+  ): GBTModelsWithResults = {
 
     val gbtModel = modelDecider(modelConfig)
 
@@ -209,10 +259,17 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
         }
     }
 
-    GBTModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap, generation)
+    GBTModelsWithResults(
+      modelConfig,
+      builtModel,
+      scoringMap(_scoringMetric),
+      scoringMap.toMap,
+      generation
+    )
   }
 
-  private def runBattery(battery: Array[GBTConfig], generation: Int = 1): Array[GBTModelsWithResults] = {
+  private def runBattery(battery: Array[GBTConfig],
+                         generation: Int = 1): Array[GBTModelsWithResults] = {
 
     val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
@@ -225,25 +282,26 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)
-    }%2.4f%%"
+    val currentStatus =
+      f"Starting Generation $generation \n\t\t Completion Status: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
-
       val runId = java.util.UUID.randomUUID()
 
-      println(s"Starting run $runId with Params: ${x.toString}")
+      println(
+        s"Starting run $runId with Params: ${convertGBTConfigToHumanReadable(x, " ")}"
+      )
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
+        val Array(train, test) =
+          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreGBTModel(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
@@ -265,7 +323,10 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
             kFoldBuffer.map(x => metricScores += x.evalMetrics(a))
             scoringMap(a) = metricScores.sum / metricScores.length
           }
-        case _ => throw new UnsupportedOperationException(s"$modelSelection is not a supported model type.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"$modelSelection is not a supported model type."
+          )
       }
 
       val completionTimeStamp = System.currentTimeMillis / 1000
@@ -274,18 +335,24 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
       val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
 
-      val runAvg = GBTModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
-        scoringMap.toMap, generation)
+      val runAvg = GBTModelsWithResults(
+        x,
+        kFoldBuffer.result.head.model,
+        scores.sum / scores.length,
+        scoringMap.toMap,
+        generation
+      )
 
       results += runAvg
       modelCnt += 1
 
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+        s"\n\t using params: ${convertGBTConfigToHumanReadable(x, "\n\t\t\t\t")} " +
+        s"\n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
 
-      val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)
-      }%2.4f%%"
+      val progressStatement =
+        f"\t\t Current modeling progress complete in family: " +
+          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
       println(runScoreStatement)
       println(progressStatement)
@@ -295,16 +362,39 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     sortAndReturnAll(results)
   }
 
+  /**
+    * Private method for making stdout and logging of params much more readable, particularly for the array objects
+    *
+    * @param conf The configuration of the run (hyper parameters)
+    * @return A string representation that is readable.
+    */
+  private def convertGBTConfigToHumanReadable(conf: GBTConfig,
+                                              formatter: String): String = {
+    s"\n\t\t\tConfig: $formatter[impurity] -> [${conf.impurity}]" +
+      s"$formatter[lossType] -> [${conf.lossType}]" +
+      s"$formatter[maxBins] -> [${conf.maxBins.toString}]" +
+      s"$formatter[maxDepth] -> [${conf.maxDepth.toString}]" +
+      s"$formatter[maxIter] -> [${conf.maxIter.toString}]" +
+      s"$formatter[minInfoGain] -> [${conf.minInfoGain.toString}]" +
+      s"$formatter[minInstancesPerNode] -> [${conf.minInstancesPerNode.toString}]" +
+      s"$formatter[stepSize] -> [${conf.stepSize.toString}]"
+  }
 
-  private def irradiateGeneration(parents: Array[GBTConfig], mutationCount: Int,
-                                  mutationAggression: Int, mutationMagnitude: Double): Array[GBTConfig] = {
+  private def irradiateGeneration(
+    parents: Array[GBTConfig],
+    mutationCount: Int,
+    mutationAggression: Int,
+    mutationMagnitude: Double
+  ): Array[GBTConfig] = {
 
     val mutationPayload = new ArrayBuffer[GBTConfig]
     val totalConfigs = modelConfigLength[GBTConfig]
-    val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
+    val indexMutation =
+      if (mutationAggression >= totalConfigs) totalConfigs - 1
+      else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
-    val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation,
-      mutationCount)
+    val mutationIndeces =
+      generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
 
     for (i <- mutationCandidates.indices) {
 
@@ -313,29 +403,53 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       val mutationIndexIteration = mutationIndeces(i)
 
       mutationPayload += GBTConfig(
-        if (mutationIndexIteration.contains(0)) geneMixing(
-          randomParent.impurity, mutationIteration.impurity)
+        if (mutationIndexIteration.contains(0))
+          geneMixing(randomParent.impurity, mutationIteration.impurity)
         else randomParent.impurity,
-        if (mutationIndexIteration.contains(1)) geneMixing(
-          randomParent.lossType, mutationIteration.lossType)
+        if (mutationIndexIteration.contains(1))
+          geneMixing(randomParent.lossType, mutationIteration.lossType)
         else randomParent.lossType,
-        if (mutationIndexIteration.contains(2)) geneMixing(
-          randomParent.maxBins, mutationIteration.maxBins, mutationMagnitude)
+        if (mutationIndexIteration.contains(2))
+          geneMixing(
+            randomParent.maxBins,
+            mutationIteration.maxBins,
+            mutationMagnitude
+          )
         else randomParent.maxBins,
-        if (mutationIndexIteration.contains(3)) geneMixing(
-          randomParent.maxDepth, mutationIteration.maxDepth, mutationMagnitude)
+        if (mutationIndexIteration.contains(3))
+          geneMixing(
+            randomParent.maxDepth,
+            mutationIteration.maxDepth,
+            mutationMagnitude
+          )
         else randomParent.maxDepth,
-        if (mutationIndexIteration.contains(4)) geneMixing(
-          randomParent.maxIter, mutationIteration.maxIter, mutationMagnitude)
+        if (mutationIndexIteration.contains(4))
+          geneMixing(
+            randomParent.maxIter,
+            mutationIteration.maxIter,
+            mutationMagnitude
+          )
         else randomParent.maxIter,
-        if (mutationIndexIteration.contains(5)) geneMixing(
-          randomParent.minInfoGain, mutationIteration.minInfoGain, mutationMagnitude)
+        if (mutationIndexIteration.contains(5))
+          geneMixing(
+            randomParent.minInfoGain,
+            mutationIteration.minInfoGain,
+            mutationMagnitude
+          )
         else randomParent.minInfoGain,
-        if (mutationIndexIteration.contains(6)) geneMixing(
-          randomParent.minInstancesPerNode, mutationIteration.minInstancesPerNode, mutationMagnitude)
+        if (mutationIndexIteration.contains(6))
+          geneMixing(
+            randomParent.minInstancesPerNode,
+            mutationIteration.minInstancesPerNode,
+            mutationMagnitude
+          )
         else randomParent.minInstancesPerNode,
-        if (mutationIndexIteration.contains(7)) geneMixing(
-          randomParent.stepSize, mutationIteration.stepSize, mutationMagnitude)
+        if (mutationIndexIteration.contains(7))
+          geneMixing(
+            randomParent.stepSize,
+            mutationIteration.stepSize,
+            mutationMagnitude
+          )
         else randomParent.stepSize
       )
     }
@@ -346,7 +460,9 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
     setClassificationMetrics(resetClassificationMetrics)
 
-    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
+    val taskSupport = new ForkJoinTaskSupport(
+      new ForkJoinPool(_continuousEvolutionParallelism)
+    )
 
     var runResults = new ArrayBuffer[GBTModelsWithResults]
 
@@ -371,8 +487,12 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
           val genArray = new ArrayBuffer[GBTConfig]
           val startingModelSeed = generateGBTConfig(_modelSeed)
           genArray += startingModelSeed
-          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          genArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           ParHashSet(genArray.result.toArray: _*)
         } else {
           ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
@@ -405,28 +525,36 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
           runResults += run.head
           scoreHistory += run.head.score
 
-          val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+          val (bestConfig, currentBestScore) =
+            returnBestHyperParameters(runResults)
 
           bestScore = currentBestScore
 
           // Add a mutated version of the current best model to the ParHashSet
-          runSet += irradiateGeneration(Array(bestConfig), 1,
-            _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+          runSet += irradiateGeneration(
+            Array(bestConfig),
+            1,
+            _continuousEvolutionMutationAggressiveness,
+            _continuousEvolutionGeneticMixing
+          ).head
 
           // Evaluate whether the scores are staying static over the last configured rolling window.
           val currentWindowValues = scoreHistory.slice(
-            scoreHistory.length - _continuousEvolutionRollingImprovementCount, scoreHistory.length)
+            scoreHistory.length - _continuousEvolutionRollingImprovementCount,
+            scoreHistory.length
+          )
 
           // Check for static values
           val staticCheck = currentWindowValues.toSet.size
 
           // If there is more than one value, proceed with validation check on whether the model is improving over time.
           if (staticCheck > 1) {
-            val (early, later) = currentWindowValues.splitAt(scala.math.round(currentWindowValues.size / 2))
+            val (early, later) = currentWindowValues.splitAt(
+              scala.math.round(currentWindowValues.size / 2)
+            )
             if (later.sum / later.length < early.sum / early.length) {
               incrementalImprovementCount += 1
-            }
-            else {
+            } else {
               incrementalImprovementCount -= 1
             }
           } else {
@@ -443,14 +571,24 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
         } catch {
           case e: java.lang.NullPointerException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
           case f: java.lang.ArrayIndexOutOfBoundsException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
         }
       })
@@ -462,11 +600,15 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
   }
 
-  def generateIdealParents(results: Array[GBTModelsWithResults]): Array[GBTConfig] = {
+  def generateIdealParents(
+    results: Array[GBTModelsWithResults]
+  ): Array[GBTConfig] = {
     val bestParents = new ArrayBuffer[GBTConfig]
-    results.take(_numberOfParentsToRetain).map(x => {
-      bestParents += x.modelHyperParams
-    })
+    results
+      .take(_numberOfParentsToRetain)
+      .map(x => {
+        bestParents += x.modelHyperParams
+      })
     bestParents.result.toArray
   }
 
@@ -487,11 +629,18 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
           val generativeArray = new ArrayBuffer[GBTConfig]
           val startingModelSeed = generateGBTConfig(_modelSeed)
           generativeArray += startingModelSeed
-          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          generativeArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           runBattery(generativeArray.result.toArray, generation)
         } else {
-          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+          runBattery(
+            generateThresholdedParams(_firstGenerationGenePool),
+            generation
+          )
         }
       case "permutations" =>
         val startingPool = new HyperParameterFullSearch()
@@ -515,19 +664,25 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
       if (evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
         while (currentIteration <= _numberOfMutationGenerations &&
-          evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
+               evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
 
           val mutationAggressiveness = _generationalMutationStrategy match {
-            case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else
-              totalConfigs - (currentIteration + 1)
+            case "linear" =>
+              if (totalConfigs - (currentIteration + 1) < 1) 1
+              else
+                totalConfigs - (currentIteration + 1)
             case _ => _fixedMutationValue
           }
 
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-            mutationAggressiveness, _geneticMixing)
+          val evolution = irradiateGeneration(
+            generateIdealParents(currentState),
+            _numberOfMutationsPerGeneration,
+            mutationAggressiveness,
+            _geneticMixing
+          )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -535,7 +690,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
 
           val postRunBestScore = sortAndReturnBestScore(fossilRecord)
 
-          if (evaluateBestScore(postRunBestScore, currentBestResult)) currentBestResult = postRunBestScore
+          if (evaluateBestScore(postRunBestScore, currentBestResult))
+            currentBestResult = postRunBestScore
 
           currentIteration += 1
 
@@ -550,14 +706,19 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
       (1 to _numberOfMutationGenerations).map(i => {
 
         val mutationAggressiveness = _generationalMutationStrategy match {
-          case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
+          case "linear" =>
+            if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
           case _ => _fixedMutationValue
         }
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-          mutationAggressiveness, _geneticMixing)
+        val evolution = irradiateGeneration(
+          generateIdealParents(currentState),
+          _numberOfMutationsPerGeneration,
+          mutationAggressiveness,
+          _geneticMixing
+        )
 
         var evolve = runBattery(evolution, generation)
         generation += 1
@@ -574,21 +735,25 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     evolveParameters().head
   }
 
-  def generateScoredDataFrame(results: Array[GBTModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(
+    results: Array[GBTModelsWithResults]
+  ): DataFrame = {
 
     import spark.sqlContext.implicits._
 
     val scoreBuffer = new ListBuffer[(Int, Double)]
     results.map(x => scoreBuffer += ((x.generation, x.score)))
     val scored = scoreBuffer.result
-    spark.sparkContext.parallelize(scored)
-      .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
+    spark.sparkContext
+      .parallelize(scored)
+      .toDF("generation", "score")
+      .orderBy(col("generation").asc, col("score").asc)
   }
 
   def evolveWithScoringDF(): (Array[GBTModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters()
+      case "batch"      => evolveParameters()
       case "continuous" => continuousEvolution()
     }
 
@@ -604,9 +769,12 @@ class GBTreesTuner(df: DataFrame, modelSelection: String) extends SparkSessionWr
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(paramsToTest: Array[GBTConfig]): (Array[GBTModelsWithResults], DataFrame) = {
+  def postRunModeledHyperParams(
+    paramsToTest: Array[GBTConfig]
+  ): (Array[GBTModelsWithResults], DataFrame) = {
 
-    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+    val finalRunResults =
+      runBattery(paramsToTest, _numberOfMutationGenerations + 2)
 
     (finalRunResults, generateScoredDataFrame(finalRunResults))
   }

@@ -1,7 +1,11 @@
 package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.inference.{InferenceConfig, NaFillConfig}
-import com.databricks.labs.automl.params.{DataGeneration, DataPrepReturn, OutlierFilteringReturn}
+import com.databricks.labs.automl.params.{
+  DataGeneration,
+  DataPrepReturn,
+  OutlierFilteringReturn
+}
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize._
 import com.databricks.labs.automl.utils.AutomationTools
@@ -14,7 +18,6 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   //    TODO: parallelism config for non genetic parallel control should be added
   private val logger: Logger = Logger.getLogger(this.getClass)
-
 
   private def logConfig(): Unit = {
 
@@ -35,7 +38,9 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
-  private def vectorPipeline(data: DataFrame): (DataFrame, Array[String], Array[String]) = {
+  private def vectorPipeline(
+    data: DataFrame
+  ): (DataFrame, Array[String], Array[String]) = {
 
     // Creates the feature vector and returns the fields that go into the vector
 
@@ -47,8 +52,11 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
-  private def oneHotEncodeVector(data: DataFrame, featureColumns: Array[String], totalFields: Array[String]):
-  (DataFrame, Array[String], Array[String]) = {
+  private def oneHotEncodeVector(
+    data: DataFrame,
+    featureColumns: Array[String],
+    totalFields: Array[String]
+  ): (DataFrame, Array[String], Array[String]) = {
 
     new FeaturePipeline(data)
       .setLabelCol(_mainConfig.labelCol)
@@ -64,17 +72,24 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val naConfig = new DataSanitizer(data)
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
-      .setModelSelectionDistinctThreshold(_mainConfig.fillConfig.modelSelectionDistinctThreshold)
+      .setModelSelectionDistinctThreshold(
+        _mainConfig.fillConfig.modelSelectionDistinctThreshold
+      )
       .setNumericFillStat(_mainConfig.fillConfig.numericFillStat)
       .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setFieldsToIgnoreInVector(_mainConfig.fieldsToIgnoreInVector)
 
-    val (naFilledDataFrame, fillMap, detectedModelType) = if (_mainConfig.naFillFlag) {
-      naConfig.generateCleanData()
-    } else {
-      (data, NaFillConfig(Map("" -> ""), Map("" -> 0.0)), naConfig.decideModel())
-    }
+    val (naFilledDataFrame, fillMap, detectedModelType) =
+      if (_mainConfig.naFillFlag) {
+        naConfig.generateCleanData()
+      } else {
+        (
+          data,
+          NaFillConfig(Map("" -> ""), Map("" -> 0.0)),
+          naConfig.decideModel()
+        )
+      }
 
     val naLog: String = if (_mainConfig.naFillFlag) {
       s"NA values filled on Dataframe. Detected Model Type: $detectedModelType"
@@ -98,7 +113,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
 
-    val (varianceFilteredData, removedColumns) = varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
+    val (varianceFilteredData, removedColumns) =
+      varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
 
     val varianceFilterLog = if (removedColumns.length == 0) {
       "Zero Variance fields have been removed from the data."
@@ -123,13 +139,18 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setUpperFilterNTile(_mainConfig.outlierConfig.upperFilterNTile)
       .setFilterPrecision(_mainConfig.outlierConfig.filterPrecision)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
-      .setContinuousDataThreshold(_mainConfig.outlierConfig.continuousDataThreshold)
+      .setContinuousDataThreshold(
+        _mainConfig.outlierConfig.continuousDataThreshold
+      )
 
-    val (outlierCleanedData, outlierRemovedData, filteringMap) = outlierFiltering.filterContinuousOutliers(
-      _mainConfig.fieldsToIgnoreInVector, _mainConfig.outlierConfig.fieldsToIgnore
-    )
+    val (outlierCleanedData, outlierRemovedData, filteringMap) =
+      outlierFiltering.filterContinuousOutliers(
+        _mainConfig.fieldsToIgnoreInVector,
+        _mainConfig.outlierConfig.fieldsToIgnore
+      )
 
-    val outlierRemovalInfo = s"Removed outlier data.  Total rows removed = ${outlierRemovedData.count()}"
+    val outlierRemovalInfo =
+      s"Removed outlier data.  Total rows removed = ${outlierRemovedData.count()}"
 
     logger.log(Level.INFO, outlierRemovalInfo)
     println(outlierRemovalInfo)
@@ -138,19 +159,26 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
-  private def covarianceFilter(data: DataFrame, fields: Array[String]): DataPrepReturn = {
+  private def covarianceFilter(data: DataFrame,
+                               fields: Array[String]): DataPrepReturn = {
 
     // Output has no feature vector
 
     val covarianceFilteredData = new FeatureCorrelationDetection(data, fields)
       .setLabelCol(_mainConfig.labelCol)
-      .setCorrelationCutoffLow(_mainConfig.covarianceConfig.correlationCutoffLow)
-      .setCorrelationCutoffHigh(_mainConfig.covarianceConfig.correlationCutoffHigh)
+      .setCorrelationCutoffLow(
+        _mainConfig.covarianceConfig.correlationCutoffLow
+      )
+      .setCorrelationCutoffHigh(
+        _mainConfig.covarianceConfig.correlationCutoffHigh
+      )
       .filterFeatureCorrelation()
 
-    val removedFields = fieldRemovalCompare(fields, covarianceFilteredData.schema.fieldNames)
+    val removedFields =
+      fieldRemovalCompare(fields, covarianceFilteredData.schema.fieldNames)
 
-    val covarianceFilterLog = s"Covariance Filtering completed.\n  Removed fields: ${removedFields.mkString(", ")}"
+    val covarianceFilterLog =
+      s"Covariance Filtering completed.\n  Removed fields: ${removedFields.mkString(", ")}"
 
     logger.log(Level.INFO, covarianceFilterLog)
     println(covarianceFilterLog)
@@ -159,7 +187,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
   }
 
-  private def pearsonFilter(data: DataFrame, fields: Array[String]): DataPrepReturn = {
+  private def pearsonFilter(data: DataFrame,
+                            fields: Array[String]): DataPrepReturn = {
 
     // Requires a Dataframe that has a feature vector field.  Output has no feature vector.
 
@@ -173,9 +202,11 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setAutoFilterNTile(_mainConfig.pearsonConfig.autoFilterNTile)
       .filterFields(_mainConfig.fieldsToIgnoreInVector)
 
-    val removedFields = fieldRemovalCompare(fields, pearsonFiltering.schema.fieldNames)
+    val removedFields =
+      fieldRemovalCompare(fields, pearsonFiltering.schema.fieldNames)
 
-    val pearsonFilterLog = s"Pearson Filtering completed.\n Removed fields: ${removedFields.mkString(", ")}"
+    val pearsonFilterLog =
+      s"Pearson Filtering completed.\n Removed fields: ${removedFields.mkString(", ")}"
 
     logger.log(Level.INFO, pearsonFiltering)
     println(pearsonFilterLog)
@@ -193,12 +224,17 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setScalerType(_mainConfig.scalingConfig.scalerType)
       .setScalerMin(_mainConfig.scalingConfig.scalerMin)
       .setScalerMax(_mainConfig.scalingConfig.scalerMax)
-      .setStandardScalerMeanMode(_mainConfig.scalingConfig.standardScalerMeanFlag)
-      .setStandardScalerStdDevMode(_mainConfig.scalingConfig.standardScalerStdDevFlag)
+      .setStandardScalerMeanMode(
+        _mainConfig.scalingConfig.standardScalerMeanFlag
+      )
+      .setStandardScalerStdDevMode(
+        _mainConfig.scalingConfig.standardScalerStdDevFlag
+      )
       .setPNorm(_mainConfig.scalingConfig.pNorm)
       .scaleFeatures()
 
-    val scaleLog = s"Scaling of type '${_mainConfig.scalingConfig.scalerType}' completed."
+    val scaleLog =
+      s"Scaling of type '${_mainConfig.scalingConfig.scalerType}' completed."
 
     logger.log(Level.INFO, scaleLog)
     println(scaleLog)
@@ -215,7 +251,9 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val includeFieldsFinalData = _mainConfig.fieldsToIgnoreInVector
 
-    println(s"Fields Set To Ignore: ${_mainConfig.fieldsToIgnoreInVector.mkString(", ")}")
+    println(
+      s"Fields Set To Ignore: ${_mainConfig.fieldsToIgnoreInVector.mkString(", ")}"
+    )
 
     val cacheLevel = StorageLevel.MEMORY_AND_DISK
     val unpersistBlock = true
@@ -237,7 +275,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
 
     // Record the Inference Settings for DataConfig
-    val inferenceDataConfig = recordInferenceDataConfig(_mainConfig, selectFields)
+    val inferenceDataConfig =
+      recordInferenceDataConfig(_mainConfig, selectFields)
     InferenceConfig.setInferenceDataConfig(inferenceDataConfig)
 
     logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
@@ -245,10 +284,15 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val entryPointDataRestrict = entryPointDf.select(selectFields map col: _*)
 
     // this ignores the fieldsToIgnore and reparses the date and time fields.
-    val (dataStage1, fillMap, detectedModelType) = fillNA(entryPointDataRestrict)
+    val (dataStage1, fillMap, detectedModelType) = fillNA(
+      entryPointDataRestrict
+    )
 
     // Record the Inference Settings for NaFillConfig mappings
-    InferenceConfig.setInferenceNaFillConfig(fillMap.categoricalColumns, fillMap.numericColumns)
+    InferenceConfig.setInferenceNaFillConfig(
+      fillMap.categoricalColumns,
+      fillMap.numericColumns
+    )
 
     // uncache the main DataFrame, force the GC
     val (persistDataStage1, dataStage1RowCount) =
@@ -268,15 +312,21 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     logger.log(Level.DEBUG, printSchema(selectFields, "stage1_full").toString)
 
     // Variance Filtering
-    val dataStage2 = if (_mainConfig.varianceFilterFlag) varianceFilter(persistDataStage1)
-    else DataPrepReturn(persistDataStage1, Array.empty[String])
+    val dataStage2 =
+      if (_mainConfig.varianceFilterFlag) varianceFilter(persistDataStage1)
+      else DataPrepReturn(persistDataStage1, Array.empty[String])
 
     // Record the Inference Settings for Variance Filtering
     InferenceConfig.setInferenceVarianceFilterConfig(dataStage2.fieldListing)
 
     val (persistDataStage2, dataStage2RowCount) =
       if (_mainConfig.dataPrepCachingFlag && _mainConfig.varianceFilterFlag) {
-        dataPersist(persistDataStage1, dataStage2.outputData, cacheLevel, unpersistBlock)
+        dataPersist(
+          persistDataStage1,
+          dataStage2.outputData,
+          cacheLevel,
+          unpersistBlock
+        )
       } else {
         (dataStage2.outputData, "no count when data prep caching is disabled")
       }
@@ -287,15 +337,28 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     }
 
     //DEBUG
-    logger.log(Level.DEBUG, printSchema(dataStage2.outputData, "stage2").toString)
+    logger.log(
+      Level.DEBUG,
+      printSchema(dataStage2.outputData, "stage2").toString
+    )
 
     // Outlier Filtering
-    val dataStage3 = if (_mainConfig.outlierFilterFlag) outlierFilter(persistDataStage2)
-    else OutlierFilteringReturn(persistDataStage2, Map.empty[String, (Double, String)])
+    val dataStage3 =
+      if (_mainConfig.outlierFilterFlag) outlierFilter(persistDataStage2)
+      else
+        OutlierFilteringReturn(
+          persistDataStage2,
+          Map.empty[String, (Double, String)]
+        )
 
     val (persistDataStage3, dataStage3RowCount) =
       if (_mainConfig.dataPrepCachingFlag && _mainConfig.outlierFilterFlag) {
-        dataPersist(persistDataStage2, dataStage3.outputData, cacheLevel, unpersistBlock)
+        dataPersist(
+          persistDataStage2,
+          dataStage3.outputData,
+          cacheLevel,
+          unpersistBlock
+        )
       } else {
         (dataStage3.outputData, "no count when data prep caching is disabled")
       }
@@ -306,25 +369,40 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     }
 
     //DEBUG
-    logger.log(Level.DEBUG, printSchema(dataStage3.outputData, "stage3").toString)
+    logger.log(
+      Level.DEBUG,
+      printSchema(dataStage3.outputData, "stage3").toString
+    )
 
     // Record the Inference Settings for Outlier Filtering
-    InferenceConfig.setInferenceOutlierFilteringConfig(dataStage3.fieldRemovalMap)
+    InferenceConfig.setInferenceOutlierFilteringConfig(
+      dataStage3.fieldRemovalMap
+    )
 
     // Next stages require a feature vector
-    val (featurizedData, initialFields, initialFullFields) = vectorPipeline(persistDataStage3)
+    val (featurizedData, initialFields, initialFullFields) = vectorPipeline(
+      persistDataStage3
+    )
 
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
     val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol)
 
     val featurizedDataCleaned = if (_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistDataStage3, featurizedData.select(featureFieldCleanup map col: _*), cacheLevel, unpersistBlock)._1
+      dataPersist(
+        persistDataStage3,
+        featurizedData.select(featureFieldCleanup map col: _*),
+        cacheLevel,
+        unpersistBlock
+      )._1
     } else {
       featurizedData.select(featureFieldCleanup map col: _*)
     }
 
     //DEBUG
-    logger.log(Level.DEBUG, printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString)
+    logger.log(
+      Level.DEBUG,
+      printSchema(featurizedDataCleaned, "featurizedDataCleaned").toString
+    )
 
     // Covariance Filtering
     val dataStage4 = if (_mainConfig.covarianceFilteringFlag) {
@@ -333,7 +411,12 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val (persistDataStage4, dataStage4RowCount) =
       if (_mainConfig.dataPrepCachingFlag && _mainConfig.covarianceFilteringFlag) {
-        dataPersist(featurizedDataCleaned, dataStage4.outputData, cacheLevel, unpersistBlock)
+        dataPersist(
+          featurizedDataCleaned,
+          dataStage4.outputData,
+          cacheLevel,
+          unpersistBlock
+        )
       } else {
         (dataStage4.outputData, "no count when data prep caching is disabled")
       }
@@ -344,34 +427,45 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     }
 
     //DEBUG
-    logger.log(Level.DEBUG, printSchema(dataStage4.outputData, "stage4").toString)
+    logger.log(
+      Level.DEBUG,
+      printSchema(dataStage4.outputData, "stage4").toString
+    )
 
     // Record the Inference Settings for Covariance Filtering
-    InferenceConfig.setInferenceCovarianceFilteringConfig(dataStage4.fieldListing)
+    InferenceConfig.setInferenceCovarianceFilteringConfig(
+      dataStage4.fieldListing
+    )
 
     // All stages after this point require a feature vector.
-    val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(persistDataStage4)
+    val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(
+      persistDataStage4
+    )
 
-    val (persistDataStage5, dataStage5RowCount) = if (_mainConfig.dataPrepCachingFlag) {
-      dataPersist(persistDataStage4, dataStage5, cacheLevel, unpersistBlock)
-    } else {
-      (dataStage5, "no count when data prep caching is disabled")
-    }
+    val (persistDataStage5, dataStage5RowCount) =
+      if (_mainConfig.dataPrepCachingFlag) {
+        dataPersist(persistDataStage4, dataStage5, cacheLevel, unpersistBlock)
+      } else {
+        (dataStage5, "no count when data prep caching is disabled")
+      }
 
     // Pearson Filtering (generates a vector features Field)
-    val (dataStage6, stage6Fields, stage6FullFields) = if (_mainConfig.pearsonFilteringFlag) {
+    val (dataStage6, stage6Fields, stage6FullFields) =
+      if (_mainConfig.pearsonFilteringFlag) {
 
-      val pearsonReturn = pearsonFilter(persistDataStage5, stage5Fields)
+        val pearsonReturn = pearsonFilter(persistDataStage5, stage5Fields)
 
-      // Record the Inference Settings for Pearson Filtering
-      InferenceConfig.setInferencePearsonFilteringConfig(pearsonReturn.fieldListing)
+        // Record the Inference Settings for Pearson Filtering
+        InferenceConfig.setInferencePearsonFilteringConfig(
+          pearsonReturn.fieldListing
+        )
 
-      vectorPipeline(pearsonReturn.outputData)
-    } else {
-      // Record the Inference Settings for Pearson Filtering
-      InferenceConfig.setInferencePearsonFilteringConfig(Array.empty[String])
-      (persistDataStage5, stage5Fields, stage5FullFields)
-    }
+        vectorPipeline(pearsonReturn.outputData)
+      } else {
+        // Record the Inference Settings for Pearson Filtering
+        InferenceConfig.setInferencePearsonFilteringConfig(Array.empty[String])
+        (persistDataStage5, stage5Fields, stage5FullFields)
+      }
 
     val (persistDataStage6, dataStage6RowCount) =
       if (_mainConfig.dataPrepCachingFlag && _mainConfig.pearsonFilteringFlag) {
@@ -384,9 +478,10 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     logger.log(Level.DEBUG, printSchema(persistDataStage6, "stage6").toString)
 
     // OneHotEncoding Option
-    val (dataStage65, stage65Fields, stage65FullFields) = if (_mainConfig.oneHotEncodeFlag) {
-      oneHotEncodeVector(persistDataStage6, stage6Fields, stage6FullFields)
-    } else (persistDataStage6, stage6Fields, stage6FullFields)
+    val (dataStage65, stage65Fields, stage65FullFields) =
+      if (_mainConfig.oneHotEncodeFlag) {
+        oneHotEncodeVector(persistDataStage6, stage6Fields, stage6FullFields)
+      } else (persistDataStage6, stage6Fields, stage6FullFields)
 
     val (persistDataStage65, dataStage65RowCount) =
       if (_mainConfig.dataPrepCachingFlag && _mainConfig.oneHotEncodeFlag) {
@@ -399,7 +494,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     logger.log(Level.DEBUG, printSchema(persistDataStage65, "stage65").toString)
 
     // Scaler
-    val dataStage7 = if (_mainConfig.scalingFlag) scaler(dataStage65) else dataStage65
+    val dataStage7 =
+      if (_mainConfig.scalingFlag) scaler(dataStage65) else dataStage65
 
     val (persistDataStage7, dataStage7RowCount) =
       if (_mainConfig.dataPrepCachingFlag && _mainConfig.scalingFlag) {
@@ -416,16 +512,22 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Record the Inference Settings for Scaling
     InferenceConfig.setInferenceScalingConfig(_mainConfig.scalingConfig)
 
-    val finalStageDF = persistDataStage7.select(persistDataStage7.columns map col: _*)
-    if (_mainConfig.dataPrepCachingFlag) dataPersist(persistDataStage7, finalStageDF, cacheLevel, unpersistBlock)
+    // Get the final DataFrame Field Loading
+
+    val finalStageDF =
+      persistDataStage7.select(persistDataStage7.columns map col: _*)
+    if (_mainConfig.dataPrepCachingFlag)
+      dataPersist(persistDataStage7, finalStageDF, cacheLevel, unpersistBlock)
     else finalStageDF.persist(cacheLevel)
 
     val finalCount = finalStageDF.count
 
     val finalSchema = s"Final Schema: \n    ${stage65Fields.mkString(", ")}"
-    val finalFullSchema = s"Final Full Schema: \n    ${finalStageDF.columns.mkString(", ")}"
+    val finalFullSchema =
+      s"Final Full Schema: \n    ${finalStageDF.columns.mkString(", ")}"
 
-    val finalStatement = s"Data Prep complete.  Final Dataframe cached. Total Observations: $finalCount"
+    val finalStatement =
+      s"Data Prep complete.  Final Dataframe cached. Total Observations: $finalCount"
     // DEBUG
     logger.log(Level.INFO, finalSchema)
     logger.log(Level.INFO, finalFullSchema)

@@ -1,7 +1,11 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
-import com.databricks.labs.automl.params.{Defaults, LogisticRegressionConfig, LogisticRegressionModelsWithResults}
+import com.databricks.labs.automl.params.{
+  Defaults,
+  LogisticRegressionConfig,
+  LogisticRegressionModelsWithResults
+}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.LogisticRegression
@@ -13,8 +17,10 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with Defaults
-  with Evolution {
+class LogisticRegressionTuner(df: DataFrame)
+    extends SparkSessionWrapper
+    with Defaults
+    with Evolution {
 
   validateInputDataframe(df)
 
@@ -22,39 +28,48 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
   private var _scoringMetric = _scoringDefaultClassifier
 
-  private var _logisticRegressionNumericBoundaries = _logisticRegressionDefaultNumBoundaries
+  private var _logisticRegressionNumericBoundaries =
+    _logisticRegressionDefaultNumBoundaries
 
   private var _classificationMetrics = classificationMetrics
 
   def setScoringMetric(value: String): this.type = {
-    require(classificationMetrics.contains(value),
-      s"Classification scoring metric $value is not a valid member of ${
-        invalidateSelection(value, classificationMetrics)
-      }")
+    require(
+      classificationMetrics.contains(value),
+      s"Classification scoring metric $value is not a valid member of ${invalidateSelection(value, classificationMetrics)}"
+    )
     this._scoringMetric = value
     this
   }
 
-  def setLogisticRegressionNumericBoundaries(value: Map[String, (Double, Double)]): this.type = {
+  def setLogisticRegressionNumericBoundaries(
+    value: Map[String, (Double, Double)]
+  ): this.type = {
     this._logisticRegressionNumericBoundaries = value
     this
   }
 
   def getScoringMetric: String = _scoringMetric
 
-  def getLogisticRegressionNumericBoundaries: Map[String, (Double, Double)] = _logisticRegressionNumericBoundaries
+  def getLogisticRegressionNumericBoundaries: Map[String, (Double, Double)] =
+    _logisticRegressionNumericBoundaries
 
   def getClassificationMetrics: List[String] = classificationMetrics
 
-  private def resetClassificationMetrics: List[String] = classificationMetricValidator(classificationAdjudicator(df),
-    classificationMetrics)
+  private def resetClassificationMetrics: List[String] =
+    classificationMetricValidator(
+      classificationAdjudicator(df),
+      classificationMetrics
+    )
 
   private def setClassificationMetrics(value: List[String]): this.type = {
     _classificationMetrics = value
     this
   }
 
-  private def configureModel(modelConfig: LogisticRegressionConfig): LogisticRegression = {
+  private def configureModel(
+    modelConfig: LogisticRegressionConfig
+  ): LogisticRegression = {
     new LogisticRegression()
       .setLabelCol(_labelCol)
       .setFeaturesCol(_featureCol)
@@ -67,64 +82,88 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       .setTol(modelConfig.tolerance)
   }
 
-  private def returnBestHyperParameters(collection: ArrayBuffer[LogisticRegressionModelsWithResults]):
-  (LogisticRegressionConfig, Double) = {
+  private def returnBestHyperParameters(
+    collection: ArrayBuffer[LogisticRegressionModelsWithResults]
+  ): (LogisticRegressionConfig, Double) = {
 
     val bestEntry = _optimizationStrategy match {
-      case "minimize" => collection.result.toArray.sortWith(_.score < _.score).head
+      case "minimize" =>
+        collection.result.toArray.sortWith(_.score < _.score).head
       case _ => collection.result.toArray.sortWith(_.score > _.score).head
     }
     (bestEntry.modelHyperParams, bestEntry.score)
   }
 
-  private def evaluateStoppingScore(currentBestScore: Double, stopThreshold: Double): Boolean = {
+  private def evaluateStoppingScore(currentBestScore: Double,
+                                    stopThreshold: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (currentBestScore > stopThreshold) true else false
-      case _ => if (currentBestScore < stopThreshold) true else false
+      case _          => if (currentBestScore < stopThreshold) true else false
     }
   }
 
-  private def evaluateBestScore(runScore: Double, bestScore: Double): Boolean = {
+  private def evaluateBestScore(runScore: Double,
+                                bestScore: Double): Boolean = {
     _optimizationStrategy match {
       case "minimize" => if (runScore < bestScore) true else false
-      case _ => if (runScore > bestScore) true else false
+      case _          => if (runScore > bestScore) true else false
     }
   }
 
-  private def sortAndReturnAll(results: ArrayBuffer[LogisticRegressionModelsWithResults]):
-  Array[LogisticRegressionModelsWithResults] = {
+  private def sortAndReturnAll(
+    results: ArrayBuffer[LogisticRegressionModelsWithResults]
+  ): Array[LogisticRegressionModelsWithResults] = {
     _optimizationStrategy match {
       case "minimize" => results.result.toArray.sortWith(_.score < _.score)
-      case _ => results.result.toArray.sortWith(_.score > _.score)
+      case _          => results.result.toArray.sortWith(_.score > _.score)
     }
   }
 
-  private def sortAndReturnBestScore(results: ArrayBuffer[LogisticRegressionModelsWithResults]): Double = {
+  private def sortAndReturnBestScore(
+    results: ArrayBuffer[LogisticRegressionModelsWithResults]
+  ): Double = {
     sortAndReturnAll(results).head.score
   }
 
-  private def generateThresholdedParams(iterationCount: Int): Array[LogisticRegressionConfig] = {
+  private def generateThresholdedParams(
+    iterationCount: Int
+  ): Array[LogisticRegressionConfig] = {
 
     val iterations = new ArrayBuffer[LogisticRegressionConfig]
 
     var i = 0
     do {
-      val elasticNetParams = generateRandomDouble("elasticNetParams", _logisticRegressionNumericBoundaries)
+      val elasticNetParams = generateRandomDouble(
+        "elasticNetParams",
+        _logisticRegressionNumericBoundaries
+      )
       val fitIntercept = coinFlip()
-      val maxIter = generateRandomInteger("maxIter", _logisticRegressionNumericBoundaries)
-      val regParam = generateRandomDouble("regParam", _logisticRegressionNumericBoundaries)
+      val maxIter =
+        generateRandomInteger("maxIter", _logisticRegressionNumericBoundaries)
+      val regParam =
+        generateRandomDouble("regParam", _logisticRegressionNumericBoundaries)
       val standardization = coinFlip()
-      val tolerance = generateRandomDouble("tolerance", _logisticRegressionNumericBoundaries)
-      iterations += LogisticRegressionConfig(elasticNetParams, fitIntercept, maxIter, regParam, standardization,
-        tolerance)
+      val tolerance =
+        generateRandomDouble("tolerance", _logisticRegressionNumericBoundaries)
+      iterations += LogisticRegressionConfig(
+        elasticNetParams,
+        fitIntercept,
+        maxIter,
+        regParam,
+        standardization,
+        tolerance
+      )
       i += 1
     } while (i < iterationCount)
     iterations.toArray
   }
 
-  private def generateAndScoreLogisticRegression(train: DataFrame, test: DataFrame,
-                                                 modelConfig: LogisticRegressionConfig,
-                                                 generation: Int = 1): LogisticRegressionModelsWithResults = {
+  private def generateAndScoreLogisticRegression(
+    train: DataFrame,
+    test: DataFrame,
+    modelConfig: LogisticRegressionConfig,
+    generation: Int = 1
+  ): LogisticRegressionModelsWithResults = {
     val regressionModel = configureModel(modelConfig)
 
     val builtModel = regressionModel.fit(train)
@@ -136,13 +175,19 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
     for (i <- _classificationMetrics) {
       scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
     }
-    LogisticRegressionModelsWithResults(modelConfig, builtModel, scoringMap(_scoringMetric), scoringMap.toMap,
-      generation)
+    LogisticRegressionModelsWithResults(
+      modelConfig,
+      builtModel,
+      scoringMap(_scoringMetric),
+      scoringMap.toMap,
+      generation
+    )
   }
 
-
-  private def runBattery(battery: Array[LogisticRegressionConfig],
-                         generation: Int = 1): Array[LogisticRegressionModelsWithResults] = {
+  private def runBattery(
+    battery: Array[LogisticRegressionConfig],
+    generation: Int = 1
+  ): Array[LogisticRegressionModelsWithResults] = {
 
     val startTimeStamp = System.currentTimeMillis / 1000
     validateLabelAndFeatures(df, _labelCol, _featureCol)
@@ -155,25 +200,26 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus = f"Starting Generation $generation \n\t\t Completion Status: ${
-      calculateModelingFamilyRemainingTime(generation, modelCnt)
-    }%2.4f%%"
+    val currentStatus =
+      f"Starting Generation $generation \n\t\t Completion Status: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
-
       val runId = java.util.UUID.randomUUID()
 
-      println(s"Starting run $runId with Params: ${x.toString}")
+      println(
+        s"Starting run $runId with Params: ${convertLogisticRegressionConfigToHumanReadable(x, " ")}"
+      )
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
       val kFoldBuffer = new ArrayBuffer[LogisticRegressionModelsWithResults]
 
       for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) = genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
+        val Array(train, test) =
+          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
         kFoldBuffer += generateAndScoreLogisticRegression(train, test, x)
       }
       val scores = new ArrayBuffer[Double]
@@ -195,18 +241,23 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
       val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
 
-      val runAvg = LogisticRegressionModelsWithResults(x, kFoldBuffer.result.head.model, scores.sum / scores.length,
-        scoringMap.toMap, generation)
+      val runAvg = LogisticRegressionModelsWithResults(
+        x,
+        kFoldBuffer.result.head.model,
+        scores.sum / scores.length,
+        scoringMap.toMap,
+        generation
+      )
 
       results += runAvg
       modelCnt += 1
 
       val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${x.toString} \n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+        s"\n\t using params: ${convertLogisticRegressionConfigToHumanReadable(x, "\n\t\t\t\t")} " +
+        s"\n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
 
-      val progressStatement = f"\t\t Current modeling progress complete in family: ${
-        calculateModelingFamilyRemainingTime(generation, modelCnt)
-      }%2.4f%%"
+      val progressStatement =
+        f"\t\t Current modeling progress complete in family: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
 
       println(runScoreStatement)
       println(progressStatement)
@@ -218,14 +269,39 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
   }
 
-  private def irradiateGeneration(parents: Array[LogisticRegressionConfig], mutationCount: Int,
-                                  mutationAggression: Int, mutationMagnitude: Double): Array[LogisticRegressionConfig] = {
+  /**
+    * Private method for making stdout and logging of params much more readable, particularly for the array objects
+    *
+    * @param conf The configuration of the run (hyper parameters)
+    * @return A string representation that is readable.
+    */
+  private def convertLogisticRegressionConfigToHumanReadable(
+    conf: LogisticRegressionConfig,
+    formatter: String
+  ): String = {
+    s"\n\t\t\tConfig: $formatter[elasticNetParams] -> [${conf.elasticNetParams.toString}]" +
+      s"$formatter[fitIntercept] -> [${conf.fitIntercept.toString}]" +
+      s"$formatter[maxIter] -> [${conf.maxIter.toString}]" +
+      s"$formatter[regParam] -> [${conf.regParam.toString}]" +
+      s"$formatter[standardization] -> [${conf.standardization.toString}]" +
+      s"$formatter[tolerance] -> [${conf.tolerance.toString}]"
+  }
+
+  private def irradiateGeneration(
+    parents: Array[LogisticRegressionConfig],
+    mutationCount: Int,
+    mutationAggression: Int,
+    mutationMagnitude: Double
+  ): Array[LogisticRegressionConfig] = {
 
     val mutationPayload = new ArrayBuffer[LogisticRegressionConfig]
     val totalConfigs = modelConfigLength[LogisticRegressionConfig]
-    val indexMutation = if (mutationAggression >= totalConfigs) totalConfigs - 1 else totalConfigs - mutationAggression
+    val indexMutation =
+      if (mutationAggression >= totalConfigs) totalConfigs - 1
+      else totalConfigs - mutationAggression
     val mutationCandidates = generateThresholdedParams(mutationCount)
-    val mutationIndeces = generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
+    val mutationIndeces =
+      generateMutationIndeces(1, totalConfigs, indexMutation, mutationCount)
 
     for (i <- mutationCandidates.indices) {
 
@@ -234,34 +310,61 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       val mutationIndexIteration = mutationIndeces(i)
 
       mutationPayload += LogisticRegressionConfig(
-        if (mutationIndexIteration.contains(0)) geneMixing(randomParent.elasticNetParams,
-          mutationIteration.elasticNetParams, mutationMagnitude)
+        if (mutationIndexIteration.contains(0))
+          geneMixing(
+            randomParent.elasticNetParams,
+            mutationIteration.elasticNetParams,
+            mutationMagnitude
+          )
         else randomParent.elasticNetParams,
-        if (mutationIndexIteration.contains(1)) coinFlip(randomParent.fitIntercept,
-          mutationIteration.fitIntercept, mutationMagnitude)
+        if (mutationIndexIteration.contains(1))
+          coinFlip(
+            randomParent.fitIntercept,
+            mutationIteration.fitIntercept,
+            mutationMagnitude
+          )
         else randomParent.fitIntercept,
-        if (mutationIndexIteration.contains(2)) geneMixing(randomParent.maxIter,
-          mutationIteration.maxIter, mutationMagnitude)
+        if (mutationIndexIteration.contains(2))
+          geneMixing(
+            randomParent.maxIter,
+            mutationIteration.maxIter,
+            mutationMagnitude
+          )
         else randomParent.maxIter,
-        if (mutationIndexIteration.contains(3)) geneMixing(randomParent.regParam,
-          mutationIteration.regParam, mutationMagnitude)
+        if (mutationIndexIteration.contains(3))
+          geneMixing(
+            randomParent.regParam,
+            mutationIteration.regParam,
+            mutationMagnitude
+          )
         else randomParent.regParam,
-        if (mutationIndexIteration.contains(4)) coinFlip(randomParent.standardization,
-          mutationIteration.standardization, mutationMagnitude)
+        if (mutationIndexIteration.contains(4))
+          coinFlip(
+            randomParent.standardization,
+            mutationIteration.standardization,
+            mutationMagnitude
+          )
         else randomParent.standardization,
-        if (mutationIndexIteration.contains(5)) geneMixing(randomParent.tolerance,
-          mutationIteration.tolerance, mutationMagnitude)
+        if (mutationIndexIteration.contains(5))
+          geneMixing(
+            randomParent.tolerance,
+            mutationIteration.tolerance,
+            mutationMagnitude
+          )
         else randomParent.tolerance
       )
     }
     mutationPayload.result.toArray
   }
 
-  private def continuousEvolution(): Array[LogisticRegressionModelsWithResults] = {
+  private def continuousEvolution()
+    : Array[LogisticRegressionModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
 
-    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_continuousEvolutionParallelism))
+    val taskSupport = new ForkJoinTaskSupport(
+      new ForkJoinPool(_continuousEvolutionParallelism)
+    )
 
     var runResults = new ArrayBuffer[LogisticRegressionModelsWithResults]
 
@@ -283,8 +386,12 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
           val genArray = new ArrayBuffer[LogisticRegressionConfig]
           val startingModelSeed = generateLogisticRegressionConfig(_modelSeed)
           genArray += startingModelSeed
-          genArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          genArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           ParHashSet(genArray.result.toArray: _*)
         } else {
           ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
@@ -296,7 +403,9 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
           .setPermutationCount(_initialGenerationPermutationCount)
           .setIndexMixingMode(_initialGenerationIndexMixingMode)
           .setArraySeed(_initialGenerationArraySeed)
-          .initialGenerationSeedLogisticRegression(_logisticRegressionNumericBoundaries)
+          .initialGenerationSeedLogisticRegression(
+            _logisticRegressionNumericBoundaries
+          )
         ParHashSet(startingPool: _*)
     }
 
@@ -317,28 +426,36 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
           runResults += run.head
           scoreHistory += run.head.score
 
-          val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
+          val (bestConfig, currentBestScore) =
+            returnBestHyperParameters(runResults)
 
           bestScore = currentBestScore
 
           // Add a mutated version of the current best model to the ParHashSet
-          runSet += irradiateGeneration(Array(bestConfig), 1,
-            _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+          runSet += irradiateGeneration(
+            Array(bestConfig),
+            1,
+            _continuousEvolutionMutationAggressiveness,
+            _continuousEvolutionGeneticMixing
+          ).head
 
           // Evaluate whether the scores are staying static over the last configured rolling window.
           val currentWindowValues = scoreHistory.slice(
-            scoreHistory.length - _continuousEvolutionRollingImprovementCount, scoreHistory.length)
+            scoreHistory.length - _continuousEvolutionRollingImprovementCount,
+            scoreHistory.length
+          )
 
           // Check for static values
           val staticCheck = currentWindowValues.toSet.size
 
           // If there is more than one value, proceed with validation check on whether the model is improving over time.
           if (staticCheck > 1) {
-            val (early, later) = currentWindowValues.splitAt(scala.math.round(currentWindowValues.size / 2))
+            val (early, later) = currentWindowValues.splitAt(
+              scala.math.round(currentWindowValues.size / 2)
+            )
             if (later.sum / later.length < early.sum / early.length) {
               incrementalImprovementCount += 1
-            }
-            else {
+            } else {
               incrementalImprovementCount -= 1
             }
           } else {
@@ -355,14 +472,24 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
         } catch {
           case e: java.lang.NullPointerException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
           case f: java.lang.ArrayIndexOutOfBoundsException =>
-            val (bestConfig, currentBestScore) = returnBestHyperParameters(runResults)
-            runSet += irradiateGeneration(Array(bestConfig), 1,
-              _continuousEvolutionMutationAggressiveness, _continuousEvolutionGeneticMixing).head
+            val (bestConfig, currentBestScore) =
+              returnBestHyperParameters(runResults)
+            runSet += irradiateGeneration(
+              Array(bestConfig),
+              1,
+              _continuousEvolutionMutationAggressiveness,
+              _continuousEvolutionGeneticMixing
+            ).head
             bestScore = currentBestScore
         }
       })
@@ -374,11 +501,15 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
   }
 
-  def generateIdealParents(results: Array[LogisticRegressionModelsWithResults]): Array[LogisticRegressionConfig] = {
+  def generateIdealParents(
+    results: Array[LogisticRegressionModelsWithResults]
+  ): Array[LogisticRegressionConfig] = {
     val bestParents = new ArrayBuffer[LogisticRegressionConfig]
-    results.take(_numberOfParentsToRetain).map(x => {
-      bestParents += x.modelHyperParams
-    })
+    results
+      .take(_numberOfParentsToRetain)
+      .map(x => {
+        bestParents += x.modelHyperParams
+      })
     bestParents.result.toArray
   }
 
@@ -399,11 +530,18 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
           val generativeArray = new ArrayBuffer[LogisticRegressionConfig]
           val startingModelSeed = generateLogisticRegressionConfig(_modelSeed)
           generativeArray += startingModelSeed
-          generativeArray ++= irradiateGeneration(Array(startingModelSeed), _firstGenerationGenePool, totalConfigs - 1,
-            _geneticMixing)
+          generativeArray ++= irradiateGeneration(
+            Array(startingModelSeed),
+            _firstGenerationGenePool,
+            totalConfigs - 1,
+            _geneticMixing
+          )
           runBattery(generativeArray.result.toArray, generation)
         } else {
-          runBattery(generateThresholdedParams(_firstGenerationGenePool), generation)
+          runBattery(
+            generateThresholdedParams(_firstGenerationGenePool),
+            generation
+          )
         }
       case "permutations" =>
         val startingPool = new HyperParameterFullSearch()
@@ -412,7 +550,9 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
           .setPermutationCount(_initialGenerationPermutationCount)
           .setIndexMixingMode(_initialGenerationIndexMixingMode)
           .setArraySeed(_initialGenerationArraySeed)
-          .initialGenerationSeedLogisticRegression(_logisticRegressionNumericBoundaries)
+          .initialGenerationSeedLogisticRegression(
+            _logisticRegressionNumericBoundaries
+          )
         runBattery(startingPool, generation)
     }
 
@@ -427,19 +567,25 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
       if (evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
         while (currentIteration <= _numberOfMutationGenerations &&
-          evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
+               evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
 
           val mutationAggressiveness = _generationalMutationStrategy match {
-            case "linear" => if (totalConfigs - (currentIteration + 1) < 1) 1 else
-              totalConfigs - (currentIteration + 1)
+            case "linear" =>
+              if (totalConfigs - (currentIteration + 1) < 1) 1
+              else
+                totalConfigs - (currentIteration + 1)
             case _ => _fixedMutationValue
           }
 
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-            mutationAggressiveness, _geneticMixing)
+          val evolution = irradiateGeneration(
+            generateIdealParents(currentState),
+            _numberOfMutationsPerGeneration,
+            mutationAggressiveness,
+            _geneticMixing
+          )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -447,7 +593,8 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
 
           val postRunBestScore = sortAndReturnBestScore(fossilRecord)
 
-          if (evaluateBestScore(postRunBestScore, currentBestResult)) currentBestResult = postRunBestScore
+          if (evaluateBestScore(postRunBestScore, currentBestResult))
+            currentBestResult = postRunBestScore
 
           currentIteration += 1
 
@@ -462,14 +609,19 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
       (1 to _numberOfMutationGenerations).map(i => {
 
         val mutationAggressiveness = _generationalMutationStrategy match {
-          case "linear" => if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
+          case "linear" =>
+            if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
           case _ => _fixedMutationValue
         }
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(generateIdealParents(currentState), _numberOfMutationsPerGeneration,
-          mutationAggressiveness, _geneticMixing)
+        val evolution = irradiateGeneration(
+          generateIdealParents(currentState),
+          _numberOfMutationsPerGeneration,
+          mutationAggressiveness,
+          _geneticMixing
+        )
 
         var evolve = runBattery(evolution, generation)
         generation += 1
@@ -486,21 +638,26 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
     evolveParameters().head
   }
 
-  def generateScoredDataFrame(results: Array[LogisticRegressionModelsWithResults]): DataFrame = {
+  def generateScoredDataFrame(
+    results: Array[LogisticRegressionModelsWithResults]
+  ): DataFrame = {
 
     import spark.sqlContext.implicits._
 
     val scoreBuffer = new ListBuffer[(Int, Double)]
     results.map(x => scoreBuffer += ((x.generation, x.score)))
     val scored = scoreBuffer.result
-    spark.sparkContext.parallelize(scored)
-      .toDF("generation", "score").orderBy(col("generation").asc, col("score").asc)
+    spark.sparkContext
+      .parallelize(scored)
+      .toDF("generation", "score")
+      .orderBy(col("generation").asc, col("score").asc)
   }
 
-  def evolveWithScoringDF(): (Array[LogisticRegressionModelsWithResults], DataFrame) = {
+  def evolveWithScoringDF()
+    : (Array[LogisticRegressionModelsWithResults], DataFrame) = {
 
     val evolutionResults = _evolutionStrategy match {
-      case "batch" => evolveParameters()
+      case "batch"      => evolveParameters()
       case "continuous" => continuousEvolution()
     }
 
@@ -516,10 +673,12 @@ class LogisticRegressionTuner(df: DataFrame) extends SparkSessionWrapper with De
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(paramsToTest: Array[LogisticRegressionConfig]):
-  (Array[LogisticRegressionModelsWithResults], DataFrame) = {
+  def postRunModeledHyperParams(
+    paramsToTest: Array[LogisticRegressionConfig]
+  ): (Array[LogisticRegressionModelsWithResults], DataFrame) = {
 
-    val finalRunResults = runBattery(paramsToTest, _numberOfMutationGenerations + 2)
+    val finalRunResults =
+      runBattery(paramsToTest, _numberOfMutationGenerations + 2)
 
     (finalRunResults, generateScoredDataFrame(finalRunResults))
   }
