@@ -16,6 +16,7 @@ trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
     List("cosine", "euclidean")
 
   private[feature] var _featuresCol: String = defaultFeaturesCol
+  private[feature] var _labelCol: String = defaultLabelCol
   private[feature] var _kGroups: Int = defaultKGroups
   private[feature] var _kMeansMaxIter: Int = defaultKMeansMaxIter
   private[feature] var _kMeansTolerance: Double = defaultKMeansTolerance
@@ -32,6 +33,11 @@ trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
 
   def setFeaturesCol(value: String): this.type = {
     _featuresCol = value; setConfig; this
+  }
+  def setLabelCol(value: String): this.type = {
+    _labelCol = value
+    setConfig
+    this
   }
   def setKGroups(value: Int): this.type = {
     _kGroups = value
@@ -87,6 +93,7 @@ trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
   private def setConfig: this.type = {
     conf = KSamplingConfiguration(
       featuresCol = _featuresCol,
+      labelCol = _labelCol,
       kGroups = _kGroups,
       kMeansMaxIter = _kMeansMaxIter,
       kMeansTolerance = _kMeansTolerance,
@@ -104,6 +111,7 @@ trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
   def getKSamplingConfig: KSamplingConfiguration = {
     KSamplingConfiguration(
       featuresCol = _featuresCol,
+      labelCol = _labelCol,
       kGroups = _kGroups,
       kMeansMaxIter = _kMeansMaxIter,
       kMeansTolerance = _kMeansTolerance,
@@ -119,7 +127,7 @@ trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
 
 }
 
-class KSampling extends KSamplingBase {
+class KSampling(df: DataFrame) extends KSamplingBase {
 
   /**
     * Build a KMeans model in order to find centroids for data simulation
@@ -541,6 +549,49 @@ class KSampling extends KSamplingBase {
     }
 
   }
+
+  def makeRows(labelValues: Array[RowGenerationConfig]): DataFrame = {
+
+    //TODO: distCol?  Where is this set?!!
+    val fieldsToDrop = List(_kMeansPredictionCol, _lshOutputCol, "distCol")
+
+    // Get the original Schema
+
+    // Scale the feature vector
+    val scaled = scaleFeatureVector(df)
+
+    // Build a KMeans Model
+    val kModel = buildKMeans(scaled)
+
+    // Build a MinHashLSHModel
+    val lshModel = buildLSH(scaled)
+
+    // Transform the scaled data with the KMeans model
+    val kModelData = kModel.transform(scaled)
+
+    labelValues
+      .map { x =>
+        val vecs = acquireNearestVectorToCentroids(
+          scaled.filter(col(conf.labelCol) === x.labelValue),
+          lshModel,
+          kModel
+        )
+        generateGroupVectors(
+          kModelData,
+          vecs,
+          lshModel,
+          conf.labelCol,
+          x.labelValue,
+          x.targetCount,
+          fieldsToDrop
+        ).withColumn(conf.labelCol, lit(x.labelValue))
+      }
+      .reduce(_.union(_))
+      .toDF()
+
+    //TODO: regenerate the original fields
+  }
+
   /**
   *
   *

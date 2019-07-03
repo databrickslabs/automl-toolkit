@@ -29,7 +29,7 @@ trait ConfigurationDefaults {
       case ("xgboost", "regressor")             => XGBoostRegressor
       case ("xgboost", "classifier")            => XGBoostClassifier
       case ("mlpc", "classifier")               => MLPC
-      case ("svm", "regressor")                 => SVM
+      case ("svm", "classifier")                => SVM
       case (_, _) =>
         throw new IllegalArgumentException(
           s"'$modelFamily' Model Family and PredictionType " +

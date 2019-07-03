@@ -6,6 +6,7 @@ import org.apache.spark.sql.types._
 trait KSamplingDefaults {
 
   def defaultFeaturesCol = "features"
+  def defaultLabelCol = "label"
   def defaultKGroups = 25
   def defaultKMeansMaxIter = 100
   def defaultKMeansTolerance = 1E-6
@@ -35,6 +36,7 @@ trait KSamplingDefaults {
 case class CentroidVectors(vector: Vector, kGroup: Int)
 
 case class KSamplingConfiguration(featuresCol: String,
+                                  labelCol: String,
                                   kGroups: Int,
                                   kMeansMaxIter: Int,
                                   kMeansTolerance: Double,
@@ -59,3 +61,5 @@ case class RowMapping(fieldName: String, idx: Int)
 
 case class SchemaDefinitions(fullSchema: Array[SchemaMapping],
                              features: Array[RowMapping])
+
+case class RowGenerationConfig(labelValue: Double, targetCount: Int)

@@ -20,7 +20,8 @@ import scala.concurrent.forkjoin.ForkJoinPool
 class XGBoostTuner(df: DataFrame, modelSelection: String)
     extends SparkSessionWrapper
     with Evolution
-    with Defaults {
+    with Defaults
+    with Serializable {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -88,11 +89,26 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
     this
   }
 
+  final lazy val uniqueLabels: Int = modelSelection match {
+    case "regressor" => 0
+    case "classifier" =>
+      df.select(col(_labelCol)).distinct.count.toInt
+  }
+
   private def modelDecider[A, B](modelConfig: XGBoostConfig) = {
+
+    val xgObjective: String = modelSelection match {
+      case "regressor" => "None"
+      case _ =>
+        uniqueLabels match {
+          case x if x <= 2 => "reg:squarederror"
+          case _           => "multi:softmax"
+        }
+    }
 
     val builtModel = modelSelection match {
       case "classifier" =>
-        new XGBoostClassifier()
+        val xgClass = new XGBoostClassifier()
           .setLabelCol(_labelCol)
           .setFeaturesCol(_featureCol)
           .setAlpha(modelConfig.alpha)
@@ -105,6 +121,12 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
+        if (uniqueLabels > 2) {
+          xgClass
+            .setNumClass(uniqueLabels)
+            .setObjective(xgObjective)
+        }
+        xgClass
       case "regressor" =>
         new XGBoostRegressor()
           .setLabelCol(_labelCol)
@@ -170,6 +192,25 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
     sortAndReturnAll(results).head.score
   }
 
+  /**
+    * Method for extracting the predicted class for multi-class classification problems directly from the probabilities
+    * linalg.Vector field.  This is due to a bug in XGBoost4j-spark and should be future-proof.
+    * @param data The transformed data frame with the incorrect prediction values
+    * @return Fixed prediction column that acquires the predicted class label from the probability Vector
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private def multiClassPredictionExtract(data: DataFrame): DataFrame = {
+
+    // udf must be defined as a function in order to be serialized as an Object.  Defining as a method
+    // prevents the Future from serializing properly.
+    val extractUDF = udf(
+      (v: org.apache.spark.ml.linalg.Vector) => v.toArray.last
+    )
+    // Replace the prediction column with the correct data.
+    data.withColumn("prediction", extractUDF(col("probability")))
+  }
+
   private def generateThresholdedParams(
     iterationCount: Int
   ): Array[XGBoostConfig] = {
@@ -224,16 +265,29 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
 
     val predictedData = builtModel.transform(test)
 
+    // Due to a bug in XGBoost's transformer for accessing the probability Vector to provide a prediction
+    // This method needs to be called if the unique count for the label class is non-binary for a classifier.
+
+    val fixedPredictionData = modelSelection match {
+      case "regressor" => predictedData
+      case _ =>
+        uniqueLabels match {
+          case x if x <= 2 => predictedData
+          case _           => multiClassPredictionExtract(predictedData)
+        }
+    }
+
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     modelSelection match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
+          scoringMap(i) =
+            classificationScoring(i, _labelCol, fixedPredictionData)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, fixedPredictionData)
         }
     }
 

@@ -471,10 +471,16 @@ trait ModelConfigGenerators extends SeedGenerator {
       .collect()
 
     dataCollection.foreach { x =>
+      val lossType = x(2).toString
+      val eNetParams = lossType match {
+        case "huber" => 0.0
+        case _       => x(0).toString.toDouble
+      }
+
       collectionBuffer += LinearRegressionConfig(
-        elasticNetParams = x(0).toString.toDouble,
+        elasticNetParams = eNetParams,
         fitIntercept = x(1).toString.toBoolean,
-        loss = x(2).toString,
+        loss = lossType,
         maxIter = x(3).toString.toInt,
         regParam = x(4).toString.toDouble,
         standardization = x(5).toString.toBoolean,
@@ -844,7 +850,7 @@ trait ModelConfigGenerators extends SeedGenerator {
         config.numericBoundaries("hiddenLayerSizeAdjust")._1.toInt,
         config.numericBoundaries("hiddenLayerSizeAdjust")._2.toInt,
         config.inputFeatureSize,
-        config.distinctClasses,
+        config.distinctClasses + 1,
         config.permutationTarget
       ),
       maxIterArray = generateLinearIntSpace(
