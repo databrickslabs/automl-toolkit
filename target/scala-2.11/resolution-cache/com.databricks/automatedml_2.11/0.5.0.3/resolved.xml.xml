@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="com.databricks"
+		module="automatedml_2.11"
+		revision="0.5.0.3"
+		status="integration"
+		publication="20190612161103"
+	>
+		<description>
+		AutomatedML
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		<conf name="compile-internal" visibility="private" description="" extends="compile,optional,provided"/>
+		<conf name="runtime-internal" visibility="private" description="" extends="runtime,optional"/>
+		<conf name="test-internal" visibility="private" description="" extends="test,optional,provided"/>
+		<conf name="plugin" visibility="private" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		<conf name="scala-tool" visibility="private" description=""/>
+	</configurations>
+	<publications>
+		<artifact name="automatedml_2.11" type="pom" ext="pom" conf="pom"/>
+		<artifact name="automatedml_2.11" type="jar" ext="jar" conf="compile"/>
+		<artifact name="automatedml_2.11" type="src" ext="jar" conf="compile" e:classifier="sources"/>
+		<artifact name="automatedml_2.11" type="doc" ext="jar" conf="compile" e:classifier="javadoc"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.scala-lang" name="scala-compiler" rev="2.11.12" conf="scala-tool->default,optional(default)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.11.12" conf="scala-tool->default,optional(default);compile->default(compile)"/>
+		<dependency org="org.apache.spark" name="spark-core_2.11" rev="2.4.0" conf="compile->default(compile)"/>
+		<dependency org="org.apache.spark" name="spark-mllib_2.11" rev="2.4.0" conf="compile->default(compile)"/>
+		<dependency org="org.apache.spark" name="spark-sql_2.11" rev="2.4.0" conf="compile->default(compile)"/>
+		<dependency org="org.mlflow" name="mlflow-client" rev="0.9.1" conf="compile->default(compile)"/>
+		<dependency org="org.json4s" name="json4s-jackson_2.11" rev="3.5.3" conf="compile->default(compile)"/>
+		<dependency org="ml.dmlc" name="xgboost4j" rev="0.90" conf="compile->default(compile)"/>
+		<dependency org="ml.dmlc" name="xgboost4j-spark" rev="0.90" conf="compile->default(compile)"/>
+		<dependency org="junit" name="junit" rev="4.8.1" conf="test->default(compile)"/>
+		<dependency org="org.scalatest" name="scalatest_2.11" rev="3.0.6" conf="test->default(compile)"/>
+	</dependencies>
+</ivy-module>

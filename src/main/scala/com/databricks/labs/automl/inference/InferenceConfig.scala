@@ -176,7 +176,8 @@ object InferenceConfig extends InferenceDefaults {
       mlFlowAPIToken = _inferenceConfigMlFlowAPIToken,
       mlFlowModelSaveDirectory = _inferenceConfigMlFlowModelSaveDirectory,
       mlFlowLoggingMode = "full",
-      mlFlowBestSuffix = "_best"
+      mlFlowBestSuffix = "_best",
+      mlFlowCustomRunTags = Map("" -> "")
     )
     setInferenceModelConfig()
     this
