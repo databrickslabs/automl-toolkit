@@ -8,7 +8,10 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize._
-import com.databricks.labs.automl.utils.AutomationTools
+import com.databricks.labs.automl.utils.{
+  AutomationTools,
+  WorkspaceDirectoryValidation
+}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -248,6 +251,25 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Record the Switch Settings from MainConfig to return an InferenceSwitchSettings object
     val inferenceSwitchSettings = recordInferenceSwitchSettings(_mainConfig)
     InferenceConfig.setInferenceSwitchSettings(inferenceSwitchSettings)
+
+    // Perform validation of mlflow logging location so that it can fail early in case logging doesn't work.
+    // Only run this if mlflow Logging flag is turned on.
+    if (_mainConfig.mlFlowLoggingFlag) {
+      val dirValidate = WorkspaceDirectoryValidation(
+        _mainConfig.mlFlowConfig.mlFlowTrackingURI,
+        _mainConfig.mlFlowConfig.mlFlowAPIToken,
+        _mainConfig.mlFlowConfig.mlFlowExperimentName
+      )
+      if (dirValidate) {
+        val rgx = "(\\/\\w+$)".r
+        val dir =
+          rgx.replaceFirstIn(_mainConfig.mlFlowConfig.mlFlowExperimentName, "")
+        println(
+          s"MLFlow Logging Directory confirmed accessible at: " +
+            s"$dir"
+        )
+      }
+    }
 
     val includeFieldsFinalData = _mainConfig.fieldsToIgnoreInVector
 
