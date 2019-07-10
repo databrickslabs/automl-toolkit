@@ -1,131 +1,18 @@
 package com.databricks.labs.automl.feature
 
-import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
-import org.apache.spark.ml.feature.{MaxAbsScaler, MinHashLSH, MinHashLSHModel}
-import org.apache.spark.sql.{DataFrame, Row}
-import org.apache.spark.sql.functions._
+import org.apache.spark.ml.feature.{
+  MaxAbsScaler,
+  MinHashLSH,
+  MinHashLSHModel,
+  VectorAssembler
+}
 import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.{DataFrame, Row}
 
 import scala.collection.mutable.ListBuffer
-
-trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
-
-  final private val allowableKMeansDistanceMeasurements: List[String] =
-    List("cosine", "euclidean")
-
-  private[feature] var _featuresCol: String = defaultFeaturesCol
-  private[feature] var _labelCol: String = defaultLabelCol
-  private[feature] var _kGroups: Int = defaultKGroups
-  private[feature] var _kMeansMaxIter: Int = defaultKMeansMaxIter
-  private[feature] var _kMeansTolerance: Double = defaultKMeansTolerance
-  private[feature] var _kMeansDistanceMeasurement: String =
-    defaultKMeansDistanceMeasurement
-  private[feature] var _kMeansSeed: Long = defaultKMeansSeed
-  private[feature] var _kMeansPredictionCol: String = defaultKMeansPredictionCol
-  private[feature] var _lshHashTables = defaultHashTables
-  private[feature] var _lshSeed = defaultLSHSeed
-  private[feature] var _lshOutputCol = defaultLSHOutputCol
-  private[feature] var _quorumCount = defaultQuorumCount
-
-  private[feature] var conf = getKSamplingConfig
-
-  def setFeaturesCol(value: String): this.type = {
-    _featuresCol = value; setConfig; this
-  }
-  def setLabelCol(value: String): this.type = {
-    _labelCol = value
-    setConfig
-    this
-  }
-  def setKGroups(value: Int): this.type = {
-    _kGroups = value
-    setConfig
-    this
-  }
-  def setKMeansMaxIter(value: Int): this.type = {
-    _kMeansMaxIter = value
-    setConfig
-    this
-  }
-
-  //TODO: range checking
-  def setKMeansTolerance(value: Double): this.type = {
-    _kMeansTolerance = value
-    setConfig
-    this
-  }
-  def setKMeansDistanceMeasurement(value: String): this.type = {
-    require(
-      allowableKMeansDistanceMeasurements.contains(value),
-      s"Kmeans Distance Measurement $value is not " +
-        s"a valid mode of operation.  Must be one of: ${allowableKMeansDistanceMeasurements.mkString(", ")}"
-    )
-    _kMeansDistanceMeasurement = value
-    setConfig
-    this
-  }
-  def setKMeansSeed(value: Long): this.type = {
-    _kMeansSeed = value
-    setConfig
-    this
-  }
-  def setKMeansPredictionCol(value: String): this.type = {
-    _kMeansPredictionCol = value; this
-  }
-  def setLSHHashTables(value: Int): this.type = {
-    _lshHashTables = value
-    setConfig
-    this
-  }
-  def setLSHOutputCol(value: String): this.type = {
-    _lshOutputCol = value
-    setConfig
-    this
-  }
-  def setQuorumCount(value: Int): this.type = {
-    _quorumCount = value
-    setConfig
-    this
-  }
-
-  private def setConfig: this.type = {
-    conf = KSamplingConfiguration(
-      featuresCol = _featuresCol,
-      labelCol = _labelCol,
-      kGroups = _kGroups,
-      kMeansMaxIter = _kMeansMaxIter,
-      kMeansTolerance = _kMeansTolerance,
-      kMeansDistanceMeasurement = _kMeansDistanceMeasurement,
-      kMeansSeed = _kMeansSeed,
-      kMeansPredictionCol = _kMeansPredictionCol,
-      lshHashTables = _lshHashTables,
-      lshSeed = _lshSeed,
-      lshOutputCol = _lshOutputCol,
-      quorumCount = _quorumCount
-    )
-    this
-  }
-
-  def getKSamplingConfig: KSamplingConfiguration = {
-    KSamplingConfiguration(
-      featuresCol = _featuresCol,
-      labelCol = _labelCol,
-      kGroups = _kGroups,
-      kMeansMaxIter = _kMeansMaxIter,
-      kMeansTolerance = _kMeansTolerance,
-      kMeansDistanceMeasurement = _kMeansDistanceMeasurement,
-      kMeansSeed = _kMeansSeed,
-      kMeansPredictionCol = _kMeansPredictionCol,
-      lshHashTables = _lshHashTables,
-      lshSeed = _lshSeed,
-      lshOutputCol = _lshOutputCol,
-      quorumCount = _quorumCount
-    )
-  }
-
-}
 
 class KSampling(df: DataFrame) extends KSamplingBase {
 
@@ -143,7 +30,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
       .setSeed(conf.kMeansSeed)
       .setFeaturesCol(conf.featuresCol)
       .setDistanceMeasure(conf.kMeansDistanceMeasurement)
-      .setPredictionCol(conf.kMeansDistanceMeasurement)
+      .setPredictionCol(conf.kMeansPredictionCol)
       .setTol(conf.kMeansTolerance)
       .setMaxIter(conf.kMeansMaxIter)
 
@@ -259,7 +146,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
     lshModel
       .approxNearestNeighbors(
-        data.filter(col("kGroups") === vectorCenter.kGroup),
+        data.filter(col(conf.kMeansPredictionCol) === vectorCenter.kGroup),
         vectorCenter.vector,
         targetCount
       )
@@ -267,11 +154,31 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
   }
 
-  def getRowAsMap(row: org.apache.spark.sql.Row): Map[String, Any] = {
+  /**
+    * Method for converting the Row object to a map of key/value pairs
+    *
+    * @param row a row of data
+    * @return a Map of key/value pairs for the feature columns of the row.
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def getRowAsMap(
+    row: org.apache.spark.sql.Row
+  ): Map[String, Any] = {
     val rowSchema = row.schema.fieldNames
     row.getValuesMap[Any](rowSchema)
   }
 
+  /**
+    * Method for mutating between two row values of all features in the rows.
+    * A mutation value is set to provide a ratio between the min and max values.
+    * @param first a value to mix with the second variable
+    * @param second a value to mix with the first variable
+    * @param mutationValue the ratio of mixing between the two variables.
+    * @return The scaled value between first and second
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
   def mutateValueFixed(first: Double,
                        second: Double,
                        mutationValue: Double): Double = {
@@ -281,29 +188,74 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     (minVal * mutationValue) + (maxVal * (1 - mutationValue))
   }
 
+  /**
+    * Method for mutating between row values with a fixed ratio value
+    * @param first a value to mix
+    * @param second a value to mix
+    * @param mutationValue ratio modifier between the two values
+    * @return the mutated value
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
   def ratioValueFixed(first: Double,
                       second: Double,
                       mutationValue: Double): Double = {
     (first + second) * mutationValue
   }
 
+  /**
+    * Method for randomly mutating between the bounds of two values
+    * @param first a value to mix
+    * @param second a value to mix
+    * @return the randomly mutated value
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
   def mutateValueRandom(first: Double, second: Double): Double = {
     val rand = scala.util.Random
     mutateValueFixed(first, second, rand.nextDouble())
   }
 
-  def toDoubleType(x: Any): Option[Double] = x match {
+  /**
+    * Method for converting Integer Types to Double Types
+    * @param x Numeric: Integer or Double
+    * @return Option Double type conversion
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def toDoubleType(x: Any): Option[Double] = x match {
     case i: Int    => Some(i)
+    case f: Float  => Some(f)
+    case l: Long   => Some(l)
     case d: Double => Some(d)
     case _         => None
   }
 
-  def mutateRow(originalRow: Map[String, Any],
-                mutateRow: Map[String, Any],
-                indexMapping: Array[RowMapping],
-                indexesToMutate: List[Int],
-                mode: String,
-                mutation: Double): List[Double] = {
+  /**
+    * Method for modifying a row of feature data by finding a linear point along the
+    * vector between the features.
+    * Options for modification of a vector include:
+    * - Full Vector mutation based on a provided ratio, random modification, or a weighted average
+    * - Partial Random Vector mutation of a random number of index sites, bound by a lower limit
+    * - Fixed Vector mutation of random indexes at a constant count of indexes to modify
+    * @param originalRow The Map() representation of one of the vectors
+    * @param mutateRow The Map() representation of the other vector
+    * @param indexMapping Vector definition of the payload (field name and index)
+    * @param indexesToMutate A list of Integers of index positions within the vector to mutate
+    * @param mode The method of mutation (weighted average, ratio, or random mutation)
+    * @param mutation The magnitude of % share of the value from the centroid-adjacent vector
+    *                 to the other vector.  A higher percentage value will be closer in euclidean
+    *                 distance to the centroid vector.
+    * @return A List of Doubles of the feature vector modifications (data for a new row)
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def mutateRow(originalRow: Map[String, Any],
+                                 mutateRow: Map[String, Any],
+                                 indexMapping: Array[RowMapping],
+                                 indexesToMutate: List[Int],
+                                 mode: String,
+                                 mutation: Double): List[Double] = {
 
     val outputRow = ListBuffer[Double]()
 
@@ -329,8 +281,20 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
   }
 
-  def generateRandomIndexPositions(vectorSize: Int,
-                                   minimumCount: Int): List[Int] = {
+  /**
+    * Method for generating a random collection of random-counts of vectors for mutation
+    * @param vectorSize The size of the feature vector components (columns)
+    * @param minimumCount The minimum number of vectors that can be selected for mutation
+    *                     - used to ensure that at least some values will be modified.
+    * @return The list of indexes that will be modified through averaging along the vector between
+    *         the centroid and a chosen feature vector
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def generateRandomIndexPositions(
+    vectorSize: Int,
+    minimumCount: Int
+  ): List[Int] = {
     val candidateList = List.range(0, vectorSize)
     val restrictionSize = scala.util.Random.nextInt(vectorSize)
     val adjustedSize =
@@ -338,11 +302,74 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     scala.util.Random.shuffle(candidateList).take(adjustedSize).sortWith(_ < _)
   }
 
-  def acquireRowCollections(nearestNeighborData: DataFrame,
-                            targetCount: Int,
-                            minVectorsToMutate: Int,
-                            mutationMode: String,
-                            mutationValue: Double): List[List[Double]] = {
+  /**
+    * Method for generating a fixed number of random indexes in the feature vector to manipulate.
+    * @param vectorSize The size of the feature vector
+    * @param minimumCount The number of features to mutate which are randomly selected.
+    * @note if the value specified in .setMinimumVectorCountToMutate is greater than the
+    *       feature vector size, all indexes will be mutated.
+    * @return The list of indexes selected for mutation
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def generateFixedIndexPositions(
+    vectorSize: Int,
+    minimumCount: Int
+  ): List[Int] = {
+    val candidateList = List.range(0, vectorSize)
+    val adjustedSize =
+      if (minimumCount > vectorSize) vectorSize else minimumCount
+    scala.util.Random.shuffle(candidateList).take(adjustedSize).sortWith(_ < _)
+  }
+
+  /**
+    * Builder method for controlling what type of index selection will be used, returning the list
+    * of indexes that are selected for mutation
+    * @param vectorSize The size of the feature vector
+    * @return The list of indexes selected for mutation
+    * @author Ben Wilson
+    * @since 0.5.1
+    * @throws IllegalArgumentException() if an invalid entry is made.
+    */
+  @throws(classOf[IllegalArgumentException])
+  private[feature] def generateIndexPositions(vectorSize: Int): List[Int] = {
+
+    conf.vectorMutationMethod match {
+      case "random" =>
+        generateRandomIndexPositions(
+          vectorSize,
+          conf.minimumVectorCountToMutate
+        )
+      case "all" => List.range(0, vectorSize)
+      case "fixed" =>
+        generateFixedIndexPositions(vectorSize, conf.minimumVectorCountToMutate)
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Vector Mutation Method ${conf.vectorMutationMethod} is not supported.  " +
+            s"Please use one of: ${allowableVectorMutationMethods.mkString(", ")}"
+        )
+    }
+
+  }
+
+  /**
+    * Method for generating a collection of synthetic row data, stored as lists of lists of doubles.
+    * @param nearestNeighborData A Dataframe that has been transformed by a KMeans model
+    * @param targetCount The target number of synthetic rows to generate
+    * @param minVectorsToMutate The minimum (or exact) target of vectors to mutate in the feature vector
+    * @param mutationMode The mutation mode (random, weighted, or Ratio)
+    * @param mutationValue The value of vector ratio share between the centroid-associated vector and the other vectors
+    * @return A list of Lists of Doubles (basic DF structure)
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def acquireRowCollections(
+    nearestNeighborData: DataFrame,
+    targetCount: Int,
+    minVectorsToMutate: Int,
+    mutationMode: String,
+    mutationValue: Double
+  ): List[List[Double]] = {
 
     val mutatedRows = ListBuffer[List[Double]]()
 
@@ -367,8 +394,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
     do {
 
-      val indexesToMutate =
-        generateRandomIndexPositions(vectorLength, minIndexes)
+      val indexesToMutate = generateIndexPositions(vectorLength)
 
       mutatedRows += mutateRow(
         others(idx),
@@ -388,8 +414,21 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
   }
 
-  def generateDoublesSchema(data: DataFrame,
-                            fieldsToExclude: List[String]): StructType = {
+  /**
+    * Helper method for constructing a valid DF schema Struct object wherein all of the numeric columns types are
+    * converted to DoubleType
+    * @param data The DataFrame that contains various numeric type data columns
+    * @param fieldsToExclude Fields that should not be included in the conversion and subsequent schema definition
+    * @note This function allows for casting the mutated return value of acquireRowCollections to a DataFrame since
+    *       the return types of that collection are all of DoubleType.
+    * @return A DoubleType encoded Schema
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def generateDoublesSchema(
+    data: DataFrame,
+    fieldsToExclude: List[String]
+  ): StructType = {
 
     val baseStruct = new StructType()
 
@@ -402,12 +441,37 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     DataTypes.createStructType(baseSchema)
   }
 
-  def convertCollectionsToDataFrame(collections: List[List[Double]],
-                                    schema: StructType): DataFrame = {
+  /**
+    * Method for converting the raw `List[List[Double]]` collection from the data generator method acquireRowCollections
+    * to a DataFrame object
+    * @param collections The collection of synthetic feature data in `List[List[Double]]` format
+    * @param schema The Double-formatted schema from the helper method generateDoublesSchema
+    * @return A DataFrame that has all numeric types of feature columns as DoubleType.
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def convertCollectionsToDataFrame(
+    collections: List[List[Double]],
+    schema: StructType
+  ): DataFrame = {
     spark.createDataFrame(sc.makeRDD(collections.map(x => Row(x: _*))), schema)
   }
 
-  def generateGroupVectors[T: scala.math.Numeric](
+  /**
+    * Method for generating the Group Vector Centroids that are used for generating the mutated feature rows.
+    * @param clusteredData KMeans transformed DataFrame
+    * @param centroids Array of the Centroid Vector data for look-up purposes through MinHashLSH
+    * @param lshModel The trained MinHashLSH Model
+    * @param labelCol The label Column of the DataFrame
+    * @param labelGroup The canonical class of the label Column that is intended to have data generated for
+    * @param targetCount The desired number of rows of synthetic data from the class to generate
+    * @param fieldsToDrop Fields to be ignored from the DataFrame (that are not part of the feature vector)
+    * @tparam T Numeric Type of the Label column
+    * @return A DataFrame of the rows that are closest to the K cluster centroids.
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def generateGroupVectors[T: scala.math.Numeric](
     clusteredData: DataFrame,
     centroids: Array[CentroidVectors],
     lshModel: MinHashLSHModel,
@@ -435,7 +499,16 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
   }
 
-  def sparkToScalaTypeConversion(sparkType: DataType): String = {
+  /**
+    * Helper Method for converting from Spark DataType to scala types.
+    * @param sparkType The spark type of a column
+    * @return a string representation of the native scala type
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def sparkToScalaTypeConversion(
+    sparkType: DataType
+  ): String = {
 
     sparkType match {
       case x: ByteType      => "Byte"
@@ -470,7 +543,16 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     }
   }
 
-  def generateSchemaInformationPayload(
+  /**
+    * Method for generating the original DataFrame's schema information, storing it in a collection that defines
+    * both the full starting schema types as well as information about the feature vector that was passed in.
+    * @param fullSchema The full schema as a StructType collection from the input DataFrame
+    * @param fieldsNotInVector Array of field names to ignore
+    * @return SchemaDefinitions collection payload
+    * @author Ben Wilson
+    * @since 0.5.1
+    */
+  private[feature] def generateSchemaInformationPayload(
     fullSchema: StructType,
     fieldsNotInVector: Array[String]
   ): SchemaDefinitions = {
@@ -498,10 +580,17 @@ class KSampling(df: DataFrame) extends KSamplingBase {
   }
 
   /**
-    * Method for converting the feature fields back to the correct types so that the DataFrames can be unioned together.
+    * Helper method for converting the generated data DataFrame's types to the original types.
+    * @note This is critical in order to be able to re-join the data back to the original DataFrame with the correct
+    *       types for each field.
+    * @param dataFrame The synthetic DataFrame with all fields as DoubleType
+    * @param schemaPayload the original DataFrame's type information payload
+    * @return a converted types DataFrame
     */
-  def castColumnsToCorrectTypes(dataFrame: DataFrame,
-                                schemaPayload: SchemaDefinitions): DataFrame = {
+  private[feature] def castColumnsToCorrectTypes(
+    dataFrame: DataFrame,
+    schemaPayload: SchemaDefinitions
+  ): DataFrame = {
 
     // Extract the fields and types that are part of the feature vector.
     val featureFieldsPayload = schemaPayload.features
@@ -519,13 +608,17 @@ class KSampling(df: DataFrame) extends KSamplingBase {
   }
 
   /**
-    *  Rebuild the Dataframe so that the fields can be matched for a union.
-    *
+    * Method for filling in with dummy data any field that was not part of the feature vector
+    * @param dataFrame Input DataFrame with feature fields
+    * @param schemaPayload schema definitions from original dataframe
+    * @param featureCol name of the feature field
+    * @param labelCol name of the label field
+    * @return the dataframe with any of the missing fields populated with dummy data of the correct type.
     */
-  def fillMissingColumns(dataFrame: DataFrame,
-                         schemaPayload: SchemaDefinitions,
-                         featureCol: String,
-                         labelCol: String): DataFrame = {
+  private[feature] def fillMissingColumns(dataFrame: DataFrame,
+                                          schemaPayload: SchemaDefinitions,
+                                          featureCol: String,
+                                          labelCol: String): DataFrame = {
 
     // Get a roster of all current fields
     val currentSchema = dataFrame.schema.names ++ featureCol ++ labelCol
@@ -550,12 +643,45 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
   }
 
+  /**
+    * Method for rebuilding the feature vector in the same manner as the original DataFrame's feature vector
+    * @param dataFrame The Synethic data DataFrame
+    * @param featureFields The indexed feature fields for re-creating the original DataFrame's feature vector
+    * @return The synthetic DataFrame with an added feature vector column
+    */
+  private[feature] def rebuildFeatureVector(
+    dataFrame: DataFrame,
+    featureFields: Array[RowMapping]
+  ): DataFrame = {
+
+    val assembler = new VectorAssembler()
+      .setInputCols(featureFields.map(_.fieldName))
+      .setOutputCol(conf.featuresCol)
+
+    assembler.transform(dataFrame)
+
+  }
+
+  /**
+    * Main Method for generating synthetic data
+    * @param labelValues Array[RowGenerationConfig] for specifying which categorical labels and the target counts to
+    *                    generate data for
+    * @return A synthetic data DataFrame with an added field for specifying that this data is synthetic in nature.
+    */
   def makeRows(labelValues: Array[RowGenerationConfig]): DataFrame = {
 
-    //TODO: distCol?  Where is this set?!!
-    val fieldsToDrop = List(_kMeansPredictionCol, _lshOutputCol, "distCol")
+    val collectedFieldsToIgnore = conf.fieldsToIgnore ++ Array(
+      conf.featuresCol,
+      conf.labelCol
+    )
 
-    // Get the original Schema
+    // Get the schema information
+    val origSchema = df.schema.names
+    val startingSchema = df.schema
+    val schemaMappings =
+      generateSchemaInformationPayload(df.schema, collectedFieldsToIgnore)
+    val doublesSchema =
+      generateDoublesSchema(df, collectedFieldsToIgnore.toList)
 
     // Scale the feature vector
     val scaled = scaleFeatureVector(df)
@@ -576,7 +702,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
           lshModel,
           kModel
         )
-        generateGroupVectors(
+        val groupData = generateGroupVectors(
           kModelData,
           vecs,
           lshModel,
@@ -584,43 +710,70 @@ class KSampling(df: DataFrame) extends KSamplingBase {
           x.labelValue,
           x.targetCount,
           fieldsToDrop
-        ).withColumn(conf.labelCol, lit(x.labelValue))
+        )
+        val rowCollections = acquireRowCollections(
+          groupData.drop(conf.featuresCol),
+          x.targetCount,
+          conf.minimumVectorCountToMutate,
+          conf.mutationMode,
+          conf.mutationValue
+        )
+        val convertedDF =
+          convertCollectionsToDataFrame(rowCollections, doublesSchema)
+        val finalDF = castColumnsToCorrectTypes(convertedDF, schemaMappings)
+        // rebuild the feature vector
+        rebuildFeatureVector(finalDF, schemaMappings.features)
+          .withColumn(conf.labelCol, lit(x.labelValue))
       }
       .reduce(_.union(_))
       .toDF()
+      .select(origSchema map col: _*)
+      .withColumn(conf.syntheticCol, lit(true))
 
-    //TODO: regenerate the original fields
   }
-
-  /**
-  *
-  *
-  *
-  * TODO: Finish this logic
-  *
-  * //TODO: then finish the conversion of the resulting DF to the source schema, adding in the required fields.
-  *
-  * val kConf = ClusteringConfiguration(k =20, featuresCol = "features", maxIter = 5000, tolerance = 1E-10, distanceMeasure = "euclidean", modelSeed = 42L, predictionCol = "kGroups")
-  * val lshConf = LSHConfiguration(numHashTables = 5, modelSeed = 42L, inputCol = "features", outputCol = "hashes")
-  * val synConf = SyntheticDataConfig(kConf, lshConf)
-  *
-  * val featNew = scaleFeatureVector(featRaw, "features")
-  * val kModS = buildKMeans(featNew, kConf)
-  * val kDataS = kModS.transform(featNew)
-  * val lshModS = buildLSH(featNew, lshConf)
-  * val vecsS = acquireNearestVectorToCentroids(featNew.filter(col("income")===1), lshModS, kModS, synConf, 11)
-  *
-  * val tt2 = generateGroupVectors(kDataS, vecsS, lshModS, "income", 1.0, 5000, List("distCol", "hashes"))
-  *
-  *
-  * val test = generateSchemaInformationPayload(featSchema, Array("income", "features"))
-  * val ff = test.features.map(x => x.fieldName).map(x => test.fullSchema.filter(y => y.fieldName.contains(x))).flatten
-  *
-  * val tdf = ff.foldLeft(featRaw) { case (accum, x) => accum.withColumn(x.fieldName, featRaw(x.fieldName).cast(IntegerType))}
-  * val tds = ff.foldLeft(tdf) { case (accum, x) => accum.withColumn(x.fieldName, tdf(x.fieldName).cast(x.dfType))}.drop("marital_status_si")
-  *
-  */
 
 }
 
-object KSampling extends KSamplingBase {}
+object KSampling extends KSamplingBase {
+
+  def apply(data: DataFrame,
+            labelValues: Array[RowGenerationConfig],
+            featuresCol: String,
+            labelsCol: String,
+            syntheticCol: String,
+            fieldsToIgnore: Array[String],
+            kGroups: Int,
+            kMeansMaxIter: Int,
+            kMeansTolerance: Double,
+            kMeansDistanceMeasurement: String,
+            kMeansSeed: Long,
+            kMeansPredictionCol: String,
+            lshHashTables: Int,
+            lshSeed: Long,
+            lshOutputCol: String,
+            quorumCount: Int,
+            minimumVectorCountToMutate: Int,
+            vectorMutationMethod: String,
+            mutationMode: String,
+            mutationValue: Double): DataFrame =
+    new KSampling(data)
+      .setFeaturesCol(featuresCol)
+      .setLabelCol(labelsCol)
+      .setSyntheticCol(syntheticCol)
+      .setFieldsToIgnore(fieldsToIgnore)
+      .setKGroups(kGroups)
+      .setKMeansMaxIter(kMeansMaxIter)
+      .setKMeansTolerance(kMeansTolerance)
+      .setKMeansDistanceMeasurement(kMeansDistanceMeasurement)
+      .setKMeansSeed(kMeansSeed)
+      .setKMeansPredictionCol(kMeansPredictionCol)
+      .setLSHHashTables(lshHashTables)
+      .setLSHOutputCol(lshOutputCol)
+      .setQuorumCount(quorumCount)
+      .setMinimumVectorCountToMutate(minimumVectorCountToMutate)
+      .setVectorMutationMethod(vectorMutationMethod)
+      .setMutationMode(mutationMode)
+      .setMutationValue(mutationValue)
+      .makeRows(labelValues)
+
+}

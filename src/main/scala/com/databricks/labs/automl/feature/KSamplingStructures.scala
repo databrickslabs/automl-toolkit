@@ -7,6 +7,8 @@ trait KSamplingDefaults {
 
   def defaultFeaturesCol = "features"
   def defaultLabelCol = "label"
+  def defaultSyntheticCol = "synthetic"
+  def defaultFieldsToIgnore = Array[String]()
   def defaultKGroups = 25
   def defaultKMeansMaxIter = 100
   def defaultKMeansTolerance = 1E-6
@@ -17,6 +19,10 @@ trait KSamplingDefaults {
   def defaultLSHSeed = 42L
   def defaultLSHOutputCol = "hashes"
   def defaultQuorumCount = 7
+  def defaultMinimumVectorCountToMutate = 1
+  def defaultVectorMutationMethod = "random"
+  def defaultMutationMode = "weighted"
+  def defaultMutationValue = 0.5
 
   def defaultFill: Map[DataType, Any] =
     Map(
@@ -37,6 +43,8 @@ case class CentroidVectors(vector: Vector, kGroup: Int)
 
 case class KSamplingConfiguration(featuresCol: String,
                                   labelCol: String,
+                                  syntheticCol: String,
+                                  fieldsToIgnore: Array[String],
                                   kGroups: Int,
                                   kMeansMaxIter: Int,
                                   kMeansTolerance: Double,
@@ -46,9 +54,11 @@ case class KSamplingConfiguration(featuresCol: String,
                                   lshHashTables: Int,
                                   lshSeed: Long,
                                   lshOutputCol: String,
-                                  quorumCount: Int)
-
-// vector mutation mode, vector mutation magnitude, etc...
+                                  quorumCount: Int,
+                                  minimumVectorCountToMutate: Int,
+                                  vectorMutationMethod: String,
+                                  mutationMode: String,
+                                  mutationValue: Double)
 
 case class SchemaMapping(fieldName: String,
                          originalFieldIndex: Int,
