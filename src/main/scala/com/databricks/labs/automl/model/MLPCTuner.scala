@@ -157,7 +157,7 @@ class MLPCTuner(df: DataFrame)
         "hiddenLayerSizeAdjust",
         _mlpcNumericBoundaries,
         _featureInputSize,
-        _classDistinctCount
+        _classDistinctCount + 1
       )
       val maxIter = generateRandomInteger("maxIter", _mlpcNumericBoundaries)
       val solver = generateRandomString("solver", _mlpcStringBoundaries)

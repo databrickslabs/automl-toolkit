@@ -602,8 +602,10 @@ class PostModelingOptimization
       .regressionModelForPermutationTest()
 
     val fullSearchSpaceDataSet =
-      generateMLPCSearchSpaceAsDataFrame(featureInputSize, classDistinctCount)
-        .withColumnRenamed("layers", "layerConstruct")
+      generateMLPCSearchSpaceAsDataFrame(
+        featureInputSize,
+        classDistinctCount + 1
+      ).withColumnRenamed("layers", "layerConstruct")
         .withColumnRenamed("layerCount", "layers")
 
     val restrictedData = fittedPipeline
@@ -616,7 +618,8 @@ class PostModelingOptimization
     convertMLPCResultToConfig(
       restrictedData,
       featureInputSize,
-      classDistinctCount
+      classDistinctCount + 1
+
     )
   }
 

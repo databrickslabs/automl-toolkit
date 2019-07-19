@@ -5,40 +5,63 @@ import com.databricks.labs.automl.params.{MLFlowConfig, ScalingConfig}
 object InferenceConfig extends InferenceDefaults {
 
   final val allowableModelLoads: Array[String] = Array("path", "mlflow")
-  final val allowableOutlierFilteringDirections: Array[String] = Array("greater", "lesser")
+  final val allowableOutlierFilteringDirections: Array[String] =
+    Array("greater", "lesser")
 
   var _inferenceConfigStorageLocation: String = ""
   var _inferenceDataConfig: InferenceDataConfig = _defaultInferenceDataConfig
-  var _inferenceDataConfigLabelCol: String = _defaultInferenceDataConfig.labelCol
-  var _inferenceDataConfigFeaturesCol: String = _defaultInferenceDataConfig.featuresCol
-  var _inferenceDataConfigStartingColumns: Array[String] = _defaultInferenceDataConfig.startingColumns
-  var _inferenceDataConfigFieldsToIgnore: Array[String] = _defaultInferenceDataConfig.fieldsToIgnore
-  var _inferenceDataConfigDateTimeConversionType: String = _defaultInferenceDataConfig.dateTimeConversionType
-  var _inferenceSwitchSettings: InferenceSwitchSettings = _defaultInferenceSwitchSettings
+  var _inferenceDataConfigLabelCol: String =
+    _defaultInferenceDataConfig.labelCol
+  var _inferenceDataConfigFeaturesCol: String =
+    _defaultInferenceDataConfig.featuresCol
+  var _inferenceDataConfigStartingColumns: Array[String] =
+    _defaultInferenceDataConfig.startingColumns
+  var _inferenceDataConfigFieldsToIgnore: Array[String] =
+    _defaultInferenceDataConfig.fieldsToIgnore
+  var _inferenceDataConfigDateTimeConversionType: String =
+    _defaultInferenceDataConfig.dateTimeConversionType
+  var _inferenceSwitchSettings: InferenceSwitchSettings =
+    _defaultInferenceSwitchSettings
   var _inferenceModelConfig: InferenceModelConfig = _defaultInferenceModelConfig
-  var _featureEngineeringConfig: FeatureEngineeringConfig = _defaultFeatureEngineeringConfig
+  var _featureEngineeringConfig: FeatureEngineeringConfig =
+    _defaultFeatureEngineeringConfig
   var _inferenceConfig: InferenceMainConfig = _defaultInferenceConfig
-  var _inferenceConfigModelFamily: String = _defaultInferenceModelConfig.modelFamily
+  var _inferenceConfigModelFamily: String =
+    _defaultInferenceModelConfig.modelFamily
   var _inferenceConfigModelType: String = _defaultInferenceModelConfig.modelType
-  var _inferenceConfigModelLoadMethod: String = _defaultInferenceModelConfig.modelLoadMethod
-  var _inferenceConfigMlFlowConfig: MLFlowConfig = _defaultInferenceModelConfig.mlFlowConfig
-  var _inferenceConfigMlFlowRunId: String = _defaultInferenceModelConfig.mlFlowRunId
-  var _inferenceConfigModelPathLocation: String = _defaultInferenceModelConfig.modelPathLocation
-  var _inferenceConfigMlFlowTrackingURI: String = _defaultInferenceModelConfig.mlFlowConfig.mlFlowTrackingURI
-  var _inferenceConfigMlFlowExperimentName: String = _defaultInferenceModelConfig.mlFlowConfig.mlFlowExperimentName
-  var _inferenceConfigMlFlowAPIToken: String = _defaultInferenceModelConfig.mlFlowConfig.mlFlowAPIToken
-  var _inferenceConfigMlFlowModelSaveDirectory: String = _defaultInferenceModelConfig.mlFlowConfig.mlFlowModelSaveDirectory
+  var _inferenceConfigModelLoadMethod: String =
+    _defaultInferenceModelConfig.modelLoadMethod
+  var _inferenceConfigMlFlowConfig: MLFlowConfig =
+    _defaultInferenceModelConfig.mlFlowConfig
+  var _inferenceConfigMlFlowRunId: String =
+    _defaultInferenceModelConfig.mlFlowRunId
+  var _inferenceConfigModelPathLocation: String =
+    _defaultInferenceModelConfig.modelPathLocation
+  var _inferenceConfigMlFlowTrackingURI: String =
+    _defaultInferenceModelConfig.mlFlowConfig.mlFlowTrackingURI
+  var _inferenceConfigMlFlowExperimentName: String =
+    _defaultInferenceModelConfig.mlFlowConfig.mlFlowExperimentName
+  var _inferenceConfigMlFlowAPIToken: String =
+    _defaultInferenceModelConfig.mlFlowConfig.mlFlowAPIToken
+  var _inferenceConfigMlFlowModelSaveDirectory: String =
+    _defaultInferenceModelConfig.mlFlowConfig.mlFlowModelSaveDirectory
   var _inferenceNaFillConfig: NaFillConfig = _defaultNaFillConfig
-  var _inferenceVarianceFilterConfig: VarianceFilterConfig = _defaultVarianceFilterConfig
-  var _inferenceOutlierFilteringConfig: OutlierFilteringConfig = _defaultOutlierFilteringConfig
-  var _inferenceCovarianceFilteringConfig: CovarianceFilteringConfig = _defaultCovarianceFilteringConfig
-  var _inferencePearsonFilteringConfig: PearsonFilteringConfig = _defaultPearsonFilteringConfig
+  var _inferenceVarianceFilterConfig: VarianceFilterConfig =
+    _defaultVarianceFilterConfig
+  var _inferenceOutlierFilteringConfig: OutlierFilteringConfig =
+    _defaultOutlierFilteringConfig
+  var _inferenceCovarianceFilteringConfig: CovarianceFilteringConfig =
+    _defaultCovarianceFilteringConfig
+  var _inferencePearsonFilteringConfig: PearsonFilteringConfig =
+    _defaultPearsonFilteringConfig
   var _inferenceScalingConfig: ScalingConfig = _scalingConfigDefaults
   var _inferenceScalerType: String = _scalingConfigDefaults.scalerType
   var _inferenceScalerMin: Double = _scalingConfigDefaults.scalerMin
   var _inferenceScalerMax: Double = _scalingConfigDefaults.scalerMax
-  var _inferenceStandardScalerMeanFlag: Boolean = _scalingConfigDefaults.standardScalerMeanFlag
-  var _inferenceStandardScalerStdDevFlag: Boolean = _scalingConfigDefaults.standardScalerStdDevFlag
+  var _inferenceStandardScalerMeanFlag: Boolean =
+    _scalingConfigDefaults.standardScalerMeanFlag
+  var _inferenceStandardScalerStdDevFlag: Boolean =
+    _scalingConfigDefaults.standardScalerStdDevFlag
   var _inferenceScalerPNorm: Double = _scalingConfigDefaults.pNorm
 
   def setInferenceConfigStorageLocation(value: String): this.type = {
@@ -122,8 +145,6 @@ object InferenceConfig extends InferenceDefaults {
     this
   }
 
-
-
   def setInferenceModelConfig(value: InferenceModelConfig): this.type = {
     _inferenceModelConfig = value
     setInferenceConfig()
@@ -156,8 +177,11 @@ object InferenceConfig extends InferenceDefaults {
   }
 
   def setInferenceModelConfigModelLoadMethod(value: String): this.type = {
-    require(allowableModelLoads.contains(value), s"Inference Model Config Model Load Method invalid '$value' is not " +
-      s"in ${allowableModelLoads.mkString(", ")}")
+    require(
+      allowableModelLoads.contains(value),
+      s"Inference Model Config Model Load Method invalid '$value' is not " +
+        s"in ${allowableModelLoads.mkString(", ")}"
+    )
     _inferenceConfigModelLoadMethod = value
     setInferenceModelConfig()
     this
@@ -219,7 +243,9 @@ object InferenceConfig extends InferenceDefaults {
     this
   }
 
-  def setInferenceFeatureEngineeringConfig(value: FeatureEngineeringConfig): this.type = {
+  def setInferenceFeatureEngineeringConfig(
+    value: FeatureEngineeringConfig
+  ): this.type = {
     _featureEngineeringConfig = value
     setInferenceConfig()
     this
@@ -238,7 +264,8 @@ object InferenceConfig extends InferenceDefaults {
     this
   }
 
-  def setInferenceNaFillConfig(categoricalMap: Map[String, String], numericMap: Map[String, Double]): this.type = {
+  def setInferenceNaFillConfig(categoricalMap: Map[String, String],
+                               numericMap: Map[String, Double]): this.type = {
     _inferenceNaFillConfig = NaFillConfig(
       categoricalColumns = categoricalMap,
       numericColumns = numericMap
@@ -248,14 +275,14 @@ object InferenceConfig extends InferenceDefaults {
   }
 
   def setInferenceVarianceFilterConfig(value: Array[String]): this.type = {
-    _inferenceVarianceFilterConfig = VarianceFilterConfig(
-      fieldsRemoved = value
-    )
+    _inferenceVarianceFilterConfig = VarianceFilterConfig(fieldsRemoved = value)
     setInferenceFeatureEngineeringConfig()
     this
   }
 
-  def setInferenceOutlierFilteringConfig(value: Map[String, (Double, String)]): this.type = {
+  def setInferenceOutlierFilteringConfig(
+    value: Map[String, (Double, String)]
+  ): this.type = {
     _inferenceOutlierFilteringConfig = OutlierFilteringConfig(
       fieldRemovalMap = value
     )
@@ -297,7 +324,6 @@ object InferenceConfig extends InferenceDefaults {
     setInferenceConfig()
     this
   }
-
 
   def setInferenceScalerType(value: String): this.type = {
     _inferenceScalerType = value
@@ -347,23 +373,29 @@ object InferenceConfig extends InferenceDefaults {
     this
   }
 
-  def getInferenceConfigStorageLocation: String = _inferenceConfigStorageLocation
+  def getInferenceConfigStorageLocation: String =
+    _inferenceConfigStorageLocation
 
   def getInferenceConfig: InferenceMainConfig = _inferenceConfig
 
-  def getInferenceSwitchSettings: InferenceSwitchSettings = _inferenceSwitchSettings
+  def getInferenceSwitchSettings: InferenceSwitchSettings =
+    _inferenceSwitchSettings
 
   def getInferenceDataConfig: InferenceDataConfig = _inferenceDataConfig
 
   def getInferenceDataConfigLabelCol: String = _inferenceDataConfigLabelCol
 
-  def getInferenceDataConfigFeaturesCol: String = _inferenceDataConfigFeaturesCol
+  def getInferenceDataConfigFeaturesCol: String =
+    _inferenceDataConfigFeaturesCol
 
-  def getInferenceDataConfigStartingColumns: Array[String] = _inferenceDataConfigStartingColumns
+  def getInferenceDataConfigStartingColumns: Array[String] =
+    _inferenceDataConfigStartingColumns
 
-  def getInferenceDataConfigFieldsToIgnore: Array[String] = _inferenceDataConfigFieldsToIgnore
+  def getInferenceDataConfigFieldsToIgnore: Array[String] =
+    _inferenceDataConfigFieldsToIgnore
 
-  def getInferenceDataConfigDateTimeConversionType: String = _inferenceDataConfigDateTimeConversionType
+  def getInferenceDataConfigDateTimeConversionType: String =
+    _inferenceDataConfigDateTimeConversionType
 
   def getInferenceModelConfig: InferenceModelConfig = _inferenceModelConfig
 
@@ -371,29 +403,39 @@ object InferenceConfig extends InferenceDefaults {
 
   def getInferenceModelConfigModelType: String = _inferenceConfigModelType
 
-  def getInferenceModelConfigModelLoadMethod: String = _inferenceConfigModelLoadMethod
+  def getInferenceModelConfigModelLoadMethod: String =
+    _inferenceConfigModelLoadMethod
 
-  def getInferenceModelConfigMlFlowTrackingURI: String = _inferenceConfigMlFlowTrackingURI
+  def getInferenceModelConfigMlFlowTrackingURI: String =
+    _inferenceConfigMlFlowTrackingURI
 
-  def getInferenceModelConfigMlFlowExperimentName: String = _inferenceConfigMlFlowExperimentName
+  def getInferenceModelConfigMlFlowExperimentName: String =
+    _inferenceConfigMlFlowExperimentName
 
-  def getInferenceModelConfigMlFlowModelSaveDirectory: String = _inferenceConfigMlFlowModelSaveDirectory
+  def getInferenceModelConfigMlFlowModelSaveDirectory: String =
+    _inferenceConfigMlFlowModelSaveDirectory
 
   def getInferenceModelConfigMlFlowRunID: String = _inferenceConfigMlFlowRunId
 
-  def getInferenceModelConfigModelPathLocation: String = _inferenceConfigModelPathLocation
+  def getInferenceModelConfigModelPathLocation: String =
+    _inferenceConfigModelPathLocation
 
-  def getInferenceFeatureEngineeringConfig: FeatureEngineeringConfig = _featureEngineeringConfig
+  def getInferenceFeatureEngineeringConfig: FeatureEngineeringConfig =
+    _featureEngineeringConfig
 
   def getInferenceNaFillConfig: NaFillConfig = _inferenceNaFillConfig
 
-  def getInferenceVarianceFilterConfig: VarianceFilterConfig = _inferenceVarianceFilterConfig
+  def getInferenceVarianceFilterConfig: VarianceFilterConfig =
+    _inferenceVarianceFilterConfig
 
-  def getInferenceOutlierFilteringConfig: OutlierFilteringConfig = _inferenceOutlierFilteringConfig
+  def getInferenceOutlierFilteringConfig: OutlierFilteringConfig =
+    _inferenceOutlierFilteringConfig
 
-  def getInferenceCovarianceFilteringConfig: CovarianceFilteringConfig = _inferenceCovarianceFilteringConfig
+  def getInferenceCovarianceFilteringConfig: CovarianceFilteringConfig =
+    _inferenceCovarianceFilteringConfig
 
-  def getInferencePearsonFilteringConfig: PearsonFilteringConfig = _inferencePearsonFilteringConfig
+  def getInferencePearsonFilteringConfig: PearsonFilteringConfig =
+    _inferencePearsonFilteringConfig
 
   def getInferenceScalingConfig: ScalingConfig = _inferenceScalingConfig
 
@@ -403,16 +445,14 @@ object InferenceConfig extends InferenceDefaults {
 
   def getInferenceScalerMax: Double = _inferenceScalerMax
 
-  def getInferenceStandardScalerMeanFlag: Boolean = _inferenceStandardScalerMeanFlag
+  def getInferenceStandardScalerMeanFlag: Boolean =
+    _inferenceStandardScalerMeanFlag
 
-  def getInferenceStandardScalerStdDevFlag: Boolean = _inferenceStandardScalerStdDevFlag
+  def getInferenceStandardScalerStdDevFlag: Boolean =
+    _inferenceStandardScalerStdDevFlag
 
   def getInferenceScalerPNorm: Double = _inferenceScalerPNorm
 
-
 }
-
-
 //object InferenceConfig extends InferenceConfig{
 //}
-

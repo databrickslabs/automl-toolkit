@@ -319,14 +319,25 @@ class LinearRegressionTuner(df: DataFrame)
       val mutationIteration = mutationCandidates(i)
       val mutationIndexIteration = mutationIndeces(i)
 
+      val lossSelect =
+        if (mutationIndexIteration.contains(2))
+          geneMixing(randomParent.loss, mutationIteration.loss)
+        else randomParent.loss
+
+      val elasticNetParamSelect = lossSelect match {
+        case "huber" => 0.0
+        case _ =>
+          if (mutationIndexIteration.contains(0))
+            geneMixing(
+              randomParent.elasticNetParams,
+              mutationIteration.elasticNetParams,
+              mutationMagnitude
+            )
+          else randomParent.elasticNetParams
+      }
+
       mutationPayload += LinearRegressionConfig(
-        if (mutationIndexIteration.contains(0))
-          geneMixing(
-            randomParent.elasticNetParams,
-            mutationIteration.elasticNetParams,
-            mutationMagnitude
-          )
-        else randomParent.elasticNetParams,
+        elasticNetParamSelect,
         if (mutationIndexIteration.contains(1))
           coinFlip(
             randomParent.fitIntercept,
@@ -334,9 +345,7 @@ class LinearRegressionTuner(df: DataFrame)
             mutationMagnitude
           )
         else randomParent.fitIntercept,
-        if (mutationIndexIteration.contains(2))
-          geneMixing(randomParent.loss, mutationIteration.loss)
-        else randomParent.loss,
+        lossSelect,
         if (mutationIndexIteration.contains(3))
           geneMixing(
             randomParent.maxIter,

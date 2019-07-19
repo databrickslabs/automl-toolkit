@@ -5,7 +5,6 @@ import com.databricks.labs.automl.params._
 
 import scala.collection.mutable.ArrayBuffer
 
-
 class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   var _modelFamily = ""
@@ -17,8 +16,11 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
   private val allowableMixingModes = List("linear", "random")
 
   def setModelFamily(value: String): this.type = {
-    require(_supportedModels.contains(value), s"${this.getClass.toString} error! Model Family $value is not supported." +
-      s"\n\t Supported families: ${_supportedModels.mkString(", ")}")
+    require(
+      _supportedModels.contains(value),
+      s"${this.getClass.toString} error! Model Family $value is not supported." +
+        s"\n\t Supported families: ${_supportedModels.mkString(", ")}"
+    )
     _modelFamily = value
     this
   }
@@ -26,8 +28,11 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
   def setModelType(value: String): this.type = {
     value match {
       case "classifier" => _modelType = value
-      case "regressor" => _modelType = value
-      case _ => throw new UnsupportedOperationException(s"Model type $value is not supported.")
+      case "regressor"  => _modelType = value
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Model type $value is not supported."
+        )
     }
     this
   }
@@ -38,8 +43,11 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
   }
 
   def setIndexMixingMode(value: String): this.type = {
-    require(allowableMixingModes.contains(value), s"Index Mixing mode $value is not supported.  Allowable modes are: " +
-      s"${allowableMixingModes.mkString(", ")}")
+    require(
+      allowableMixingModes.contains(value),
+      s"Index Mixing mode $value is not supported.  Allowable modes are: " +
+        s"${allowableMixingModes.mkString(", ")}"
+    )
     _indexMixingMode = value
     this
   }
@@ -61,14 +69,16 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     * @param stringBoundaries The allowable values for string-based hyper parameters
     * @return An Array of Hyperparameter settings for RandomForest algorithms.
     */
-  def initialGenerationSeedRandomForest(numericBoundaries: Map[String, (Double, Double)],
-                            stringBoundaries: Map[String, List[String]]): Array[RandomForestConfig] = {
+  def initialGenerationSeedRandomForest(
+    numericBoundaries: Map[String, (Double, Double)],
+    stringBoundaries: Map[String, List[String]]
+  ): Array[RandomForestConfig] = {
 
     var outputPayload = new ArrayBuffer[RandomForestConfig]()
 
     val impurityValues = _modelType match {
       case "regressor" => List("variance")
-      case _ => stringBoundaries("impurity")
+      case _           => stringBoundaries("impurity")
     }
 
     // Set the config object
@@ -87,8 +97,13 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var _impurityIdx = 0
     var _featureSubsetStrategyIdx = 0
 
-    var numericArrays = Array(generatedArrays.numTreesArray, generatedArrays.maxBinsArray,
-      generatedArrays.maxDepthArray, generatedArrays.minInfoGainArray, generatedArrays.subSamplingRateArray)
+    var numericArrays = Array(
+      generatedArrays.numTreesArray,
+      generatedArrays.maxBinsArray,
+      generatedArrays.maxDepthArray,
+      generatedArrays.minInfoGainArray,
+      generatedArrays.subSamplingRateArray
+    )
 
     // Main builder loop
     for (i <- 1 to _permutationCount) {
@@ -96,7 +111,10 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => staticIndexSelection(numericArrays)
         case "random" => randomIndexSelection(numericArrays)
-        case _ => throw new UnsupportedOperationException(s"index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       numericArrays = selectedIndeces.remainingPayload
@@ -106,8 +124,10 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
       _impurityIdx = impurityLoop.IndexCounterStatus
 
-      val featureSubsetStrategyLoop = selectStringIndex(stringBoundaries("featureSubsetStrategy"),
-        _featureSubsetStrategyIdx)
+      val featureSubsetStrategyLoop = selectStringIndex(
+        stringBoundaries("featureSubsetStrategy"),
+        _featureSubsetStrategyIdx
+      )
 
       _featureSubsetStrategyIdx = featureSubsetStrategyLoop.IndexCounterStatus
 
@@ -124,7 +144,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
       _featureSubsetStrategyIdx += 1
     }
 
-  outputPayload.result.toArray
+    outputPayload.result.toArray
 
   }
 
@@ -134,14 +154,16 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     * @param stringBoundaries string value restrictions
     * @return An Array of Hyperparameter settings for DecisionTrees algorithms
     */
-  def initialGenerationSeedTrees(numericBoundaries: Map[String, (Double, Double)],
-                                 stringBoundaries: Map[String, List[String]]): Array[TreesConfig] = {
+  def initialGenerationSeedTrees(
+    numericBoundaries: Map[String, (Double, Double)],
+    stringBoundaries: Map[String, List[String]]
+  ): Array[TreesConfig] = {
 
     var outputPayload = new ArrayBuffer[TreesConfig]()
 
     val impurityValues = _modelType match {
       case "regressor" => List("variance")
-      case _ => stringBoundaries("impurity")
+      case _           => stringBoundaries("impurity")
     }
 
     val treesConfig = PermutationConfiguration(
@@ -155,14 +177,21 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
     var _impurityIdx = 0
 
-    var numericArrays = Array(generatedArrays.maxBinsArray, generatedArrays.maxDepthArray,
-      generatedArrays.minInfoGainArray, generatedArrays.minInstancesPerNodeArray)
+    var numericArrays = Array(
+      generatedArrays.maxBinsArray,
+      generatedArrays.maxDepthArray,
+      generatedArrays.minInfoGainArray,
+      generatedArrays.minInstancesPerNodeArray
+    )
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => staticIndexSelection(numericArrays)
         case "random" => randomIndexSelection(numericArrays)
-        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       numericArrays = selectedIndeces.remainingPayload
@@ -184,17 +213,19 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  def initialGenerationSeedGBT(numericBoundaries: Map[String, (Double, Double)],
-                               stringBoundaries: Map[String, List[String]]): Array[GBTConfig] = {
+  def initialGenerationSeedGBT(
+    numericBoundaries: Map[String, (Double, Double)],
+    stringBoundaries: Map[String, List[String]]
+  ): Array[GBTConfig] = {
     var outputPayload = new ArrayBuffer[GBTConfig]()
 
     val impurityValues = _modelType match {
       case "regressor" => List("variance")
-      case _ => stringBoundaries("impurity")
+      case _           => stringBoundaries("impurity")
     }
     val lossTypeValues = _modelType match {
       case "regressor" => List("squared", "absolute")
-      case _ => stringBoundaries("lossType")
+      case _           => stringBoundaries("lossType")
     }
 
     val gbtConfig = PermutationConfiguration(
@@ -209,14 +240,23 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var _impurityIdx = 0
     var _lossTypeIdx = 0
 
-    var numericArrays = Array(generatedArrays.maxBinsArray, generatedArrays.maxDepthArray, generatedArrays.maxIterArray,
-      generatedArrays.minInfoGainArray, generatedArrays.minInstancesPerNodeArray, generatedArrays.stepSizeArray)
+    var numericArrays = Array(
+      generatedArrays.maxBinsArray,
+      generatedArrays.maxDepthArray,
+      generatedArrays.maxIterArray,
+      generatedArrays.minInfoGainArray,
+      generatedArrays.minInstancesPerNodeArray,
+      generatedArrays.stepSizeArray
+    )
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => staticIndexSelection(numericArrays)
         case "random" => randomIndexSelection(numericArrays)
-        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       numericArrays = selectedIndeces.remainingPayload
@@ -243,9 +283,10 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  def initialGenerationSeedLinearRegression(numericBoundaries: Map[String, (Double, Double)],
-                                            stringBoundaries: Map[String, List[String]]):
-  Array[LinearRegressionConfig] = {
+  def initialGenerationSeedLinearRegression(
+    numericBoundaries: Map[String, (Double, Double)],
+    stringBoundaries: Map[String, List[String]]
+  ): Array[LinearRegressionConfig] = {
     var outputPayload = new ArrayBuffer[LinearRegressionConfig]()
 
     val linearRegressionConfig = PermutationConfiguration(
@@ -255,20 +296,29 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
       stringBoundaries = stringBoundaries
     )
 
-    val generatedArrays = linearRegressionNumericArrayGenerator(linearRegressionConfig)
+    val generatedArrays = linearRegressionNumericArrayGenerator(
+      linearRegressionConfig
+    )
 
     var _fitInterceptIdx = 0
     var _standardizationIdx = 0
     var _lossIdx = 0
 
-    var numericArrays = Array(generatedArrays.elasticNetParamsArray, generatedArrays.maxIterArray,
-      generatedArrays.regParamArray, generatedArrays.toleranceArray)
+    var numericArrays = Array(
+      generatedArrays.elasticNetParamsArray,
+      generatedArrays.maxIterArray,
+      generatedArrays.regParamArray,
+      generatedArrays.toleranceArray
+    )
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => staticIndexSelection(numericArrays)
         case "random" => randomIndexSelection(numericArrays)
-        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       numericArrays = selectedIndeces.remainingPayload
@@ -285,7 +335,7 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
       val loss = lossLoop.selectedStringValue
       val elasticNetParams = loss match {
         case "huber" => 0.0
-        case _ => selectedIndeces.selectedPayload(0)
+        case _       => selectedIndeces.selectedPayload(0)
       }
 
       outputPayload += LinearRegressionConfig(
@@ -304,8 +354,9 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     outputPayload.result.toArray
   }
 
-  def initialGenerationSeedLogisticRegression(numericBoundaries: Map[String, (Double, Double)]):
-  Array[LogisticRegressionConfig] = {
+  def initialGenerationSeedLogisticRegression(
+    numericBoundaries: Map[String, (Double, Double)]
+  ): Array[LogisticRegressionConfig] = {
 
     var outputPayload = new ArrayBuffer[LogisticRegressionConfig]()
 
@@ -316,26 +367,34 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
       stringBoundaries = Map[String, List[String]]()
     )
 
-    val generatedArrays = logisticRegressionNumericArrayGenerator(logisticRegressionConfig)
+    val generatedArrays = logisticRegressionNumericArrayGenerator(
+      logisticRegressionConfig
+    )
 
     var _fitInterceptIdx = 0
     var _standardizationIdx = 0
 
-    var numericArrays = Array(generatedArrays.elasticNetParamsArray, generatedArrays.maxIterArray,
-      generatedArrays.regParamArray, generatedArrays.toleranceArray)
+    var numericArrays = Array(
+      generatedArrays.elasticNetParamsArray,
+      generatedArrays.maxIterArray,
+      generatedArrays.regParamArray,
+      generatedArrays.toleranceArray
+    )
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => staticIndexSelection(numericArrays)
         case "random" => randomIndexSelection(numericArrays)
-        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       numericArrays = selectedIndeces.remainingPayload
 
       val fitInterceptLoop = selectCoinFlip(_fitInterceptIdx)
       val standardizationLoop = selectCoinFlip(_standardizationIdx)
-
 
       outputPayload += LogisticRegressionConfig(
         elasticNetParams = selectedIndeces.selectedPayload(0),
@@ -352,7 +411,9 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  def initialGenerationSeedSVM(numericBoundaries: Map[String, (Double, Double)]): Array[SVMConfig] = {
+  def initialGenerationSeedSVM(
+    numericBoundaries: Map[String, (Double, Double)]
+  ): Array[SVMConfig] = {
 
     var outputPayload = new ArrayBuffer[SVMConfig]()
 
@@ -368,20 +429,26 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     var _fitInterceptIdx = 0
     var _standardizationIdx = 0
 
-    var numericArrays = Array(generatedArrays.maxIterArray, generatedArrays.regParamArray, generatedArrays.toleranceArray)
+    var numericArrays = Array(
+      generatedArrays.maxIterArray,
+      generatedArrays.regParamArray,
+      generatedArrays.toleranceArray
+    )
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => staticIndexSelection(numericArrays)
         case "random" => randomIndexSelection(numericArrays)
-        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       numericArrays = selectedIndeces.remainingPayload
 
       val fitInterceptLoop = selectCoinFlip(_fitInterceptIdx)
       val standardizationLoop = selectCoinFlip(_standardizationIdx)
-
 
       outputPayload += SVMConfig(
         fitIntercept = fitInterceptLoop,
@@ -397,7 +464,9 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  def initialGenerationSeedXGBoost(numericBoundaries: Map[String, (Double, Double)]): Array[XGBoostConfig] = {
+  def initialGenerationSeedXGBoost(
+    numericBoundaries: Map[String, (Double, Double)]
+  ): Array[XGBoostConfig] = {
 
     var outputPayload = new ArrayBuffer[XGBoostConfig]()
 
@@ -410,16 +479,27 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
     val generatedArrays = xgboostNumericArrayGenerator(xgboostConfig)
 
-    var numericArrays = Array(generatedArrays.alphaArray, generatedArrays.etaArray, generatedArrays.gammaArray,
-      generatedArrays.lambdaArray, generatedArrays.maxDepthArray, generatedArrays.subSampleArray,
-      generatedArrays.minChildWeightArray, generatedArrays.numRoundArray, generatedArrays.maxBinsArray,
-      generatedArrays.trainTestRatioArray)
+    var numericArrays = Array(
+      generatedArrays.alphaArray,
+      generatedArrays.etaArray,
+      generatedArrays.gammaArray,
+      generatedArrays.lambdaArray,
+      generatedArrays.maxDepthArray,
+      generatedArrays.subSampleArray,
+      generatedArrays.minChildWeightArray,
+      generatedArrays.numRoundArray,
+      generatedArrays.maxBinsArray,
+      generatedArrays.trainTestRatioArray
+    )
 
     for (i <- 1 to _permutationCount) {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => staticIndexSelection(numericArrays)
         case "random" => randomIndexSelection(numericArrays)
-        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       numericArrays = selectedIndeces.remainingPayload
@@ -442,9 +522,12 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
 
   }
 
-  def initialGenerationSeedMLPC(numericBoundaries: Map[String, (Double, Double)],
-                                stringBoundaries: Map[String, List[String]],
-                                inputFeatureSize: Int, distinctClasses: Int): Array[MLPCConfig] = {
+  def initialGenerationSeedMLPC(
+    numericBoundaries: Map[String, (Double, Double)],
+    stringBoundaries: Map[String, List[String]],
+    inputFeatureSize: Int,
+    distinctClasses: Int
+  ): Array[MLPCConfig] = {
 
     var outputPayload = new ArrayBuffer[MLPCConfig]()
 
@@ -464,7 +547,10 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
       val selectedIndeces = _indexMixingMode match {
         case "linear" => mlpcStaticIndexSelection(generatedArrays)
         case "random" => mlpcRandomIndexSelection(generatedArrays)
-        case _ => throw new UnsupportedOperationException(s"Index mixing mode ${_indexMixingMode} is not supported.")
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Index mixing mode ${_indexMixingMode} is not supported."
+          )
       }
 
       generatedArrays = selectedIndeces.remainingPayloads
@@ -484,6 +570,4 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
     outputPayload.result.toArray
   }
 
-
 }
-
