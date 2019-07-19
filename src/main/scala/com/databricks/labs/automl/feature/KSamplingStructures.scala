@@ -8,7 +8,7 @@ trait KSamplingDefaults {
   def defaultFeaturesCol = "features"
   def defaultLabelCol = "label"
   def defaultSyntheticCol = "synthetic"
-  def defaultFieldsToIgnore = Array[String]()
+  def defaultFieldsToIgnore: Array[String] = Array[String]()
   def defaultKGroups = 25
   def defaultKMeansMaxIter = 100
   def defaultKMeansTolerance = 1E-6
