@@ -619,6 +619,7 @@ class PostModelingOptimization
       restrictedData,
       featureInputSize,
       classDistinctCount + 1
+
     )
   }
 
