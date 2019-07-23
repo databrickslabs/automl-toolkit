@@ -1,5 +1,13 @@
 package com.databricks.labs.automl.feature
 
+import com.databricks.labs.automl.feature.structures.{
+  CentroidVectors,
+  RowGenerationConfig,
+  RowMapping,
+  SchemaDefinitions,
+  SchemaMapping,
+  StructMapping
+}
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
 import org.apache.spark.ml.feature.{
   MaxAbsScaler,

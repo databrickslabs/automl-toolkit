@@ -1,34 +1,37 @@
 package com.databricks.labs.automl.feature
 
+import com.databricks.labs.automl.feature.structures.{
+  CardinalityPayload,
+  RowGenerationConfig
+}
+import com.databricks.labs.automl.feature.tools.LabelValidation
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 class SyntheticFeatureGenerator(data: DataFrame)
     extends SparkSessionWrapper
-    with SyntheticFeatureBase {
+    with SyntheticFeatureBase
+    with KSamplingBase {
 
-  final val allowableLabelBalanceModes: List[String] =
-    List("match", "percentage", "target")
-
-  /**
-    *
-    * Available modes?
-    *
-    * 1. Bring all lesser labels to match largest label
-    *   a. This needs to have a warning associated with it
-    *   2. Bring all lesser labels to a % of the max label
-    * 3. Override mode: Bring all labels to at least n
-    *
-    *
-    *
-    */
   private var _labelBalanceMode: String = defaultLabelBalanceMode
-  private var _labelCol: String = defaultLabelCol
   private var _cardinalityThreshold: Int = defaultCardinalityThreshold
   private var _numericRatio: Double = defaultNumericRatio
   private var _numericTarget: Int = defaultNumericTarget
 
+  /**
+    * Setter - for determining the label balance approach mode.
+    * @note Available modes: <br>
+    *         <i>'match'</i>: Will match all smaller class counts to largest class count.  [WARNING] - May significantly increase memory pressure!<br>
+    *         <i>'percentage'</i> Will adjust smaller classes to a percentage value of the largest class count.
+    *         <i>'target'</i> Will increase smaller class counts to a fixed numeric target of rows.
+    * @param value String: one of: 'match', 'percentage' or 'target'
+    * @note Default: "percentage"
+    * @since 0.5.1
+    * @author Ben Wilson
+    * @throws UnsupportedOperationException() if the provided mode is not supported.
+    */
+  @throws(classOf[UnsupportedOperationException])
   def setLabelBalanceMode(value: String): this.type = {
     require(
       allowableLabelBalanceModes.contains(value),
@@ -38,14 +41,31 @@ class SyntheticFeatureGenerator(data: DataFrame)
     _labelBalanceMode = value
     this
   }
-  def setLabelCol(value: String): this.type = {
-    _labelCol = value
-    this
-  }
+
+  /**
+    * Setter - for overriding the cardinality threshold exception threshold.  [WARNING] increasing this value on
+    * a sufficiently large data set could incur, during runtime, excessive memory and cpu pressure on the cluster.
+    * @param value Int: the limit above which an exception will be thrown for a classification problem wherein the
+    *              label distinct count is too large to successfully generate synthetic data.
+    * @note Default: 20
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
   def setCardinalityThreshold(value: Int): this.type = {
     _cardinalityThreshold = value
     this
   }
+
+  /**
+    * Setter - for specifying the percentage ratio for the mode 'percentage' in setLabelBalanceMode()
+    * @param value Double: A fractional double in the range of 0.0 to 1.0.
+    * @note Setting this value to 1.0 is equivalent to setting the label balance mode to 'match'
+    * @note Default: 0.2
+    * @since 0.5.1
+    * @author Ben Wilson
+    * @throws UnsupportedOperationException() if the provided value is outside of the range of 0.0 -> 1.0
+    */
+  @throws(classOf[UnsupportedOperationException])
   def setNumericRatio(value: Double): this.type = {
     require(
       value <= 1.0 & value > 0.0,
@@ -55,21 +75,25 @@ class SyntheticFeatureGenerator(data: DataFrame)
     _numericRatio = value
     this
   }
+
+  /**
+    * Setter - for specifying the target row count to generate for 'target' mode in setLabelBalanceMode()
+    * @param value Int: The desired final number of rows per minority class label
+    * @note [WARNING] Setting this value to too high of a number will greatly increase runtime and memory pressure.
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
   def setNumericTarget(value: Int): this.type = {
     _numericTarget = value
     this
   }
 
-  // TODO:
-  // - pass in the DataFrame object, label column name, etc
-  // - Apply setting for deciding what ratio of balance to generate
-  // - Perform data checks
-  // - Call the appropriate KSampling constructors
-  // - Merge the synthetic DF back to the source of truth data set with an additional field denoting
-  //  synthetic or not.
-
-  // Need to create the Array[RowMapping] to pass into KSampling
-
+  /**
+    * Private method for detecting the primary class, segregating it, and returning the remaining minority classes
+    * in a collection
+    * @param full The entire cardinality result for the data set
+    * @return
+    */
   private def getMaxAndRest(
     full: Array[CardinalityPayload]
   ): (CardinalityPayload, Array[CardinalityPayload]) = {
@@ -108,6 +132,14 @@ class SyntheticFeatureGenerator(data: DataFrame)
       .asInstanceOf[Array[RowGenerationConfig]]
   }
 
+  /**
+    * Private method for generating the row count targets for each minority class label for the target mode
+    * @param max The most frequently occurring label
+    * @param rest The remaining labels
+    * @return Array[RowGenerationConfig] to supply the candidate target numbers for KSampling
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
   private def targetValidation(
     max: CardinalityPayload,
     rest: Array[CardinalityPayload]
@@ -123,6 +155,14 @@ class SyntheticFeatureGenerator(data: DataFrame)
 
   }
 
+  /**
+    * Private method for generating the row count target for each minority class label for the match mode
+    * @param max The most frequently occurring label
+    * @param rest The remaining labels
+    * @return Array[RowGenerationConfig] to supply the candidate target numbers for KSampling
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
   private def matchValidation(
     max: CardinalityPayload,
     rest: Array[CardinalityPayload]
@@ -132,6 +172,12 @@ class SyntheticFeatureGenerator(data: DataFrame)
     }
   }
 
+  /**
+    * Private method for generating the row config objects that KSampling requires for label targets
+    * @return Array[RowGeneration] for input to KSampling processing
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
   private def determineRatios(): Array[RowGenerationConfig] = {
 
     val generatedGroups =
@@ -147,104 +193,86 @@ class SyntheticFeatureGenerator(data: DataFrame)
 
   }
 
-  //TODO: validation checks in case there are no elements to the collection!!
-  // TODO: call into KSampling from a provided config and generate the synthetic data.
+  def upSample(): DataFrame = {
+
+    // Get the label statistics
+    val labelPayload = determineRatios()
+
+    // Generate synthetic data
+    val syntheticData = KSampling(
+      data = data,
+      labelValues = labelPayload,
+      featuresCol = _featuresCol,
+      labelsCol = _labelCol,
+      syntheticCol = _syntheticCol,
+      fieldsToIgnore = _fieldsToIgnore,
+      kGroups = _kGroups,
+      kMeansMaxIter = _kMeansMaxIter,
+      kMeansTolerance = _kMeansTolerance,
+      kMeansDistanceMeasurement = _kMeansDistanceMeasurement,
+      kMeansSeed = _kMeansSeed,
+      kMeansPredictionCol = _kMeansPredictionCol,
+      lshHashTables = _lshHashTables,
+      lshSeed = _lshSeed,
+      lshOutputCol = _lshOutputCol,
+      quorumCount = _quorumCount,
+      minimumVectorCountToMutate = _minimumVectorCountToMutate,
+      vectorMutationMethod = _vectorMutationMethod,
+      mutationMode = _mutationMode,
+      mutationValue = _mutationValue
+    )
+
+    // Merge the original DataFrame with the synthetic data
+    data.withColumn(_syntheticCol, lit(false)).union(syntheticData)
+
+  }
 
 }
 
 object SyntheticFeatureGenerator {
-  def apply() = ???
-}
-
-case class CardinalityPayload(labelValue: Double, labelCounts: Int)
-
-trait SyntheticFeatureBase {
-  def defaultLabelCol: String = "label"
-  def defaultCardinalityThreshold: Int = 20
-  def defaultLabelBalanceMode: String = "percentage"
-  def defaultNumericRatio: Double = 0.2
-  def defaultNumericTarget: Int = 500
-}
-
-class LabelValidation(data: DataFrame) extends SyntheticFeatureBase {
-
-  private var _labelCol: String = defaultLabelCol
-  private var _cardinalityThreshold: Int = defaultCardinalityThreshold
-
-  def setLabelCol(value: String): this.type = {
-    _labelCol = value
-    this
-  }
-
-  def setCardinalityThreshold(value: Int): this.type = {
-    value match {
-      case x if x > 20 =>
-        println(
-          s"[WARNING] setting value of cardinality threshold greater " +
-            s"that 20 may indicate that this is a regression problem."
-        )
-    }
-    _cardinalityThreshold = value
-    this
-  }
-
-  /**
-    * Private helper method for checking whether the provided DataFrame is within categorical
-    * label type to ensure that there is not a 'runaway' condition of submitting
-    * too many unique labels to generate data for.
-    * @param grouped DataFrame: the grouped label data with counts.
-    * @since 0.5.1
-    * @author Ben Wilson
-    */
-  private def validateCardinalityCounts(grouped: DataFrame): Unit = {
-
-    grouped.count() match {
-      case x if x <= _cardinalityThreshold =>
-        println(
-          s"Unique counts of label " +
-            s"column ${_labelCol} : ${x.toString}"
-        )
-      case _ =>
-        throw new RuntimeException(
-          s"[ALERT] Cardinality of label column is greater" +
-            s"than threshold of "
-        )
-    }
-  }
-
-  /**
-    * Private method for retrieving and validating the skew in the label column in order to support
-    * KSampling synthetic label boosting.
-    * @return Array[CardinalityPayload] of all of the counts of the labels throughout the data set.
-    * @since 0.5.1
-    * @author Ben Wilson
-    */
-  private def determineCardinality(): Array[CardinalityPayload] = {
-
-    // Perform a DataFrame operation on the input label column
-    val groupedLabel = data
-      .select(col(_labelCol))
-      .groupBy(col(_labelCol))
-      .count()
-      .as("counts")
-
-    // Perform a validation check
-    validateCardinalityCounts(groupedLabel)
-
-    // Create the cardinality collection
-    groupedLabel.collect.map { x =>
-      CardinalityPayload(x.getAs[Double](_labelCol), x.getAs[Int]("counts"))
-    }
-  }
-
-}
-
-object LabelValidation {
   def apply(data: DataFrame,
+            featuresCol: String,
             labelCol: String,
-            cardinalityThreshold: Int): Array[CardinalityPayload] =
-    new LabelValidation(data)
+            syntheticCol: String,
+            fieldsToIgnore: Array[String],
+            kGroups: Int,
+            kMeansMaxIter: Int,
+            kMeansTolerance: Double,
+            kMeansDistanceMeasurement: String,
+            kMeansSeed: Long,
+            kMeansPredictionCol: String,
+            lshHashTables: Int,
+            lshOutputCol: String,
+            quorumCount: Int,
+            minimumVectorCountToMutate: Int,
+            vectorMutationMethod: String,
+            mutationMode: String,
+            mutationValue: Double,
+            labelBalanceMode: String,
+            cardinalityThreshold: Int,
+            numericRatio: Double,
+            numericTarget: Int) =
+    new SyntheticFeatureGenerator(data)
+      .setFeaturesCol(featuresCol)
       .setLabelCol(labelCol)
+      .setSyntheticCol(syntheticCol)
+      .setFieldsToIgnore(fieldsToIgnore)
+      .setKGroups(kGroups)
+      .setKMeansMaxIter(kMeansMaxIter)
+      .setKMeansTolerance(kMeansTolerance)
+      .setKMeansDistanceMeasurement(kMeansDistanceMeasurement)
+      .setKMeansSeed(kMeansSeed)
+      .setKMeansPredictionCol(kMeansPredictionCol)
+      .setLSHHashTables(lshHashTables)
+      .setLSHOutputCol(lshOutputCol)
+      .setQuorumCount(quorumCount)
+      .setMinimumVectorCountToMutate(minimumVectorCountToMutate)
+      .setVectorMutationMethod(vectorMutationMethod)
+      .setMutationMode(mutationMode)
+      .setMutationValue(mutationValue)
+      .setLabelBalanceMode(labelBalanceMode)
       .setCardinalityThreshold(cardinalityThreshold)
-      .determineCardinality()
+      .setNumericRatio(numericRatio)
+      .setNumericTarget(numericTarget)
+      .upSample()
 }

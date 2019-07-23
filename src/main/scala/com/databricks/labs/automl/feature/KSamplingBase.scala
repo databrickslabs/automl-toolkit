@@ -1,5 +1,9 @@
 package com.databricks.labs.automl.feature
 
+import com.databricks.labs.automl.feature.structures.{
+  KSamplingConfiguration,
+  KSamplingDefaults
+}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 
 trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {

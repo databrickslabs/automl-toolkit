@@ -1,4 +1,4 @@
-package com.databricks.labs.automl.feature
+package com.databricks.labs.automl.feature.structures
 
 import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.sql.types._
@@ -73,3 +73,5 @@ case class SchemaDefinitions(fullSchema: Array[SchemaMapping],
                              features: Array[RowMapping])
 
 case class RowGenerationConfig(labelValue: Double, targetCount: Int)
+
+case class CardinalityPayload(labelValue: Double, labelCounts: Int)

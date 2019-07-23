@@ -1,7 +1,11 @@
 package com.databricks.labs.automl.utils
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.feature.{OneHotEncoderEstimator, StringIndexer, VectorAssembler}
+import org.apache.spark.ml.feature.{
+  OneHotEncoderEstimator,
+  StringIndexer,
+  VectorAssembler
+}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DataType, StructType}
@@ -28,44 +32,62 @@ trait DataValidation {
     preParsedFields.result
   }
 
-  def extractTypes(data: DataFrame, labelColumn: String, ignoreFields: Array[String]):
-  (List[String], List[String], List[String], List[String]) = {
+  def extractTypes(
+    data: DataFrame,
+    labelColumn: String,
+    ignoreFields: Array[String]
+  ): (List[String], List[String], List[String], List[String]) = {
 
-    val fieldExtraction = extractSchema(data.schema).filterNot(x => ignoreFields.contains(x._2))
+    val fieldExtraction =
+      extractSchema(data.schema).filterNot(x => ignoreFields.contains(x._2))
 
     //DEBUG
     //println(s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
-    logger.log(Level.DEBUG, s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
+    logger.log(
+      Level.DEBUG,
+      s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}"
+    )
 
     var conversionFields = new ListBuffer[String]
     var dateFields = new ListBuffer[String]
     var timeFields = new ListBuffer[String]
     var vectorizableFields = new ListBuffer[String]
 
-    fieldExtraction.map(x =>
-      x._1.typeName match {
-        case "string" => conversionFields += x._2
-        case "integer" => vectorizableFields += x._2
-        case "double" => vectorizableFields += x._2
-        case "float" => vectorizableFields += x._2
-        case "long" => vectorizableFields += x._2
-        case "byte" => conversionFields += x._2
-        case "boolean" => vectorizableFields += x._2
-        case "binary" => vectorizableFields += x._2
-        case "date" => dateFields += x._2
-        case "timestamp" => timeFields += x._2
-        case _ => throw new UnsupportedOperationException(
-          s"Field '${x._2}' is of type ${x._1} which is not supported.")
+    fieldExtraction.map(
+      x =>
+        x._1.typeName match {
+          case "string"                    => conversionFields += x._2
+          case "integer"                   => vectorizableFields += x._2
+          case "double"                    => vectorizableFields += x._2
+          case "float"                     => vectorizableFields += x._2
+          case "long"                      => vectorizableFields += x._2
+          case "byte"                      => conversionFields += x._2
+          case "boolean"                   => vectorizableFields += x._2
+          case "binary"                    => vectorizableFields += x._2
+          case "date"                      => dateFields += x._2
+          case "timestamp"                 => timeFields += x._2
+          case z if z.take(7) == "decimal" => vectorizableFields += x._2
+          case _ =>
+            throw new UnsupportedOperationException(
+              s"Field '${x._2}' is of type ${x._1} which is not supported."
+            )
       }
     )
 
     vectorizableFields -= labelColumn
 
-    (vectorizableFields.result, conversionFields.result, dateFields.result, timeFields.result)
+    (
+      vectorizableFields.result,
+      conversionFields.result,
+      dateFields.result,
+      timeFields.result
+    )
 
   }
 
-  def oneHotEncodeStrings(stringIndexedFields: List[String]): (OneHotEncoderEstimator, Array[String]) = {
+  def oneHotEncodeStrings(
+    stringIndexedFields: List[String]
+  ): (OneHotEncoderEstimator, Array[String]) = {
 
     var encodedColumns = new ListBuffer[String]
     var oneHotEncoders = new ListBuffer[OneHotEncoderEstimator]
@@ -75,15 +97,17 @@ trait DataValidation {
     }
 
     val oneHotEncodeObj = new OneHotEncoderEstimator()
-        .setHandleInvalid("keep")
-        .setInputCols(stringIndexedFields.toArray)
-        .setOutputCols(encodedColumns.result.toArray)
+      .setHandleInvalid("keep")
+      .setInputCols(stringIndexedFields.toArray)
+      .setOutputCols(encodedColumns.result.toArray)
 
     (oneHotEncodeObj, encodedColumns.result.toArray)
 
   }
 
-  def indexStrings(categoricalFields: List[String]): (Array[StringIndexer], Array[String]) = {
+  def indexStrings(
+    categoricalFields: List[String]
+  ): (Array[StringIndexer], Array[String]) = {
 
     var indexedColumns = new ListBuffer[String]
     var stringIndexers = new ListBuffer[StringIndexer]
@@ -102,34 +126,49 @@ trait DataValidation {
 
   }
 
-  private def splitDateTimeParts(df: DataFrame, dateFields: List[String], timeFields: List[String]):
-  (DataFrame, List[String]) = {
+  private def splitDateTimeParts(
+    df: DataFrame,
+    dateFields: List[String],
+    timeFields: List[String]
+  ): (DataFrame, List[String]) = {
 
     var resultFields = new ListBuffer[String]
 
     var data = df
     dateFields.map(x => {
-      data = data.withColumn(x + "_year", year(col(x)))
+      data = data
+        .withColumn(x + "_year", year(col(x)))
         .withColumn(x + "_month", month(col(x)))
         .withColumn(x + "_day", dayofmonth(col(x)))
       resultFields ++= List(x + "_year", x + "_month", x + "_day")
     })
     timeFields.map(x => {
-      data = data.withColumn(x + "_year", year(col(x)))
+      data = data
+        .withColumn(x + "_year", year(col(x)))
         .withColumn(x + "_month", month(col(x)))
         .withColumn(x + "_day", dayofmonth(col(x)))
         .withColumn(x + "_hour", hour(col(x)))
         .withColumn(x + "_minute", minute(col(x)))
         .withColumn(x + "_second", second(col(x)))
-      resultFields ++= List(x + "_year", x + "_month", x + "_day", x + "_hour", x + "_minute", x + "_second")
+      resultFields ++= List(
+        x + "_year",
+        x + "_month",
+        x + "_day",
+        x + "_hour",
+        x + "_minute",
+        x + "_second"
+      )
     })
 
     (data, resultFields.result)
 
   }
 
-  private def convertToUnix(df: DataFrame, dateFields: List[String], timeFields: List[String]):
-    (DataFrame, List[String]) = {
+  private def convertToUnix(
+    df: DataFrame,
+    dateFields: List[String],
+    timeFields: List[String]
+  ): (DataFrame, List[String]) = {
 
     var resultFields = new ListBuffer[String]
 
@@ -149,20 +188,25 @@ trait DataValidation {
 
   }
 
-  def convertDateAndTime(df: DataFrame, dateFields: List[String], timeFields: List[String], mode: String):
-  (DataFrame, List[String]) = {
+  def convertDateAndTime(df: DataFrame,
+                         dateFields: List[String],
+                         timeFields: List[String],
+                         mode: String): (DataFrame, List[String]) = {
 
     val (data, fieldList) = mode match {
       case "split" => splitDateTimeParts(df, dateFields, timeFields)
-      case "unix" => convertToUnix(df, dateFields, timeFields)
+      case "unix"  => convertToUnix(df, dateFields, timeFields)
     }
 
     (data, fieldList)
 
   }
 
-  def generateAssembly(numericColumns: List[String], characterColumns: List[String], featureCol: String):
-  (Array[StringIndexer], Array[String], VectorAssembler) = {
+  def generateAssembly(
+    numericColumns: List[String],
+    characterColumns: List[String],
+    featureCol: String
+  ): (Array[StringIndexer], Array[String], VectorAssembler) = {
 
     val assemblerColumns = new ListBuffer[String]
     numericColumns.map(x => assemblerColumns += x)
@@ -179,17 +223,26 @@ trait DataValidation {
     (indexers, assembledColumns, assembler)
   }
 
-  def validateLabelAndFeatures(df: DataFrame, labelCol: String, featureCol: String): Unit = {
+  def validateLabelAndFeatures(df: DataFrame,
+                               labelCol: String,
+                               featureCol: String): Unit = {
     val dfSchema = df.schema
-    assert(dfSchema.fieldNames.contains(labelCol),
-      s"Dataframe does not contain label column named: $labelCol")
-    assert(dfSchema.fieldNames.contains(featureCol),
-      s"Dataframe does not contain features column named: $featureCol")
+    assert(
+      dfSchema.fieldNames.contains(labelCol),
+      s"Dataframe does not contain label column named: $labelCol"
+    )
+    assert(
+      dfSchema.fieldNames.contains(featureCol),
+      s"Dataframe does not contain features column named: $featureCol"
+    )
   }
 
   def validateFieldPresence(df: DataFrame, column: String): Unit = {
     val dfSchema = df.schema
-    assert(dfSchema.fieldNames.contains(column), s"Dataframe does not contain column named: '$column'")
+    assert(
+      dfSchema.fieldNames.contains(column),
+      s"Dataframe does not contain column named: '$column'"
+    )
   }
 
   def validateInputDataframe(df: DataFrame): Unit = {
@@ -197,8 +250,10 @@ trait DataValidation {
     require(df.count() > 0, "Input dataset cannot be empty")
   }
 
-  def validateCardinality(df: DataFrame, stringFields: List[String], cardinalityLimit: Int=500,
-                          parallelism: Int=20): ValidatedCategoricalFields = {
+  def validateCardinality(df: DataFrame,
+                          stringFields: List[String],
+                          cardinalityLimit: Int = 500,
+                          parallelism: Int = 20): ValidatedCategoricalFields = {
 
     var validStringFields = ListBuffer[String]()
     var invalidStringFields = ListBuffer[String]()
@@ -207,21 +262,22 @@ trait DataValidation {
     val collection = stringFields.par
     collection.tasksupport = taskSupport
 
-    collection.foreach{ x =>
+    collection.foreach { x =>
       val uniqueValues = df.select(x).distinct().count()
-      if(uniqueValues <= cardinalityLimit){
+      if (uniqueValues <= cardinalityLimit) {
         validStringFields += x
       } else {
         invalidStringFields += x
       }
     }
 
-    ValidatedCategoricalFields(validStringFields.toList, invalidStringFields.toList)
+    ValidatedCategoricalFields(
+      validStringFields.toList,
+      invalidStringFields.toList
+    )
 
   }
 }
 
-case class ValidatedCategoricalFields(
-                                     validFields: List[String],
-                                     invalidFields: List[String]
-                                     )
+case class ValidatedCategoricalFields(validFields: List[String],
+                                      invalidFields: List[String])
