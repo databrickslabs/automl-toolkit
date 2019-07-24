@@ -16,6 +16,7 @@ class LabelValidation(data: DataFrame) extends SyntheticFeatureBase {
           s"[WARNING] setting value of cardinality threshold greater " +
             s"that 20 may indicate that this is a regression problem."
         )
+      case _ => None
     }
     _cardinalityThreshold = value
     this
@@ -61,7 +62,6 @@ class LabelValidation(data: DataFrame) extends SyntheticFeatureBase {
       .select(col(_labelCol))
       .groupBy(col(_labelCol))
       .count()
-      .as("counts")
 
     // Perform a validation check
     validateCardinalityCounts(groupedLabel)
@@ -74,16 +74,19 @@ class LabelValidation(data: DataFrame) extends SyntheticFeatureBase {
     groupedLabel.collect.map { x =>
       labelType match {
         case "double" =>
-          CardinalityPayload(x.getAs[Double](_labelCol), x.getAs[Int]("counts"))
+          CardinalityPayload(
+            x.getAs[Double](_labelCol),
+            x.getAs[Long]("count").toInt
+          )
         case "integer" =>
           CardinalityPayload(
             x.getAs[Int](_labelCol).toDouble,
-            x.getAs[Int]("counts")
+            x.getAs[Long]("count").toInt
           )
         case "float" =>
           CardinalityPayload(
             x.getAs[Float](_labelCol).toDouble,
-            x.getAs[Int]("counts")
+            x.getAs[Long]("count").toInt
           )
         case _ =>
           throw new RuntimeException(

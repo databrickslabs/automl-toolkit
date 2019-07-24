@@ -94,13 +94,13 @@ class SyntheticFeatureGenerator(data: DataFrame)
     * @param full The entire cardinality result for the data set
     * @return
     */
-  private def getMaxAndRest(
+  def getMaxAndRest(
     full: Array[CardinalityPayload]
   ): (CardinalityPayload, Array[CardinalityPayload]) = {
 
     val sortedValues = full.sortWith(_.labelCounts > _.labelCounts)
 
-    (sortedValues.head, sortedValues.drop(0))
+    (sortedValues.head, sortedValues.drop(1))
   }
 
   /**
@@ -111,7 +111,7 @@ class SyntheticFeatureGenerator(data: DataFrame)
     * @since 0.5.1
     * @author Ben Wilson
     */
-  private def percentageTargets(
+  def percentageTargets(
     max: CardinalityPayload,
     rest: Array[CardinalityPayload]
   ): Array[RowGenerationConfig] = {
@@ -140,19 +140,16 @@ class SyntheticFeatureGenerator(data: DataFrame)
     * @since 0.5.1
     * @author Ben Wilson
     */
-  private def targetValidation(
+  def targetValidation(
     max: CardinalityPayload,
     rest: Array[CardinalityPayload]
   ): Array[RowGenerationConfig] = {
 
     rest
+      .filterNot(x => x.labelCounts > _numericTarget)
       .map { x =>
-        if (_numericTarget > x.labelCounts) {
-          RowGenerationConfig(x.labelValue, _numericTarget - x.labelCounts)
-        }
+        RowGenerationConfig(x.labelValue, _numericTarget - x.labelCounts)
       }
-      .asInstanceOf[Array[RowGenerationConfig]]
-
   }
 
   /**
@@ -163,7 +160,7 @@ class SyntheticFeatureGenerator(data: DataFrame)
     * @since 0.5.1
     * @author Ben Wilson
     */
-  private def matchValidation(
+  def matchValidation(
     max: CardinalityPayload,
     rest: Array[CardinalityPayload]
   ): Array[RowGenerationConfig] = {
@@ -178,7 +175,7 @@ class SyntheticFeatureGenerator(data: DataFrame)
     * @since 0.5.1
     * @author Ben Wilson
     */
-  private def determineRatios(): Array[RowGenerationConfig] = {
+  def determineRatios(): Array[RowGenerationConfig] = {
 
     val generatedGroups =
       LabelValidation(data, _labelCol, _cardinalityThreshold)
@@ -251,7 +248,7 @@ object SyntheticFeatureGenerator {
             labelBalanceMode: String,
             cardinalityThreshold: Int,
             numericRatio: Double,
-            numericTarget: Int) =
+            numericTarget: Int): DataFrame =
     new SyntheticFeatureGenerator(data)
       .setFeaturesCol(featuresCol)
       .setLabelCol(labelCol)
