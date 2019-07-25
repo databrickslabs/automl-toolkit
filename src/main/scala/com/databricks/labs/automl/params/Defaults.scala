@@ -19,7 +19,8 @@ trait Defaults {
     "stratifyReduce",
     "stratified",
     "overSample",
-    "underSample"
+    "underSample",
+    "kSample"
   )
 
   final val _supportedFeatureImportanceCutoffTypes: List[String] =
@@ -34,6 +35,15 @@ trait Defaults {
 
   final val _allowableInitialGenerationIndexMixingModes =
     List("random", "linear")
+
+  final val allowableKMeansDistanceMeasurements: List[String] =
+    List("cosine", "euclidean")
+  final val allowableMutationModes: List[String] =
+    List("weighted", "random", "ratio")
+  final val allowableVectorMutationMethods: List[String] =
+    List("random", "fixed", "all")
+  final val allowableLabelBalanceModes: List[String] =
+    List("match", "percentage", "target")
 
   def _defaultModelingFamily: String = "RandomForest"
 
@@ -79,11 +89,34 @@ trait Defaults {
     arraySeed = 42L
   )
 
+  def _defaultKSampleConfig: KSampleConfig = KSampleConfig(
+    syntheticCol = "synthetic_kSample",
+    kGroups = 25,
+    kMeansMaxIter = 100,
+    kMeansTolerance = 1E-6,
+    kMeansDistanceMeasurement = "euclidean",
+    kMeansSeed = 42L,
+    kMeansPredictionCol = "kGroups_kSample",
+    lshHashTables = 10,
+    lshSeed = 42L,
+    lshOutputCol = "hashes_kSample",
+    quorumCount = 7,
+    minimumVectorCountToMutate = 1,
+    vectorMutationMethod = "random",
+    mutationMode = "weighted",
+    mutationValue = 0.5,
+    labelBalanceMode = "percentage",
+    cardinalityThreshold = 20,
+    numericRatio = 0.2,
+    numericTarget = 500
+  )
+
   def _geneticTunerDefaults = GeneticConfig(
     parallelism = 20,
     kFold = 5,
     trainPortion = 0.8,
     trainSplitMethod = "random",
+    kSampleConfig = _defaultKSampleConfig,
     trainSplitChronologicalColumn = "datetime",
     trainSplitChronologicalRandomPercentage = 0.0,
     seed = 42L,
@@ -350,6 +383,7 @@ trait Defaults {
       kFold = 1,
       trainPortion = 0.8,
       trainSplitMethod = "random",
+      kSampleConfig = _defaultKSampleConfig,
       trainSplitChronologicalColumn = "datetime",
       trainSplitChronologicalRandomPercentage = 0.0,
       seed = 42L,
@@ -415,6 +449,7 @@ trait Defaults {
       kFold = 1,
       trainPortion = 0.8,
       trainSplitMethod = "random",
+      kSampleConfig = _defaultKSampleConfig,
       trainSplitChronologicalColumn = "datetime",
       trainSplitChronologicalRandomPercentage = 0.0,
       seed = 42L,

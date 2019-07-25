@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.executor
 
+import com.databricks.labs.automl.feature.SyntheticFeatureGenerator
 import com.databricks.labs.automl.inference.{InferenceConfig, NaFillConfig}
 import com.databricks.labs.automl.params.{
   DataGeneration,
@@ -548,6 +549,35 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val finalFullSchema =
       s"Final Full Schema: \n    ${finalStageDF.columns.mkString(", ")}"
 
+    val finalOuputDataFrame =
+      if (_mainConfig.geneticConfig.trainSplitMethod == "kSample") {
+        SyntheticFeatureGenerator(
+          finalStageDF,
+          _mainConfig.featuresCol,
+          _mainConfig.labelCol,
+          _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+          _mainConfig.fieldsToIgnoreInVector,
+          _mainConfig.geneticConfig.kSampleConfig.kGroups,
+          _mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter,
+          _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance,
+          _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement,
+          _mainConfig.geneticConfig.kSampleConfig.kMeansSeed,
+          _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol,
+          _mainConfig.geneticConfig.kSampleConfig.lshHashTables,
+          _mainConfig.geneticConfig.kSampleConfig.lshSeed,
+          _mainConfig.geneticConfig.kSampleConfig.lshOutputCol,
+          _mainConfig.geneticConfig.kSampleConfig.quorumCount,
+          _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate,
+          _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod,
+          _mainConfig.geneticConfig.kSampleConfig.mutationMode,
+          _mainConfig.geneticConfig.kSampleConfig.mutationValue,
+          _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode,
+          _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold,
+          _mainConfig.geneticConfig.kSampleConfig.numericRatio,
+          _mainConfig.geneticConfig.kSampleConfig.numericTarget
+        )
+      } else finalStageDF
+
     val finalStatement =
       s"Data Prep complete.  Final Dataframe cached. Total Observations: $finalCount"
     // DEBUG
@@ -556,7 +586,11 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     logger.log(Level.INFO, finalStatement)
     println(finalStatement)
 
-    DataGeneration(finalStageDF, finalStageDF.columns, detectedModelType)
+    DataGeneration(
+      finalOuputDataFrame,
+      finalOuputDataFrame.columns,
+      detectedModelType
+    )
 
   }
 

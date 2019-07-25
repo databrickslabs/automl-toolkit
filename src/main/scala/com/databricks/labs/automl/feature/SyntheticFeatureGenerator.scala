@@ -239,6 +239,7 @@ object SyntheticFeatureGenerator {
             kMeansSeed: Long,
             kMeansPredictionCol: String,
             lshHashTables: Int,
+            lshSeed: Long,
             lshOutputCol: String,
             quorumCount: Int,
             minimumVectorCountToMutate: Int,
@@ -261,6 +262,7 @@ object SyntheticFeatureGenerator {
       .setKMeansSeed(kMeansSeed)
       .setKMeansPredictionCol(kMeansPredictionCol)
       .setLSHHashTables(lshHashTables)
+      .setLSHSeed(lshSeed)
       .setLSHOutputCol(lshOutputCol)
       .setQuorumCount(quorumCount)
       .setMinimumVectorCountToMutate(minimumVectorCountToMutate)

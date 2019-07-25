@@ -177,6 +177,17 @@ trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
   }
 
   /**
+    * Setter for a MinHashLSH seed value for the model.
+    * @param value Long: a seed value
+    * @return this
+    */
+  def setLSHSeed(value: Long): this.type = {
+    _lshSeed = value
+    setConfig
+    this
+  }
+
+  /**
     * Setter for the internal LSH output hash information column
     * @param value String: column name for the internal MinHashLSH Model transformation value
     * @return this
