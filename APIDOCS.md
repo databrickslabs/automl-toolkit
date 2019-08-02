@@ -1,10 +1,10 @@
-# Providentia (AutoML)
+# AutoML-Toolkit
 
-Providentia is an automated ML solution for Apache Spark.  It provides common data cleansing and feature engineering support, automated hyper-parameter tuning through distributed genetic algorithms, and model tracking integration with MLFlow.  It currently supports Supervised Learning algorithms that are provided as part of Spark Mllib.
+The AutoML-Toolkit is an automated ML solution for Apache Spark.  It provides common data cleansing and feature engineering support, automated hyper-parameter tuning through distributed genetic algorithms, and model tracking integration with MLFlow.  It currently supports Supervised Learning algorithms that are provided as part of Spark Mllib.
 
 ## General Overview
 
-Providentia is a multi-layer API that can be used in several different ways:
+The AutoML-Toolkit is a multi-layer API that can be used in several different ways:
 1. Full Automation (high-level API) by using the AutomationRunner class and utilzing the .run() public method
 2. Mid-level Automation through use of individual component API's (DataPrep / AutomationRunner public methods)
 3. Low-level API's for Hyper-parameter tuning
@@ -148,7 +148,7 @@ val runner = new AutomationRunner(myData)
   .setMainConfig(modelConfig)
   .runFeatureCullingWithPrediction()
 ```
-This will extract the default configuration set in Providentia, run through feature engineering tasks, data cleanup, categorical data conversion, vectorization, modeling, and scoring.
+This will extract the default configuration set in AutoML-Toolkit, run through feature engineering tasks, data cleanup, categorical data conversion, vectorization, modeling, and scoring.
 
 The usage above overrides a number of the defaults (discussed in detail below).
 
@@ -457,7 +457,7 @@ Setter: `.setFeaturesCol(<String>)`
 ```text
 Default: "features"
 
-Purely cosmetic setting that ensures consistency throughout all of the modules within Providentia.  
+Purely cosmetic setting that ensures consistency throughout all of the modules within AutoML-Toolkit.  
     
 [Future Feature] In a future planned release, new accessor methods will make this setting more relevant, 
     as a validated prediction data set will be returned along with run statistics.
@@ -960,7 +960,7 @@ Scales the data to the unit standard deviation. [Explanation](https://en.wikiped
 
 ## AutoML (Hyper-parameter concurrent genetic tuning)
 
-The implementation for hyper parameter tuning in Providentia is through the use of a genetic algorithm.  
+The implementation for hyper parameter tuning in the AutoML-Toolkit is through the use of a genetic algorithm.  
 There are currently two different modes: **Batch Mode** and **Continuous Mode**.
 
 #### Generic Configurations
@@ -1405,13 +1405,13 @@ Default: 20
 
 ### MLFlow Settings
 
-MLFlow integration in Providentia allows for logging and tracking of not only the best model returned by a particular run,
+MLFlow integration in this toolkit allows for logging and tracking of not only the best model returned by a particular run,
 but also a tracked history of all hyper parameters, scoring results for validation, and a location path to the actual
 model artifacts that are generated for each iteration.
 
 More information: [MLFlow](https://mlflow.org/docs/latest/index.html), [API Docs](https://mlflow.org/docs/latest/java_api/index.html)
 
-The implementation in Providentia leverages the JavaAPI and can support both remote and Databricks-hosted MLFlow deployments.
+The implementation here leverages the JavaAPI and can support both remote and Databricks-hosted MLFlow deployments.
 
 ##### Options
 ```text
