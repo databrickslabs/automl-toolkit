@@ -7,12 +7,27 @@ trait EvolutionDefaults {
   final val allowableMutationStrategies = List("linear", "fixed")
   final val allowableMutationMagnitudeMode = List("random", "fixed")
   final val regressionMetrics: List[String] = List("rmse", "mse", "r2", "mae")
-  final val classificationMetrics: List[String] = List("f1", "weightedPrecision", "weightedRecall", "accuracy",
-    "areaUnderPR", "areaUnderROC")
-  final val allowableTrainSplitMethod: List[String] = List("random", "chronological", "stratified", "overSample",
-    "underSample", "stratifyReduce")
-  final val allowableInitialGenerationModes: List[String] = List("random", "permutations")
-  final val allowableInitialGenerationIndexMixingModes: List[String] = List("random", "linear")
+  final val classificationMetrics: List[String] = List(
+    "f1",
+    "weightedPrecision",
+    "weightedRecall",
+    "accuracy",
+    "areaUnderPR",
+    "areaUnderROC"
+  )
+  final val allowableTrainSplitMethod: List[String] = List(
+    "random",
+    "chronological",
+    "stratified",
+    "overSample",
+    "underSample",
+    "stratifyReduce",
+    "kSample"
+  )
+  final val allowableInitialGenerationModes: List[String] =
+    List("random", "permutations")
+  final val allowableInitialGenerationIndexMixingModes: List[String] =
+    List("random", "linear")
 
   def _defaultLabel: String = "label"
 

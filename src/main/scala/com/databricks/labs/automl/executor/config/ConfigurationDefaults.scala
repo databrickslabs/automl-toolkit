@@ -3,9 +3,9 @@ package com.databricks.labs.automl.executor.config
 trait ConfigurationDefaults {
 
   import FamilyValidator._
-  import PredictionType._
-  import ModelSelector._
   import ModelDefaults._
+  import ModelSelector._
+  import PredictionType._
 
   /**
     * General Tools
@@ -115,7 +115,8 @@ trait ConfigurationDefaults {
     "stratifyReduce",
     "stratified",
     "overSample",
-    "underSample"
+    "underSample",
+    "kSample"
   )
   final val allowableEvolutionStrategies: List[String] =
     List("batch", "continuous")
@@ -132,6 +133,14 @@ trait ConfigurationDefaults {
     List("RandomForest", "LinearRegression", "XGBoost")
   final val allowableFeatureImportanceCutoffTypes: List[String] =
     List("none", "value", "count")
+  final val allowableKMeansDistanceMeasurements: List[String] =
+    List("cosine", "euclidean")
+  final val allowableMutationModes: List[String] =
+    List("weighted", "random", "ratio")
+  final val allowableVectorMutationMethods: List[String] =
+    List("random", "fixed", "all")
+  final val allowableLabelBalanceModes: List[String] =
+    List("match", "percentage", "target")
 
   /**
     * Generic Helper Methods
@@ -414,6 +423,25 @@ trait ConfigurationDefaults {
     val tunerKFold = 5
     val tunerTrainPortion = 0.8
     val tunerTrainSplitMethod = "random"
+    val tunerKSampleSyntheticCol = "synthetic_ksample"
+    val tunerKSampleKGroups = 25
+    val tunerKSampleKMeansMaxIter = 100
+    val tunerKSampleKMeansTolerance = 1E-6
+    val tunerKSampleKMeansDistanceMeasurement = "euclidean"
+    val tunerKSampleKMeansSeed = 42L
+    val tunerKSampleKMeansPredictionCol = "kGroups_ksample"
+    val tunerKSampleLSHHashTables = 10
+    val tunerKSampleLSHSeed = 42L
+    val tunerKSampleLSHOutputCol = "hashes_ksample"
+    val tunerKSampleQuorumCount = 7
+    val tunerKSampleMinimumVectorCountToMutate = 1
+    val tunerKSampleVectorMutationMethod = "random"
+    val tunerKSampleMutationMode = "weighted"
+    val tunerKSampleMutationValue = 0.5
+    val tunerKSampleLabelBalanceMode = "percentage"
+    val tunerKSampleCardinalityThreshold = 20
+    val tunerKSampleNumericRatio = 0.2
+    val tunerKSampleNumericTarget = 500
     val tunerTrainSplitChronologicalColumn = ""
     val tunerTrainSplitChronologicalRandomPercentage = 0.0
     val tunerSeed = 42L
@@ -448,6 +476,25 @@ trait ConfigurationDefaults {
       tunerKFold,
       tunerTrainPortion,
       tunerTrainSplitMethod,
+      tunerKSampleSyntheticCol,
+      tunerKSampleKGroups,
+      tunerKSampleKMeansMaxIter,
+      tunerKSampleKMeansTolerance,
+      tunerKSampleKMeansDistanceMeasurement,
+      tunerKSampleKMeansSeed,
+      tunerKSampleKMeansPredictionCol,
+      tunerKSampleLSHHashTables,
+      tunerKSampleLSHSeed,
+      tunerKSampleLSHOutputCol,
+      tunerKSampleQuorumCount,
+      tunerKSampleMinimumVectorCountToMutate,
+      tunerKSampleVectorMutationMethod,
+      tunerKSampleMutationMode,
+      tunerKSampleMutationValue,
+      tunerKSampleLabelBalanceMode,
+      tunerKSampleCardinalityThreshold,
+      tunerKSampleNumericRatio,
+      tunerKSampleNumericTarget,
       tunerTrainSplitChronologicalColumn,
       tunerTrainSplitChronologicalRandomPercentage,
       tunerSeed,
@@ -584,6 +631,25 @@ trait ConfigurationDefaults {
       "tunerKFold" -> tunerDef.tunerKFold,
       "tunerTrainPortion" -> tunerDef.tunerTrainPortion,
       "tunerTrainSplitMethod" -> tunerDef.tunerTrainSplitMethod,
+      "tunerKSampleSyntheticCol" -> tunerDef.tunerKSampleSyntheticCol,
+      "tunerKSampleKGroups" -> tunerDef.tunerKSampleKGroups,
+      "tunerKSampleKMeansMaxIter" -> tunerDef.tunerKSampleKMeansMaxIter,
+      "tunerKSampleKMeansTolerance" -> tunerDef.tunerKSampleKMeansTolerance,
+      "tunerKSampleKMeansDistanceMeasurement" -> tunerDef.tunerKSampleKMeansDistanceMeasurement,
+      "tunerKSampleKMeansSeed" -> tunerDef.tunerKSampleKMeansSeed,
+      "tunerKSampleKMeansPredictionCol" -> tunerDef.tunerKSampleKMeansPredictionCol,
+      "tunerKSampleLSHHashTables" -> tunerDef.tunerKSampleLSHHashTables,
+      "tunerKSampleLSHSeed" -> tunerDef.tunerKSampleLSHSeed,
+      "tunerKSampleLSHOutputCol" -> tunerDef.tunerKSampleLSHOutputCol,
+      "tunerKSampleQuorumCount" -> tunerDef.tunerKSampleQuorumCount,
+      "tunerKSampleMinimumVectorCountToMutate" -> tunerDef.tunerKSampleMinimumVectorCountToMutate,
+      "tunerKSampleVectorMutationMethod" -> tunerDef.tunerKSampleVectorMutationMethod,
+      "tunerKSampleMutationMode" -> tunerDef.tunerKSampleMutationMode,
+      "tunerKSampleMutationValue" -> tunerDef.tunerKSampleMutationValue,
+      "tunerKSampleLabelBalanceMode" -> tunerDef.tunerKSampleLabelBalanceMode,
+      "tunerKSampleCardinalityThreshold" -> tunerDef.tunerKSampleCardinalityThreshold,
+      "tunerKSampleNumericRatio" -> tunerDef.tunerKSampleNumericRatio,
+      "tunerKSampleNumericTarget" -> tunerDef.tunerKSampleNumericTarget,
       "tunerTrainSplitChronologicalColumn" -> tunerDef.tunerTrainSplitChronologicalColumn,
       "tunerTrainSplitChronologicalRandomPercentage" -> tunerDef.tunerTrainSplitChronologicalRandomPercentage,
       "tunerSeed" -> tunerDef.tunerSeed,

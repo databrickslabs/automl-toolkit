@@ -3,6 +3,7 @@ package com.databricks.labs.automl.model
 import com.databricks.labs.automl.params.{
   Defaults,
   EvolutionDefaults,
+  KSampleConfig,
   RandomForestConfig
 }
 import com.databricks.labs.automl.utils.{
@@ -33,6 +34,7 @@ trait Evolution
   var _featureCol: String = _defaultFeature
   var _trainPortion: Double = _defaultTrainPortion
   var _trainSplitMethod: String = _defaultTrainSplitMethod
+  var _kSampleConfig: KSampleConfig = _defaultKSampleConfig
   var _trainSplitChronologicalColumn: String =
     _defaultTrainSplitChronologicalColumn
   var _trainSplitChronologicalRandomPercentage: Double =
@@ -83,6 +85,28 @@ trait Evolution
 
   var _dataReduce: Double = _defaultDataReduce
 
+  var _syntheticCol: String = _defaultKSampleConfig.syntheticCol
+  var _kGroups: Int = _defaultKSampleConfig.kGroups
+  var _kMeansMaxIter: Int = _defaultKSampleConfig.kMeansMaxIter
+  var _kMeansTolerance: Double = _defaultKSampleConfig.kMeansTolerance
+  var _kMeansDistanceMeasurement: String =
+    _defaultKSampleConfig.kMeansDistanceMeasurement
+  var _kMeansSeed: Long = _defaultKSampleConfig.kMeansSeed
+  var _kMeansPredictionCol: String = _defaultKSampleConfig.kMeansPredictionCol
+  var _lshHashTables: Int = _defaultKSampleConfig.lshHashTables
+  var _lshSeed: Long = _defaultKSampleConfig.lshSeed
+  var _lshOutputCol: String = _defaultKSampleConfig.lshOutputCol
+  var _quorumCount: Int = _defaultKSampleConfig.quorumCount
+  var _minimumVectorCountToMutate: Int =
+    _defaultKSampleConfig.minimumVectorCountToMutate
+  var _vectorMutationMethod: String = _defaultKSampleConfig.vectorMutationMethod
+  var _mutationMode: String = _defaultKSampleConfig.mutationMode
+  var _mutationValue: Double = _defaultKSampleConfig.mutationValue
+  var _labelBalanceMode: String = _defaultKSampleConfig.labelBalanceMode
+  var _cardinalityThreshold: Int = _defaultKSampleConfig.cardinalityThreshold
+  var _numericRatio: Double = _defaultKSampleConfig.numericRatio
+  var _numericTarget: Int = _defaultKSampleConfig.numericTarget
+
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
 
@@ -111,6 +135,276 @@ trait Evolution
       s"TrainSplitMethod $value must be one of: ${allowableTrainSplitMethod.mkString(", ")}"
     )
     _trainSplitMethod = value
+    this
+  }
+
+  /**
+    * Setter - for setting the name of the Synthetic column name
+    * @param value String: A column name that is uniquely not part of the main DataFrame
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def setSyntheticCol(value: String): this.type = {
+    _syntheticCol = value
+    this
+  }
+
+  /**
+    * Setter for specifying the number of K-Groups to generate in the KMeans model
+    * @param value Int: number of k groups to generate
+    * @return this
+    */
+  def setKGroups(value: Int): this.type = {
+    _kGroups = value
+    this
+  }
+
+  /**
+    * Setter for specifying the maximum number of iterations for the KMeans model to go through to converge
+    * @param value Int: Maximum limit on iterations
+    * @return this
+    */
+  def setKMeansMaxIter(value: Int): this.type = {
+    _kMeansMaxIter = value
+    this
+  }
+
+  /**
+    * Setter for Setting the tolerance for KMeans (must be >0)
+    * @param value The tolerance value setting for KMeans
+    * @see reference: [[http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.clustering.KMeans]]
+    *      for further details.
+    * @return this
+    * @throws IllegalArgumentException() if a value less than 0 is entered
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setKMeansTolerance(value: Double): this.type = {
+    require(
+      value > 0,
+      s"KMeans tolerance value ${value.toString} is out of range.  Must be > 0."
+    )
+    _kMeansTolerance = value
+    this
+  }
+
+  /**
+    * Setter for which distance measurement to use to calculate the nearness of vectors to a centroid
+    * @param value String: Options -> "euclidean" or "cosine" Default: "euclidean"
+    * @return this
+    * @throws IllegalArgumentException() if an invalid value is entered
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setKMeansDistanceMeasurement(value: String): this.type = {
+    require(
+      allowableKMeansDistanceMeasurements.contains(value),
+      s"Kmeans Distance Measurement $value is not " +
+        s"a valid mode of operation.  Must be one of: ${allowableKMeansDistanceMeasurements.mkString(", ")}"
+    )
+    _kMeansDistanceMeasurement = value
+    this
+  }
+
+  /**
+    * Setter for a KMeans seed for the clustering algorithm
+    * @param value Long: Seed value
+    * @return this
+    */
+  def setKMeansSeed(value: Long): this.type = {
+    _kMeansSeed = value
+    this
+  }
+
+  /**
+    * Setter for the internal KMeans column for cluster membership attribution
+    * @param value String: column name for internal algorithm column for group membership
+    * @return this
+    */
+  def setKMeansPredictionCol(value: String): this.type = {
+    _kMeansPredictionCol = value
+    this
+  }
+
+  /**
+    * Setter for Configuring the number of Hash Tables to use for MinHashLSH
+    * @param value Int: Count of hash tables to use
+    * @see [[http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.feature.MinHashLSH]]
+    *     for more information
+    * @return this
+    */
+  def setLSHHashTables(value: Int): this.type = {
+    _lshHashTables = value
+    this
+  }
+
+  /**
+    * Setter for the LSH Seed for the model
+    * @param value Long: Seed value
+    * @return this
+    */
+  def setLSHSeed(value: Long): this.type = {
+    _lshSeed = value
+    this
+  }
+
+  /**
+    * Setter for the internal LSH output hash information column
+    * @param value String: column name for the internal MinHashLSH Model transformation value
+    * @return this
+    */
+  def setLSHOutputCol(value: String): this.type = {
+    _lshOutputCol = value
+    this
+  }
+
+  /**
+    * Setter for how many vectors to find in adjacency to the centroid for generation of synthetic data
+    * @note the higher the value set here, the higher the variance in synthetic data generation
+    * @param value Int: Number of vectors to find nearest each centroid within the class
+    * @return this
+    */
+  def setQuorumCount(value: Int): this.type = {
+    _quorumCount = value
+    this
+  }
+
+  /**
+    * Setter for minimum threshold for vector indexes to mutate within the feature vector.
+    * @note In vectorMutationMethod "fixed" this sets the fixed count of how many vector positions to mutate.
+    *       In vectorMutationMethod "random" this sets the lower threshold for 'at least this many indexes will
+    *       be mutated'
+    * @param value The minimum (or fixed) number of indexes to mutate.
+    * @return this
+    */
+  def setMinimumVectorCountToMutate(value: Int): this.type = {
+    _minimumVectorCountToMutate = value
+    this
+  }
+
+  /**
+    * Setter for the Vector Mutation Method
+    * @note Options:
+    *       "fixed" - will use the value of minimumVectorCountToMutate to select random indexes of this number of indexes.
+    *       "random" - will use this number as a lower bound on a random selection of indexes between this and the vector length.
+    *       "all" - will mutate all of the vectors.
+    * @param value String - the mode to use.
+    * @return this
+    * @throws IllegalArgumentException() if the mode is not supported.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setVectorMutationMethod(value: String): this.type = {
+    require(
+      allowableVectorMutationMethods.contains(value),
+      s"Vector Mutation Mode $value is not supported.  " +
+        s"Must be one of: ${allowableVectorMutationMethods.mkString(", ")} "
+    )
+    _vectorMutationMethod = value
+    this
+  }
+
+  /**
+    * Setter for the Mutation Mode of the feature vector individual values
+    * @note Options:
+    *       "weighted" - uses weighted averaging to scale the euclidean distance between the centroid vector and mutation candidate vectors
+    *       "random" - randomly selects a position on the euclidean vector between the centroid vector and the candidate mutation vectors
+    *       "ratio" - uses a ratio between the values of the centroid vector and the mutation vector    *
+    * @param value String: the mode to use.
+    * @return this
+    * @throws IllegalArgumentException() if the mode is not supported.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setMutationMode(value: String): this.type = {
+    require(
+      allowableMutationModes.contains(value),
+      s"Mutation Mode $value is not a valid mode of operation.  " +
+        s"Must be one of: ${allowableMutationModes.mkString(", ")}"
+    )
+    _mutationMode = value
+    this
+  }
+
+  /**
+    * Setter for specifying the mutation magnitude for the modes 'weighted' and 'ratio' in mutationMode
+    * @param value Double: value between 0 and 1 for mutation magnitude adjustment.
+    * @note the higher this value, the closer to the centroid vector vs. the candidate mutation vector the synthetic row data will be.
+    * @return this
+    * @throws IllegalArgumentException() if the value specified is outside of the range (0, 1)
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setMutationValue(value: Double): this.type = {
+    require(
+      value > 0 & value < 1,
+      s"Mutation Value must be between 0 and 1. Value $value is not permitted."
+    )
+    _mutationValue = value
+    this
+  }
+
+  /**
+    * Setter - for determining the label balance approach mode.
+    * @note Available modes: <br>
+    *         <i>'match'</i>: Will match all smaller class counts to largest class count.  [WARNING] - May significantly increase memory pressure!<br>
+    *         <i>'percentage'</i> Will adjust smaller classes to a percentage value of the largest class count.
+    *         <i>'target'</i> Will increase smaller class counts to a fixed numeric target of rows.
+    * @param value String: one of: 'match', 'percentage' or 'target'
+    * @note Default: "percentage"
+    * @since 0.5.1
+    * @author Ben Wilson
+    * @throws UnsupportedOperationException() if the provided mode is not supported.
+    */
+  @throws(classOf[UnsupportedOperationException])
+  def setLabelBalanceMode(value: String): this.type = {
+    require(
+      allowableLabelBalanceModes.contains(value),
+      s"Label Balance Mode $value is not supported." +
+        s"Must be one of: ${allowableLabelBalanceModes.mkString(", ")}"
+    )
+    _labelBalanceMode = value
+    this
+  }
+
+  /**
+    * Setter - for overriding the cardinality threshold exception threshold.  [WARNING] increasing this value on
+    * a sufficiently large data set could incur, during runtime, excessive memory and cpu pressure on the cluster.
+    * @param value Int: the limit above which an exception will be thrown for a classification problem wherein the
+    *              label distinct count is too large to successfully generate synthetic data.
+    * @note Default: 20
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def setCardinalityThreshold(value: Int): this.type = {
+    _cardinalityThreshold = value
+    this
+  }
+
+  /**
+    * Setter - for specifying the percentage ratio for the mode 'percentage' in setLabelBalanceMode()
+    * @param value Double: A fractional double in the range of 0.0 to 1.0.
+    * @note Setting this value to 1.0 is equivalent to setting the label balance mode to 'match'
+    * @note Default: 0.2
+    * @since 0.5.1
+    * @author Ben Wilson
+    * @throws UnsupportedOperationException() if the provided value is outside of the range of 0.0 -> 1.0
+    */
+  @throws(classOf[UnsupportedOperationException])
+  def setNumericRatio(value: Double): this.type = {
+    require(
+      value <= 1.0 & value > 0.0,
+      s"Invalid Numeric Ratio entered!  Must be between 0 and 1." +
+        s"${value.toString} is not valid."
+    )
+    _numericRatio = value
+    this
+  }
+
+  /**
+    * Setter - for specifying the target row count to generate for 'target' mode in setLabelBalanceMode()
+    * @param value Int: The desired final number of rows per minority class label
+    * @note [WARNING] Setting this value to too high of a number will greatly increase runtime and memory pressure.
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def setNumericTarget(value: Int): this.type = {
+    _numericTarget = value
     this
   }
 
@@ -672,6 +966,39 @@ trait Evolution
 
   }
 
+  /**
+    * Split methodology for getting test and train of KSample up-sampled data.<br>
+    *   Both data sets are split into test and train. <br>
+    *     The returned collections are a union of the real train + synthetic train, but only the real test data.
+    * @param data DataFrame: The full data set (containing a synthetic column that indicates whether the data is real or not)
+    * @param seed Long: A seed value that is consistent across both data sets
+    * @param uniqueLabels Array[Row]: The unique entries of the label values
+    * @return Array[DataFrame] of Array(trainData, testData)
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def kSamplingSplit(data: DataFrame,
+                     seed: Long,
+                     uniqueLabels: Array[Row]): Array[DataFrame] = {
+
+    // Split out the real from the synthetic data
+    val realData = data.filter(!col(_syntheticCol))
+
+    // Split out the synthetic data
+    val syntheticData = data.filter(col(_syntheticCol))
+
+    // Perform stratified splits on both the real and synthetic data
+    val Array(realTrain, realTest) =
+      stratifiedSplit(realData, seed, uniqueLabels)
+
+    val Array(syntheticTrain, syntheticTest) =
+      stratifiedSplit(syntheticData, seed, uniqueLabels)
+
+    // Union the real train data with the synthetic train data and return that with only the real test data
+    Array(realTrain.union(syntheticTrain), realTest)
+
+  }
+
   def genTestTrain(data: DataFrame,
                    seed: Long,
                    uniqueLables: Array[Row]): Array[DataFrame] = {
@@ -685,6 +1012,7 @@ trait Evolution
       case "underSample"   => underSampleSplit(data, seed)
       case "stratifyReduce" =>
         stratifyReduce(data, _dataReduce, seed, uniqueLables)
+      case "kSample" => kSamplingSplit(data, seed, uniqueLables)
       case _ =>
         throw new IllegalArgumentException(
           s"Cannot conduct train test split in mode: '${_trainSplitMethod}'"
@@ -856,6 +1184,16 @@ trait Evolution
 
   }
 
+  /**
+    * Method for calculating the remaining time left on the genetic algorithm training (roughly)
+    * @note Due to the asynchronous nature of the algorithm, the times are not exact and are a reflection of time
+    *       since the creation of the Futures and when they were initially inserted into the thread pool.
+    * @param currentGen The current Generation that the model is running on
+    * @param currentModel The index of the current model that is being run.
+    * @return A Double representing the total completion percentage of the modeling portion of the run.
+    * @since 0.2.1
+    * @author Ben Wilson
+    */
   def calculateModelingFamilyRemainingTime(currentGen: Int,
                                            currentModel: Int): Double = {
 
@@ -878,6 +1216,8 @@ trait Evolution
     * evaluator to employ for scoring and optimization of each model)
     * @param df source Dataframe (prior to splitting for train/test)
     * @return Boolean true for Binary Classification problem, false for multi-class problem
+    * @since 0.4.0
+    * @author Ben Wilson
     */
   def classificationAdjudicator(df: DataFrame): Boolean = {
 
@@ -894,6 +1234,8 @@ trait Evolution
     * @param metricPayload the hard-coded allowable List[String] of allowable classification metrics
     *                      from com.databricks.labs.automl.params.EvolutionDefaults
     * @return a copy of the the allowable params list with the Binary metrics removed if this is a multiclass problem.
+    * @since 0.4.0
+    * @author Ben Wilson
     */
   def classificationMetricValidator(
     binaryValidation: Boolean,
@@ -915,6 +1257,8 @@ trait Evolution
     * @param labelColumn the column name in the data set that is the 'source of truth' to compare against
     * @param data the DataFrame that has been transformed
     * @return the score, as a Double value.
+    * @since 0.4.0
+    * @author Ben Wilson
     */
   def classificationScoring(metricName: String,
                             labelColumn: String,
@@ -943,6 +1287,8 @@ trait Evolution
     * @param labelColumn The name of the label column
     * @param data the DataFrame that has been transformed by a model.
     * @return the score for the metric, as a Double value.
+    * @since 0.4.0
+    * @author Ben Wilson
     */
   def regressionScoring(metricName: String,
                         labelColumn: String,

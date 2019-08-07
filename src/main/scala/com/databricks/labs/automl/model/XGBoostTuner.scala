@@ -1,6 +1,9 @@
 package com.databricks.labs.automl.model
 
-import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
+import com.databricks.labs.automl.model.tools.{
+  HyperParameterFullSearch,
+  ModelReporting
+}
 import com.databricks.labs.automl.params.{
   Defaults,
   XGBoostConfig,
@@ -305,7 +308,13 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
     generation: Int = 1
   ): Array[XGBoostModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis / 1000
+    val metrics = modelSelection match {
+      case "classifier" => _classificationMetrics
+      case _            => regressionMetrics
+    }
+
+    val statusObj = new ModelReporting("xgboost", metrics)
+
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[XGBoostModelsWithResults]
@@ -316,9 +325,10 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus =
-      f"Starting Generation $generation \n\t\t Completion Status: " +
-        f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+    val currentStatus = statusObj.generateGenerationStartStatement(
+      generation,
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    )
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -326,9 +336,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
     runs.foreach { x =>
       val runId = java.util.UUID.randomUUID()
 
-      println(
-        s"Starting run $runId with Params: ${convertXGBoostConfigToHumanReadable(x, " ")}"
-      )
+      println(statusObj.generateRunStartStatement(runId, x))
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
@@ -364,12 +372,6 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
           )
       }
 
-      val completionTimeStamp = System.currentTimeMillis / 1000
-
-      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
-
-      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
-
       val runAvg = XGBoostModelsWithResults(
         x,
         kFoldBuffer.result.head.model,
@@ -381,42 +383,23 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
       results += runAvg
       modelCnt += 1
 
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${convertXGBoostConfigToHumanReadable(x, "\n\t\t\t\t")} \n\t\tin " +
-        s"$runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+      val runStatement = statusObj.generateRunScoreStatement(
+        runId,
+        scoringMap.result.toMap,
+        _scoringMetric,
+        x,
+        calculateModelingFamilyRemainingTime(generation, modelCnt),
+        kFoldTimeStamp
+      )
 
-      val progressStatement =
-        f"\t\t Current modeling progress complete in family: " +
-          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      println(runStatement)
 
-      println(runScoreStatement)
-      println(progressStatement)
-      logger.log(Level.INFO, runScoreStatement)
-      logger.log(Level.INFO, progressStatement)
+      logger.log(Level.INFO, runStatement)
+
     }
 
     sortAndReturnAll(results)
 
-  }
-
-  /**
-    * Private method for making stdout and logging of params much more readable, particularly for the array objects
-    *
-    * @param conf The configuration of the run (hyper parameters)
-    * @return A string representation that is readable.
-    */
-  private def convertXGBoostConfigToHumanReadable(conf: XGBoostConfig,
-                                                  formatter: String): String = {
-    s"\n\t\t\tConfig: $formatter[alpha] -> [${conf.alpha.toString}]" +
-      s"$formatter[eta] -> [${conf.eta.toString}]" +
-      s"$formatter[gamma] -> [${conf.gamma.toString}]" +
-      s"$formatter[lambda] -> [${conf.lambda.toString}]" +
-      s"$formatter[maxBins] -> [${conf.maxBins.toString}]" +
-      s"$formatter[maxDepth] -> [${conf.maxDepth.toString}]" +
-      s"$formatter[minChildWeight] -> [${conf.minChildWeight.toString}]" +
-      s"$formatter[numRound] -> [${conf.numRound.toString}]" +
-      s"$formatter[subSample] -> [${conf.subSample.toString}]" +
-      s"$formatter[trainTestRatio] -> [${conf.trainTestRatio.toString}]"
   }
 
   private def irradiateGeneration(

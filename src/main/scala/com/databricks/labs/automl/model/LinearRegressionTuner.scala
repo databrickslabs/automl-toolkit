@@ -1,6 +1,9 @@
 package com.databricks.labs.automl.model
 
-import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
+import com.databricks.labs.automl.model.tools.{
+  HyperParameterFullSearch,
+  ModelReporting
+}
 import com.databricks.labs.automl.params.{
   Defaults,
   LinearRegressionConfig,
@@ -197,7 +200,8 @@ class LinearRegressionTuner(df: DataFrame)
     generation: Int = 1
   ): Array[LinearRegressionModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis / 1000
+    val statusObj = new ModelReporting("linearRegression", regressionMetrics)
+
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[LinearRegressionModelsWithResults]
@@ -208,8 +212,10 @@ class LinearRegressionTuner(df: DataFrame)
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus =
-      f"Starting Generation $generation \n\t\t Completion Status: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+    val currentStatus = statusObj.generateGenerationStartStatement(
+      generation,
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    )
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -217,9 +223,7 @@ class LinearRegressionTuner(df: DataFrame)
     runs.foreach { x =>
       val runId = java.util.UUID.randomUUID()
 
-      println(
-        s"Starting run $runId with Params: ${convertLinearRegressionConfigToHumanReadable(x, " ")}"
-      )
+      println(statusObj.generateRunStartStatement(runId, x))
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
@@ -243,12 +247,6 @@ class LinearRegressionTuner(df: DataFrame)
         scoringMap(a) = metricScores.sum / metricScores.length
       }
 
-      val completionTimeStamp = System.currentTimeMillis / 1000
-
-      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
-
-      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
-
       val runAvg = LinearRegressionModelsWithResults(
         x,
         kFoldBuffer.result.head.model,
@@ -260,41 +258,22 @@ class LinearRegressionTuner(df: DataFrame)
       results += runAvg
       modelCnt += 1
 
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${convertLinearRegressionConfigToHumanReadable(x, "\n\t\t\t\t")} " +
-        s"\n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+      val runStatement = statusObj.generateRunScoreStatement(
+        runId,
+        scoringMap.result.toMap,
+        _scoringMetric,
+        x,
+        calculateModelingFamilyRemainingTime(generation, modelCnt),
+        kFoldTimeStamp
+      )
 
-      val progressStatement =
-        f"\t\t Current modeling progress complete in family: " +
-          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      println(runStatement)
 
-      println(runScoreStatement)
-      println(progressStatement)
-      logger.log(Level.INFO, runScoreStatement)
-      logger.log(Level.INFO, progressStatement)
+      logger.log(Level.INFO, runStatement)
     }
 
     sortAndReturnAll(results)
 
-  }
-
-  /**
-    * Private method for making stdout and logging of params much more readable, particularly for the array objects
-    *
-    * @param conf The configuration of the run (hyper parameters)
-    * @return A string representation that is readable.
-    */
-  private def convertLinearRegressionConfigToHumanReadable(
-    conf: LinearRegressionConfig,
-    formatter: String
-  ): String = {
-    s"\n\t\t\tConfig: $formatter[elasticNetParams] -> [${conf.elasticNetParams.toString}]" +
-      s"$formatter[fitIntercept] -> [${conf.fitIntercept.toString}]" +
-      s"$formatter[loss] -> [${conf.loss}]" +
-      s"$formatter[maxIter] -> [${conf.maxIter.toString}]" +
-      s"$formatter[regParam] -> [${conf.regParam.toString}]" +
-      s"$formatter[standardization] -> [${conf.standardization.toString}]" +
-      s"$formatter[tolerance] -> [${conf.tolerance.toString}]"
   }
 
   private def irradiateGeneration(
