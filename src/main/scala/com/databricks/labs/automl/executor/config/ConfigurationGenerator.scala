@@ -127,6 +127,7 @@ class GenericConfigGenerator(predictionType: String)
     * Setter<br>
     *
     * Aids in creating multiple instances of a Generic Config (useful for Feature Importance usages)
+    *
     * @param value an Instance of a GenericConfig Object
     */
   def setConfig(value: GenericConfig): this.type = {
@@ -260,6 +261,7 @@ class ConfigurationGenerator(modelFamily: String,
 
   /**
     * Helper method for copying a pre-defined InstanceConfig to a new instance.
+    *
     * @param value InstanceConfig object
     */
   def setConfig(value: InstanceConfig): this.type = {
@@ -757,6 +759,7 @@ class ConfigurationGenerator(modelFamily: String,
     * Setter<br>
     *   Selection for filter statistic to be used in Pearson Filtering.<br>
     *     Available modes: "pvalue", "degreesFreedom", or "pearsonStat"
+    *
     * @note Default: pearsonStat
     * @param value String: one of available modes.
     * @throws IllegalArgumentException if the value provided is not in available modes list.
@@ -776,6 +779,7 @@ class ConfigurationGenerator(modelFamily: String,
     * Setter<br>
     * Controls which direction of correlation values to filter out.  Allowable modes: <br>
     *   "greater" or "lesser"
+    *
     * @note Default: greater
     * @param value String: one of available modes
     * @throws IllegalArgumentException if the value provided is not in available modes list.
@@ -794,6 +798,7 @@ class ConfigurationGenerator(modelFamily: String,
   /**
     * Setter <br>
     *   Controls the Pearson manual filter value, if the PearsonFilterMode is set to "manual"<br>
+    *
     *     @example with .setPearsonFilterMode("manual") and .setPearsonFilterDirection("greater") <br>
     *              the removal of fields that have a pearson correlation coefficient result above this <br>
     *              value will be dropped from modeling runs.
@@ -809,6 +814,7 @@ class ConfigurationGenerator(modelFamily: String,
     * Setter <br>
     *   Controls whether to use "auto" mode (using the PearsonAutoFilterNTile) or "manual" mode (using the <br>
     *     PearsonFilterManualValue) to cull fields from the feature vector.
+    *
     * @param value String: either "auto" or "manual"
     * @note Default: "auto"
     * @throws IllegalArgumentException if the value provided is not in available modes list (auto and manual)
@@ -824,6 +830,7 @@ class ConfigurationGenerator(modelFamily: String,
     * Setter <br>
     *   Provides the ntile threshold above or below which (depending on PearsonFilterDirection setting) fields will<br>
     *     be removed, depending on the distribution of pearson statistics from all feature columns.
+    *
     * @note WARNING - this feature is ONLY recommended to be used for exploratory development work.
     * @note Default: 0.75 (Q3)
     * @param value Double: In range of (0.0, 1.0)
@@ -839,6 +846,7 @@ class ConfigurationGenerator(modelFamily: String,
   /**
     * Setter<br>
     *   Covariance Cutoff for specifying the feature-to-feature correlation statistic lower cutoff boundary
+    *
     * @example For feature columns A, B, and C, if A->B is 0.02, A->C is 0.1, B->C is 0.85, with a value set of 0.05,
     *          <br> Column A would be removed from the feature vector for having a low value of the correlation
     *          statistic.
@@ -865,6 +873,7 @@ class ConfigurationGenerator(modelFamily: String,
   /**
     * Setter<br>
     *   Covariance Cutoff for specifying the feature-to-feature correlation statistic upper cutoff boundary
+    *
     * @example For feature columns A, B, and C, if A<->B is 0.02, A<->C is 0.1, B<->C is 0.85, with a value set of 0.8,
     *          <br> Column C would be removed from the feature vector for having a high value of the correlation
     *          statistic.
@@ -1028,6 +1037,289 @@ class ConfigurationGenerator(modelFamily: String,
       "TunerTrainSplitMethod"
     )
     _instanceConfig.tunerConfig.tunerTrainSplitMethod = value
+    this
+  }
+
+  /**
+    * Setter - for setting the name of the Synthetic column name
+    *
+    * @param value String: A column name that is uniquely not part of the main DataFrame
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def setTunerKSampleSyntheticCol(value: String): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleSyntheticCol = value
+    this
+  }
+
+  /**
+    * Setter for specifying the number of K-Groups to generate in the KMeans model
+    *
+    * @param value Int: number of k groups to generate
+    * @return this
+    */
+  def setTunerKSampleKGroups(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleKGroups = value
+    this
+  }
+
+  /**
+    * Setter for specifying the maximum number of iterations for the KMeans model to go through to converge
+    *
+    * @param value Int: Maximum limit on iterations
+    * @return this
+    */
+  def setTunerKSampleKMeansMaxIter(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleKMeansMaxIter = value
+    this
+  }
+
+  /**
+    * Setter for Setting the tolerance for KMeans (must be >0)
+    *
+    * @param value The tolerance value setting for KMeans
+    * @see reference: [[http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.clustering.KMeans]]
+    *      for further details.
+    * @return this
+    * @throws IllegalArgumentException() if a value less than 0 is entered
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerKSampleKMeansTolerance(value: Double): this.type = {
+    require(
+      value > 0,
+      s"KMeans tolerance value ${value.toString} is out of range.  Must be > 0."
+    )
+    _instanceConfig.tunerConfig.tunerKSampleKMeansTolerance = value
+    this
+  }
+
+  /**
+    * Setter for which distance measurement to use to calculate the nearness of vectors to a centroid
+    *
+    * @param value String: Options -> "euclidean" or "cosine" Default: "euclidean"
+    * @return this
+    * @throws IllegalArgumentException() if an invalid value is entered
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerKSampleKMeansDistanceMeasurement(value: String): this.type = {
+    require(
+      allowableKMeansDistanceMeasurements.contains(value),
+      s"Kmeans Distance Measurement $value is not " +
+        s"a valid mode of operation.  Must be one of: ${allowableKMeansDistanceMeasurements.mkString(", ")}"
+    )
+    _instanceConfig.tunerConfig.tunerKSampleKMeansDistanceMeasurement = value
+    this
+  }
+
+  /**
+    * Setter for a KMeans seed for the clustering algorithm
+    *
+    * @param value Long: Seed value
+    * @return this
+    */
+  def setTunerKSampleKMeansSeed(value: Long): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleKMeansSeed = value
+    this
+  }
+
+  /**
+    * Setter for the internal KMeans column for cluster membership attribution
+    *
+    * @param value String: column name for internal algorithm column for group membership
+    * @return this
+    */
+  def setTunerKSampleKMeansPredictionCol(value: String): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleKMeansPredictionCol = value
+    this
+  }
+
+  /**
+    * Setter for Configuring the number of Hash Tables to use for MinHashLSH
+    *
+    * @param value Int: Count of hash tables to use
+    * @see [[http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.feature.MinHashLSH]]
+    *     for more information
+    * @return this
+    */
+  def setTunerKSampleLSHHashTables(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleLSHHashTables = value
+    this
+  }
+
+  def setTunerKSampleLSHSeed(value: Long): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleLSHSeed = value
+    this
+  }
+
+  /**
+    * Setter for the internal LSH output hash information column
+    *
+    * @param value String: column name for the internal MinHashLSH Model transformation value
+    * @return this
+    */
+  def setTunerKSampleLSHOutputCol(value: String): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleLSHOutputCol = value
+    this
+  }
+
+  /**
+    * Setter for how many vectors to find in adjacency to the centroid for generation of synthetic data
+    *
+    * @note the higher the value set here, the higher the variance in synthetic data generation
+    * @param value Int: Number of vectors to find nearest each centroid within the class
+    * @return this
+    */
+  def setTunerKSampleQuorumCount(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleQuorumCount = value
+    this
+  }
+
+  /**
+    * Setter for minimum threshold for vector indexes to mutate within the feature vector.
+    *
+    * @note In vectorMutationMethod "fixed" this sets the fixed count of how many vector positions to mutate.
+    *       In vectorMutationMethod "random" this sets the lower threshold for 'at least this many indexes will
+    *       be mutated'
+    * @param value The minimum (or fixed) number of indexes to mutate.
+    * @return this
+    */
+  def setTunerKSampleMinimumVectorCountToMutate(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleMinimumVectorCountToMutate = value
+    this
+  }
+
+  /**
+    * Setter for the Vector Mutation Method
+    *
+    * @note Options:
+    *       "fixed" - will use the value of minimumVectorCountToMutate to select random indexes of this number of indexes.
+    *       "random" - will use this number as a lower bound on a random selection of indexes between this and the vector length.
+    *       "all" - will mutate all of the vectors.
+    * @param value String - the mode to use.
+    * @return this
+    * @throws IllegalArgumentException() if the mode is not supported.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerKSampleVectorMutationMethod(value: String): this.type = {
+    require(
+      allowableVectorMutationMethods.contains(value),
+      s"Vector Mutation Mode $value is not supported.  " +
+        s"Must be one of: ${allowableVectorMutationMethods.mkString(", ")} "
+    )
+    _instanceConfig.tunerConfig.tunerKSampleVectorMutationMethod = value
+    this
+  }
+
+  /**
+    * Setter for the Mutation Mode of the feature vector individual values
+    *
+    * @note Options:
+    *       "weighted" - uses weighted averaging to scale the euclidean distance between the centroid vector and mutation candidate vectors
+    *       "random" - randomly selects a position on the euclidean vector between the centroid vector and the candidate mutation vectors
+    *       "ratio" - uses a ratio between the values of the centroid vector and the mutation vector    *
+    * @param value String: the mode to use.
+    * @return this
+    * @throws IllegalArgumentException() if the mode is not supported.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerKSampleMutationMode(value: String): this.type = {
+    require(
+      allowableMutationModes.contains(value),
+      s"Mutation Mode $value is not a valid mode of operation.  " +
+        s"Must be one of: ${allowableMutationModes.mkString(", ")}"
+    )
+    _instanceConfig.tunerConfig.tunerKSampleMutationMode = value
+    this
+  }
+
+  /**
+    * Setter for specifying the mutation magnitude for the modes 'weighted' and 'ratio' in mutationMode
+    *
+    * @param value Double: value between 0 and 1 for mutation magnitude adjustment.
+    * @note the higher this value, the closer to the centroid vector vs. the candidate mutation vector the synthetic row data will be.
+    * @return this
+    * @throws IllegalArgumentException() if the value specified is outside of the range (0, 1)
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerKSampleMutationValue(value: Double): this.type = {
+    require(
+      value > 0 & value < 1,
+      s"Mutation Value must be between 0 and 1. Value $value is not permitted."
+    )
+    _instanceConfig.tunerConfig.tunerKSampleMutationValue = value
+    this
+  }
+
+  /**
+    * Setter - for determining the label balance approach mode.
+    *
+    * @note Available modes: <br>
+    *         <i>'match'</i>: Will match all smaller class counts to largest class count.  [WARNING] - May significantly increase memory pressure!<br>
+    *         <i>'percentage'</i> Will adjust smaller classes to a percentage value of the largest class count.
+    *         <i>'target'</i> Will increase smaller class counts to a fixed numeric target of rows.
+    * @param value String: one of: 'match', 'percentage' or 'target'
+    * @note Default: "percentage"
+    * @since 0.5.1
+    * @author Ben Wilson
+    * @throws UnsupportedOperationException() if the provided mode is not supported.
+    */
+  @throws(classOf[UnsupportedOperationException])
+  def setTunerKSampleLabelBalanceMode(value: String): this.type = {
+    require(
+      allowableLabelBalanceModes.contains(value),
+      s"Label Balance Mode $value is not supported." +
+        s"Must be one of: ${allowableLabelBalanceModes.mkString(", ")}"
+    )
+    _instanceConfig.tunerConfig.tunerKSampleLabelBalanceMode = value
+    this
+  }
+
+  /**
+    * Setter - for overriding the cardinality threshold exception threshold.  [WARNING] increasing this value on
+    * a sufficiently large data set could incur, during runtime, excessive memory and cpu pressure on the cluster.
+    *
+    * @param value Int: the limit above which an exception will be thrown for a classification problem wherein the
+    *              label distinct count is too large to successfully generate synthetic data.
+    * @note Default: 20
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def setTunerKSampleCardinalityThreshold(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleCardinalityThreshold = value
+    this
+  }
+
+  /**
+    * Setter - for specifying the percentage ratio for the mode 'percentage' in setLabelBalanceMode()
+    *
+    * @param value Double: A fractional double in the range of 0.0 to 1.0.
+    * @note Setting this value to 1.0 is equivalent to setting the label balance mode to 'match'
+    * @note Default: 0.2
+    * @since 0.5.1
+    * @author Ben Wilson
+    * @throws UnsupportedOperationException() if the provided value is outside of the range of 0.0 -> 1.0
+    */
+  @throws(classOf[UnsupportedOperationException])
+  def setTunerKSampleNumericRatio(value: Double): this.type = {
+    require(
+      value <= 1.0 & value > 0.0,
+      s"Invalid Numeric Ratio entered!  Must be between 0 and 1." +
+        s"${value.toString} is not valid."
+    )
+    _instanceConfig.tunerConfig.tunerKSampleNumericRatio = value
+    this
+  }
+
+  /**
+    * Setter - for specifying the target row count to generate for 'target' mode in setLabelBalanceMode()
+    *
+    * @param value Int: The desired final number of rows per minority class label
+    * @note [WARNING] Setting this value to too high of a number will greatly increase runtime and memory pressure.
+    * @since 0.5.1
+    * @author Ben Wilson
+    */
+  def setTunerKSampleNumericTarget(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerKSampleNumericTarget = value
     this
   }
 
@@ -1364,6 +1656,7 @@ class ConfigurationGenerator(modelFamily: String,
     * Setter<br>
     *   Allows for setting a series of custom mlflow logging tags to an experiment run (universal across all
     *   iterations and models of the run) to be logged in mlflow as a custom tag key value pair
+    *
     * @param value Array of Map[String -> AnyVal]
     * @note The mapped values can be of types: Double, Float, Long, Int, Short, Byte, Boolean, or String
     */
@@ -1522,6 +1815,32 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         kFold = config.tunerConfig.tunerKFold,
         trainPortion = config.tunerConfig.tunerTrainPortion,
         trainSplitMethod = config.tunerConfig.tunerTrainSplitMethod,
+        kSampleConfig = KSampleConfig(
+          syntheticCol = config.tunerConfig.tunerKSampleSyntheticCol,
+          kGroups = config.tunerConfig.tunerKSampleKGroups,
+          kMeansMaxIter = config.tunerConfig.tunerKSampleKMeansMaxIter,
+          kMeansTolerance = config.tunerConfig.tunerKSampleKMeansTolerance,
+          kMeansDistanceMeasurement =
+            config.tunerConfig.tunerKSampleKMeansDistanceMeasurement,
+          kMeansSeed = config.tunerConfig.tunerKSampleKMeansSeed,
+          kMeansPredictionCol =
+            config.tunerConfig.tunerKSampleKMeansPredictionCol,
+          lshHashTables = config.tunerConfig.tunerKSampleLSHHashTables,
+          lshSeed = config.tunerConfig.tunerKSampleLSHSeed,
+          lshOutputCol = config.tunerConfig.tunerKSampleLSHOutputCol,
+          quorumCount = config.tunerConfig.tunerKSampleQuorumCount,
+          minimumVectorCountToMutate =
+            config.tunerConfig.tunerKSampleMinimumVectorCountToMutate,
+          vectorMutationMethod =
+            config.tunerConfig.tunerKSampleVectorMutationMethod,
+          mutationMode = config.tunerConfig.tunerKSampleMutationMode,
+          mutationValue = config.tunerConfig.tunerKSampleMutationValue,
+          labelBalanceMode = config.tunerConfig.tunerKSampleLabelBalanceMode,
+          cardinalityThreshold =
+            config.tunerConfig.tunerKSampleCardinalityThreshold,
+          numericRatio = config.tunerConfig.tunerKSampleNumericRatio,
+          numericTarget = config.tunerConfig.tunerKSampleNumericTarget
+        ),
         trainSplitChronologicalColumn =
           config.tunerConfig.tunerTrainSplitChronologicalColumn,
         trainSplitChronologicalRandomPercentage =
@@ -1587,6 +1906,7 @@ object ConfigurationGenerator extends ConfigurationDefaults {
 
   /**
     * Helper method for generating the configuration for executing an exploratory FeatureImportance run
+    *
     * @param config InstanceConfig Object
     * @return Instance of FeatureImportanceConfig
     * @since 0.5.1
@@ -2052,6 +2372,164 @@ object ConfigurationGenerator extends ConfigurationDefaults {
             defaultMap("tunerTrainSplitMethod")
           )
           .toString
+      )
+      .setTunerKSampleSyntheticCol(
+        config
+          .getOrElse(
+            "tunerKSampleSyntheticCol",
+            defaultMap("tunerKSampleSyntheticCol")
+          )
+          .toString
+      )
+      .setTunerKSampleKGroups(
+        config
+          .getOrElse("tunerKSampleKGroups", defaultMap("tunerKSampleKGroups"))
+          .toString
+          .toInt
+      )
+      .setTunerKSampleKMeansMaxIter(
+        config
+          .getOrElse(
+            "tunerKSampleKMeansMaxIter",
+            defaultMap("tunerKSampleKMeansMaxIter")
+          )
+          .toString
+          .toInt
+      )
+      .setTunerKSampleKMeansTolerance(
+        config
+          .getOrElse(
+            "tunerKSampleKMeansTolerance",
+            defaultMap("tunerKSampleKMeansTolerance")
+          )
+          .toString
+          .toDouble
+      )
+      .setTunerKSampleKMeansDistanceMeasurement(
+        config
+          .getOrElse(
+            "tunerKSampleKMeansDistanceMeasurement",
+            defaultMap("tunerKSampleKMeansDistanceMeasurement")
+          )
+          .toString
+      )
+      .setTunerKSampleKMeansSeed(
+        config
+          .getOrElse(
+            "tunerKSampleKMeansSeed",
+            defaultMap("tunerKSampleKMeansSeed")
+          )
+          .toString
+          .toLong
+      )
+      .setTunerKSampleKMeansPredictionCol(
+        config
+          .getOrElse(
+            "tunerKSampleKMeansPredictionCol",
+            defaultMap("tunerKSampleKMeansPredictionCol")
+          )
+          .toString
+      )
+      .setTunerKSampleLSHHashTables(
+        config
+          .getOrElse(
+            "tunerKSampleLSHHashTables",
+            defaultMap("tunerKSampleLSHHashTables")
+          )
+          .toString
+          .toInt
+      )
+      .setTunerKSampleLSHSeed(
+        config
+          .getOrElse("tunerKSampleLSHSeed", defaultMap("tunerKSampleLSHSeed"))
+          .toString
+          .toLong
+      )
+      .setTunerKSampleLSHOutputCol(
+        config
+          .getOrElse(
+            "tunerKSampleLSHOutputCol",
+            defaultMap("tunerKSampleLSHOutputCol")
+          )
+          .toString
+      )
+      .setTunerKSampleQuorumCount(
+        config
+          .getOrElse(
+            "tunerKSampleQuorumCount",
+            defaultMap("tunerKSampleQuorumCount")
+          )
+          .toString
+          .toInt
+      )
+      .setTunerKSampleMinimumVectorCountToMutate(
+        config
+          .getOrElse(
+            "tunerKSampleMinimumVectorCountToMutate",
+            defaultMap("tunerKSampleMinimumVectorCountToMutate")
+          )
+          .toString
+          .toInt
+      )
+      .setTunerKSampleVectorMutationMethod(
+        config
+          .getOrElse(
+            "tunerKSampleVectorMutationMethod",
+            defaultMap("tunerKSampleVectorMutationMethod")
+          )
+          .toString
+      )
+      .setTunerKSampleMutationMode(
+        config
+          .getOrElse(
+            "tunerKSampleMutationMode",
+            defaultMap("tunerKSampleMutationMode")
+          )
+          .toString
+      )
+      .setTunerKSampleMutationValue(
+        config
+          .getOrElse(
+            "tunerKSampleMutationValue",
+            defaultMap("tunerKSampleMutationValue")
+          )
+          .toString
+          .toDouble
+      )
+      .setTunerKSampleLabelBalanceMode(
+        config
+          .getOrElse(
+            "tunerKSampleLabelBalanceMode",
+            defaultMap("tunerKSampleLabelBalanceMode")
+          )
+          .toString
+      )
+      .setTunerKSampleCardinalityThreshold(
+        config
+          .getOrElse(
+            "tunerKSampleCardinalityThreshold",
+            defaultMap("tunerKSampleCardinalityThreshold")
+          )
+          .toString
+          .toInt
+      )
+      .setTunerKSampleNumericRatio(
+        config
+          .getOrElse(
+            "tunerKSampleNumericRatio",
+            defaultMap("tunerKSampleNumericRatio")
+          )
+          .toString
+          .toDouble
+      )
+      .setTunerKSampleNumericTarget(
+        config
+          .getOrElse(
+            "tunerKSampleNumericTarget",
+            defaultMap("tunerKSampleNumericTarget")
+          )
+          .toString
+          .toInt
       )
       .setTunerTrainSplitChronologicalColumn(
         config

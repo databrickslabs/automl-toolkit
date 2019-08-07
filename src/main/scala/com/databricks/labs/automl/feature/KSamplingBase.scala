@@ -1,5 +1,9 @@
 package com.databricks.labs.automl.feature
 
+import com.databricks.labs.automl.feature.structures.{
+  KSamplingConfiguration,
+  KSamplingDefaults
+}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 
 trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
@@ -168,6 +172,17 @@ trait KSamplingBase extends KSamplingDefaults with SparkSessionWrapper {
     */
   def setLSHHashTables(value: Int): this.type = {
     _lshHashTables = value
+    setConfig
+    this
+  }
+
+  /**
+    * Setter for a MinHashLSH seed value for the model.
+    * @param value Long: a seed value
+    * @return this
+    */
+  def setLSHSeed(value: Long): this.type = {
+    _lshSeed = value
     setConfig
     this
   }

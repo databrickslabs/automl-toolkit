@@ -1,6 +1,9 @@
 package com.databricks.labs.automl.model
 
-import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
+import com.databricks.labs.automl.model.tools.{
+  HyperParameterFullSearch,
+  ModelReporting
+}
 import com.databricks.labs.automl.params.{
   Defaults,
   GBTConfig,
@@ -271,7 +274,13 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   private def runBattery(battery: Array[GBTConfig],
                          generation: Int = 1): Array[GBTModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis / 1000
+    val metrics = modelSelection match {
+      case "classifier" => _classificationMetrics
+      case _            => regressionMetrics
+    }
+
+    val statusObj = new ModelReporting("gbt", metrics)
+
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[GBTModelsWithResults]
@@ -282,8 +291,10 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus =
-      f"Starting Generation $generation \n\t\t Completion Status: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+    val currentStatus = statusObj.generateGenerationStartStatement(
+      generation,
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    )
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
@@ -291,9 +302,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
     runs.foreach { x =>
       val runId = java.util.UUID.randomUUID()
 
-      println(
-        s"Starting run $runId with Params: ${convertGBTConfigToHumanReadable(x, " ")}"
-      )
+      println(statusObj.generateRunStartStatement(runId, x))
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
@@ -329,12 +338,6 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
           )
       }
 
-      val completionTimeStamp = System.currentTimeMillis / 1000
-
-      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
-
-      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
-
       val runAvg = GBTModelsWithResults(
         x,
         kFoldBuffer.result.head.model,
@@ -346,38 +349,20 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
       results += runAvg
       modelCnt += 1
 
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${convertGBTConfigToHumanReadable(x, "\n\t\t\t\t")} " +
-        s"\n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
+      val runStatement = statusObj.generateRunScoreStatement(
+        runId,
+        scoringMap.result.toMap,
+        _scoringMetric,
+        x,
+        calculateModelingFamilyRemainingTime(generation, modelCnt),
+        kFoldTimeStamp
+      )
 
-      val progressStatement =
-        f"\t\t Current modeling progress complete in family: " +
-          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      println(runStatement)
 
-      println(runScoreStatement)
-      println(progressStatement)
-      logger.log(Level.INFO, runScoreStatement)
-      logger.log(Level.INFO, progressStatement)
+      logger.log(Level.INFO, runStatement)
     }
     sortAndReturnAll(results)
-  }
-
-  /**
-    * Private method for making stdout and logging of params much more readable, particularly for the array objects
-    *
-    * @param conf The configuration of the run (hyper parameters)
-    * @return A string representation that is readable.
-    */
-  private def convertGBTConfigToHumanReadable(conf: GBTConfig,
-                                              formatter: String): String = {
-    s"\n\t\t\tConfig: $formatter[impurity] -> [${conf.impurity}]" +
-      s"$formatter[lossType] -> [${conf.lossType}]" +
-      s"$formatter[maxBins] -> [${conf.maxBins.toString}]" +
-      s"$formatter[maxDepth] -> [${conf.maxDepth.toString}]" +
-      s"$formatter[maxIter] -> [${conf.maxIter.toString}]" +
-      s"$formatter[minInfoGain] -> [${conf.minInfoGain.toString}]" +
-      s"$formatter[minInstancesPerNode] -> [${conf.minInstancesPerNode.toString}]" +
-      s"$formatter[stepSize] -> [${conf.stepSize.toString}]"
   }
 
   private def irradiateGeneration(

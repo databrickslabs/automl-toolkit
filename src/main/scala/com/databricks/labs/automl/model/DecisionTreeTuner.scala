@@ -1,6 +1,9 @@
 package com.databricks.labs.automl.model
 
-import com.databricks.labs.automl.model.tools.HyperParameterFullSearch
+import com.databricks.labs.automl.model.tools.{
+  HyperParameterFullSearch,
+  ModelReporting
+}
 import com.databricks.labs.automl.params
 import com.databricks.labs.automl.params.{
   Defaults,
@@ -255,7 +258,13 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
   private def runBattery(battery: Array[TreesConfig],
                          generation: Int = 1): Array[TreesModelsWithResults] = {
 
-    val startTimeStamp = System.currentTimeMillis / 1000
+    val metrics = modelSelection match {
+      case "classifier" => _classificationMetrics
+      case _            => regressionMetrics
+    }
+
+    val statusObj = new ModelReporting("trees", metrics)
+
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 
     @volatile var results = new ArrayBuffer[TreesModelsWithResults]
@@ -266,17 +275,18 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
 
     val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
 
-    val currentStatus =
-      f"Starting Generation $generation \n\t\t Completion Status: ${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+    val currentStatus = statusObj.generateGenerationStartStatement(
+      generation,
+      calculateModelingFamilyRemainingTime(generation, modelCnt)
+    )
 
     println(currentStatus)
     logger.log(Level.INFO, currentStatus)
 
     runs.foreach { x =>
       val runId = java.util.UUID.randomUUID()
-      println(
-        s"Starting run $runId with Params: ${convertTreesConfigToHumanReadable(x, " ")}"
-      )
+
+      println(statusObj.generateRunStartStatement(runId, x))
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
@@ -312,12 +322,6 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
           )
       }
 
-      val completionTimeStamp = System.currentTimeMillis / 1000
-
-      val totalTimeOfBattery = completionTimeStamp - startTimeStamp
-
-      val runTimeOfModel = completionTimeStamp - kFoldTimeStamp
-
       val runAvg = params.TreesModelsWithResults(
         x,
         kFoldBuffer.result.head.model,
@@ -328,34 +332,20 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
       results += runAvg
       modelCnt += 1
 
-      val runScoreStatement = s"\tFinished run $runId with score: ${scores.sum / scores.length} " +
-        s"\n\t using params: ${convertTreesConfigToHumanReadable(x, "\n\t\t\t\t")} " +
-        s"\n\t\tin $runTimeOfModel seconds.  Total run time: $totalTimeOfBattery seconds"
-      val progressStatement =
-        f"\t\t Current modeling progress complete in family: " +
-          f"${calculateModelingFamilyRemainingTime(generation, modelCnt)}%2.4f%%"
+      val runStatement = statusObj.generateRunScoreStatement(
+        runId,
+        scoringMap.result.toMap,
+        _scoringMetric,
+        x,
+        calculateModelingFamilyRemainingTime(generation, modelCnt),
+        kFoldTimeStamp
+      )
 
-      println(runScoreStatement)
-      println(progressStatement)
-      logger.log(Level.INFO, runScoreStatement)
-      logger.log(Level.INFO, progressStatement)
+      println(runStatement)
+
+      logger.log(Level.INFO, runStatement)
     }
     sortAndReturnAll(results)
-  }
-
-  /**
-    * Private method for making stdout and logging of params much more readable, particularly for the array objects
-    *
-    * @param conf The configuration of the run (hyper parameters)
-    * @return A string representation that is readable.
-    */
-  private def convertTreesConfigToHumanReadable(conf: TreesConfig,
-                                                formatter: String): String = {
-    s"\n\t\t\tConfig: $formatter[impurity] -> [${conf.impurity}]" +
-      s"$formatter[maxBins] -> [${conf.maxBins.toString}]" +
-      s"$formatter[maxDepth] -> [${conf.maxDepth.toString}]" +
-      s"$formatter[minInfoGain] -> [${conf.minInfoGain.toString}]" +
-      s"$formatter[minInstancesPerNode] -> [${conf.minInstancesPerNode.toString}]"
   }
 
   private def irradiateGeneration(

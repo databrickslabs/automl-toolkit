@@ -68,6 +68,39 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           payload.modelType
         )
       )
+      .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+      .setKMeansMaxIter(_mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter)
+      .setKMeansTolerance(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+      )
+      .setKMeansDistanceMeasurement(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+      )
+      .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+      .setKMeansPredictionCol(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+      )
+      .setLSHHashTables(_mainConfig.geneticConfig.kSampleConfig.lshHashTables)
+      .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+      .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+      .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+      .setMinimumVectorCountToMutate(
+        _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+      )
+      .setVectorMutationMethod(
+        _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+      )
+      .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+      .setMutationValue(_mainConfig.geneticConfig.kSampleConfig.mutationValue)
+      .setLabelBalanceMode(
+        _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+      )
+      .setCardinalityThreshold(
+        _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+      )
+      .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+      .setNumericTarget(_mainConfig.geneticConfig.kSampleConfig.numericTarget)
       .setTrainSplitChronologicalColumn(
         _mainConfig.geneticConfig.trainSplitChronologicalColumn
       )
@@ -213,6 +246,39 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           payload.modelType
         )
       )
+      .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+      .setKMeansMaxIter(_mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter)
+      .setKMeansTolerance(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+      )
+      .setKMeansDistanceMeasurement(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+      )
+      .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+      .setKMeansPredictionCol(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+      )
+      .setLSHHashTables(_mainConfig.geneticConfig.kSampleConfig.lshHashTables)
+      .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+      .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+      .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+      .setMinimumVectorCountToMutate(
+        _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+      )
+      .setVectorMutationMethod(
+        _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+      )
+      .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+      .setMutationValue(_mainConfig.geneticConfig.kSampleConfig.mutationValue)
+      .setLabelBalanceMode(
+        _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+      )
+      .setCardinalityThreshold(
+        _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+      )
+      .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+      .setNumericTarget(_mainConfig.geneticConfig.kSampleConfig.numericTarget)
       .setTrainSplitChronologicalColumn(
         _mainConfig.geneticConfig.trainSplitChronologicalColumn
       )
@@ -360,6 +426,47 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
               _mainConfig.geneticConfig.trainSplitMethod,
               payload.modelType
             )
+          )
+          .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+          .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+          .setKMeansMaxIter(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter
+          )
+          .setKMeansTolerance(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+          )
+          .setKMeansDistanceMeasurement(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+          )
+          .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+          .setKMeansPredictionCol(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+          )
+          .setLSHHashTables(
+            _mainConfig.geneticConfig.kSampleConfig.lshHashTables
+          )
+          .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+          .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+          .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+          .setMinimumVectorCountToMutate(
+            _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+          )
+          .setVectorMutationMethod(
+            _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+          )
+          .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+          .setMutationValue(
+            _mainConfig.geneticConfig.kSampleConfig.mutationValue
+          )
+          .setLabelBalanceMode(
+            _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+          )
+          .setCardinalityThreshold(
+            _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+          )
+          .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+          .setNumericTarget(
+            _mainConfig.geneticConfig.kSampleConfig.numericTarget
           )
           .setTrainSplitChronologicalColumn(
             _mainConfig.geneticConfig.trainSplitChronologicalColumn
@@ -521,6 +628,39 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           payload.modelType
         )
       )
+      .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+      .setKMeansMaxIter(_mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter)
+      .setKMeansTolerance(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+      )
+      .setKMeansDistanceMeasurement(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+      )
+      .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+      .setKMeansPredictionCol(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+      )
+      .setLSHHashTables(_mainConfig.geneticConfig.kSampleConfig.lshHashTables)
+      .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+      .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+      .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+      .setMinimumVectorCountToMutate(
+        _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+      )
+      .setVectorMutationMethod(
+        _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+      )
+      .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+      .setMutationValue(_mainConfig.geneticConfig.kSampleConfig.mutationValue)
+      .setLabelBalanceMode(
+        _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+      )
+      .setCardinalityThreshold(
+        _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+      )
+      .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+      .setNumericTarget(_mainConfig.geneticConfig.kSampleConfig.numericTarget)
       .setTrainSplitChronologicalColumn(
         _mainConfig.geneticConfig.trainSplitChronologicalColumn
       )
@@ -671,6 +811,47 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
               _mainConfig.geneticConfig.trainSplitMethod,
               payload.modelType
             )
+          )
+          .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+          .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+          .setKMeansMaxIter(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter
+          )
+          .setKMeansTolerance(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+          )
+          .setKMeansDistanceMeasurement(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+          )
+          .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+          .setKMeansPredictionCol(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+          )
+          .setLSHHashTables(
+            _mainConfig.geneticConfig.kSampleConfig.lshHashTables
+          )
+          .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+          .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+          .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+          .setMinimumVectorCountToMutate(
+            _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+          )
+          .setVectorMutationMethod(
+            _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+          )
+          .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+          .setMutationValue(
+            _mainConfig.geneticConfig.kSampleConfig.mutationValue
+          )
+          .setLabelBalanceMode(
+            _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+          )
+          .setCardinalityThreshold(
+            _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+          )
+          .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+          .setNumericTarget(
+            _mainConfig.geneticConfig.kSampleConfig.numericTarget
           )
           .setTrainSplitChronologicalColumn(
             _mainConfig.geneticConfig.trainSplitChronologicalColumn
@@ -835,6 +1016,47 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
               payload.modelType
             )
           )
+          .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+          .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+          .setKMeansMaxIter(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter
+          )
+          .setKMeansTolerance(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+          )
+          .setKMeansDistanceMeasurement(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+          )
+          .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+          .setKMeansPredictionCol(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+          )
+          .setLSHHashTables(
+            _mainConfig.geneticConfig.kSampleConfig.lshHashTables
+          )
+          .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+          .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+          .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+          .setMinimumVectorCountToMutate(
+            _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+          )
+          .setVectorMutationMethod(
+            _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+          )
+          .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+          .setMutationValue(
+            _mainConfig.geneticConfig.kSampleConfig.mutationValue
+          )
+          .setLabelBalanceMode(
+            _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+          )
+          .setCardinalityThreshold(
+            _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+          )
+          .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+          .setNumericTarget(
+            _mainConfig.geneticConfig.kSampleConfig.numericTarget
+          )
           .setTrainSplitChronologicalColumn(
             _mainConfig.geneticConfig.trainSplitChronologicalColumn
           )
@@ -995,6 +1217,47 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
               payload.modelType
             )
           )
+          .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+          .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+          .setKMeansMaxIter(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter
+          )
+          .setKMeansTolerance(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+          )
+          .setKMeansDistanceMeasurement(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+          )
+          .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+          .setKMeansPredictionCol(
+            _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+          )
+          .setLSHHashTables(
+            _mainConfig.geneticConfig.kSampleConfig.lshHashTables
+          )
+          .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+          .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+          .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+          .setMinimumVectorCountToMutate(
+            _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+          )
+          .setVectorMutationMethod(
+            _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+          )
+          .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+          .setMutationValue(
+            _mainConfig.geneticConfig.kSampleConfig.mutationValue
+          )
+          .setLabelBalanceMode(
+            _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+          )
+          .setCardinalityThreshold(
+            _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+          )
+          .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+          .setNumericTarget(
+            _mainConfig.geneticConfig.kSampleConfig.numericTarget
+          )
           .setTrainSplitChronologicalColumn(
             _mainConfig.geneticConfig.trainSplitChronologicalColumn
           )
@@ -1153,6 +1416,39 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           payload.modelType
         )
       )
+      .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+      .setKMeansMaxIter(_mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter)
+      .setKMeansTolerance(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+      )
+      .setKMeansDistanceMeasurement(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+      )
+      .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+      .setKMeansPredictionCol(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+      )
+      .setLSHHashTables(_mainConfig.geneticConfig.kSampleConfig.lshHashTables)
+      .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+      .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+      .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+      .setMinimumVectorCountToMutate(
+        _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+      )
+      .setVectorMutationMethod(
+        _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+      )
+      .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+      .setMutationValue(_mainConfig.geneticConfig.kSampleConfig.mutationValue)
+      .setLabelBalanceMode(
+        _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+      )
+      .setCardinalityThreshold(
+        _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+      )
+      .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+      .setNumericTarget(_mainConfig.geneticConfig.kSampleConfig.numericTarget)
       .setTrainSplitChronologicalColumn(
         _mainConfig.geneticConfig.trainSplitChronologicalColumn
       )

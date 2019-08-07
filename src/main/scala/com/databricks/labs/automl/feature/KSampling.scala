@@ -1,5 +1,13 @@
 package com.databricks.labs.automl.feature
 
+import com.databricks.labs.automl.feature.structures.{
+  CentroidVectors,
+  RowGenerationConfig,
+  RowMapping,
+  SchemaDefinitions,
+  SchemaMapping,
+  StructMapping
+}
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
 import org.apache.spark.ml.feature.{
   MaxAbsScaler,
@@ -484,13 +492,16 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     val rowsToGeneratePerGroup =
       scala.math.ceil(targetCount / centroids.length).toInt
 
+    val calculatedRowsToGenerate =
+      if (rowsToGeneratePerGroup < 1) 1 else rowsToGeneratePerGroup
+
     centroids
       .map { x =>
         acquireNeighborVectors(
           clusteredData.filter(col(labelCol) === labelGroup),
           lshModel,
           x,
-          rowsToGeneratePerGroup
+          calculatedRowsToGenerate
         )
       }
       .reduce(_.union(_))
