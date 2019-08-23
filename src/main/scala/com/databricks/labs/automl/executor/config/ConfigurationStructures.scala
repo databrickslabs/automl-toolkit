@@ -69,7 +69,12 @@ case class FeatureEngineeringConfig(var numericFillStat: String,
                                     var scalingPNorm: Double,
                                     var featureImportanceCutoffType: String,
                                     var featureImportanceCutoffValue: Double,
-                                    var dataReductionFactor: Double)
+                                    var dataReductionFactor: Double,
+                                    var cardinalitySwitch: Boolean,
+                                    var cardinalityType: String,
+                                    var cardinalityLimit: Int,
+                                    var cardinalityPrecision: Double,
+                                    var cardinalityCheckMode: String)
 
 case class SwitchConfig(var naFillFlag: Boolean,
                         var varianceFilterFlag: Boolean,

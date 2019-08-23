@@ -43,7 +43,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
   }
 
   private def vectorPipeline(
-    data: DataFrame
+    data: DataFrame,
+    cardinalityFlag: Boolean
   ): (DataFrame, Array[String], Array[String]) = {
 
     // Creates the feature vector and returns the fields that go into the vector
@@ -52,6 +53,11 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
+      .setCardinalityCheck(cardinalityFlag)
+      .setCardinalityCheckMode(_mainConfig.fillConfig.cardinalityCheckMode)
+      .setCardinalityLimit(_mainConfig.fillConfig.cardinalityLimit)
+      .setCardinalityPrecision(_mainConfig.fillConfig.cardinalityPrecision)
+      .setCardinalityType(_mainConfig.fillConfig.cardinalityType)
       .makeFeaturePipeline(_mainConfig.fieldsToIgnoreInVector)
 
   }
@@ -295,7 +301,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     logger.log(Level.DEBUG, printSchema(df, "input").toString)
 
     // Start by converting fields
-    val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
+    val (entryPointDf, entryPointFields, selectFields) =
+      vectorPipeline(df, _mainConfig.fillConfig.cardinalitySwitch)
 
     // Record the Inference Settings for DataConfig
     val inferenceDataConfig =
@@ -403,9 +410,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     )
 
     // Next stages require a feature vector
-    val (featurizedData, initialFields, initialFullFields) = vectorPipeline(
-      persistDataStage3
-    )
+    val (featurizedData, initialFields, initialFullFields) =
+      vectorPipeline(persistDataStage3, false)
 
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
     val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol)
@@ -461,9 +467,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     )
 
     // All stages after this point require a feature vector.
-    val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(
-      persistDataStage4
-    )
+    val (dataStage5, stage5Fields, stage5FullFields) =
+      vectorPipeline(persistDataStage4, cardinalityFlag = false)
 
     val (persistDataStage5, dataStage5RowCount) =
       if (_mainConfig.dataPrepCachingFlag) {
@@ -483,7 +488,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
           pearsonReturn.fieldListing
         )
 
-        vectorPipeline(pearsonReturn.outputData)
+        vectorPipeline(pearsonReturn.outputData, cardinalityFlag = false)
       } else {
         // Record the Inference Settings for Pearson Filtering
         InferenceConfig.setInferencePearsonFilteringConfig(Array.empty[String])

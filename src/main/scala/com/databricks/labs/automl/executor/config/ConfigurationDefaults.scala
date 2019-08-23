@@ -141,6 +141,10 @@ trait ConfigurationDefaults {
     List("random", "fixed", "all")
   final val allowableLabelBalanceModes: List[String] =
     List("match", "percentage", "target")
+  final val allowableDateTimeConversions: List[String] = List("unix", "split")
+  final val allowableCategoricalFilterModes: List[String] =
+    List("silent", "warn")
+  final val allowableCardinalilties: List[String] = List("approx", "exact")
 
   /**
     * Generic Helper Methods
@@ -387,6 +391,11 @@ trait ConfigurationDefaults {
     val featureImportanceCutoffType = "count"
     val featureImportanceCutoffValue = 15.0
     val dataReductionFactor = 0.5
+    val cardinalitySwitch = true
+    val cardinalityType = "exact"
+    val cardinalityLimit = 200
+    val cardinalityPrecision = 0.05
+    val cardinalityCheckMode = "silent"
 
     FeatureEngineeringConfig(
       numericFillStat,
@@ -413,7 +422,12 @@ trait ConfigurationDefaults {
       scalingPNorm,
       featureImportanceCutoffType,
       featureImportanceCutoffValue,
-      dataReductionFactor
+      dataReductionFactor,
+      cardinalitySwitch,
+      cardinalityType,
+      cardinalityLimit,
+      cardinalityPrecision,
+      cardinalityCheckMode
     )
   }
 
@@ -624,6 +638,11 @@ trait ConfigurationDefaults {
       "featureImportanceCutoffType" -> featDef.featureImportanceCutoffType,
       "featureImportanceCutoffValue" -> featDef.featureImportanceCutoffValue,
       "dataReductionFactor" -> featDef.dataReductionFactor,
+      "fillConfigCardinalitySwitch" -> featDef.cardinalitySwitch,
+      "fillConfigCardinalityType" -> featDef.cardinalityType,
+      "fillConfigCardinalityLimit" -> featDef.cardinalityLimit,
+      "fillConfigCardinalityPrecision" -> featDef.cardinalityPrecision,
+      "fillConfigCardinalityCheckMode" -> featDef.cardinalityCheckMode,
       "stringBoundaries" -> algDef.stringBoundaries,
       "numericBoundaries" -> algDef.numericBoundaries,
       "tunerAutoStoppingScore" -> tunerDef.tunerAutoStoppingScore,

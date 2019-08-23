@@ -973,6 +973,119 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   /**
+    * Setter switch for turning cardinality switch on
+    * This switch is intended to set whether the a cardinality check is performed on StringIndexed columns
+    *
+    * @note Default: true
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def cardinalitySwitchOn(): this.type = {
+    _instanceConfig.featureEngineeringConfig.cardinalitySwitch = true
+    this
+  }
+
+  /**
+    * Setter switch for turning cardinality switch off.
+    *
+    * @note Not recommended for exploratory data set features.
+    * @note Default: true
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def cardinalitySwitchOff(): this.type = {
+    _instanceConfig.featureEngineeringConfig.cardinalitySwitch = false
+    this
+  }
+
+  /**
+    * Setter for direct override of the cardinality switch
+    *
+    * @note Default: true
+    * @param value: Boolean
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFillConfigCardinalitySwitch(value: Boolean): this.type = {
+    _instanceConfig.featureEngineeringConfig.cardinalitySwitch = value
+    this
+  }
+
+  /**
+    * Setter for specifying the mode of cardinality checking [either "approx" for approximate distinct or "exact"]
+    *
+    * @param value String: either "approx" or "exact"
+    * @note Default - exact
+    * @throws java.lang.AssertionError if a mode other than exact or approx is specified.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[AssertionError])
+  def setFillConfigCardinalityType(value: String): this.type = {
+    _instanceConfig.featureEngineeringConfig.cardinalityType = value
+    assert(
+      allowableCardinalilties.contains(value),
+      s"Supplied CardinalityType '$value' is not in: " +
+        s"${allowableCardinalilties.mkString(", ")}"
+    )
+    this
+  }
+
+  /**
+    * Setter for overriding the default cardinality limit when validating whether a field should be considered for
+    * OneHotEncoding or StringIndexing
+    *
+    * @param value Int: The value at above which a field will be declared to be of too high a cardinality for StringIndexing or OneHotEncoding
+    * @note Default: 20
+    * @throws java.lang.IllegalArgumentException if the number is <= to 0
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFillConfigCardinalityLimit(value: Int): this.type = {
+    require(value > 0, s"Cardinality limit must be greater than 0")
+    _instanceConfig.featureEngineeringConfig.cardinalityLimit = value
+    this
+  }
+
+  /**
+    * Setter for defining the precision calculation when in "approx" mode for cardinalityType.  Must be in range 0 -> 1
+    *
+    * @param value Double: The precision for approximate distinct calculations for cardinality purposes
+    * @throws java.lang.IllegalArgumentException if the Double supplied is outside of the range of 0 -> 1
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFillConfigCardinalityPrecision(value: Double): this.type = {
+    require(value >= 0.0, s"Precision must be greater than or equal to 0.")
+    require(value <= 1.0, s"Precision must be less than or equal to 1.")
+    _instanceConfig.featureEngineeringConfig.cardinalityPrecision = value
+    this
+  }
+
+  /**
+    * Setter for the cardinality check mode to be used.  Available modes are "warn" and "silent".
+    * In "warn" mode, an exception will be thrown if the cardinality for a categorical column is above the threshold.
+    * In "silent" mode, the field will be ignored from processing and will not be included in the feature vector.
+    *
+    * @note Default: "silent"
+    * @param value String: either "warn" or "silent"
+    * @throws java.lang.AssertionError if the mode supplied is not either "warn" or "silent"
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[AssertionError])
+  def setFillConfigCardinalityCheckMode(value: String): this.type = {
+    assert(
+      allowableCategoricalFilterModes.contains(value),
+      s"Supplied CardinalityCheckMode $value is not in: ${allowableCategoricalFilterModes.mkString(", ")}"
+    )
+    _instanceConfig.featureEngineeringConfig.cardinalityCheckMode = value
+    this
+  }
+
+  /**
     * Algorithm Config
     */
   def setStringBoundaries(value: Map[String, List[String]]): this.type = {
@@ -1773,7 +1886,14 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         numericFillStat = config.featureEngineeringConfig.numericFillStat,
         characterFillStat = config.featureEngineeringConfig.characterFillStat,
         modelSelectionDistinctThreshold =
-          config.featureEngineeringConfig.modelSelectionDistinctThreshold
+          config.featureEngineeringConfig.modelSelectionDistinctThreshold,
+        cardinalitySwitch = config.featureEngineeringConfig.cardinalitySwitch,
+        cardinalityType = config.featureEngineeringConfig.cardinalityType,
+        cardinalityLimit = config.featureEngineeringConfig.cardinalityLimit,
+        cardinalityPrecision =
+          config.featureEngineeringConfig.cardinalityPrecision,
+        cardinalityCheckMode =
+          config.featureEngineeringConfig.cardinalityCheckMode
       ),
       outlierConfig = OutlierConfig(
         filterBounds = config.featureEngineeringConfig.outlierFilterBounds,
@@ -2168,6 +2288,49 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           .getOrElse(
             "fillConfigModelSelectionDistinctThreshold",
             defaultMap("fillConfigModelSelectionDistinctThreshold")
+          )
+          .toString
+          .toInt
+      )
+      .setFillConfigCardinalitySwitch(
+        config
+          .getOrElse(
+            "fillConfigCardinalitySwitch",
+            defaultMap("fillConfigCardinalitySwitch")
+          )
+          .toString
+          .toBoolean
+      )
+      .setFillConfigCardinalityType(
+        config
+          .getOrElse(
+            "fillConfigCardinalityType",
+            defaultMap("fillConfigCardinalityType")
+          )
+          .toString
+      )
+      .setFillConfigCardinalityPrecision(
+        config
+          .getOrElse(
+            "fillConfigCardinalityPrecision",
+            defaultMap("fillConfigCardinalityPrecision")
+          )
+          .toString
+          .toDouble
+      )
+      .setFillConfigCardinalityCheckMode(
+        config
+          .getOrElse(
+            "fillConfigCardinalityCheckMode",
+            defaultMap("fillConfigCardinalityCheckMode")
+          )
+          .toString
+      )
+      .setFillConfigCardinalityLimit(
+        config
+          .getOrElse(
+            "fillConfigCardinalityLimit",
+            defaultMap("fillConfigCardinalityLimit")
           )
           .toString
           .toInt

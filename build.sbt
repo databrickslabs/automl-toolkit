@@ -5,7 +5,7 @@ organization := "com.databricks"
 version := "0.5.1"
 
 scalaVersion := "2.11.12"
-scalacOptions ++= Seq("-Xmax-classfile-name","78")
+scalacOptions ++= Seq("-Xmax-classfile-name", "78")
 
 libraryDependencies += "org.apache.spark" %% "spark-core" % "2.4.0"
 libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.4.0"

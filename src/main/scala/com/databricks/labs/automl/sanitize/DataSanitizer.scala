@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.sanitize
 
-import com.databricks.labs.automl.inference.NaFillConfig
+import com.databricks.labs.automl.inference.{NaFillConfig, NaFillPayload}
 import com.databricks.labs.automl.utils.DataValidation
 import org.apache.spark.ml.feature.StringIndexer
 import org.apache.spark.sql.DataFrame
@@ -8,8 +8,6 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
 
 class DataSanitizer(data: DataFrame) extends DataValidation {
 
@@ -21,6 +19,22 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
   private var _fieldsToIgnoreInVector = Array.empty[String]
   private var _filterPrecision: Double = 0.01
   private var _parallelism: Int = 20
+
+  private var _categoricalNAFillMap: Map[String, String] =
+    Map.empty[String, String]
+  private var _numericNAFillMap: Map[String, AnyVal] = Map.empty[String, AnyVal]
+  private var _characterNABlanketFill: String = ""
+  private var _numericNABlanketFill: Double = 0.0
+  private var _naFillMode: String = "auto"
+
+  final private val _allowableNAFillModes: List[String] =
+    List(
+      "auto",
+      "mapFill",
+      "blanketFillAll",
+      "blanketFillCharOnly",
+      "blanketFillNumOnly"
+    )
 
   def setLabelCol(value: String): this.type = {
     this._labelCol = value
@@ -58,8 +72,62 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
   }
 
   def setFilterPrecision(value: Double): this.type = {
-    if (value == 0.0) println("Warning! Precision of 0 is an exact calculation of quantiles and may not be performant!")
+    if (value == 0.0)
+      println(
+        "Warning! Precision of 0 is an exact calculation of quantiles and may not be performant!"
+      )
     this._filterPrecision = value
+    this
+  }
+
+  def setCategoricalNAFillMap(value: Map[String, String]): this.type = {
+    _categoricalNAFillMap = value
+    this
+  }
+
+  def setNumericNAFillMap(value: Map[String, AnyVal]): this.type = {
+    _numericNAFillMap = value
+    this
+  }
+
+  def setCharacterNABlanketFillValue(value: String): this.type = {
+    _characterNABlanketFill = value
+    this
+  }
+
+  def setNumericNABlanketFillValue(value: Double): this.type = {
+    _numericNABlanketFill = value
+    this
+  }
+
+  /**
+    * Setter for determining the fill mode for handling na values.
+    * @param value Mode for na fill<br>
+    *                Available modes: <br>
+    *                  <i>auto</i> : Stats-based na fill for fields.  Usage of .setNumericFillStat and
+    *                  .setCharacterFillStat will inform the type of statistics that will be used to fill.<br>
+    *                  <i>mapFill</i> : Custom by-column overrides to 'blanket fill' na values on a per-column
+    *                  basis.  The categorical (string) fields are set via .setCategoricalNAFillMap while the
+    *                  numeric fields are set via .setNumericNAFillMap.<br>
+    *                  <i>blanketFillAll</i> : Fills all fields based on the values specified by
+    *                  .setCharacterNABlanketFillValue and .setNumericNABlanketFillValue.  All NA's for the
+    *                  appropriate types will be filled in accordingly throughout all columns.<br>
+    *                  <i>blanketFillCharOnly</i> Will use statistics to fill in numeric fields, but will replace
+    *                  all categorical character fields na values with a blanket fill value. <br>
+    *                  <i>blanketFillNumOnly</i> Will use statistics to fill in character fields, but will replace
+    *                  all numeric fields na values with a blanket value.
+    * @author Ben Wilson, Databricks
+    * @since 0.5.2
+    * @throws IllegalArgumentException if mode is not supported
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setNaFillMode(value: String): this.type = {
+    require(
+      _allowableNAFillModes.contains(value),
+      s"NA fill mode $value is not supported. Must be one of : " +
+        s"${_allowableNAFillModes.mkString(", ")}"
+    )
+    _naFillMode = value
     this
   }
 
@@ -79,11 +147,19 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   def getFilterPrecision: Double = _filterPrecision
 
+  def getCategoricalNAFillMap: Map[String, String] = _categoricalNAFillMap
+
+  def getNumericNAFillMap: Map[String, AnyVal] = _numericNAFillMap
+
+  def getCharacterNABlanketFillValue: String = _characterNABlanketFill
+
+  def getNumericNABlanketFillValue: Double = _numericNABlanketFill
+
+  def getNaFillMode: String = _naFillMode
 
   private var _labelValidation: Boolean = false
 
   private def labelValidationOn(): Boolean = true
-
 
   private def convertLabel(df: DataFrame): DataFrame = {
 
@@ -91,23 +167,28 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
       .setInputCol(this._labelCol)
       .setOutputCol(this._labelCol + "_si")
 
-    stringIndexer.fit(data).transform(data)
+    stringIndexer
+      .fit(data)
+      .transform(data)
       .withColumn(this._labelCol, col(s"${this._labelCol}_si"))
       .drop(this._labelCol + "_si")
   }
 
   private def refactorLabel(df: DataFrame, labelColumn: String): DataFrame = {
 
-    extractSchema(df.schema).foreach(x =>
-      x._2 match {
-        case `labelColumn` => x._1 match {
-          case StringType => labelValidationOn()
-          case BooleanType => labelValidationOn()
-          case BinaryType => labelValidationOn()
+    extractSchema(df.schema).foreach(
+      x =>
+        x._2 match {
+          case `labelColumn` =>
+            x._1 match {
+              case StringType  => labelValidationOn()
+              case BooleanType => labelValidationOn()
+              case BinaryType  => labelValidationOn()
+              case _           => None
+            }
           case _ => None
-        }
-        case _ => None
-      })
+      }
+    )
     if (_labelValidation) convertLabel(df) else df
   }
 
@@ -115,15 +196,17 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val allowableFillArray = Array("min", "25p", "mean", "median", "75p", "max")
 
-    assert(allowableFillArray.contains(metric),
+    assert(
+      allowableFillArray.contains(metric),
       s"The metric supplied, '$metric' is not in: " +
-        s"${invalidateSelection(metric, allowableFillArray)}")
+        s"${invalidateSelection(metric, allowableFillArray)}"
+    )
 
     val summaryMetric = metric match {
-      case "25p" => "25%"
+      case "25p"    => "25%"
       case "median" => "50%"
-      case "75p" => "75%"
-      case _ => metric
+      case "75p"    => "75%"
+      case _        => metric
     }
     summaryMetric
   }
@@ -137,25 +220,37 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     batches.toArray
   }
 
-  private def getFieldsAndFillable(df: DataFrame, columnList: List[String], statistics: String): DataFrame = {
+  private def getFieldsAndFillable(df: DataFrame,
+                                   columnList: List[String],
+                                   statistics: String): DataFrame = {
 
     val dfParts = df.rdd.partitions.length.toDouble
     val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {
       val colBatches = getBatches(columnList)
-      colBatches.map { batch =>
-        df.coalesce(summaryParts).select(batch map col: _*).summary().select("Summary" +: batch map col: _*)
-      }.seq.toArray.reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
+      colBatches
+        .map { batch =>
+          df.coalesce(summaryParts)
+            .select(batch map col: _*)
+            .summary()
+            .select("Summary" +: batch map col: _*)
+        }
+        .seq
+        .toArray
+        .reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
 
     } else {
-      df.coalesce(summaryParts).summary(statistics.replaceAll(" ", "").split(","): _*)
+      df.coalesce(summaryParts)
+        .summary(statistics.replaceAll(" ", "").split(","): _*)
         .select(selectionColumns map col: _*)
     }
     x
   }
 
-  private def assemblePayload(df: DataFrame, fieldList: List[String], filterCondition: String): Array[(String, Any)] = {
+  private def assemblePayload(df: DataFrame,
+                              fieldList: List[String],
+                              filterCondition: String): Array[(String, Any)] = {
 
     val summaryStats = getFieldsAndFillable(df, fieldList, filterCondition)
       .drop(col("Summary"))
@@ -164,37 +259,101 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     summaryColumns.zip(summaryValues)
   }
 
+  /**
+    * Helper method for extraction the fields types based on the schema and calculating the statistics to be used to
+    * determine fill values for the columns.
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @return NaFillConfig : A mapping for numeric and string fields that represents the values to put in for each column.
+    * @since 0.1.0
+    * @author Ben Wilson, Databricks
+    */
+  private def payloadExtraction(df: DataFrame): NaFillPayload = {
+
+    val (numericFields, characterFields, dateFields, timeFields) =
+      extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
+
+    val numericPayload =
+      assemblePayload(df, numericFields, metricConversion(_numericFillStat))
+    val characterPayload =
+      assemblePayload(df, characterFields, metricConversion(_characterFillStat))
+
+    NaFillPayload(characterPayload, numericPayload)
+
+  }
+
+  /**
+    * Helper method for ensuring that the label column isn't overridden
+    * @param payload Array of field name, value for overriding of numeric fields.
+    * @return Map of Field name to fill value converted to Double type.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  private def numericMapper(
+    payload: Array[(String, Any)]
+  ): Map[String, Double] = {
+
+    val buffer = new ArrayBuffer[(String, Double)]
+
+    payload.map(
+      x =>
+        x._1 match {
+          case x._1 if x._1 != _labelCol =>
+            try {
+              buffer += ((x._1, x._2.toString.toDouble))
+            } catch {
+              case _: Exception => None
+            }
+          case _ => None
+      }
+    )
+    buffer.toArray.toMap
+  }
+
+  /**
+    * Helper method for ensuring that the label column isn't overridden
+    * @param payload Array of field name, value for overriding character fields.
+    * @return Map of Field name to fill value convert to String type.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  private def characterMapper(
+    payload: Array[(String, Any)]
+  ): Map[String, String] = {
+
+    val buffer = new ArrayBuffer[(String, String)]
+
+    payload.map(
+      x =>
+        x._1 match {
+          case x._1 if x._1 != _labelCol =>
+            try {
+              buffer += ((x._1, x._2.toString))
+            } catch {
+              case _: Exception => None
+            }
+          case _ => None
+      }
+    )
+
+    buffer.toArray.toMap
+
+  }
+
+  /**
+    * Helper method for generating a statistics-based approach for calculating 'smart fillable' values for na's in the
+    * feature vector fields.
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @return NaFillConfig : A mapping for numeric and string fields that represents the values to put in for each column.
+    * @since 0.1.0
+    * @author Ben Wilson, Databricks
+    */
   private def fillMissing(df: DataFrame): NaFillConfig = {
 
-    val (numericFields, characterFields, dateFields, timeFields) = extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
+    val payloads = payloadExtraction(df)
 
-    val numericPayload = assemblePayload(df, numericFields, metricConversion(_numericFillStat))
-    val characterPayload = assemblePayload(df, characterFields, metricConversion(_characterFillStat))
+    val numericMapping = numericMapper(payloads.numeric)
 
-    val numericFilterBuffer = new ArrayBuffer[(String, Double)]
-    val characterFilterBuffer = new ArrayBuffer[(String, String)]
-
-    numericPayload.map(x => x._1 match {
-      case x._1 if x._1 != _labelCol => try {
-        numericFilterBuffer += ((x._1, x._2.toString.toDouble))
-      } catch {
-        case _: Exception => None
-      }
-      case _ => None
-    })
-
-    characterPayload.map(x => x._1 match {
-      case x._1 if x._1 != _labelCol => try {
-        characterFilterBuffer += ((x._1, x._2.toString))
-      } catch {
-        case _: Exception => None
-      }
-      case _ => None
-    })
-
-    val numericMapping = numericFilterBuffer.toArray.toMap
-
-    val characterMapping = characterFilterBuffer.toArray.toMap
+    val characterMapping = characterMapper(payloads.categorical)
 
     NaFillConfig(
       numericColumns = numericMapping,
@@ -203,13 +362,181 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   }
 
+  /**
+    * Private method for applying a full blanket na fill on all fields to be involved in the feature vector.
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @return NaFillConfig : A mapping for numeric and string fields that represents the values to put in for each column.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  private def blanketNAFill(df: DataFrame): NaFillConfig = {
+
+    val (numericFields, characterFields, dateFields, timeFields) =
+      extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
+
+    val characterBuffer = new ArrayBuffer[(String, Any)]
+    val numericBuffer = new ArrayBuffer[(String, Any)]
+
+    numericFields.foreach(x => numericBuffer += ((x, _numericNABlanketFill)))
+    characterFields.foreach(
+      x => characterBuffer += ((x, _characterNABlanketFill))
+    )
+
+    NaFillConfig(
+      characterMapper(characterBuffer.toArray),
+      numericMapper(numericBuffer.toArray)
+    )
+
+  }
+
+  /**
+    * Private method for applying a full blanket na fill on only character fields to be involved in the feature vector.
+    * Numeric fields will use the stats mode defined in .setNumericFillStat
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @return NaFillConfig : A mapping for numeric and string fields that represents the values to put in for each column.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  private def blanketFillCharOnly(df: DataFrame): NaFillConfig = {
+
+    val payloads = fillMissing(df)
+
+    val buffer = new ArrayBuffer[(String, String)]
+
+    payloads.categoricalColumns.map(
+      x => buffer += ((x._1, _characterNABlanketFill))
+    )
+
+    NaFillConfig(characterMapper(buffer.toArray), payloads.numericColumns)
+
+  }
+
+  /**
+    * Private method for applying a full blanket na fill on only numeric fields to be involved in the feature vector.
+    * Character fields will use the stats mode defined in .setCharacterFillStat
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @return NaFillConfig : A mapping for numeric and string fields that represents the values to put in for each column.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  private def blanketFillNumOnly(df: DataFrame): NaFillConfig = {
+
+    val payloads = fillMissing(df)
+
+    val buffer = new ArrayBuffer[(String, Double)]
+
+    payloads.numericColumns.map(x => buffer += ((x._1, _numericNABlanketFill)))
+
+    NaFillConfig(payloads.categoricalColumns, numericMapper(buffer.toArray))
+
+  }
+
+  /**
+    * Validation run-time check for supplied maps, if used.
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    * @throws IllegalArgumentException if a map value refers to a column not in the dataset
+    */
+  @throws(classOf[IllegalArgumentException])
+  private def validateMapSchemaMembership(df: DataFrame): Unit = {
+    val suppliedSchema = df.schema.names
+
+    if (_numericNAFillMap.nonEmpty)
+      _numericNAFillMap.keys.foreach(
+        x =>
+          require(
+            suppliedSchema.contains(x),
+            s"Field $x supplied in .setNumericNAFillMap() is not a valid column name in the DataFrame."
+        )
+      )
+
+    if (_categoricalNAFillMap.nonEmpty)
+      _categoricalNAFillMap.keys.foreach(
+        x =>
+          require(
+            suppliedSchema.contains(x),
+            s"Field $x supplied in .setCategoricalNAFillMap() is not a valid column name in the DataFrame."
+        )
+      )
+  }
+
+  /**
+    * Private method for submitting a Map of categorical and numeric overrides for na fill based on column name -> value
+    * as set in .setCategoricalNAFillMap and .setNumericNAFillMap any fields not included in these maps will use the
+    * statistics-based approaches to fill na's.
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @return NaFillConfig : A mapping for numeric and string fields that represents the values to put in for each column.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  private def mapNAFill(df: DataFrame): NaFillConfig = {
+
+    validateMapSchemaMembership(df)
+
+    val payloads = fillMissing(df)
+
+    val numBuffer = new ArrayBuffer[(String, Double)]
+    val charBuffer = new ArrayBuffer[(String, String)]
+
+    payloads.categoricalColumns.map(
+      x =>
+        x._1 match {
+          case x._1 if _categoricalNAFillMap.contains(x._1) =>
+            charBuffer += ((x._1, _categoricalNAFillMap(x._1).toString))
+          case _ => charBuffer += x
+      }
+    )
+    payloads.numericColumns.map(
+      x =>
+        x._1 match {
+          case x._1 if _numericNAFillMap.contains(x._1) =>
+            numBuffer += ((x._1, _numericNAFillMap(x._1).toString.toDouble))
+          case _ => numBuffer += x
+      }
+    )
+
+    NaFillConfig(
+      characterMapper(charBuffer.toArray),
+      numericMapper(numBuffer.toArray)
+    )
+
+  }
+
+  /**
+    * Private method for handling control logic depending on na fill mode selected
+    * @param df A DataFrame that has already had the label field converted to the appropriate (Double) Type
+    * @return NaFillConfig : A mapping for numeric and string fields that represents the values to put in for each column.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  private def fillNA(df: DataFrame): NaFillConfig = {
+
+    _naFillMode match {
+      case "auto" => fillMissing(df)
+      case "blanketFillAll" =>
+        blanketNAFill(df)
+      case "blanketFillCharOnly" => blanketFillCharOnly(df)
+      case "blanketFillNumOnly"  => blanketFillNumOnly(df)
+      case "mapFill"             => mapNAFill(df)
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"The naFill Mode ${_naFillMode} is not supported. " +
+            s"Must be one of: ${_allowableNAFillModes.mkString(", ")}"
+        )
+    }
+
+  }
+
   def decideModel(): String = {
-    val uniqueLabelCounts = data.
-      select(approx_count_distinct(_labelCol, rsd = _filterPrecision))
-      .rdd.map(row => row.getLong(0)).take(1)(0)
+    val uniqueLabelCounts = data
+      .select(approx_count_distinct(_labelCol, rsd = _filterPrecision))
+      .rdd
+      .map(row => row.getLong(0))
+      .take(1)(0)
     val decision = uniqueLabelCounts match {
       case x if x <= _modelSelectionDistinctThreshold => "classifier"
-      case _ => "regressor"
+      case _                                          => "regressor"
     }
     decision
   }
@@ -218,8 +545,11 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val preFilter = refactorLabel(data, _labelCol)
 
-    val fillMap = fillMissing(preFilter)
-    val filledData = preFilter.na.fill(fillMap.numericColumns).na.fill(fillMap.categoricalColumns)
+    val fillMap = fillNA(preFilter)
+    val filledData = preFilter.na
+      .fill(fillMap.numericColumns)
+      .na
+      .fill(fillMap.categoricalColumns)
 
     (filledData, fillMap, decideModel())
 

@@ -45,6 +45,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _fieldsToIgnoreInVector: Array[String] = _defaultFieldsToIgnoreInVector
 
+  var _cardinalitySwitchFlag: Boolean = _fillConfigDefaults.cardinalitySwitch
+  var _cardinalityType: String = _fillConfigDefaults.cardinalityType
+  var _cardinalityLimit: Int = _fillConfigDefaults.cardinalityLimit
+  var _cardinalityPrecision: Double = _fillConfigDefaults.cardinalityPrecision
+  var _cardinalityCheckMode: String = _fillConfigDefaults.cardinalityCheckMode
+
   var _modelSelectionDistinctThreshold: Int =
     _fillConfigDefaults.modelSelectionDistinctThreshold
 
@@ -467,11 +473,80 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  def cardinalitySwitchOn(): this.type = {
+    _cardinalitySwitchFlag = true
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  def cardinalitySwitchOff(): this.type = {
+    _cardinalitySwitchFlag = false
+    setFillConfig()
+    setConfigs()
+    this
+  }
+  def setCardinalitySwitch(value: Boolean): this.type = {
+    _cardinalitySwitchFlag = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[AssertionError])
+  def setCardinalityType(value: String): this.type = {
+    _cardinalityType = value
+    assert(
+      allowableCardinalilties.contains(value),
+      s"Supplied CardinalityType '$value' is not in: " +
+        s"${allowableCardinalilties.mkString(", ")}"
+    )
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[IllegalArgumentException])
+  def setCardinalityLimit(value: Int): this.type = {
+    require(value > 0, s"Cardinality limit must be greater than 0")
+    _cardinalityLimit = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[IllegalArgumentException])
+  def setCardinalityPrecision(value: Double): this.type = {
+    require(value >= 0.0, s"Precision must be greater than or equal to 0.")
+    require(value <= 1.0, s"Precision must be less than or equal to 1.")
+    _cardinalityPrecision = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[AssertionError])
+  def setCardinalityCheckMode(value: String): this.type = {
+    assert(
+      allowableCategoricalFilterModes.contains(value),
+      s"Supplied CardinalityCheckMode $value is not in: ${allowableCategoricalFilterModes.mkString(", ")}"
+    )
+    _cardinalityCheckMode = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
   private def setFillConfig(): this.type = {
     _fillConfig = FillConfig(
       numericFillStat = _numericFillStat,
       characterFillStat = _characterFillStat,
-      modelSelectionDistinctThreshold = _modelSelectionDistinctThreshold
+      modelSelectionDistinctThreshold = _modelSelectionDistinctThreshold,
+      cardinalitySwitch = _cardinalitySwitchFlag,
+      cardinalityType = _cardinalityType,
+      cardinalityLimit = _cardinalityLimit,
+      cardinalityPrecision = _cardinalityPrecision,
+      cardinalityCheckMode = _cardinalityCheckMode
     )
     this
   }
@@ -1711,6 +1786,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getDateTimeConversionType: String = _dateTimeConversionType
 
   def getFieldsToIgnoreInVector: Array[String] = _fieldsToIgnoreInVector
+
+  def getCardinalitySwitch: Boolean = _cardinalitySwitchFlag
+  def getCardinalityType: String = _cardinalityType
+  def getCardinalityLimit: Int = _cardinalityLimit
+  def getCardinalityPrecision: Double = _cardinalityPrecision
+  def getCardinalityCheckMode: String = _cardinalityCheckMode
 
   def getModelSelectionDistinctThreshold: Int = _modelSelectionDistinctThreshold
 

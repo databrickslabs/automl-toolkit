@@ -17,6 +17,9 @@ import scala.concurrent.forkjoin.ForkJoinPool
 trait DataValidation {
 
   def _allowableDateTimeConversions = List("unix", "split")
+  def _allowableCategoricalFilterModes = List("silent", "warn")
+  def _allowableCardinalilties = List("approx", "exact")
+
   private val logger: Logger = Logger.getLogger(this.getClass)
 
   def invalidateSelection(value: String, allowances: Seq[String]): String = {
@@ -41,8 +44,6 @@ trait DataValidation {
     val fieldExtraction =
       extractSchema(data.schema).filterNot(x => ignoreFields.contains(x._2))
 
-    //DEBUG
-    //println(s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
     logger.log(
       Level.DEBUG,
       s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}"

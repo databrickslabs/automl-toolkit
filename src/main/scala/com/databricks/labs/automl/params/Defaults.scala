@@ -45,6 +45,10 @@ trait Defaults {
   final val allowableLabelBalanceModes: List[String] =
     List("match", "percentage", "target")
 
+  final val allowableDateTimeConversions = List("unix", "split")
+  final val allowableCategoricalFilterModes = List("silent", "warn")
+  final val allowableCardinalilties = List("approx", "exact")
+
   def _defaultModelingFamily: String = "RandomForest"
 
   def _defaultLabelCol: String = "label"
@@ -147,7 +151,12 @@ trait Defaults {
   def _fillConfigDefaults = FillConfig(
     numericFillStat = "mean",
     characterFillStat = "max",
-    modelSelectionDistinctThreshold = 10
+    modelSelectionDistinctThreshold = 10,
+    cardinalitySwitch = true,
+    cardinalityType = "exact",
+    cardinalityLimit = 200,
+    cardinalityPrecision = 0.05,
+    cardinalityCheckMode = "silent"
   )
 
   def _outlierConfigDefaults = OutlierConfig(
