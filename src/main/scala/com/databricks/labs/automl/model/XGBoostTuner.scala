@@ -124,6 +124,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
+          .setMissing(0)
         if (uniqueLabels > 2) {
           xgClass
             .setNumClass(uniqueLabels)
