@@ -1016,18 +1016,18 @@ class ConfigurationGenerator(modelFamily: String,
     *
     * @param value String: either "approx" or "exact"
     * @note Default - exact
-    * @throws java.lang.AssertionError if a mode other than exact or approx is specified.
+    * @throws IllegalArgumentException if a mode other than exact or approx is specified.
     * @since 0.5.2
     * @author Ben Wilson, Databricks
     */
-  @throws(classOf[AssertionError])
+  @throws(classOf[IllegalArgumentException])
   def setFillConfigCardinalityType(value: String): this.type = {
-    _instanceConfig.featureEngineeringConfig.cardinalityType = value
-    assert(
-      allowableCardinalilties.contains(value),
-      s"Supplied CardinalityType '$value' is not in: " +
-        s"${allowableCardinalilties.mkString(", ")}"
+    validateMembership(
+      value,
+      allowableCardinalilties,
+      "fillConfigCardinalityType"
     )
+    _instanceConfig.featureEngineeringConfig.cardinalityType = value
     this
   }
 
@@ -1071,17 +1071,124 @@ class ConfigurationGenerator(modelFamily: String,
     *
     * @note Default: "silent"
     * @param value String: either "warn" or "silent"
-    * @throws java.lang.AssertionError if the mode supplied is not either "warn" or "silent"
+    * @throws IllegalArgumentException if the mode supplied is not either "warn" or "silent"
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFillConfigCardinalityCheckMode(value: String): this.type = {
+    validateMembership(
+      value,
+      allowableCategoricalFilterModes,
+      "fillConfigCardinalityCheckMode"
+    )
+    _instanceConfig.featureEngineeringConfig.cardinalityCheckMode = value
+    this
+  }
+
+  /**
+    * Setter for defining the precision for calculating the model type as per the label column
+    * @note setting this value to zero (0) for a large regression problem will incur a long processing time and
+    *       an expensive shuffle.
+    * @param value Double: Precision accuracy for approximate distinct calculation.
+    * @throws java.lang.AssertionError If the value is outside of the allowable range of {0, 1}
     * @since 0.5.2
     * @author Ben Wilson, Databricks
     */
   @throws(classOf[AssertionError])
-  def setFillConfigCardinalityCheckMode(value: String): this.type = {
-    assert(
-      allowableCategoricalFilterModes.contains(value),
-      s"Supplied CardinalityCheckMode $value is not in: ${allowableCategoricalFilterModes.mkString(", ")}"
+  def setFillConfigFilterPrecision(value: Double): this.type = {
+    require(
+      value >= 0,
+      s"Filter Precision for NA Fill must be greater than or equal to 0."
     )
-    _instanceConfig.featureEngineeringConfig.cardinalityCheckMode = value
+    require(
+      value <= 1,
+      s"Filter Precision for NA Fill must be less than or equal to 1."
+    )
+    _instanceConfig.featureEngineeringConfig.filterPrecision = value
+    this
+  }
+
+  /**
+    * Setter for providing a map of [Column Name -> String Fill Value] for manual by-column overrides.  Any non-specified
+    * fields in this map will utilize the "auto" statistics-based fill paradigm to calculate and fill any NA values
+    * in non-numeric columns.
+    * @note if naFillMode is specified as using Map Fill modes, this setter or the numeric na fill map MUST be set.
+    * @note If fields are specified in here that are not part of the DataFrame's schema, an exception will be thrown.
+    * @param value Map[String, String]: Column Name as String -> Fill Value as String
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFillConfigCategoricalNAFillMap(
+    value: Map[String, String]
+  ): this.type = {
+    _instanceConfig.featureEngineeringConfig.categoricalNAFillMap = value
+    this
+  }
+
+  /**
+    * Setter for providing a map of [Column Name -> AnyVal Fill Value] (must be numeric). Any non-specified
+    * fields in this map will utilize the "auto" statistics-based fill paradigm to calculate and fill any NA values
+    * in numeric columns.
+    * @note if naFillMode is specified as using Map Fill modes, this setter or the categorical na fill map MUST be set.
+    * @note If fields are specified in here that are not part of the DataFrame's schema, an exception will be thrown.
+    * @param value Map[String, AnyVal]: Column Name as String -> Fill Numeric Type Value
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFillConfigNumericNAFillMap(value: Map[String, AnyVal]): this.type = {
+    _instanceConfig.featureEngineeringConfig.numericNAFillMap = value
+    this
+  }
+
+  /**
+    * Setter for providing a 'blanket override' value (fill all found categorical columns' missing values with this
+    * specified value).
+    * @param value String: A value to fill all categorical na values in the DataFrame with.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFillConfigCharacterNABlanketFillValue(value: String): this.type = {
+    _instanceConfig.featureEngineeringConfig.characterNABlanketFillValue = value
+    this
+  }
+
+  /**
+    * Setter for providing a 'blanket override'  value (fill all found numeric columns' missing values with this
+    * specified value)
+    * @param value Double: A value to fill all numeric na value in the DataFrame with.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFillConfigNumericNABlanketFillValue(value: Double): this.type = {
+    _instanceConfig.featureEngineeringConfig.numericNABlanketFillValue = value
+    this
+  }
+
+  /**
+    * Mode for na fill<br>
+    *                Available modes: <br>
+    *                  <i>auto</i> : Stats-based na fill for fields.  Usage of .setNumericFillStat and
+    *                  .setCharacterFillStat will inform the type of statistics that will be used to fill.<br>
+    *                  <i>mapFill</i> : Custom by-column overrides to 'blanket fill' na values on a per-column
+    *                  basis.  The categorical (string) fields are set via .setCategoricalNAFillMap while the
+    *                  numeric fields are set via .setNumericNAFillMap.<br>
+    *                  <i>blanketFillAll</i> : Fills all fields based on the values specified by
+    *                  .setCharacterNABlanketFillValue and .setNumericNABlanketFillValue.  All NA's for the
+    *                  appropriate types will be filled in accordingly throughout all columns.<br>
+    *                  <i>blanketFillCharOnly</i> Will use statistics to fill in numeric fields, but will replace
+    *                  all categorical character fields na values with a blanket fill value. <br>
+    *                  <i>blanketFillNumOnly</i> Will use statistics to fill in character fields, but will replace
+    *                  all numeric fields na values with a blanket value.
+    * @throws IllegalArgumentException if the mods specified is not supported.
+    * @param value String: Mode for NA Fill
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFillConfigNAFillMode(value: String): this.type = {
+    validateMembership(value, allowableNAFillModes, "fillConfigNAFillMode")
+    _instanceConfig.featureEngineeringConfig.naFillMode = value
     this
   }
 
@@ -1215,10 +1322,10 @@ class ConfigurationGenerator(modelFamily: String,
     */
   @throws(classOf[IllegalArgumentException])
   def setTunerKSampleKMeansDistanceMeasurement(value: String): this.type = {
-    require(
-      allowableKMeansDistanceMeasurements.contains(value),
-      s"Kmeans Distance Measurement $value is not " +
-        s"a valid mode of operation.  Must be one of: ${allowableKMeansDistanceMeasurements.mkString(", ")}"
+    validateMembership(
+      value,
+      allowableKMeansDistanceMeasurements,
+      "tunerKSampleKMeansDistanceMeasurement"
     )
     _instanceConfig.tunerConfig.tunerKSampleKMeansDistanceMeasurement = value
     this
@@ -1314,10 +1421,10 @@ class ConfigurationGenerator(modelFamily: String,
     */
   @throws(classOf[IllegalArgumentException])
   def setTunerKSampleVectorMutationMethod(value: String): this.type = {
-    require(
-      allowableVectorMutationMethods.contains(value),
-      s"Vector Mutation Mode $value is not supported.  " +
-        s"Must be one of: ${allowableVectorMutationMethods.mkString(", ")} "
+    validateMembership(
+      value,
+      allowableVectorMutationMethods,
+      "tunerKSampleVectorMutationMethod"
     )
     _instanceConfig.tunerConfig.tunerKSampleVectorMutationMethod = value
     this
@@ -1336,10 +1443,10 @@ class ConfigurationGenerator(modelFamily: String,
     */
   @throws(classOf[IllegalArgumentException])
   def setTunerKSampleMutationMode(value: String): this.type = {
-    require(
-      allowableMutationModes.contains(value),
-      s"Mutation Mode $value is not a valid mode of operation.  " +
-        s"Must be one of: ${allowableMutationModes.mkString(", ")}"
+    validateMembership(
+      value,
+      allowableMutationModes,
+      "tunerKSampleMutationMode"
     )
     _instanceConfig.tunerConfig.tunerKSampleMutationMode = value
     this
@@ -1374,14 +1481,14 @@ class ConfigurationGenerator(modelFamily: String,
     * @note Default: "percentage"
     * @since 0.5.1
     * @author Ben Wilson
-    * @throws UnsupportedOperationException() if the provided mode is not supported.
+    * @throws IllegalArgumentException if the provided mode is not supported.
     */
-  @throws(classOf[UnsupportedOperationException])
+  @throws(classOf[IllegalArgumentException])
   def setTunerKSampleLabelBalanceMode(value: String): this.type = {
-    require(
-      allowableLabelBalanceModes.contains(value),
-      s"Label Balance Mode $value is not supported." +
-        s"Must be one of: ${allowableLabelBalanceModes.mkString(", ")}"
+    validateMembership(
+      value,
+      allowableLabelBalanceModes,
+      "tunerKSampleLabelBalanceMode"
     )
     _instanceConfig.tunerConfig.tunerKSampleLabelBalanceMode = value
     this
@@ -1893,7 +2000,16 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         cardinalityPrecision =
           config.featureEngineeringConfig.cardinalityPrecision,
         cardinalityCheckMode =
-          config.featureEngineeringConfig.cardinalityCheckMode
+          config.featureEngineeringConfig.cardinalityCheckMode,
+        filterPrecision = config.featureEngineeringConfig.filterPrecision,
+        categoricalNAFillMap =
+          config.featureEngineeringConfig.categoricalNAFillMap,
+        numericNAFillMap = config.featureEngineeringConfig.numericNAFillMap,
+        characterNABlanketFillValue =
+          config.featureEngineeringConfig.characterNABlanketFillValue,
+        numericNABlanketFillValue =
+          config.featureEngineeringConfig.numericNABlanketFillValue,
+        naFillMode = config.featureEngineeringConfig.naFillMode
       ),
       outlierConfig = OutlierConfig(
         filterBounds = config.featureEngineeringConfig.outlierFilterBounds,
@@ -2334,6 +2450,53 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           )
           .toString
           .toInt
+      )
+      .setFillConfigFilterPrecision(
+        config
+          .getOrElse(
+            "fillConfigFilterPrecision",
+            defaultMap("fillConfigFilterPrecision")
+          )
+          .toString
+          .toDouble
+      )
+      .setFillConfigCategoricalNAFillMap(
+        config
+          .getOrElse(
+            "fillConfigCategoricalNAFillMap",
+            defaultMap("fillConfigCategoricalNAFillMap")
+          )
+          .asInstanceOf[Map[String, String]]
+      )
+      .setFillConfigNumericNAFillMap(
+        config
+          .getOrElse(
+            "fillConfigNumericNAFillMap",
+            defaultMap("fillConfigNumericNAFillMap")
+          )
+          .asInstanceOf[Map[String, AnyVal]]
+      )
+      .setFillConfigCharacterNABlanketFillValue(
+        config
+          .getOrElse(
+            "fillConfigCharacterNABlanketFillValue",
+            defaultMap("fillConfigCharacterNABlanketFillValue")
+          )
+          .toString
+      )
+      .setFillConfigNumericNABlanketFillValue(
+        config
+          .getOrElse(
+            "fillConfigNumericNABlanketFillValue",
+            defaultMap("fillConfigNumericNABlanketFillValue")
+          )
+          .toString
+          .toDouble
+      )
+      .setFillConfigNAFillMode(
+        config
+          .getOrElse("fillConfigNAFillMode", defaultMap("fillConfigNAFillMode"))
+          .toString
       )
       .setOutlierFilterBounds(
         config

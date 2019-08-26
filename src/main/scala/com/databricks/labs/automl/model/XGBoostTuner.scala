@@ -145,6 +145,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
+          .setMissing(0)
       case _ =>
         throw new UnsupportedOperationException(
           s"Unsupported modelType $modelSelection"

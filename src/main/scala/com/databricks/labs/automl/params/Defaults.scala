@@ -48,6 +48,14 @@ trait Defaults {
   final val allowableDateTimeConversions = List("unix", "split")
   final val allowableCategoricalFilterModes = List("silent", "warn")
   final val allowableCardinalilties = List("approx", "exact")
+  final val _allowableNAFillModes: List[String] =
+    List(
+      "auto",
+      "mapFill",
+      "blanketFillAll",
+      "blanketFillCharOnly",
+      "blanketFillNumOnly"
+    )
 
   def _defaultModelingFamily: String = "RandomForest"
 
@@ -156,7 +164,13 @@ trait Defaults {
     cardinalityType = "exact",
     cardinalityLimit = 200,
     cardinalityPrecision = 0.05,
-    cardinalityCheckMode = "silent"
+    cardinalityCheckMode = "silent",
+    filterPrecision = 0.01,
+    categoricalNAFillMap = Map.empty[String, String],
+    numericNAFillMap = Map.empty[String, AnyVal],
+    characterNABlanketFillValue = "",
+    numericNABlanketFillValue = 0.0,
+    naFillMode = "auto"
   )
 
   def _outlierConfigDefaults = OutlierConfig(

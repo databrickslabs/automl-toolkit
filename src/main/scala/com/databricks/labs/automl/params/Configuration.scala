@@ -55,7 +55,13 @@ case class FillConfig(numericFillStat: String,
                       cardinalityType: String,
                       cardinalityLimit: Int,
                       cardinalityPrecision: Double,
-                      cardinalityCheckMode: String)
+                      cardinalityCheckMode: String,
+                      filterPrecision: Double,
+                      categoricalNAFillMap: Map[String, String],
+                      numericNAFillMap: Map[String, AnyVal],
+                      characterNABlanketFillValue: String,
+                      numericNABlanketFillValue: Double,
+                      naFillMode: String)
 
 case class OutlierConfig(filterBounds: String,
                          lowerFilterNTile: Double,

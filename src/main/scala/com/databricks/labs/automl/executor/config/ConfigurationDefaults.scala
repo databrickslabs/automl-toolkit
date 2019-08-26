@@ -145,6 +145,14 @@ trait ConfigurationDefaults {
   final val allowableCategoricalFilterModes: List[String] =
     List("silent", "warn")
   final val allowableCardinalilties: List[String] = List("approx", "exact")
+  final val allowableNAFillModes: List[String] =
+    List(
+      "auto",
+      "mapFill",
+      "blanketFillAll",
+      "blanketFillCharOnly",
+      "blanketFillNumOnly"
+    )
 
   /**
     * Generic Helper Methods
@@ -396,6 +404,12 @@ trait ConfigurationDefaults {
     val cardinalityLimit = 200
     val cardinalityPrecision = 0.05
     val cardinalityCheckMode = "silent"
+    val filterPrecision = 0.01
+    val categoricalNAFillMap = Map.empty[String, String]
+    val numericNAFillMap = Map.empty[String, AnyVal]
+    val characterNABlanketFillValue = ""
+    val numericNABlanketFillValue = 0.0
+    val naFillMode = "auto"
 
     FeatureEngineeringConfig(
       numericFillStat,
@@ -427,7 +441,13 @@ trait ConfigurationDefaults {
       cardinalityType,
       cardinalityLimit,
       cardinalityPrecision,
-      cardinalityCheckMode
+      cardinalityCheckMode,
+      filterPrecision,
+      categoricalNAFillMap,
+      numericNAFillMap,
+      characterNABlanketFillValue,
+      numericNABlanketFillValue,
+      naFillMode
     )
   }
 
@@ -452,7 +472,7 @@ trait ConfigurationDefaults {
     val tunerKSampleVectorMutationMethod = "random"
     val tunerKSampleMutationMode = "weighted"
     val tunerKSampleMutationValue = 0.5
-    val tunerKSampleLabelBalanceMode = "percentage"
+    val tunerKSampleLabelBalanceMode = "match"
     val tunerKSampleCardinalityThreshold = 20
     val tunerKSampleNumericRatio = 0.2
     val tunerKSampleNumericTarget = 500
@@ -643,6 +663,12 @@ trait ConfigurationDefaults {
       "fillConfigCardinalityLimit" -> featDef.cardinalityLimit,
       "fillConfigCardinalityPrecision" -> featDef.cardinalityPrecision,
       "fillConfigCardinalityCheckMode" -> featDef.cardinalityCheckMode,
+      "fillConfigFilterPrecision" -> featDef.filterPrecision,
+      "fillConfigCategoricalNAFillMap" -> featDef.categoricalNAFillMap,
+      "fillConfigNumericNAFillMap" -> featDef.numericNAFillMap,
+      "fillConfigCharacterNABlanketFillValue" -> featDef.characterNABlanketFillValue,
+      "fillConfigNumericNABlanketFillValue" -> featDef.numericNABlanketFillValue,
+      "fillConfigNAFillMode" -> featDef.naFillMode,
       "stringBoundaries" -> algDef.stringBoundaries,
       "numericBoundaries" -> algDef.numericBoundaries,
       "tunerAutoStoppingScore" -> tunerDef.tunerAutoStoppingScore,

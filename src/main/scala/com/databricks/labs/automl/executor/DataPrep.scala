@@ -89,6 +89,16 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setFieldsToIgnoreInVector(_mainConfig.fieldsToIgnoreInVector)
+      .setFilterPrecision(_mainConfig.fillConfig.filterPrecision)
+      .setCategoricalNAFillMap(_mainConfig.fillConfig.categoricalNAFillMap)
+      .setNumericNAFillMap(_mainConfig.fillConfig.numericNAFillMap)
+      .setCharacterNABlanketFillValue(
+        _mainConfig.fillConfig.characterNABlanketFillValue
+      )
+      .setNumericNABlanketFillValue(
+        _mainConfig.fillConfig.numericNABlanketFillValue
+      )
+      .setNAFillMode(_mainConfig.fillConfig.naFillMode)
 
     val (naFilledDataFrame, fillMap, detectedModelType) =
       if (_mainConfig.naFillFlag) {
@@ -300,23 +310,29 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     //DEBUG
     logger.log(Level.DEBUG, printSchema(df, "input").toString)
 
-    // Start by converting fields
-    val (entryPointDf, entryPointFields, selectFields) =
-      vectorPipeline(df, _mainConfig.fillConfig.cardinalitySwitch)
+    //TODO: evaluate this change!!!!
+    val (naFilledData, fillMap, detectedModelType) = fillNA(df)
+    val (entryPointData, entryPointFields, selectFields) =
+      vectorPipeline(naFilledData, _mainConfig.fillConfig.cardinalitySwitch)
+
+//    // Start by converting fields
+//    val (entryPointDf, entryPointFields, selectFields) =
+//      vectorPipeline(df, _mainConfig.fillConfig.cardinalitySwitch)
 
     // Record the Inference Settings for DataConfig
     val inferenceDataConfig =
       recordInferenceDataConfig(_mainConfig, selectFields)
     InferenceConfig.setInferenceDataConfig(inferenceDataConfig)
 
-    logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
+//    logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
 
-    val entryPointDataRestrict = entryPointDf.select(selectFields map col: _*)
-
-    // this ignores the fieldsToIgnore and reparses the date and time fields.
-    val (dataStage1, fillMap, detectedModelType) = fillNA(
-      entryPointDataRestrict
-    )
+//    val entryPointDataRestrict = entryPointDf.select(selectFields map col: _*)
+//
+//    // this ignores the fieldsToIgnore and reparses the date and time fields.
+//    val (dataStage1, fillMap, detectedModelType) = fillNA(
+//      entryPointDataRestrict
+//    )
+    val dataStage1 = entryPointData.select(selectFields map col: _*)
 
     // Record the Inference Settings for NaFillConfig mappings
     InferenceConfig.setInferenceNaFillConfig(
@@ -411,7 +427,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     // Next stages require a feature vector
     val (featurizedData, initialFields, initialFullFields) =
-      vectorPipeline(persistDataStage3, false)
+      vectorPipeline(persistDataStage3, cardinalityFlag = false)
 
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
     val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol)
