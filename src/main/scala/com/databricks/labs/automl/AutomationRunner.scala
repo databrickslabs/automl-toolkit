@@ -1753,7 +1753,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       logger.log(Level.INFO, pretty)
       mlFlowResult
     } else {
-      generateDummyMLFlowReturn("undefined")
+      null
+//      generateDummyMLFlowReturn("undefined")
     }
 
     val generationalData = extractGenerationalScores(
@@ -2055,7 +2056,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   def runWithConfusionReport(): ConfusionOutput = {
     val predictionPayload = runWithPrediction()
-
     val confusionData = predictionPayload.dataWithPredictions
       .select("prediction", _mainConfig.labelCol)
       .groupBy("prediction", _mainConfig.labelCol)

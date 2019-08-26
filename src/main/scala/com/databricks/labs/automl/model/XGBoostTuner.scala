@@ -124,6 +124,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
+          .setMissing(0.0f)
         if (uniqueLabels > 2) {
           xgClass
             .setNumClass(uniqueLabels)
@@ -144,6 +145,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
+          .setMissing(0.0f)
       case _ =>
         throw new UnsupportedOperationException(
           s"Unsupported modelType $modelSelection"

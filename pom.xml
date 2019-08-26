@@ -86,6 +86,13 @@
             <version>3.0.6</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.databricks</groupId>
+            <artifactId>dbutils-api_2.11</artifactId>
+            <version>0.0.3</version>
+        </dependency>
+
     </dependencies>
 
     <build>

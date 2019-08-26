@@ -31,7 +31,8 @@ case class MainConfig(modelFamily: String,
                       mlFlowLogArtifactsFlag: Boolean,
                       mlFlowConfig: MLFlowConfig,
                       inferenceConfigSaveLocation: String,
-                      dataReductionFactor: Double)
+                      dataReductionFactor: Double,
+                      inputFeatures: Array[String] = Array.empty)
 
 // TODO: Change MainConfig to use this case class definition.
 case class DataPrepConfig(naFillFlag: Boolean,

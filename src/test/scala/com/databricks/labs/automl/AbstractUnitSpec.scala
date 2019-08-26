@@ -36,15 +36,18 @@ object AutomationUnitTestsUtil {
   }
 
   def getAdultDf() :DataFrame = {
+    import sparkSession.implicits._
    val adultDf = convertCsvToDf("/adult_data.csv")
 
     var adultDfCleaned = adultDf
     for ( colName <- adultDf.columns) {
-      adultDfCleaned = adultDfCleaned.withColumn(colName.split("\\s+").mkString+"_trimmed", trim(col(colName))).drop(colName)
+      adultDfCleaned = adultDfCleaned
+        .withColumn(colName.split("\\s+").mkString+"_trimmed", trim(col(colName)))
+        .drop(colName)
     }
-    adultDfCleaned.
-      withColumnRenamed("class_trimmed","label")
-      .withColumn("label", when(col("label").contains("<=50k"),0).otherwise(1))
+    adultDfCleaned
+      .withColumn("label", when($"class_trimmed" === "<=50K", 0).otherwise(1))
+      .drop("class_trimmed")
   }
 
   def assertConfusionOutput(confusionOutput: ConfusionOutput) : Unit = {

@@ -1,11 +1,9 @@
 package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.AutomationRunner
-import com.databricks.labs.automl.executor.config.{
-  ConfigurationGenerator,
-  InstanceConfig
-}
+import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.params._
+import com.databricks.labs.automl.pipeline.FeatureEngineeringPipelineContext
 import com.databricks.labs.automl.tracking.MLFlowReportStructure
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
@@ -112,6 +110,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     *
     * @return FamilyOutput object that reports the results of each of the family modeling runs.
     */
+  @Deprecated
   def execute(): FamilyFinalOutput = {
 
     val outputBuffer = ArrayBuffer[FamilyOutput]()
@@ -141,6 +140,26 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
     unifyFamilyOutput(outputBuffer.toArray)
 
+  }
+
+
+  //TODO: Get PipelineModel for feature engineering and append with model stage from executeTuning
+  def executeWithPipeline(): FamilyFinalOutput = {
+
+    val outputBuffer = ArrayBuffer[FamilyOutput]()
+
+    configs.foreach { x =>
+      val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
+
+      val featureEngPipelineModel = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration)
+
+      val preppedData = featureEngPipelineModel.transform(data)
+
+
+    }
+
+      null
+//    unifyFamilyOutput(outputBuffer.toArray)
   }
 
 }
