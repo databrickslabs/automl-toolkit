@@ -43,7 +43,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
   }
 
   private def vectorPipeline(
-    data: DataFrame
+    data: DataFrame,
+    cardinalityFlag: Boolean
   ): (DataFrame, Array[String], Array[String]) = {
 
     // Creates the feature vector and returns the fields that go into the vector
@@ -52,6 +53,11 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
+      .setCardinalityCheck(cardinalityFlag)
+      .setCardinalityCheckMode(_mainConfig.fillConfig.cardinalityCheckMode)
+      .setCardinalityLimit(_mainConfig.fillConfig.cardinalityLimit)
+      .setCardinalityPrecision(_mainConfig.fillConfig.cardinalityPrecision)
+      .setCardinalityType(_mainConfig.fillConfig.cardinalityType)
       .makeFeaturePipeline(_mainConfig.fieldsToIgnoreInVector)
 
   }
@@ -83,6 +89,16 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
       .setParallelism(_mainConfig.geneticConfig.parallelism)
       .setFieldsToIgnoreInVector(_mainConfig.fieldsToIgnoreInVector)
+      .setFilterPrecision(_mainConfig.fillConfig.filterPrecision)
+      .setCategoricalNAFillMap(_mainConfig.fillConfig.categoricalNAFillMap)
+      .setNumericNAFillMap(_mainConfig.fillConfig.numericNAFillMap)
+      .setCharacterNABlanketFillValue(
+        _mainConfig.fillConfig.characterNABlanketFillValue
+      )
+      .setNumericNABlanketFillValue(
+        _mainConfig.fillConfig.numericNABlanketFillValue
+      )
+      .setNAFillMode(_mainConfig.fillConfig.naFillMode)
 
     val (naFilledDataFrame, fillMap, detectedModelType) =
       if (_mainConfig.naFillFlag) {
@@ -294,22 +310,29 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     //DEBUG
     logger.log(Level.DEBUG, printSchema(df, "input").toString)
 
-    // Start by converting fields
-    val (entryPointDf, entryPointFields, selectFields) = vectorPipeline(df)
+    //TODO: evaluate this change!!!!
+    val (naFilledData, fillMap, detectedModelType) = fillNA(df)
+    val (entryPointData, entryPointFields, selectFields) =
+      vectorPipeline(naFilledData, _mainConfig.fillConfig.cardinalitySwitch)
+
+//    // Start by converting fields
+//    val (entryPointDf, entryPointFields, selectFields) =
+//      vectorPipeline(df, _mainConfig.fillConfig.cardinalitySwitch)
 
     // Record the Inference Settings for DataConfig
     val inferenceDataConfig =
       recordInferenceDataConfig(_mainConfig, selectFields)
     InferenceConfig.setInferenceDataConfig(inferenceDataConfig)
 
-    logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
+//    logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
 
-    val entryPointDataRestrict = entryPointDf.select(selectFields map col: _*)
-
-    // this ignores the fieldsToIgnore and reparses the date and time fields.
-    val (dataStage1, fillMap, detectedModelType) = fillNA(
-      entryPointDataRestrict
-    )
+//    val entryPointDataRestrict = entryPointDf.select(selectFields map col: _*)
+//
+//    // this ignores the fieldsToIgnore and reparses the date and time fields.
+//    val (dataStage1, fillMap, detectedModelType) = fillNA(
+//      entryPointDataRestrict
+//    )
+    val dataStage1 = entryPointData.select(selectFields map col: _*)
 
     // Record the Inference Settings for NaFillConfig mappings
     InferenceConfig.setInferenceNaFillConfig(
@@ -403,9 +426,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     )
 
     // Next stages require a feature vector
-    val (featurizedData, initialFields, initialFullFields) = vectorPipeline(
-      persistDataStage3
-    )
+    val (featurizedData, initialFields, initialFullFields) =
+      vectorPipeline(persistDataStage3, cardinalityFlag = false)
 
     // Ensure that the only fields in the DataFrame are the Individual Feature Columns, Label, and Exclusion Fields
     val featureFieldCleanup = initialFields ++ Array(_mainConfig.labelCol)
@@ -461,9 +483,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     )
 
     // All stages after this point require a feature vector.
-    val (dataStage5, stage5Fields, stage5FullFields) = vectorPipeline(
-      persistDataStage4
-    )
+    val (dataStage5, stage5Fields, stage5FullFields) =
+      vectorPipeline(persistDataStage4, cardinalityFlag = false)
 
     val (persistDataStage5, dataStage5RowCount) =
       if (_mainConfig.dataPrepCachingFlag) {
@@ -483,7 +504,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
           pearsonReturn.fieldListing
         )
 
-        vectorPipeline(pearsonReturn.outputData)
+        vectorPipeline(pearsonReturn.outputData, cardinalityFlag = false)
       } else {
         // Record the Inference Settings for Pearson Filtering
         InferenceConfig.setInferencePearsonFilteringConfig(Array.empty[String])
@@ -549,7 +570,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val finalFullSchema =
       s"Final Full Schema: \n    ${finalStageDF.columns.mkString(", ")}"
 
-    val finalOuputDataFrame =
+    val finalOutputDataFrame1 =
       if (_mainConfig.geneticConfig.trainSplitMethod == "kSample") {
         SyntheticFeatureGenerator(
           finalStageDF,
@@ -578,6 +599,18 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
         )
       } else finalStageDF
 
+    // If scaling is used, make sure that the synthetic data has the same scaling.
+    val finalOutputDataFrame2 = if (_mainConfig.scalingFlag) {
+      val syntheticData = finalOutputDataFrame1.filter(
+        col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      )
+      scaler(syntheticData).union(
+        finalOutputDataFrame1.filter(
+          col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+        )
+      )
+    } else finalOutputDataFrame1
+
     val finalStatement =
       s"Data Prep complete.  Final Dataframe cached. Total Observations: $finalCount"
     // DEBUG
@@ -587,8 +620,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     println(finalStatement)
 
     DataGeneration(
-      finalOuputDataFrame,
-      finalOuputDataFrame.columns,
+      finalOutputDataFrame2,
+      finalOutputDataFrame2.columns,
       detectedModelType
     )
 

@@ -45,6 +45,32 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _fieldsToIgnoreInVector: Array[String] = _defaultFieldsToIgnoreInVector
 
+  var _naFillFilterPrecision: Double = _fillConfigDefaults.filterPrecision
+
+  var _categoricalNAFillMap: Map[String, String] =
+    _fillConfigDefaults.categoricalNAFillMap
+
+  var _numericNAFillMap: Map[String, AnyVal] =
+    _fillConfigDefaults.numericNAFillMap
+
+  var _characterNABlanketFillValue: String =
+    _fillConfigDefaults.characterNABlanketFillValue
+
+  var _numericNABlanketFillValue: Double =
+    _fillConfigDefaults.numericNABlanketFillValue
+
+  var _naFillMode: String = _fillConfigDefaults.naFillMode
+
+  var _cardinalitySwitchFlag: Boolean = _fillConfigDefaults.cardinalitySwitch
+
+  var _cardinalityType: String = _fillConfigDefaults.cardinalityType
+
+  var _cardinalityLimit: Int = _fillConfigDefaults.cardinalityLimit
+
+  var _cardinalityPrecision: Double = _fillConfigDefaults.cardinalityPrecision
+
+  var _cardinalityCheckMode: String = _fillConfigDefaults.cardinalityCheckMode
+
   var _modelSelectionDistinctThreshold: Int =
     _fillConfigDefaults.modelSelectionDistinctThreshold
 
@@ -111,30 +137,48 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   var _kSampleConfig: KSampleConfig = _geneticTunerDefaults.kSampleConfig
 
   var _syntheticCol: String = _geneticTunerDefaults.kSampleConfig.syntheticCol
+
   var _kGroups: Int = _geneticTunerDefaults.kSampleConfig.kGroups
+
   var _kMeansMaxIter: Int = _geneticTunerDefaults.kSampleConfig.kMeansMaxIter
+
   var _kMeansTolerance: Double =
     _geneticTunerDefaults.kSampleConfig.kMeansTolerance
+
   var _kMeansDistanceMeasurement: String =
     _geneticTunerDefaults.kSampleConfig.kMeansDistanceMeasurement
+
   var _kMeansSeed: Long = _geneticTunerDefaults.kSampleConfig.kMeansSeed
+
   var _kMeansPredictionCol: String =
     _geneticTunerDefaults.kSampleConfig.kMeansPredictionCol
+
   var _lshHashTables: Int = _geneticTunerDefaults.kSampleConfig.lshHashTables
+
   var _lshSeed: Long = _geneticTunerDefaults.kSampleConfig.lshSeed
+
   var _lshOutputCol: String = _geneticTunerDefaults.kSampleConfig.lshOutputCol
+
   var _quorumCount: Int = _geneticTunerDefaults.kSampleConfig.quorumCount
+
   var _minimumVectorCountToMutate: Int =
     _geneticTunerDefaults.kSampleConfig.minimumVectorCountToMutate
+
   var _vectorMutationMethod: String =
     _geneticTunerDefaults.kSampleConfig.vectorMutationMethod
+
   var _mutationMode: String = _geneticTunerDefaults.kSampleConfig.mutationMode
+
   var _mutationValue: Double = _geneticTunerDefaults.kSampleConfig.mutationValue
+
   var _labelBalanceMode: String =
     _geneticTunerDefaults.kSampleConfig.labelBalanceMode
+
   var _cardinalityThreshold: Int =
     _geneticTunerDefaults.kSampleConfig.cardinalityThreshold
+
   var _numericRatio: Double = _geneticTunerDefaults.kSampleConfig.numericRatio
+
   var _numericTarget: Int = _geneticTunerDefaults.kSampleConfig.numericTarget
 
   var _trainSplitChronologicalColumn: String =
@@ -460,8 +504,198 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  /**
+    * Setter for defining the precision for calculating the model type as per the label column
+    *
+    * @note setting this value to zero (0) for a large regression problem will incur a long processing time and
+    *       an expensive shuffle.
+    * @param value Double: Precision accuracy for approximate distinct calculation.
+    * @throws java.lang.AssertionError If the value is outside of the allowable range of {0, 1}
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[AssertionError])
+  def setNAFillFilterPrecision(value: Double): this.type = {
+    require(
+      value >= 0,
+      s"Filter Precision for NA Fill must be greater than or equal to 0."
+    )
+    require(
+      value <= 1,
+      s"Filter Precision for NA Fill must be less than or equal to 1."
+    )
+    _naFillFilterPrecision = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for providing a map of [Column Name -> String Fill Value] for manual by-column overrides.  Any non-specified
+    * fields in this map will utilize the "auto" statistics-based fill paradigm to calculate and fill any NA values
+    * in non-numeric columns.
+    *
+    * @note if naFillMode is specified as using Map Fill modes, this setter or the numeric na fill map MUST be set.
+    * @note If fields are specified in here that are not part of the DataFrame's schema, an exception will be thrown.
+    * @param value Map[String, String]: Column Name as String -> Fill Value as String
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setCategoricalNAFillMap(value: Map[String, String]): this.type = {
+    _categoricalNAFillMap = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for providing a map of [Column Name -> AnyVal Fill Value] (must be numeric). Any non-specified
+    * fields in this map will utilize the "auto" statistics-based fill paradigm to calculate and fill any NA values
+    * in numeric columns.
+    *
+    * @note if naFillMode is specified as using Map Fill modes, this setter or the categorical na fill map MUST be set.
+    * @note If fields are specified in here that are not part of the DataFrame's schema, an exception will be thrown.
+    * @param value Map[String, AnyVal]: Column Name as String -> Fill Numeric Type Value
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setNumericNAFillMap(value: Map[String, AnyVal]): this.type = {
+    _numericNAFillMap = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for providing a 'blanket override' value (fill all found categorical columns' missing values with this
+    * specified value).
+    *
+    * @param value String: A value to fill all categorical na values in the DataFrame with.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setCharacterNABlanketFillValue(value: String): this.type = {
+    _characterNABlanketFillValue = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for providing a 'blanket override'  value (fill all found numeric columns' missing values with this
+    * specified value)
+    *
+    * @param value Double: A value to fill all numeric na value in the DataFrame with.
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  def setNumericNABlanketFillValue(value: Double): this.type = {
+    _numericNABlanketFillValue = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Mode for na fill<br>
+    *                Available modes: <br>
+    *                  <i>auto</i> : Stats-based na fill for fields.  Usage of .setNumericFillStat and
+    *                  .setCharacterFillStat will inform the type of statistics that will be used to fill.<br>
+    *                  <i>mapFill</i> : Custom by-column overrides to 'blanket fill' na values on a per-column
+    *                  basis.  The categorical (string) fields are set via .setCategoricalNAFillMap while the
+    *                  numeric fields are set via .setNumericNAFillMap.<br>
+    *                  <i>blanketFillAll</i> : Fills all fields based on the values specified by
+    *                  .setCharacterNABlanketFillValue and .setNumericNABlanketFillValue.  All NA's for the
+    *                  appropriate types will be filled in accordingly throughout all columns.<br>
+    *                  <i>blanketFillCharOnly</i> Will use statistics to fill in numeric fields, but will replace
+    *                  all categorical character fields na values with a blanket fill value. <br>
+    *                  <i>blanketFillNumOnly</i> Will use statistics to fill in character fields, but will replace
+    *                  all numeric fields na values with a blanket value.
+    *
+    * @throws IllegalArgumentException if the mods specified is not supported.
+    * @param value String: Mode for NA Fill
+    * @since 0.5.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setNAFillMode(value: String): this.type = {
+    require(
+      _allowableNAFillModes.contains(value),
+      s"NA Fill Mode '$value' is not a supported mode.  Must be one of:" +
+        s"${_allowableNAFillModes.mkString(", ")}"
+    )
+    _naFillMode = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
   def setModelSelectionDistinctThreshold(value: Int): this.type = {
     _modelSelectionDistinctThreshold = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  def cardinalitySwitchOn(): this.type = {
+    _cardinalitySwitchFlag = true
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  def cardinalitySwitchOff(): this.type = {
+    _cardinalitySwitchFlag = false
+    setFillConfig()
+    setConfigs()
+    this
+  }
+  def setCardinalitySwitch(value: Boolean): this.type = {
+    _cardinalitySwitchFlag = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[AssertionError])
+  def setCardinalityType(value: String): this.type = {
+    _cardinalityType = value
+    assert(
+      allowableCardinalilties.contains(value),
+      s"Supplied CardinalityType '$value' is not in: " +
+        s"${allowableCardinalilties.mkString(", ")}"
+    )
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[IllegalArgumentException])
+  def setCardinalityLimit(value: Int): this.type = {
+    require(value > 0, s"Cardinality limit must be greater than 0")
+    _cardinalityLimit = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[IllegalArgumentException])
+  def setCardinalityPrecision(value: Double): this.type = {
+    require(value >= 0.0, s"Precision must be greater than or equal to 0.")
+    require(value <= 1.0, s"Precision must be less than or equal to 1.")
+    _cardinalityPrecision = value
+    setFillConfig()
+    setConfigs()
+    this
+  }
+
+  @throws(classOf[AssertionError])
+  def setCardinalityCheckMode(value: String): this.type = {
+    assert(
+      allowableCategoricalFilterModes.contains(value),
+      s"Supplied CardinalityCheckMode $value is not in: ${allowableCategoricalFilterModes.mkString(", ")}"
+    )
+    _cardinalityCheckMode = value
     setFillConfig()
     setConfigs()
     this
@@ -471,7 +705,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _fillConfig = FillConfig(
       numericFillStat = _numericFillStat,
       characterFillStat = _characterFillStat,
-      modelSelectionDistinctThreshold = _modelSelectionDistinctThreshold
+      modelSelectionDistinctThreshold = _modelSelectionDistinctThreshold,
+      cardinalitySwitch = _cardinalitySwitchFlag,
+      cardinalityType = _cardinalityType,
+      cardinalityLimit = _cardinalityLimit,
+      cardinalityPrecision = _cardinalityPrecision,
+      cardinalityCheckMode = _cardinalityCheckMode,
+      filterPrecision = _naFillFilterPrecision,
+      categoricalNAFillMap = _categoricalNAFillMap,
+      numericNAFillMap = _numericNAFillMap,
+      characterNABlanketFillValue = _characterNABlanketFillValue,
+      numericNABlanketFillValue = _numericNABlanketFillValue,
+      naFillMode = _naFillMode
     )
     this
   }
@@ -736,6 +981,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter - for setting the name of the Synthetic column name
+    *
     * @param value String: A column name that is uniquely not part of the main DataFrame
     * @since 0.5.1
     * @author Ben Wilson
@@ -750,6 +996,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for specifying the number of K-Groups to generate in the KMeans model
+    *
     * @param value Int: number of k groups to generate
     * @return this
     */
@@ -763,6 +1010,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for specifying the maximum number of iterations for the KMeans model to go through to converge
+    *
     * @param value Int: Maximum limit on iterations
     * @return this
     */
@@ -776,6 +1024,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for Setting the tolerance for KMeans (must be >0)
+    *
     * @param value The tolerance value setting for KMeans
     * @see reference: [[http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.clustering.KMeans]]
     *      for further details.
@@ -797,6 +1046,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for which distance measurement to use to calculate the nearness of vectors to a centroid
+    *
     * @param value String: Options -> "euclidean" or "cosine" Default: "euclidean"
     * @return this
     * @throws IllegalArgumentException() if an invalid value is entered
@@ -817,6 +1067,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for a KMeans seed for the clustering algorithm
+    *
     * @param value Long: Seed value
     * @return this
     */
@@ -830,6 +1081,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for the internal KMeans column for cluster membership attribution
+    *
     * @param value String: column name for internal algorithm column for group membership
     * @return this
     */
@@ -843,6 +1095,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for Configuring the number of Hash Tables to use for MinHashLSH
+    *
     * @param value Int: Count of hash tables to use
     * @see [[http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.feature.MinHashLSH]]
     *     for more information
@@ -858,6 +1111,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for Configuring the Seed value for the LSH MinHash model
+    *
     * @param value Long: A Seed value
     * @since 0.5.1
     * @author Ben Wilson
@@ -872,6 +1126,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for the internal LSH output hash information column
+    *
     * @param value String: column name for the internal MinHashLSH Model transformation value
     * @return this
     */
@@ -885,6 +1140,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for how many vectors to find in adjacency to the centroid for generation of synthetic data
+    *
     * @note the higher the value set here, the higher the variance in synthetic data generation
     * @param value Int: Number of vectors to find nearest each centroid within the class
     * @return this
@@ -899,6 +1155,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for minimum threshold for vector indexes to mutate within the feature vector.
+    *
     * @note In vectorMutationMethod "fixed" this sets the fixed count of how many vector positions to mutate.
     *       In vectorMutationMethod "random" this sets the lower threshold for 'at least this many indexes will
     *       be mutated'
@@ -915,6 +1172,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for the Vector Mutation Method
+    *
     * @note Options:
     *       "fixed" - will use the value of minimumVectorCountToMutate to select random indexes of this number of indexes.
     *       "random" - will use this number as a lower bound on a random selection of indexes between this and the vector length.
@@ -939,6 +1197,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for the Mutation Mode of the feature vector individual values
+    *
     * @note Options:
     *       "weighted" - uses weighted averaging to scale the euclidean distance between the centroid vector and mutation candidate vectors
     *       "random" - randomly selects a position on the euclidean vector between the centroid vector and the candidate mutation vectors
@@ -963,6 +1222,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter for specifying the mutation magnitude for the modes 'weighted' and 'ratio' in mutationMode
+    *
     * @param value Double: value between 0 and 1 for mutation magnitude adjustment.
     * @note the higher this value, the closer to the centroid vector vs. the candidate mutation vector the synthetic row data will be.
     * @return this
@@ -983,6 +1243,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter - for determining the label balance approach mode.
+    *
     * @note Available modes: <br>
     *         <i>'match'</i>: Will match all smaller class counts to largest class count.  [WARNING] - May significantly increase memory pressure!<br>
     *         <i>'percentage'</i> Will adjust smaller classes to a percentage value of the largest class count.
@@ -1010,6 +1271,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   /**
     * Setter - for overriding the cardinality threshold exception threshold.  [WARNING] increasing this value on
     * a sufficiently large data set could incur, during runtime, excessive memory and cpu pressure on the cluster.
+    *
     * @param value Int: the limit above which an exception will be thrown for a classification problem wherein the
     *              label distinct count is too large to successfully generate synthetic data.
     * @note Default: 20
@@ -1026,6 +1288,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter - for specifying the percentage ratio for the mode 'percentage' in setLabelBalanceMode()
+    *
     * @param value Double: A fractional double in the range of 0.0 to 1.0.
     * @note Setting this value to 1.0 is equivalent to setting the label balance mode to 'match'
     * @note Default: 0.2
@@ -1049,6 +1312,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   /**
     * Setter - for specifying the target row count to generate for 'target' mode in setLabelBalanceMode()
+    *
     * @param value Int: The desired final number of rows per minority class label
     * @note [WARNING] Setting this value to too high of a number will greatly increase runtime and memory pressure.
     * @since 0.5.1
@@ -1712,6 +1976,28 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def getFieldsToIgnoreInVector: Array[String] = _fieldsToIgnoreInVector
 
+  def getNAFillFilterPrecision: Double = _naFillFilterPrecision
+
+  def getCategoricalNAFillMap: Map[String, String] = _categoricalNAFillMap
+
+  def getNumericNAFillMap: Map[String, AnyVal] = _numericNAFillMap
+
+  def getCharacterNABlanketFillValue: String = _characterNABlanketFillValue
+
+  def getNumericNABlanketFillValue: Double = _numericNABlanketFillValue
+
+  def getNAFillMode: String = _naFillMode
+
+  def getCardinalitySwitch: Boolean = _cardinalitySwitchFlag
+
+  def getCardinalityType: String = _cardinalityType
+
+  def getCardinalityLimit: Int = _cardinalityLimit
+
+  def getCardinalityPrecision: Double = _cardinalityPrecision
+
+  def getCardinalityCheckMode: String = _cardinalityCheckMode
+
   def getModelSelectionDistinctThreshold: Int = _modelSelectionDistinctThreshold
 
   def getFillConfig: FillConfig = _fillConfig
@@ -1907,6 +2193,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     * Helper method for extracting the config from a run's GenericModelReturn payload
     * This is designed to handle "lazy" copy/paste from either stdout or the mlflow ui.
     * The alternative (preferred method of seeding a run start) is to submit a Map() for the run configuration seed.
+    *
     * @param fullModelReturn: String The Generic Model Config of a run, to be used as a starting point for further
     *                       tuning or refinement.
     * @return A Map Object that can be parsed into the requisite case class definition to set a seed for a particular

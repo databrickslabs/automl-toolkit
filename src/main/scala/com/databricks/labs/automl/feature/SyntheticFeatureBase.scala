@@ -6,7 +6,7 @@ trait SyntheticFeatureBase extends KSamplingBase {
     List("match", "percentage", "target")
 
   def defaultCardinalityThreshold: Int = 20
-  def defaultLabelBalanceMode: String = "percentage"
+  def defaultLabelBalanceMode: String = "match"
   def defaultNumericRatio: Double = 0.2
   def defaultNumericTarget: Int = 500
 }
