@@ -570,7 +570,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val finalFullSchema =
       s"Final Full Schema: \n    ${finalStageDF.columns.mkString(", ")}"
 
-    val finalOuputDataFrame =
+    val finalOutputDataFrame1 =
       if (_mainConfig.geneticConfig.trainSplitMethod == "kSample") {
         SyntheticFeatureGenerator(
           finalStageDF,
@@ -599,6 +599,18 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
         )
       } else finalStageDF
 
+    // If scaling is used, make sure that the synthetic data has the same scaling.
+    val finalOutputDataFrame2 = if (_mainConfig.scalingFlag) {
+      val syntheticData = finalOutputDataFrame1.filter(
+        col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      )
+      scaler(syntheticData).union(
+        finalOutputDataFrame1.filter(
+          col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+        )
+      )
+    } else finalOutputDataFrame1
+
     val finalStatement =
       s"Data Prep complete.  Final Dataframe cached. Total Observations: $finalCount"
     // DEBUG
@@ -608,8 +620,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     println(finalStatement)
 
     DataGeneration(
-      finalOuputDataFrame,
-      finalOuputDataFrame.columns,
+      finalOutputDataFrame2,
+      finalOutputDataFrame2.columns,
       detectedModelType
     )
 
