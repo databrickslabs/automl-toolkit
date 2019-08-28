@@ -1,7 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.utils.SchemaUtils
-import org.apache.spark.annotation.Since
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.param.shared.HasInputCols
@@ -21,14 +20,14 @@ class DropColumnsTransformer (override val uid: String)
   override def transform(dataset: Dataset[_]): DataFrame = {
     transformSchema(dataset.schema)
     if(SchemaUtils.isNotEmpty(getInputCols.toList)) {
-      dataset.drop(getInputCols: _*)
+      return dataset.drop(getInputCols: _*)
     }
     dataset.toDF()
   }
 
   override def transformSchema(schema: StructType): StructType = {
     if(SchemaUtils.isNotEmpty(getInputCols.toList)) {
-      StructType(schema.fields.filterNot(field => getInputCols.contains(field.name)))
+      return StructType(schema.fields.filterNot(field => getInputCols.contains(field.name)))
     }
     schema
   }

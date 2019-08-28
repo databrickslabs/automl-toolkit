@@ -14,11 +14,13 @@ class AutoMlOutputDatasetTransformerTest extends AbstractUnitSpec {
     val pipelineAdultDf = new ZipRegisterTempTransformer()
       .setFeatureColumns(featureColumns)
       .setTempViewOriginalDatasetName(tempViewName)
+      .setLabelColumn("label")
       .transform(adultDfwithLabel)
 
     val pipelineOutputDf = new AutoMlOutputDatasetTransformer()
       .setFeatureColumns(featureColumns)
       .setTempViewOriginalDatasetName(tempViewName)
+      .setLabelColumn("label")
       .transform(pipelineAdultDf)
 
     assert(pipelineAdultDf.columns.contains(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL),

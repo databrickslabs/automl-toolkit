@@ -16,7 +16,11 @@ class DateFieldTransformer (override val uid: String)
     with DataValidation
     with HasLabelColumn {
 
-  def this() = this(Identifiable.randomUID("sql"))
+  def this() = {
+    this(Identifiable.randomUID("sql"))
+    setNewDateTimeFeatureColumns(null)
+    setOldDateTimeFeatureColumns(null)
+  }
 
   final val mode: Param[String] = new Param[String](this, "mode", "date/time conversion mode. Possible values 'split' and 'unix'")
 
@@ -57,7 +61,7 @@ class DateFieldTransformer (override val uid: String)
         }
         setParamsIfEmptyInternal(newDateTimeFeatureColumns, columnsConvertedFrom.toArray)
         transformSchema(dataset.schema)
-        dfWithDateTimeTransformedFeatures._1.drop(columnsConvertedFrom:_*)
+        return dfWithDateTimeTransformedFeatures._1.drop(columnsConvertedFrom:_*)
     }
     dataset.toDF()
   }
@@ -72,7 +76,7 @@ class DateFieldTransformer (override val uid: String)
     }
     if(SchemaUtils.isNotEmpty(getNewDateTimeFeatureColumns.toList)) {
       val newFields: Array[StructField] = getNewDateTimeFeatureColumns.map(colName => StructField(colName, IntegerType))
-      StructType(schema.fields.filterNot(field => getOldDateTimeFeatureColumns.contains(field.name))
+      return StructType(schema.fields.filterNot(field => getOldDateTimeFeatureColumns.contains(field.name))
         ++
         newFields)
     }
@@ -81,10 +85,10 @@ class DateFieldTransformer (override val uid: String)
 
   private def setParamsIfEmptyInternal(newDateTimeFeatureColumns: Array[String],
                                        oldDateTimeFeatureColumns: Array[String]): Unit = {
-    if(SchemaUtils.isEmpty(getNewDateTimeFeatureColumns.toList)) {
+    if(SchemaUtils.isEmpty(getNewDateTimeFeatureColumns)) {
       setNewDateTimeFeatureColumns(newDateTimeFeatureColumns)
     }
-    if(SchemaUtils.isEmpty(getOldDateTimeFeatureColumns.toList)) {
+    if(SchemaUtils.isEmpty(getOldDateTimeFeatureColumns)) {
       setOldDateTimeFeatureColumns(oldDateTimeFeatureColumns)
     }
   }

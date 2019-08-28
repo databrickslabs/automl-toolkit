@@ -63,22 +63,22 @@ class VarianceFilterTransformer(override val uid: String)
       val finalFields = preserveColumns.result ++ Array(getLabelColumn)
 
       transformSchema(dataset.schema)
-      dataset.select(finalFields map col:_*).toDF()
+      return dataset.select(finalFields map col:_*).toDF()
 
     } else {
         if(SchemaUtils.isNotEmpty(getPreserveColumns.toList)) {
           val selectFields = getPreserveColumns ++ Array(getLabelColumn)
           transformSchema(dataset.schema)
-          dataset.select(selectFields map col:_*).toDF()
+          return dataset.select(selectFields map col:_*).toDF()
         }
     }
     transformSchema(dataset.schema)
-    dataset.toDF()
+    return dataset.toDF()
   }
 
   override def transformSchema(schema: StructType): StructType = {
     if(SchemaUtils.isNotEmpty(getRemovedColumns.toList)) {
-      StructType(schema.fields.filterNot(field => getRemovedColumns.contains(field.name)))
+      return StructType(schema.fields.filterNot(field => getRemovedColumns.contains(field.name)))
     }
     schema
   }

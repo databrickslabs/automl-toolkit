@@ -104,7 +104,7 @@ object SchemaUtils {
   }
 
 
-  def isEmpty[A](list: List[A]): Boolean = {
+  def isEmpty[A](list: Array[A]): Boolean = {
     list == null || list.isEmpty
   }
 

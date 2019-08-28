@@ -35,17 +35,17 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
       val columnTypes = SchemaUtils.extractTypes(dataset.toDF(), getLabelColumn)
       if(SchemaUtils.isNotEmpty(columnTypes._2)) {
         val columnsToDrop = SchemaUtils.validateCardinality(dataset.toDF(), columnTypes._2).invalidFields
-        if(SchemaUtils.isEmpty(getPrunedColumns.toList)) {
+        if(SchemaUtils.isEmpty(getPrunedColumns)) {
           setPrunedColumns(columnsToDrop.toArray[String])
         }
         transformSchema(dataset.schema)
         setTransformCalculated(true)
-        dataset.drop(columnsToDrop:_*).toDF()
+        return dataset.drop(columnsToDrop:_*).toDF()
       }
     }
     transformSchema(dataset.schema)
     if(SchemaUtils.isNotEmpty(getPrunedColumns.toList)) {
-      dataset.drop(getPrunedColumns:_*).toDF()
+      return dataset.drop(getPrunedColumns:_*).toDF()
     }
     dataset.toDF()
   }
@@ -57,7 +57,7 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
       if(missingCols.nonEmpty) {
         throw new RuntimeException(s"""Following columns are missing: ${missingCols.mkString(", ")}""")
       }
-      StructType(schema.fields.filterNot(field => getPrunedColumns.contains(field.name)))
+      return StructType(schema.fields.filterNot(field => getPrunedColumns.contains(field.name)))
     }
     schema
   }

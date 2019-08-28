@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
+import com.databricks.labs.automl.exceptions.MlFlowValidationException
 import com.databricks.labs.automl.utils.WorkspaceDirectoryValidation
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{BooleanParam, Param, ParamMap}
@@ -43,19 +44,23 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String) extends 
 
   override def transform(dataset: Dataset[_]): DataFrame = {
     if (getMlFlowLoggingFlag) {
-      val dirValidate = WorkspaceDirectoryValidation(
-        getMlFlowTrackingURI,
-        getMlFlowAPIToken,
-        getMlFlowExperimentName
-      )
-      if (dirValidate) {
-        val rgx = "(\\/\\w+$)".r
-        val dir =
-          rgx.replaceFirstIn(getMlFlowExperimentName, "")
-        println(
-          s"MLFlow Logging Directory confirmed accessible at: " +
-            s"$dir"
+      try {
+        val dirValidate = WorkspaceDirectoryValidation(
+          getMlFlowTrackingURI,
+          getMlFlowAPIToken,
+          getMlFlowExperimentName
         )
+        if (dirValidate) {
+          val rgx = "(\\/\\w+$)".r
+          val dir =
+            rgx.replaceFirstIn(getMlFlowExperimentName, "")
+          println(
+            s"MLFlow Logging Directory confirmed accessible at: " +
+              s"$dir"
+          )
+        }
+      } catch {
+        case exception: Exception => throw MlFlowValidationException("Failed to validate MLflow configuration", exception)
       }
     }
     dataset.toDF()

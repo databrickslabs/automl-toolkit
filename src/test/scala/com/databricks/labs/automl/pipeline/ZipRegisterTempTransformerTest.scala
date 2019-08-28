@@ -11,6 +11,7 @@ class ZipRegisterTempTransformerTest extends AbstractUnitSpec {
     val zipRegisterTempTransformer =
       new ZipRegisterTempTransformer()
       .setFeatureColumns(featureColumns)
+      .setLabelColumn("label")
       .setTempViewOriginalDatasetName("zipRegisterTempTransformer")
 
     val transformedAdultDf = zipRegisterTempTransformer.transform(adultDfwithLabel)
