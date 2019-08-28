@@ -99,6 +99,10 @@ object SchemaUtils {
 
   }
 
+  def isNotEmpty[A](list: Array[A]): Boolean = {
+    list != null && list.nonEmpty
+  }
+
   def isNotEmpty[A](list: List[A]): Boolean = {
     list != null && list.nonEmpty
   }
