@@ -3,77 +3,63 @@ package com.databricks.labs.automl.inference
 import com.databricks.labs.automl.params.{MLFlowConfig, ScalingConfig}
 import org.apache.spark.sql.DataFrame
 
-case class InferenceSwitchSettings(
-                                    naFillFlag: Boolean,
-                                    varianceFilterFlag: Boolean,
-                                    outlierFilterFlag: Boolean,
-                                    pearsonFilterFlag: Boolean,
-                                    covarianceFilterFlag: Boolean,
-                                    oneHotEncodeFlag: Boolean,
-                                    scalingFlag: Boolean
-                                  )
+case class InferenceSwitchSettings(naFillFlag: Boolean,
+                                   varianceFilterFlag: Boolean,
+                                   outlierFilterFlag: Boolean,
+                                   pearsonFilterFlag: Boolean,
+                                   covarianceFilterFlag: Boolean,
+                                   oneHotEncodeFlag: Boolean,
+                                   scalingFlag: Boolean)
 
-case class InferenceDataConfig(
-                                labelCol: String,
-                                featuresCol: String,
-                                startingColumns: Array[String],
-                                fieldsToIgnore: Array[String],
-                                dateTimeConversionType: String
-                              )
+case class InferenceDataConfig(labelCol: String,
+                               featuresCol: String,
+                               startingColumns: Array[String],
+                               fieldsToIgnore: Array[String],
+                               dateTimeConversionType: String)
 
-case class InferenceModelConfig(
-                                 modelFamily: String,
-                                 modelType: String,
-                                 modelLoadMethod: String,
-                                 mlFlowConfig: MLFlowConfig,
-                                 mlFlowRunId: String,
-                                 modelPathLocation: String
-                               )
+case class InferenceModelConfig(modelFamily: String,
+                                modelType: String,
+                                modelLoadMethod: String,
+                                mlFlowConfig: MLFlowConfig,
+                                mlFlowRunId: String,
+                                modelPathLocation: String)
 
-case class NaFillConfig(
-                         categoricalColumns: Map[String, String],
-                         numericColumns: Map[String, Double]
-                       )
+case class NaFillConfig(categoricalColumns: Map[String, String],
+                        numericColumns: Map[String, Double])
 
-case class VarianceFilterConfig(
-                                 fieldsRemoved: Array[String]
-                               )
+case class NaFillPayload(categorical: Array[(String, Any)],
+                         numeric: Array[(String, Any)])
+
+case class VarianceFilterConfig(fieldsRemoved: Array[String])
 
 case class OutlierFilteringConfig(
-                                   fieldRemovalMap: Map[String, (Double, String)]
-                                 )
+  fieldRemovalMap: Map[String, (Double, String)]
+)
 
-case class CovarianceFilteringConfig(
-                                      fieldsRemoved: Array[String]
-                                    )
+case class CovarianceFilteringConfig(fieldsRemoved: Array[String])
 
-case class PearsonFilteringConfig(
-                                   fieldsRemoved: Array[String]
-                                 )
+case class PearsonFilteringConfig(fieldsRemoved: Array[String])
 
 case class FeatureEngineeringConfig(
-                                     naFillConfig: NaFillConfig,
-                                     varianceFilterConfig: VarianceFilterConfig,
-                                     outlierFilteringConfig: OutlierFilteringConfig,
-                                     covarianceFilteringConfig: CovarianceFilteringConfig,
-                                     pearsonFilteringConfig: PearsonFilteringConfig,
-                                     scalingConfig: ScalingConfig
-                                   )
+  naFillConfig: NaFillConfig,
+  varianceFilterConfig: VarianceFilterConfig,
+  outlierFilteringConfig: OutlierFilteringConfig,
+  covarianceFilteringConfig: CovarianceFilteringConfig,
+  pearsonFilteringConfig: PearsonFilteringConfig,
+  scalingConfig: ScalingConfig
+)
 
 case class InferenceMainConfig(
-                                inferenceDataConfig: InferenceDataConfig,
-                                inferenceSwitchSettings: InferenceSwitchSettings,
-                                inferenceModelConfig: InferenceModelConfig,
-                                featureEngineeringConfig: FeatureEngineeringConfig,
-                                inferenceConfigStorageLocation: String
-                              )
+  inferenceDataConfig: InferenceDataConfig,
+  inferenceSwitchSettings: InferenceSwitchSettings,
+  inferenceModelConfig: InferenceModelConfig,
+  featureEngineeringConfig: FeatureEngineeringConfig,
+  inferenceConfigStorageLocation: String
+)
 
-case class InferenceJsonReturn(
-                                compactJson: String,
-                                prettyJson: String
-                              )
+case class InferenceJsonReturn(compactJson: String, prettyJson: String)
 
-trait InferenceBaseConstructor{
+trait InferenceBaseConstructor {
   def data: DataFrame
   def modelingColumns: Array[String]
   def allColumns: Array[String]

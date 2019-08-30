@@ -108,15 +108,25 @@ class SyntheticFeatureGenerator(data: DataFrame)
     * @param max The most frequently occurring label
     * @param rest The remaining labels
     * @return Array[RowGenerationConfig] to supply the candidate target numbers for KSampling
+    * @throws RuntimeException if the configuration will not result in any KSampling synthetic rows to be generated.
     * @since 0.5.1
     * @author Ben Wilson
     */
+  @throws(classOf[RuntimeException])
   def percentageTargets(
     max: CardinalityPayload,
     rest: Array[CardinalityPayload]
   ): Array[RowGenerationConfig] = {
 
     val targetValue = max.labelCounts
+
+    if (rest.last.labelCounts > math.floor(targetValue * _numericRatio).toInt)
+      throw new RuntimeException(
+        s"The ratio target of label counts for the smallest minority class ${rest.last.labelValue} (count: " +
+          s"${rest.last.labelCounts}) is already above the target" +
+          s"threshold value of ${math.floor(targetValue * _numericRatio).toInt}.  " +
+          s"Revisit the configuration settings made in setNumericRatio() for KSampling Configuration."
+      )
 
     rest
       .map { x =>
@@ -137,6 +147,7 @@ class SyntheticFeatureGenerator(data: DataFrame)
     * @param max The most frequently occurring label
     * @param rest The remaining labels
     * @return Array[RowGenerationConfig] to supply the candidate target numbers for KSampling
+    * @throws RuntimeException if the configuration will not result in any KSampling synthetic rows to be generated.
     * @since 0.5.1
     * @author Ben Wilson
     */
@@ -144,6 +155,14 @@ class SyntheticFeatureGenerator(data: DataFrame)
     max: CardinalityPayload,
     rest: Array[CardinalityPayload]
   ): Array[RowGenerationConfig] = {
+
+    if (rest.last.labelCounts > _numericTarget)
+      throw new RuntimeException(
+        s"The target value of label counts ${_numericTarget} for KSampling class label target match" +
+          s"for the smallest minority class ${rest.last.labelValue} (count: ${rest.last.labelCounts})is " +
+          s"already above the target value.  Revisit the settings made in " +
+          s"setNumericTarget(). "
+      )
 
     rest
       .filterNot(x => x.labelCounts > _numericTarget)
