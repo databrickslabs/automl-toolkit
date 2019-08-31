@@ -192,9 +192,9 @@ object FeatureEngineeringPipelineContext {
     None
   }
 
-  //TODO: find elegant way to merge PipelineModels
   private def mergePipelineModels(pipelineModels: ArrayBuffer[PipelineModel]): PipelineModel = {
-    pipelineModels(0)
+//    SparkUtil.createPipelineModel(UUID.randomUUID().toString, pipelineModels.flatMap(item => item.stages).toArray)
+null
 //    new PipelineModel(pipelineModels.flatMap(item => item.stages))
   }
 
