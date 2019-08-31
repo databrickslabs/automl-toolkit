@@ -34,7 +34,6 @@ case class MainConfig(modelFamily: String,
                       dataReductionFactor: Double,
                       inputFeatures: Array[String] = Array.empty)
 
-// TODO: Change MainConfig to use this case class definition.
 case class DataPrepConfig(naFillFlag: Boolean,
                           varianceFilterFlag: Boolean,
                           outlierFilterFlag: Boolean,
@@ -52,7 +51,18 @@ case class MLFlowConfig(mlFlowTrackingURI: String,
 
 case class FillConfig(numericFillStat: String,
                       characterFillStat: String,
-                      modelSelectionDistinctThreshold: Int)
+                      modelSelectionDistinctThreshold: Int,
+                      cardinalitySwitch: Boolean,
+                      cardinalityType: String,
+                      cardinalityLimit: Int,
+                      cardinalityPrecision: Double,
+                      cardinalityCheckMode: String,
+                      filterPrecision: Double,
+                      categoricalNAFillMap: Map[String, String],
+                      numericNAFillMap: Map[String, AnyVal],
+                      characterNABlanketFillValue: String,
+                      numericNABlanketFillValue: Double,
+                      naFillMode: String)
 
 case class OutlierConfig(filterBounds: String,
                          lowerFilterNTile: Double,
