@@ -2,9 +2,12 @@ package com.databricks.labs.automl.pipeline
 
 import java.util.UUID
 
+import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, StringFeatureConversionException, TimeFeatureConversionException}
 import com.databricks.labs.automl.params.MainConfig
 import com.databricks.labs.automl.utils.SchemaUtils
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import org.apache.spark.ml.mleap.SparkUtil
+import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
 
@@ -15,7 +18,7 @@ object FeatureEngineeringPipelineContext {
   def generatePipelineModel(originalInputDataset: DataFrame,
                        mainConfig: MainConfig): PipelineModel = {
 
-    val originalDfTempTableName = UUID.randomUUID().toString
+    val originalDfTempTableName = Identifiable.randomUID("zipWithId")
 
     val initialpipelineModels = new ArrayBuffer[PipelineModel]
 
@@ -31,25 +34,25 @@ object FeatureEngineeringPipelineContext {
 
     val stages = new ArrayBuffer[PipelineStage]()
     // Third Transformation: Fill with Na
-    stages += getStage(fillNaStage(mainConfig))
+    getAndAddStage(stages, fillNaStage(mainConfig))
 
     // Fourth Transformation: Apply Variance filter
-    stages += getStage(varianceFilterStage(mainConfig))
+    getAndAddStage(stages, varianceFilterStage(mainConfig))
 
     // Fifth Transformation: Apply Outlier Filtering
-    stages += getStage(outlierFilterStage(mainConfig))
+    getAndAddStage(stages, outlierFilterStage(mainConfig))
 
     // Sixth Transformation: Apply Covariance Filtering
-    stages += getStage(covarianceFilteringStage(mainConfig))
+    getAndAddStage(stages, covarianceFilteringStage(mainConfig))
 
     //Seventh Tranformation: Apply Pearson Filtering
-    stages += getStage(pearsonFilteringStage(mainConfig))
+    getAndAddStage(stages, pearsonFilteringStage(mainConfig))
 
     // Apply OneHotEncoding Options
-    stages += getStage(oneHotEncodingStage(mainConfig))
+    getAndAddStage(stages, oneHotEncodingStage(mainConfig))
 
     // Apply Scaler option
-    stages += getStage(scalerStage(mainConfig))
+    getAndAddStage(stages, scalerStage(mainConfig))
 
 
     mergePipelineModels(initialpipelineModels += new Pipeline().setStages(stages.toArray).fit(secondTransformationDf))
@@ -107,18 +110,28 @@ object FeatureEngineeringPipelineContext {
   private def applyStngIndxVectAssembler(dataFrame: DataFrame,
                                   mainConfig: MainConfig,
                                   originalDfTempTableName: String): PipelineModel = {
-    val fieldsToBeIndexed = SchemaUtils.extractTypes(dataFrame, mainConfig.labelCol)._2
+    val fields = SchemaUtils.extractTypes(dataFrame, mainConfig.labelCol)
+    val stringFields = fields._2
+    val vectorizableFields = fields._1.toArray
+    val dateFields = fields._3.toArray
+    val timeFields = fields._4.toArray
+
+    //Validate date and time fields are empty at this point
+    validateDateAndTimeFeatures(dateFields, timeFields)
+
     val stages = new ArrayBuffer[PipelineStage]
-    fieldsToBeIndexed.foreach(columnName => {
+    stringFields.foreach(columnName => {
       stages += new StringIndexer()
         .setInputCol(columnName)
         .setOutputCol(SchemaUtils.generateStringIndexedColumn(columnName))
         .setHandleInvalid("keep")
     }
     )
-    stages += new DropColumnsTransformer().setInputCols(fieldsToBeIndexed.toArray)
+    stages += new DropColumnsTransformer().setInputCols(stringFields.toArray)
 
-    val featureAssemblerInputCols = fieldsToBeIndexed.map(item => SchemaUtils.generateStringIndexedColumn(item)).toArray
+    val featureAssemblerInputCols: Array[String] = stringFields
+      .map(item => SchemaUtils.generateStringIndexedColumn(item))
+      .toArray[String] ++ vectorizableFields
 
     stages += new VectorAssembler()
       .setInputCols(featureAssemblerInputCols)
@@ -129,8 +142,20 @@ object FeatureEngineeringPipelineContext {
     new Pipeline().setStages(stages.toArray).fit(dataFrame)
   }
 
+  private def validateDateAndTimeFeatures(dateFields: Array[String],
+                             timeFields: Array[String]): Unit = {
+    throwFieldConversionException(dateFields, classOf[DateFeatureConversionException])
+    throwFieldConversionException(timeFields, classOf[TimeFeatureConversionException])
+  }
+
+  private def throwFieldConversionException(fields: Array[_ <: String],
+                                            clazz: Class[_ <:FeatureConversionException]): Unit = {
+    if(SchemaUtils.isNotEmpty(fields)) {
+      throw clazz.getConstructor(classOf[Array[String]]).newInstance(fields)
+    }
+  }
+
   private def fillNaStage(mainConfig: MainConfig): Option[PipelineStage] = {
-    if(mainConfig.naFillFlag) {
      val dataSanitizerTransformer = new DataSanitizerTransformer()
         .setLabelColumn(mainConfig.labelCol)
         .setFeatureCol(mainConfig.featuresCol)
@@ -140,15 +165,21 @@ object FeatureEngineeringPipelineContext {
         .setNumericFillStat(mainConfig.fillConfig.numericFillStat)
         .setCharacterFillStat(mainConfig.fillConfig.characterFillStat)
         .setParallelism(mainConfig.geneticConfig.parallelism)
-
-      return Some(dataSanitizerTransformer)
-    }
-    None
+       .setCategoricalNAFillMap(mainConfig.fillConfig.categoricalNAFillMap)
+       .setNumericNAFillMap(mainConfig.fillConfig.numericNAFillMap.asInstanceOf[Map[String, Double]])
+       .setFillMode(mainConfig.fillConfig.naFillMode)
+       .setFilterPrecision(mainConfig.fillConfig.filterPrecision)
+       .setNumericNABlanketFill(mainConfig.fillConfig.numericNABlanketFillValue)
+       .setCharacterNABlanketFill(mainConfig.fillConfig.characterNABlanketFillValue)
+       .setNaFillFlag(mainConfig.naFillFlag)
+    Some(dataSanitizerTransformer)
   }
 
   private def varianceFilterStage(mainConfig: MainConfig): Option[PipelineStage] = {
     if(mainConfig.varianceFilterFlag) {
       val varianceFilterTransformer = new VarianceFilterTransformer()
+        .setLabelColumn(mainConfig.labelCol)
+        .setFeatureCol(mainConfig.featuresCol)
       return Some(varianceFilterTransformer)
     }
     None
@@ -157,6 +188,13 @@ object FeatureEngineeringPipelineContext {
   private def outlierFilterStage(mainConfig: MainConfig): Option[PipelineStage] = {
     if(mainConfig.outlierFilterFlag) {
       val outlierFilterTransformer = new OutlierFilterTransformer()
+        .setFilterBounds(mainConfig.outlierConfig.filterBounds)
+        .setLowerFilterNTile(mainConfig.outlierConfig.lowerFilterNTile)
+        .setUpperFilterNTile(mainConfig.outlierConfig.upperFilterNTile)
+        .setFilterPrecision(mainConfig.outlierConfig.filterPrecision)
+        .setContinuousDataThreshold(mainConfig.outlierConfig.continuousDataThreshold)
+        .setParallelism(mainConfig.geneticConfig.parallelism)
+        .setFieldsToIgnore(Array.empty)
       return Some(outlierFilterTransformer)
     }
     None
@@ -193,13 +231,15 @@ object FeatureEngineeringPipelineContext {
   }
 
   private def mergePipelineModels(pipelineModels: ArrayBuffer[PipelineModel]): PipelineModel = {
-//    SparkUtil.createPipelineModel(UUID.randomUUID().toString, pipelineModels.flatMap(item => item.stages).toArray)
-null
+    SparkUtil.createPipelineModel(UUID.randomUUID().toString, pipelineModels.flatMap(item => item.stages).toArray)
+//null
 //    new PipelineModel(pipelineModels.flatMap(item => item.stages))
   }
 
-  def getStage[T](value: Option[T]): T = {
-    value.filterNot(_.isInstanceOf[T]).get
+  def getAndAddStage[T](stages: ArrayBuffer[PipelineStage], value: Option[_ <: PipelineStage]): Unit = {
+    if(value.isDefined) {
+      stages += value.get
+    }
   }
 }
 

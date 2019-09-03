@@ -1,15 +1,15 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.sanitize.PearsonFiltering
+import com.databricks.labs.automl.utils.AutoMlPipelineUtils
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 class PearsonFilterTransformer(override val uid: String)
-  extends Transformer
+  extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasFeatureColumn
@@ -19,7 +19,12 @@ class PearsonFilterTransformer(override val uid: String)
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  def this() = this(Identifiable.randomUID("PearsonFilterTransformer"))
+  def this() = {
+    this(Identifiable.randomUID("PearsonFilterTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setFieldsRemoved(Array.empty)
+    setTransformCalculated(false)
+  }
 
   final val filterStatistic: Param[String] = new Param[String](this, "filterStatistic", "filterStatistic")
 
@@ -53,10 +58,10 @@ class PearsonFilterTransformer(override val uid: String)
   def getAutoFilterNTile: Double = $(autoFilterNTile)
 
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
 
     if(!getTransformCalculated) {
-      // Requires a Dataframe that has a feature vector field.  Output has no feature vector.
+      // Requires a DataFrame that has a feature vector field.  Output has no feature vector.
       val pearsonFiltering = new PearsonFiltering(dataset.toDF(), getFeatureColumns)
         .setLabelCol(getLabelColumn)
         .setFeaturesCol(getFeatureCol)
@@ -65,9 +70,10 @@ class PearsonFilterTransformer(override val uid: String)
         .setFilterManualValue(getFilterManualValue)
         .setFilterMode(getFilterMode)
         .setAutoFilterNTile(getAutoFilterNTile)
-        .filterFields()
+        .filterFields(Array(getAutomlInternalId))
 
-      val removedFields = dataset.columns.filterNot(field => pearsonFiltering.schema.fieldNames.contains(field))
+      val removedFields = getFeatureColumns
+        .filterNot(field => pearsonFiltering.schema.fieldNames.contains(field))
 
       val pearsonFilterLog =
         s"Pearson Filtering completed.\n Removed fields: ${removedFields.mkString(", ")}"
@@ -76,15 +82,13 @@ class PearsonFilterTransformer(override val uid: String)
 
       setFieldsRemoved(removedFields)
       setTransformCalculated(true)
-      transformSchema(dataset.schema)
       pearsonFiltering
     } else {
-      transformSchema(dataset.schema)
       dataset.drop(getFieldsRemoved:_*)
     }
   }
 
-  override def transformSchema(schema: StructType): StructType = {
+  override def transformSchemaInternal(schema: StructType): StructType = {
     StructType(schema.fields.filterNot(field => getFieldsRemoved.contains(field.name)))
   }
 

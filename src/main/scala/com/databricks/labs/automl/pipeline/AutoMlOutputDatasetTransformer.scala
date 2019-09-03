@@ -8,12 +8,15 @@ import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.apache.spark.sql.types.{LongType, StructField, StructType}
 
 class AutoMlOutputDatasetTransformer (override val uid: String)
-  extends Transformer
+  extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasFeaturesColumns {
 
-  def this() = this(Identifiable.randomUID("AutoMlOutputDatasetTransformer"))
+  def this() = {
+    this(Identifiable.randomUID("AutoMlOutputDatasetTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+  }
 
   final val tempViewOriginalDatasetName: Param[String] = new Param[String](this, "tempViewOriginalDatasetName", "Temp table name")
 
@@ -21,8 +24,7 @@ class AutoMlOutputDatasetTransformer (override val uid: String)
 
   def getTempViewOriginalDatasetName: String = $(tempViewOriginalDatasetName)
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
-    transformSchema(dataset.schema, logging = true)
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val originalUserDf =  dataset.sqlContext.sql(s"select * from $getTempViewOriginalDatasetName")
     val userViewDf = dataset
       .drop(getFeatureColumns:_*)
@@ -32,13 +34,16 @@ class AutoMlOutputDatasetTransformer (override val uid: String)
     userViewDf.toDF()
   }
 
-  override def transformSchema(schema: StructType): StructType = {
+  override def transformSchemaInternal(schema: StructType): StructType = {
     val spark = SparkSession.builder().getOrCreate()
-    val originalDfSchema = spark.sql(s"select * from $getTempViewOriginalDatasetName").schema
-    StructType(
-      schema.fields.filterNot(field => AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL.equals(field.name))
-        ++
-        originalDfSchema.fields.filterNot(field => getFeatureColumns.contains(field.name)))
+    if(spark.catalog.tableExists(getTempViewOriginalDatasetName)) {
+      val originalDfSchema = spark.sql(s"select * from $getTempViewOriginalDatasetName").schema
+      return StructType(
+        schema.fields.filterNot(field => AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL.equals(field.name))
+          ++
+          originalDfSchema.fields.filterNot(field => getFeatureColumns.contains(field.name)))
+    }
+    schema
   }
 
   override def copy(extra: ParamMap): AutoMlOutputDatasetTransformer = defaultCopy(extra)

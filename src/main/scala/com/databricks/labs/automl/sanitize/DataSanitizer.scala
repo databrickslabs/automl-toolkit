@@ -2,6 +2,7 @@ package com.databricks.labs.automl.sanitize
 
 import com.databricks.labs.automl.inference.{NaFillConfig, NaFillPayload}
 import com.databricks.labs.automl.utils.DataValidation
+import org.apache.spark.ml.PipelineStage
 import org.apache.spark.ml.feature.StringIndexer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -164,15 +165,19 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private def convertLabel(df: DataFrame): DataFrame = {
 
-    val stringIndexer = new StringIndexer()
-      .setInputCol(this._labelCol)
-      .setOutputCol(this._labelCol + "_si")
+    val stringIndexer = getLabelIndexer(df)
 
     stringIndexer
       .fit(data)
       .transform(data)
       .withColumn(this._labelCol, col(s"${this._labelCol}_si"))
       .drop(this._labelCol + "_si")
+  }
+
+  def getLabelIndexer(df: DataFrame): StringIndexer = {
+    new StringIndexer()
+      .setInputCol(this._labelCol)
+      .setOutputCol(this._labelCol + "_si")
   }
 
   private def refactorLabel(df: DataFrame, labelColumn: String): DataFrame = {
@@ -560,11 +565,19 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     decision
   }
 
-  def generateCleanData(): (DataFrame, NaFillConfig, String) = {
+  def generateCleanData(naFillConfig: NaFillConfig = null, refactorLabelFlag: Boolean = true): (DataFrame, NaFillConfig, String) = {
 
-    val preFilter = refactorLabel(data, _labelCol)
+    val preFilter = if(refactorLabelFlag) {
+      refactorLabel(data, _labelCol)
+    } else {
+      data
+    }
 
-    val fillMap = fillNA(preFilter)
+    val fillMap = if(naFillConfig==null){
+      fillNA(preFilter)
+    } else {
+      naFillConfig
+    }
     val filledData = preFilter.na
       .fill(fillMap.numericColumns)
       .na

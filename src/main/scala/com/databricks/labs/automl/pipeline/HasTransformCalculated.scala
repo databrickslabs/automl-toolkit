@@ -4,7 +4,7 @@ import org.apache.spark.ml.param.{BooleanParam, Params}
 
 trait HasTransformCalculated extends Params {
 
-  final val transformCalculated: BooleanParam = new BooleanParam(this, "varianceCalculated", "Flag to help for predict pipeline to avoid calculating variance again")
+  final val transformCalculated: BooleanParam = new BooleanParam(this, "transformCalculated", "Flag to help for predict pipeline to avoid calculating estimators again")
 
   def setTransformCalculated(value: Boolean): this.type = set(transformCalculated, value)
 

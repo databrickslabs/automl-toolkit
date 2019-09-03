@@ -1,20 +1,22 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.utils.AutoMlPipelineUtils
-import org.apache.spark.ml.Transformer
-import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
+import org.apache.spark.ml.param.{Param, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{LongType, StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 class ZipRegisterTempTransformer(override val uid: String)
-  extends Transformer
+  extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasFeaturesColumns {
 
-  def this() = this(Identifiable.randomUID("ZipRegisterTempTransformer"))
+  def this() = {
+    this(Identifiable.randomUID("ZipRegisterTempTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+  }
 
   final val tempViewOriginalDatasetName: Param[String] = new Param[String](this, "tempViewOriginalDatasetName", "Temp table name")
 
@@ -23,8 +25,7 @@ class ZipRegisterTempTransformer(override val uid: String)
   def getTempViewOriginalDatasetName: String = $(tempViewOriginalDatasetName)
 
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
-    transformSchema(dataset.schema, logging = true)
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val dfWithId = dataset
       .withColumn(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, monotonically_increasing_id())
 
@@ -37,7 +38,7 @@ class ZipRegisterTempTransformer(override val uid: String)
     dfWithId.select(colsToSelect:_*)
   }
 
-  override def transformSchema(schema: StructType): StructType = {
+  override def transformSchemaInternal(schema: StructType): StructType = {
     StructType(schema.fields.filter(field => $(featureColumns).contains(field.name))
       :+
       StructField(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false)

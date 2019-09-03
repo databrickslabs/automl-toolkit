@@ -1,23 +1,24 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.{DataValidation, SchemaUtils}
-import org.apache.spark.ml.Transformer
+import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, DataValidation, SchemaUtils}
 import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
+import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
 
 
 class DateFieldTransformer (override val uid: String)
-  extends Transformer
+  extends AbstractTransformer
     with DefaultParamsWritable
     with DataValidation
     with HasLabelColumn {
 
   def this() = {
-    this(Identifiable.randomUID("sql"))
+    this(Identifiable.randomUID("DateFieldTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     setNewDateTimeFeatureColumns(null)
     setOldDateTimeFeatureColumns(null)
   }
@@ -46,8 +47,8 @@ class DateFieldTransformer (override val uid: String)
 
   def getOldDateTimeFeatureColumns: Array[String] = $(oldDateTimeFeatureColumns)
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
-    val columnTypes = SchemaUtils.extractTypes(dataset.toDF(), getLabelColumn)
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
+    val columnTypes = SchemaUtils.extractTypes(dataset.select(dataset.columns.filterNot(item => getAutomlInternalId.equals(item)) map col :_*), getLabelColumn)
     if(columnTypes != null &&
       (SchemaUtils.isNotEmpty(columnTypes._3) || SchemaUtils.isNotEmpty(columnTypes._4))) {
         val dfWithDateTimeTransformedFeatures = convertDateAndTime(dataset.toDF(), columnTypes._3, columnTypes._4, getMode)
@@ -60,21 +61,20 @@ class DateFieldTransformer (override val uid: String)
           columnsConvertedFrom ++= columnTypes._4
         }
         setParamsIfEmptyInternal(newDateTimeFeatureColumns, columnsConvertedFrom.toArray)
-        transformSchema(dataset.schema)
         return dfWithDateTimeTransformedFeatures._1.drop(columnsConvertedFrom:_*)
     }
     dataset.toDF()
   }
 
-  override def transformSchema(schema: StructType): StructType = {
-    if(SchemaUtils.isNotEmpty(getOldDateTimeFeatureColumns.toList)) {
+  override def transformSchemaInternal(schema: StructType): StructType = {
+    if(SchemaUtils.isNotEmpty(getOldDateTimeFeatureColumns)) {
       val allCols = schema.fields.map(field => field.name)
       val missingDateTimeCols = getOldDateTimeFeatureColumns.filterNot(name => allCols.contains(name))
       if(missingDateTimeCols.nonEmpty) {
         throw new RuntimeException(s"""Following columns are missing: ${missingDateTimeCols.mkString(", ")}""")
       }
     }
-    if(SchemaUtils.isNotEmpty(getNewDateTimeFeatureColumns.toList)) {
+    if(SchemaUtils.isNotEmpty(getNewDateTimeFeatureColumns)) {
       val newFields: Array[StructField] = getNewDateTimeFeatureColumns.map(colName => StructField(colName, IntegerType))
       return StructType(schema.fields.filterNot(field => getOldDateTimeFeatureColumns.contains(field.name))
         ++

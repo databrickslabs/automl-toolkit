@@ -4,10 +4,17 @@ import java.util.UUID
 
 import com.databricks.labs.automl.inference.InferencePayload
 import com.databricks.labs.automl.params.ConfusionOutput
+import com.databricks.labs.automl.pipeline.{DropColumnsTransformer, ZipRegisterTempTransformer}
+import com.databricks.labs.automl.utils.SchemaUtils
+import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.junit.runner.RunWith
 import org.scalatest._
+
+import scala.collection.mutable.ArrayBuffer
 
 @RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 abstract class AbstractUnitSpec
@@ -218,6 +225,95 @@ object AutomationUnitTestsUtil {
       .setFeatureImportanceCutoffValue(10.0)
       .setEvolutionStrategy(evolutionStrategy)
       .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+  }
+
+  def getProjectDir(): String = {
+    System.getProperty("user.dir")
+  }
+}
+
+case class TestVars(df: DataFrame,
+                    features: Array[String],
+                    tempTableName: String,
+                    labelCol: String,
+                    featuresCol: String = "features")
+
+object PipelineTestUtils {
+
+  def getTestVars(): TestVars = {
+    TestVars(
+      AutomationUnitTestsUtil.getAdultDf(),
+      Array("age_trimmed","workclass_trimmed","fnlwgt_trimmed"),
+      "zipRegisterTempTransformer_1",
+      "label"
+    )
+  }
+
+  def addZipRegisterTmpTransformerStage(labelCol: String, featuresCol: Array[String]): PipelineStage = {
+    new ZipRegisterTempTransformer()
+      .setTempViewOriginalDatasetName(Identifiable.randomUID("zipWithId"))
+      .setLabelColumn(labelCol)
+      .setFeatureColumns(featuresCol)
+  }
+
+  def buildFeaturesPipelineStages(df: DataFrame,
+                                  labelCol: String,
+                                  dropColumns: Boolean = true,
+                                  ignoreCols: Array[String] = Array.empty): Array[_ <: PipelineStage] = {
+
+    val fields = SchemaUtils.extractTypes(df.select(df.columns.filterNot(item => ignoreCols.contains(item)).map(col):_*), labelCol)
+    val stringFields = fields._2
+    val vectorizableFields = fields._1.toArray
+    val dateFields = fields._3.toArray
+    val timeFields = fields._4.toArray
+
+    val stages = new ArrayBuffer[PipelineStage]
+
+    stringFields.foreach(columnName => {
+        stages += new StringIndexer()
+          .setInputCol(columnName)
+          .setOutputCol(SchemaUtils.generateStringIndexedColumn(columnName))
+          .setHandleInvalid("keep")
+      }
+    )
+
+    stages += new DropColumnsTransformer().setInputCols(stringFields.toArray)
+
+    val featureAssemblerInputCols: Array[String] = stringFields
+      .map(item => SchemaUtils.generateStringIndexedColumn(item))
+      .toArray[String] ++ vectorizableFields
+
+    stages += new VectorAssembler()
+      .setInputCols(featureAssemblerInputCols)
+      .setOutputCol("features")
+
+    if(dropColumns) {
+      stages += new DropColumnsTransformer().setInputCols(featureAssemblerInputCols)
+    }
+
+    stages.toArray
+  }
+
+  def saveAndLoadPipeline(stages: Array[_ <: PipelineStage],
+                          dataFrame: DataFrame,
+                          pipelineName: String): PipelineModel = {
+    val pipelineSavePath = AutomationUnitTestsUtil.getProjectDir() + "/target/pipeline-tests/" + pipelineName
+    val pipelineModel = new Pipeline().setStages(stages).fit(dataFrame)
+    pipelineModel.transform(dataFrame)
+    pipelineModel.write.overwrite().save(pipelineSavePath)
+    PipelineModel.load(pipelineSavePath)
+  }
+
+  def getVectorizedFeatures(df: DataFrame, labelCol: String, ignoreCols: Array[String]): Array[String] = {
+    val fields = SchemaUtils.extractTypes(df.select(df.columns.filterNot(item => ignoreCols.contains(item)) map col:_*), labelCol)
+    val stringFields = fields._2
+    val vectorizableFields = fields._1.toArray
+    val dateFields = fields._3.toArray
+    val timeFields = fields._4.toArray
+
+    stringFields
+      .map(item => SchemaUtils.generateStringIndexedColumn(item))
+      .toArray[String] ++ vectorizableFields
   }
 
 }

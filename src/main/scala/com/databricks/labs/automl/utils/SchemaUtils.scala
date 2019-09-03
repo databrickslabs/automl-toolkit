@@ -4,6 +4,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{DataType, StructType}
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
@@ -114,6 +115,16 @@ object SchemaUtils {
 
   def generateStringIndexedColumn(columnName: String): String = {
     columnName + "_si"
+  }
+
+  def generateMapFromKeysValues[T](keys: Array[String],
+                                values: Array[T]): Map[String, T] = {
+    assert(keys.length == values.length, "Keys and Values lists cannot be different in size")
+    var map = mutable.Map[String, T] ()
+    for((key, i) <- keys.view.zipWithIndex) {
+      map += (key -> values(i))
+    }
+    map.toMap
   }
 
 

@@ -1,19 +1,24 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.SchemaUtils
-import org.apache.spark.ml.Transformer
-import org.apache.spark.ml.param.{IntParam, Param, ParamMap, StringArrayParam}
+import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
+import org.apache.spark.ml.param.{IntParam, ParamMap, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 class CardinalityLimitColumnPrunerTransformer(override val uid: String)
-  extends Transformer
+  extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasTransformCalculated {
 
-  def this() = this(Identifiable.randomUID("CardinalityLimitColumnPrunerTransformer"))
+  def this() = {
+    this(Identifiable.randomUID("CardinalityLimitColumnPrunerTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setCardinalityLimit(500)
+    setTransformCalculated(false)
+    setPrunedColumns(null)
+  }
 
   final val cardinalityLimit: IntParam = new IntParam(
     this, "cardinalityLimit",
@@ -30,27 +35,25 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
   def getPrunedColumns: Array[String] = $(prunedColumns)
 
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if(!getTransformCalculated) {
       val columnTypes = SchemaUtils.extractTypes(dataset.toDF(), getLabelColumn)
       if(SchemaUtils.isNotEmpty(columnTypes._2)) {
-        val columnsToDrop = SchemaUtils.validateCardinality(dataset.toDF(), columnTypes._2).invalidFields
+        val columnsToDrop = SchemaUtils.validateCardinality(dataset.toDF(), columnTypes._2, getCardinalityLimit).invalidFields
         if(SchemaUtils.isEmpty(getPrunedColumns)) {
           setPrunedColumns(columnsToDrop.toArray[String])
         }
-        transformSchema(dataset.schema)
         setTransformCalculated(true)
         return dataset.drop(columnsToDrop:_*).toDF()
       }
     }
-    transformSchema(dataset.schema)
     if(SchemaUtils.isNotEmpty(getPrunedColumns.toList)) {
       return dataset.drop(getPrunedColumns:_*).toDF()
     }
     dataset.toDF()
   }
 
-  override def transformSchema(schema: StructType): StructType = {
+  override def transformSchemaInternal(schema: StructType): StructType = {
     if(SchemaUtils.isNotEmpty(getPrunedColumns.toList)) {
       val allCols = schema.fields.map(field => field.name)
       val missingCols = getPrunedColumns.filterNot(colName => allCols.contains(colName))

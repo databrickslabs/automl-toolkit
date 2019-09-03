@@ -2,7 +2,7 @@ package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.inference.NaFillConfig
 import com.databricks.labs.automl.sanitize.DataSanitizer
-import org.apache.spark.ml.Transformer
+import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
@@ -10,7 +10,7 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 
 
 class DataSanitizerTransformer(override val uid: String)
-  extends Transformer
+  extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasFeatureColumn {
@@ -21,9 +21,21 @@ class DataSanitizerTransformer(override val uid: String)
   final val filterPrecision: DoubleParam = new DoubleParam(this, "filterPrecision", "Filter precision")
   final val parallelism: IntParam = new IntParam(this, "parallelism", "filter parallelism")
   final val naFillFlag: BooleanParam = new BooleanParam(this, "naFillFlag", "Na Fill flag")
-  final val categoricalColumns = new Param[Map[String, String]](this, "categoricalColumns", "Categorical Columns")
-  final val numericColumns = new Param[Map[String, Double]](this, "numericColumns", "Numeric Columns")
+  final val categoricalColumnNames = new StringArrayParam(this, "categoricalColumnNames", "Categorical Columns")
+  final val categoricalColumnValues = new StringArrayParam(this, "categoricalColumnValues", "Categorical Columns' Values")
+  final val numericColumnNames = new StringArrayParam(this, "numericColumnNames", "Numeric Columns")
+  final val numericColumnValues = new DoubleArrayParam(this, "numericColumnValues", "Numeric Columns' Values")
   final val decideModel: Param[String] = new Param[String](this, "decideModel", "Decided model")
+  final val fillMode: Param[String] = new Param[String](this, "fillMode", "fillMode")
+
+  final val characterNABlanketFill: Param[String] = new Param[String](this, "characterNABlanketFill", "characterNABlanketFill")
+  final val numericNABlanketFill: DoubleParam = new DoubleParam(this, "numericNABlanketFill", "numericNABlanketFill")
+  final val categoricalNAFillMapKeys: StringArrayParam = new StringArrayParam(this, "categoricalNAFillMapKeys", "categoricalNAFillMapKeys")
+  final val categoricalNAFillMapValues: StringArrayParam = new StringArrayParam(this, "categoricalNAFillMapValues", "categoricalNAFillMapValues")
+  final val numericNAFillMapKeys: StringArrayParam = new StringArrayParam(this, "numericNAFillMapKeys", "numericNAFillMapKeys")
+  final val numericNAFillMapValues: DoubleArrayParam = new DoubleArrayParam(this, "numericNAFillMapValues", "numericNAFillMapValues")
+
+
 
   def setNumericFillStat(value: String): this.type = set(numericFillStat, value)
 
@@ -49,21 +61,67 @@ class DataSanitizerTransformer(override val uid: String)
 
   def getNaFillFlag: Boolean = $(naFillFlag)
 
-  def setCategoricalColumns(value: Map[String, String]): this.type = set(categoricalColumns, value)
+  def setCategoricalColumnNames(value: Array[String]): this.type = set(categoricalColumnNames, value)
 
-  def getCategoricalColumns: Map[String, String] = $(categoricalColumns)
+  def getCategoricalColumnNames: Array[String] = $(categoricalColumnNames)
 
-  def setNumericColumns(value: Map[String, Double]): this.type = set(numericColumns, value)
+  def setCategoricalColumnValues(value: Array[String]): this.type = set(categoricalColumnValues, value)
 
-  def getNumericColumns: Map[String, Double] = $(numericColumns)
+  def getCategoricalColumnValues: Array[String] = $(categoricalColumnValues)
+
+  def setNumericColumnNames(value: Array[String]): this.type = set(numericColumnNames, value)
+
+  def getNumericColumnNames: Array[String] = $(numericColumnNames)
+
+  def setNumericColumnValues(value: Array[Double]): this.type = set(numericColumnValues, value)
+
+  def getNumericColumnValues: Array[Double] = $(numericColumnValues)
 
   def setDecideModel(value: String): this.type = set(decideModel, value)
 
   def getDecideModel: String = $(decideModel)
 
+  def setFillMode(value: String): this.type = set(fillMode, value)
+
+  def getFillMode: String = $(fillMode)
+
+  def setCharacterNABlanketFill(value: String): this.type = set(characterNABlanketFill, value)
+
+  def getCharacterNABlanketFill: String = $(characterNABlanketFill)
+
+  def setNumericNABlanketFill(value: Double): this.type = set(numericNABlanketFill, value)
+
+  def getNumericNABlanketFill: Double = $(numericNABlanketFill)
+
+  def setCategoricalNAFillMapKeys(value: Array[String]): this.type = set(categoricalNAFillMapKeys, value)
+
+  def getCategoricalNAFillMapKeys: Array[String] = $(categoricalNAFillMapKeys)
+
+  def setCategoricalNAFillMapValues(value: Array[String]): this.type = set(categoricalNAFillMapValues, value)
+
+  def getCategoricalNAFillMapValues: Array[String] = $(categoricalNAFillMapValues)
+
+  def setNumericNAFillMapKeys(value: Array[String]): this.type = set(numericNAFillMapKeys, value)
+
+  def getNumericNAFillMapKeys: Array[String] = $(numericNAFillMapKeys)
+
+  def setNumericNAFillMapValues(value: Array[Double]): this.type = set(numericNAFillMapValues, value)
+
+  def getNumericNAFillMapValues: Array[Double] = $(numericNAFillMapValues)
+
+  def setCategoricalNAFillMap(value: Map[String, String]): this.type = {
+    setCategoricalNAFillMapKeys(value.keys.toArray)
+    setCategoricalNAFillMapValues(value.values.toArray)
+  }
+
+  def setNumericNAFillMap(value: Map[String, Double]): this.type = {
+    setNumericNAFillMapKeys(value.keys.toArray)
+    setNumericNAFillMapValues(value.values.toArray)
+  }
 
   def this() = {
     this(Identifiable.randomUID("DataSanitizerTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     setFeatureCol("features")
     setNumericFillStat("mean")
     setCharacterFillStat("max")
@@ -71,10 +129,22 @@ class DataSanitizerTransformer(override val uid: String)
     setFilterPrecision(0.01)
     setParallelism(20)
     setNaFillFlag(false)
+    setDecideModel("")
+    setCategoricalColumnNames(Array.empty)
+    setNumericColumnValues(Array.empty)
+    setNumericColumnNames(Array.empty)
+    setNumericColumnValues(Array.empty)
+    setCategoricalNAFillMapKeys(Array.empty)
+    setCategoricalNAFillMapValues(Array.empty)
+    setNumericNAFillMapKeys(Array.empty)
+    setNumericNAFillMapValues(Array.empty)
+    setCharacterNABlanketFill("")
+    setNumericNABlanketFill(0.0)
+    setFillMode("auto")
   }
 
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val naConfig = new DataSanitizer(dataset.toDF())
       .setLabelCol(getLabelColumn)
       .setFeatureCol(getFeatureCol)
@@ -82,10 +152,22 @@ class DataSanitizerTransformer(override val uid: String)
       .setNumericFillStat(getNumericFillStat)
       .setCharacterFillStat(getCharacterFillStat)
       .setParallelism(getParallelism)
+      .setCategoricalNAFillMap(SchemaUtils.generateMapFromKeysValues(getCategoricalNAFillMapKeys, getCategoricalNAFillMapValues))
+      .setCharacterNABlanketFillValue(getCharacterNABlanketFill)
+      .setNumericNABlanketFillValue(getNumericNABlanketFill)
+      .setNumericNAFillMap(SchemaUtils.generateMapFromKeysValues(getNumericNAFillMapKeys, getNumericNAFillMapValues))
+      .setNAFillMode(getFillMode)
+      .setFilterPrecision(getFilterPrecision)
+      .setFieldsToIgnoreInVector(Array(getAutomlInternalId))
 
     val (naFilledDataFrame, fillMap, detectedModelType) =
       if (getNaFillFlag) {
-        naConfig.generateCleanData()
+        val naFillConfigTmp = buildNaConfig()
+        if(naFillConfigTmp.isDefined) {
+          naConfig.generateCleanData(naFillConfigTmp.get, refactorLabelFlag = false)
+        } else {
+          naConfig.generateCleanData(refactorLabelFlag = false)
+        }
       } else {
         (
           dataset,
@@ -94,15 +176,28 @@ class DataSanitizerTransformer(override val uid: String)
         )
       }
     if(getDecideModel == null || getDecideModel.isEmpty) {
-      setCategoricalColumns(fillMap.categoricalColumns)
-      setNumericColumns(fillMap.numericColumns)
+      setCategoricalColumnNames(fillMap.categoricalColumns.keys.toArray)
+      setCategoricalColumnValues(fillMap.categoricalColumns.values.toArray)
+      setNumericColumnNames(fillMap.numericColumns.keys.toArray)
+      setNumericColumnValues(fillMap.numericColumns.values.toArray)
       setDecideModel(detectedModelType)
     }
 
     naFilledDataFrame.toDF()
   }
 
-  override def transformSchema(schema: StructType): StructType = {
+  private def buildNaConfig(): Option[NaFillConfig] = {
+    if(SchemaUtils.isNotEmpty(getCategoricalColumnNames) &&
+          SchemaUtils.isNotEmpty(getNumericColumnNames)) {
+      return Some(NaFillConfig(
+        categoricalColumns = SchemaUtils.generateMapFromKeysValues(getCategoricalColumnNames, getCategoricalColumnValues),
+        numericColumns = SchemaUtils.generateMapFromKeysValues(getNumericColumnNames, getNumericColumnValues))
+      )
+    }
+    None
+  }
+
+  override def transformSchemaInternal(schema: StructType): StructType = {
    schema
   }
 

@@ -106,6 +106,10 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   }
 
   /**
+    *
+    *  @deprecated Use { @link #forNumber(int)} instead.
+    *              Start using executeWithPipeline to leverage Pipeline semantics.
+    *
     * Main method for executing the family runs as configured.
     *
     * @return FamilyOutput object that reports the results of each of the family modeling runs.
@@ -118,7 +122,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
 
-      val runner: AutomationRunner = new AutomationRunner(data)
+      val runner = new AutomationRunner(data)
         .setMainConfig(mainConfiguration)
 
       val preppedData = runner.prepData()

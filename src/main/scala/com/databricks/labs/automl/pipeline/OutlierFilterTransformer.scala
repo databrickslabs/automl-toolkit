@@ -1,22 +1,26 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.sanitize.OutlierFiltering
+import com.databricks.labs.automl.utils.AutoMlPipelineUtils
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.Transformer
-import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, ParamMap}
+import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 class OutlierFilterTransformer(override val uid: String)
-  extends Transformer
+  extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasFieldsToIgnore {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  def this() = this(Identifiable.randomUID("OutlierFilterTransformer"))
+  def this() = {
+    this(Identifiable.randomUID("OutlierFilterTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setFieldsToIgnore(Array.empty)
+  }
 
   final val filterBounds: Param[String] = new Param[String](this, "filterBounds", "Filter Bounds")
 
@@ -30,7 +34,7 @@ class OutlierFilterTransformer(override val uid: String)
 
   final val continuousDataThreshold: IntParam = new IntParam(this, "continuousDataThreshold", "continuousDataThreshold")
 
-  val inferenceOutlierMap = new Param[Map[String, (Double, String)]](this, "inferenceOutlierMap", "inferenceOutlierMap")
+//  val inferenceOutlierMap = new Param[Map[String, (Double, String)]](this, "inferenceOutlierMap", "inferenceOutlierMap")
 
 
   def setFilterBounds(value: String): this.type = set(filterBounds, value)
@@ -57,12 +61,12 @@ class OutlierFilterTransformer(override val uid: String)
 
   def getContinuousDataThreshold: Int = $(continuousDataThreshold)
 
-  def setInferenceOutlierMap(value: Map[String, (Double, String)]): this.type = set(inferenceOutlierMap, value)
+//  def setInferenceOutlierMap(value: Map[String, (Double, String)]): this.type = set(inferenceOutlierMap, value)
 
-  def getInferenceOutlierMap: Map[String, (Double, String)] = $(inferenceOutlierMap)
+//  def getInferenceOutlierMap: Map[String, (Double, String)] = $(inferenceOutlierMap)
 
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
     // Output has no feature vector
     val outlierFiltering = new OutlierFiltering(dataset.toDF())
       .setLabelCol(getLabelColumn)
@@ -74,19 +78,19 @@ class OutlierFilterTransformer(override val uid: String)
       .setContinuousDataThreshold(getContinuousDataThreshold)
 
     val (outlierCleanedData, outlierRemovedData, filteringMap) =
-      outlierFiltering.filterContinuousOutliers(Array.empty[String], getFieldsToIgnore)
+      outlierFiltering.filterContinuousOutliers(Array(getAutomlInternalId)++getFieldsToIgnore, getFieldsToIgnore)
 
     val outlierRemovalInfo =
       s"Removed outlier data.  Total rows removed = ${outlierRemovedData.count()}"
     logger.log(Level.INFO, outlierRemovalInfo)
     println(outlierRemovalInfo)
 
-    setInferenceOutlierMap(filteringMap)
+//    setInferenceOutlierMap(filteringMap)
 
     outlierCleanedData
   }
 
-  override def transformSchema(schema: StructType): StructType = {
+  override def transformSchemaInternal(schema: StructType): StructType = {
     schema
   }
 

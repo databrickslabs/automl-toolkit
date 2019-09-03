@@ -1,17 +1,20 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.exceptions.MlFlowValidationException
-import com.databricks.labs.automl.utils.WorkspaceDirectoryValidation
-import org.apache.spark.ml.Transformer
+import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, WorkspaceDirectoryValidation}
 import org.apache.spark.ml.param.{BooleanParam, Param, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
-class MlFlowLoggingValidationStageTransformer(override val uid: String) extends Transformer
+class MlFlowLoggingValidationStageTransformer(override val uid: String)
+  extends AbstractTransformer
   with DefaultParamsWritable {
 
-  def this() = this(Identifiable.randomUID("MlFlowLoggingValidationStageTransformer"))
+  def this() = {
+    this(Identifiable.randomUID("MlFlowLoggingValidationStageTransformer"))
+    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+  }
 
 
   final val mlFlowLoggingFlag: BooleanParam = new BooleanParam(this, "mlFlowLoggingFlag", "whether to log to MlFlow or not")
@@ -41,8 +44,7 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String) extends 
   def getMlFlowExperimentName: String = $(mlFlowExperimentName)
 
 
-
-  override def transform(dataset: Dataset[_]): DataFrame = {
+  override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if (getMlFlowLoggingFlag) {
       try {
         val dirValidate = WorkspaceDirectoryValidation(
@@ -66,7 +68,7 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String) extends 
     dataset.toDF()
   }
 
-  override def transformSchema(schema: StructType): StructType = {
+  override def transformSchemaInternal(schema: StructType): StructType = {
     schema
   }
 

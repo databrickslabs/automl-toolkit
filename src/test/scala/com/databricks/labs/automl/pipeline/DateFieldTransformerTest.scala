@@ -1,13 +1,15 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
+import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil, PipelineTestUtils}
 import java.sql.{Date, Timestamp}
 import java.util
 
+import org.apache.spark.ml.{Pipeline, PipelineStage}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
 import collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
 
 class DateFieldTransformerTest extends AbstractUnitSpec{
 
@@ -29,9 +31,21 @@ class DateFieldTransformerTest extends AbstractUnitSpec{
       ))
     )
 
-    val transformedDfwithDateTsFeatures = new DateFieldTransformer()
+    val stages = new ArrayBuffer[PipelineStage]
+
+    stages += PipelineTestUtils
+      .addZipRegisterTmpTransformerStage(
+        "label",
+        Array("download_events", "download_date", "event_ts")
+      )
+
+
+    stages += new DateFieldTransformer()
       .setLabelColumn("label")
       .setMode("split")
+
+    val transformedDfwithDateTsFeatures = PipelineTestUtils
+      .saveAndLoadPipeline(stages.toArray, sourceDF, "date-field-tran-pipeline")
       .transform(sourceDF)
 
     val expectedColsToBePresent =
@@ -48,7 +62,6 @@ class DateFieldTransformerTest extends AbstractUnitSpec{
       transformedDfwithDateTsFeatures.columns.exists(col => expectedColsToBePresent.contains(col)),
       s"""These columns ${dateColToBeTransformed.mkString(", ")} should have been added"""
     )
-
   }
 
 }
