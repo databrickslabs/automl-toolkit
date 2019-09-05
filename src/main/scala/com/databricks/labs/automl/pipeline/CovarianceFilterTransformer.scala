@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.sanitize.FeatureCorrelationDetection
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.param.{DoubleParam, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
@@ -25,6 +25,7 @@ class CovarianceFilterTransformer(override val uid: String)
     setTransformCalculated(false)
     setCorrelationCutoffLow(-0.99)
     setCorrelationCutoffHigh(0.99)
+    setFeatureColumns(Array.empty)
   }
 
   final val correlationCutoffLow: DoubleParam = new DoubleParam(this, "correlationCutoffLow", "correlationCutoffLow")
@@ -41,8 +42,10 @@ class CovarianceFilterTransformer(override val uid: String)
 
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
+    if(SchemaUtils.isNotEmpty(getFeatureColumns)) {
+      setFeatureColumns(dataset.columns.filterNot(item => Array(getLabelColumn, getAutomlInternalId).contains(item)))
+    }
     // Output has no feature vector
-
     if(!getTransformCalculated) {
       val covarianceFilteredData =
         new FeatureCorrelationDetection(dataset.toDF(), getFeatureColumns.filterNot(item => getAutomlInternalId.contains(item)))

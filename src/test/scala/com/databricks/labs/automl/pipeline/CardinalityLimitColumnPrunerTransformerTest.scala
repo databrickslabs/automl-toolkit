@@ -1,27 +1,33 @@
 package com.databricks.labs.automl.pipeline
 
+import com.databricks.labs.automl.utils.AutoMlPipelineUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil, PipelineTestUtils}
+import org.apache.spark.ml.PipelineStage
 import org.apache.spark.sql.DataFrame
+
+import scala.collection.mutable.ArrayBuffer
 
 class CardinalityLimitColumnPrunerTransformerTest extends AbstractUnitSpec {
 
   "CardinalityLimitColumnPrunerTransformerTest" should " should check cardinality" in {
 
     val testVars = PipelineTestUtils.getTestVars()
-
-    val cardinalityLimitColumnPrunerTransformer = new CardinalityLimitColumnPrunerTransformer()
+    val stages = new ArrayBuffer[PipelineStage]
+    val nonFeatureCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
+    stages += PipelineTestUtils
+      .addZipRegisterTmpTransformerStage(
+        testVars.labelCol,
+        testVars.df.columns.filterNot(item => nonFeatureCols.contains(item))
+      )
+    stages += new CardinalityLimitColumnPrunerTransformer()
       .setLabelColumn(testVars.labelCol)
       .setCardinalityLimit(2)
-
-    val adultCadDf = cardinalityLimitColumnPrunerTransformer.transform(testVars.df)
+    val pipelineModel = PipelineTestUtils.saveAndLoadPipeline(stages.toArray, testVars.df, "card-limit-pipeline")
+    val adultCadDf = pipelineModel.transform(testVars.df)
 
     assertCardinalityTest(adultCadDf)
 
-    assertCardinalityTest(
-      PipelineTestUtils
-        .saveAndLoadPipeline(Array(cardinalityLimitColumnPrunerTransformer), testVars.df, "card-limit-trans-pipe")
-        .transform(testVars.df)
-    )
+    adultCadDf.show(10)
   }
 
   private def assertCardinalityTest(adultCadDf: DataFrame): Unit = {

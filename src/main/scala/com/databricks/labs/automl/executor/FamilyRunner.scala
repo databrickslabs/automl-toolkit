@@ -154,16 +154,30 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
+      val runner = new AutomationRunner(data).setMainConfig(mainConfiguration)
+      //Get feature engineering pipeline and transform it to get feature engineered dataset
+      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration)
+      val featureEngineeredDf = featureEngOutput.pipelineModel.transform(data)
 
-      val featureEngPipelineModel = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration)
+      val preppedDataOverride =  DataGeneration(
+        featureEngineeredDf,
+        featureEngineeredDf.columns,
+        null
+        //detectedModelType
+      )
+      val output = runner.executeTuning(preppedDataOverride)
 
-      val preppedData = featureEngPipelineModel.transform(data)
-
-
+      outputBuffer += new FamilyOutput(x.modelFamily, output.mlFlowOutput) {
+        override def modelReport: Array[GenericModelReturn] = output.modelReport
+        override def generationReport: Array[GenerationalReport] =
+          output.generationReport
+        override def modelReportDataFrame: DataFrame =
+          augmentDF(x.modelFamily, output.modelReportDataFrame)
+        override def generationReportDataFrame: DataFrame =
+          augmentDF(x.modelFamily, output.generationReportDataFrame)
+      }
     }
-
-      null
-//    unifyFamilyOutput(outputBuffer.toArray)
+    unifyFamilyOutput(outputBuffer.toArray)
   }
 
 }

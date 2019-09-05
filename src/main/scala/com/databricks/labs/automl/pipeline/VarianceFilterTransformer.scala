@@ -9,6 +9,12 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 
 import scala.collection.mutable.ArrayBuffer
 
+/**
+  * @author Jas Bali
+  * Input: Vectorized feature columns
+  * Output: variance filtered DataFrame [[DataFrame]]
+  *
+  */
 class VarianceFilterTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable

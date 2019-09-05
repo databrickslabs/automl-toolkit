@@ -1,10 +1,11 @@
 package com.databricks.labs.automl.sanitize
 
 import com.databricks.labs.automl.utils.DataValidation
+import org.apache.spark.ml.{Estimator, Model, PipelineStage, Transformer}
 import org.apache.spark.ml.feature.{MaxAbsScaler, MinMaxScaler, Normalizer, StandardScaler}
 import org.apache.spark.sql.DataFrame
 
-class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
+class Scaler(df: DataFrame = null) extends DataValidation with SanitizerDefaults {
 
   private var _featuresCol: String = defaultFeaturesCol
 
@@ -22,7 +23,7 @@ class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
 
   private var _pNorm: Double = defaultPNorm
 
-  private val _dfFieldNames: Array[String] = df.columns
+  private val _dfFieldNames: Array[String] = if(df != null) df.columns else Array.empty
 
   private def renameFeaturesCol(): this.type = {
     _renamedFeaturesCol = _featuresCol + "_r"
@@ -30,7 +31,9 @@ class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
   }
 
   def setFeaturesCol(value: String): this.type = {
-    require(_dfFieldNames.contains(value), s"Feature Column '$value' is not present in Dataframe schema.")
+    if(_dfFieldNames.nonEmpty) {
+      require(_dfFieldNames.contains(value), s"Feature Column '$value' is not present in Dataframe schema.")
+    }
     _featuresCol = value
     renameFeaturesCol()
     this
@@ -88,10 +91,7 @@ class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
 
   private def normalizeFeatures(): DataFrame = {
 
-    val normalizer = new Normalizer()
-      .setInputCol(_renamedFeaturesCol)
-      .setOutputCol(_featuresCol)
-      .setP(_pNorm)
+    val normalizer = normalizeFeaturesStage()
 
     normalizer.transform(
       df.withColumnRenamed(_featuresCol, _renamedFeaturesCol)
@@ -100,30 +100,36 @@ class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
 
   }
 
+  private def normalizeFeaturesStage() : Transformer = {
+    new Normalizer()
+      .setInputCol(_renamedFeaturesCol)
+      .setOutputCol(_featuresCol)
+      .setP(_pNorm)
+  }
+
   private def minMaxFeatures(): DataFrame = {
 
     require(_scalerMax > _scalerMin, s"Scaler Max (${_scalerMax}) must be greater than Scaler Min (${_scalerMin})")
-    val minMaxScaler = new MinMaxScaler()
-      .setInputCol(_renamedFeaturesCol)
-      .setOutputCol(_featuresCol)
-      .setMin(_scalerMin)
-      .setMax(_scalerMax)
+    val minMaxScaler = minMaxFeaturesStage()
 
     val dfRenamed = df.withColumnRenamed(_featuresCol, _renamedFeaturesCol)
 
     val fitScaler = minMaxScaler.fit(dfRenamed)
 
     fitScaler.transform(dfRenamed).drop(_renamedFeaturesCol)
+  }
 
+  private def minMaxFeaturesStage(): Estimator[_ <: Model[_]] = {
+    new MinMaxScaler()
+      .setInputCol(_renamedFeaturesCol)
+      .setOutputCol(_featuresCol)
+      .setMin(_scalerMin)
+      .setMax(_scalerMax)
   }
 
   private def standardScaleFeatures(): DataFrame = {
 
-    val standardScaler = new StandardScaler()
-      .setInputCol(_renamedFeaturesCol)
-      .setOutputCol(_featuresCol)
-      .setWithMean(_standardScalerMeanFlag)
-      .setWithStd(_standardScalerStdDevFlag)
+    val standardScaler = standardScaleFeaturesStage()
 
     val dfRenamed = df.withColumnRenamed(_featuresCol, _renamedFeaturesCol)
 
@@ -133,11 +139,17 @@ class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
 
   }
 
-  private def maxAbsScaleFeatures(): DataFrame = {
-
-    val maxAbsScaler = new MaxAbsScaler()
+  private def standardScaleFeaturesStage(): Estimator[_ <: Model[_]] = {
+    new StandardScaler()
       .setInputCol(_renamedFeaturesCol)
       .setOutputCol(_featuresCol)
+      .setWithMean(_standardScalerMeanFlag)
+      .setWithStd(_standardScalerStdDevFlag)
+  }
+
+  private def maxAbsScaleFeatures(): DataFrame = {
+
+    val maxAbsScaler = maxAbsScaleFeaturesStage()
 
     val dfRenamed = df.withColumnRenamed(_featuresCol, _renamedFeaturesCol)
 
@@ -147,8 +159,13 @@ class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
 
   }
 
-  def scaleFeatures(): DataFrame = {
+  private def maxAbsScaleFeaturesStage(): Estimator[_ <: Model[_]] = {
+    new MaxAbsScaler()
+      .setInputCol(_renamedFeaturesCol)
+      .setOutputCol(_featuresCol)
+  }
 
+  def scaleFeatures(): DataFrame = {
     _scalerType match {
       case "minMax" => minMaxFeatures()
       case "standard" => standardScaleFeatures()
@@ -156,7 +173,17 @@ class Scaler(df: DataFrame) extends DataValidation with SanitizerDefaults {
       case "maxAbs" => maxAbsScaleFeatures()
       case _ => throw new UnsupportedOperationException(s"Scaler '${_scalerType}' is not supported.")
     }
+  }
 
+
+  def scaleFeaturesForPipeline(): PipelineStage = {
+    _scalerType match {
+      case "minMax" => minMaxFeaturesStage()
+      case "standard" => standardScaleFeaturesStage()
+      case "normalize" => normalizeFeaturesStage()
+      case "maxAbs" => maxAbsScaleFeaturesStage()
+      case _ => throw new UnsupportedOperationException(s"Scaler '${_scalerType}' is not supported.")
+    }
   }
 
 }

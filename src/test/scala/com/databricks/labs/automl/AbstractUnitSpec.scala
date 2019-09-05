@@ -304,6 +304,15 @@ object PipelineTestUtils {
     PipelineModel.load(pipelineSavePath)
   }
 
+  def saveAndLoadPipelineModel(pipelineModel: PipelineModel,
+                          dataFrame: DataFrame,
+                          pipelineName: String): PipelineModel = {
+    val pipelineSavePath = AutomationUnitTestsUtil.getProjectDir() + "/target/pipeline-tests/" + pipelineName
+    pipelineModel.transform(dataFrame)
+    pipelineModel.write.overwrite().save(pipelineSavePath)
+    PipelineModel.load(pipelineSavePath)
+  }
+
   def getVectorizedFeatures(df: DataFrame, labelCol: String, ignoreCols: Array[String]): Array[String] = {
     val fields = SchemaUtils.extractTypes(df.select(df.columns.filterNot(item => ignoreCols.contains(item)) map col:_*), labelCol)
     val stringFields = fields._2

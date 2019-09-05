@@ -1,0 +1,55 @@
+package com.databricks.labs.automl.pipeline
+
+import org.apache.spark.ml.Transformer
+import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.ml.param.shared.{HasInputCols, HasOutputCols}
+import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
+import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.{DataFrame, Dataset}
+
+class ColumnNameTransformer(override val uid: String)
+  extends Transformer
+  with DefaultParamsWritable
+  with HasInputCols
+  with HasOutputCols {
+
+  def this() = {
+    this(Identifiable.randomUID("ColumnNameTransformer"))
+  }
+
+  def setInputColumns(value: Array[String]): this.type = set(inputCols, value)
+
+  def setOutputColumns(value: Array[String]): this.type = set(outputCols, value)
+
+
+  override def transform(dataset: Dataset[_]): DataFrame = {
+    transformSchema(dataset.schema)
+    var newDataset = dataset
+    for((key, i) <- getInputCols.view.zipWithIndex) {
+      newDataset = dataset.withColumnRenamed(key, getOutputCols(i))
+    }
+    newDataset.toDF()
+  }
+
+  override def transformSchema(schema: StructType): StructType = {
+    require(schema.fieldNames.exists(item => getInputCols.contains(item)),
+      s"""Input columns ${getInputCols.filterNot(item => schema.fieldNames.contains(item)).mkString(", ")} are not present in the dataset""")
+    require(
+     getInputCols.length == getOutputCols.length,
+     s"${getInputCols.toList} input columns array is not equal in length to output columns array ${getOutputCols.toList}")
+    StructType(schema.fields.zipWithIndex.map{case (element, index) =>
+      if(getInputCols.contains(element.name)) {
+        StructField(getOutputCols(getInputCols.indexOf(element.name)), element.dataType, element.nullable, element.metadata)
+      } else {
+        element
+      }
+    })
+  }
+
+  override def copy(extra: ParamMap): ColumnNameTransformer = defaultCopy(extra)
+
+}
+
+object ColumnNameTransformer extends DefaultParamsReadable[ColumnNameTransformer] {
+  override def load(path: String): ColumnNameTransformer = super.load(path)
+}

@@ -2,28 +2,65 @@ package com.databricks.labs.automl.pipeline
 
 import org.apache.log4j.Logger
 import org.apache.spark.ml.Transformer
-import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * Abstract transformer should be extended for all AutoML transformers
+  * This can contain common validation, exceptions and log messages.
+  * Internally extends Spark Pipeline transformer [[Transformer]]
+  *
+  */
 abstract class AbstractTransformer
     extends Transformer
-    with HasAutoMlIdColumn{
+    with HasAutoMlIdColumn {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  override def transformSchema(schema: StructType): StructType = {
+  /**
+    * Final overridden method that cannot be modified by AutoML transformers
+    * @param schema
+    * @return Transformed Schema [[StructType]]
+    */
+  final override def transformSchema(schema: StructType): StructType = {
     transformSchemaInternal(schema)
   }
 
-  override def transform(dataset: Dataset[_]): DataFrame = {
+  /**
+    * Final overridden method that cannot be modified by AutoML transformers
+    * @param dataset
+    * @return Transformed DataFrame [[DataFrame]]
+    */
+  final override def transform(dataset: Dataset[_]): DataFrame = {
     val outputDf =  transformInternal(dataset)
     transformSchemaInternal(dataset.schema)
-    assert(outputDf.schema.fieldNames.contains(getAutomlInternalId), s"Missing $getAutomlInternalId in the input columns")
+    logAutoMlInternalIdPresent(outputDf)
     outputDf
   }
 
+  final private def logAutoMlInternalIdPresent(outputDf: Dataset[_]): Unit = {
+    val idAbsentMessage = s"Missing $getAutomlInternalId in the input columns"
+    val idPresent = outputDf.schema.fieldNames.contains(getAutomlInternalId) || this.isInstanceOf[AutoMlOutputDatasetTransformer]
+    if(!idPresent) {
+      logger.fatal(s"idAbsentMessage in ${this.getClass}")
+    }
+    assert(idPresent, idAbsentMessage)
+  }
+
+
+  /**
+    * Abstract Method to be implemented by all AutoML transformers
+    * @param dataset
+    * @return transformed output [[DataFrame]]
+    */
   def transformInternal(dataset: Dataset[_]): DataFrame
 
+  /**
+    * Abstract Method to be implemented by all AutoML transformers
+    * @param dataset
+    * @return schema of new output [[DataFrame]] [[StructType]]
+    */
   def transformSchemaInternal(schema: StructType): StructType
 
 }

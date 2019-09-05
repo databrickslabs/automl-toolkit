@@ -39,7 +39,11 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
     if(!getTransformCalculated) {
       val columnTypes = SchemaUtils.extractTypes(dataset.toDF(), getLabelColumn)
       if(SchemaUtils.isNotEmpty(columnTypes._2)) {
-        val columnsToDrop = SchemaUtils.validateCardinality(dataset.toDF(), columnTypes._2, getCardinalityLimit).invalidFields
+        val columnsToDrop = SchemaUtils
+          .validateCardinality(dataset.toDF(), columnTypes._2, getCardinalityLimit)
+          .invalidFields
+          .filterNot(item => getAutomlInternalId.equals(item))
+
         if(SchemaUtils.isEmpty(getPrunedColumns)) {
           setPrunedColumns(columnsToDrop.toArray[String])
         }
@@ -47,14 +51,14 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
         return dataset.drop(columnsToDrop:_*).toDF()
       }
     }
-    if(SchemaUtils.isNotEmpty(getPrunedColumns.toList)) {
+    if(SchemaUtils.isNotEmpty(getPrunedColumns)) {
       return dataset.drop(getPrunedColumns:_*).toDF()
     }
     dataset.toDF()
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    if(SchemaUtils.isNotEmpty(getPrunedColumns.toList)) {
+    if(SchemaUtils.isNotEmpty(getPrunedColumns)) {
       val allCols = schema.fields.map(field => field.name)
       val missingCols = getPrunedColumns.filterNot(colName => allCols.contains(colName))
       if(missingCols.nonEmpty) {

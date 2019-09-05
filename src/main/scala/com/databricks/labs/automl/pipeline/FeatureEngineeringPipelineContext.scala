@@ -2,61 +2,154 @@ package com.databricks.labs.automl.pipeline
 
 import java.util.UUID
 
-import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, StringFeatureConversionException, TimeFeatureConversionException}
+import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, TimeFeatureConversionException}
 import com.databricks.labs.automl.params.MainConfig
-import com.databricks.labs.automl.utils.SchemaUtils
-import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import com.databricks.labs.automl.sanitize.Scaler
+import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
+import org.apache.spark.ml.feature._
 import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.ArrayBuffer
+
+final case class VectorizationOutput(pipelineModel: PipelineModel, vectorizedCols: Array[String])
+final case class FeatureEngineeringOutput(pipelineModel: PipelineModel, originalDfViewName: String)
 
 object FeatureEngineeringPipelineContext {
 
   def generatePipelineModel(originalInputDataset: DataFrame,
-                       mainConfig: MainConfig): PipelineModel = {
+                            mainConfig: MainConfig): FeatureEngineeringOutput = {
 
     val originalDfTempTableName = Identifiable.randomUID("zipWithId")
 
-    val initialpipelineModels = new ArrayBuffer[PipelineModel]
+    val removeColumns = new ArrayBuffer[String]
 
     // First Transformation: Select required columns, convert date/time features and apply cardinality limit
     val initialPipelineModel = selectFeaturesConvertTypesAndApplyCardLimit(originalInputDataset, mainConfig, originalDfTempTableName)
     val initialTransformationDf = initialPipelineModel.transform(originalInputDataset)
-    initialpipelineModels += initialPipelineModel
 
     // Second Transformation: Apply string indexers, apply vector assembler, drop unnecessary columns
-    val secondTransformationPipelineModel = applyStngIndxVectAssembler(initialTransformationDf, mainConfig, originalDfTempTableName)
+    val secondTransformation = applyStngIndxVectAssembler(
+      initialTransformationDf,
+      mainConfig,
+      originalDfTempTableName,
+      Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    )
+    val vectorizedColumns = secondTransformation.vectorizedCols
+    removeColumns ++= vectorizedColumns
+    val secondTransformationPipelineModel = secondTransformation.pipelineModel
     val secondTransformationDf = secondTransformationPipelineModel.transform(initialTransformationDf)
-    initialpipelineModels += secondTransformationPipelineModel
 
     val stages = new ArrayBuffer[PipelineStage]()
-    // Third Transformation: Fill with Na
+    // Fill with Na
     getAndAddStage(stages, fillNaStage(mainConfig))
 
-    // Fourth Transformation: Apply Variance filter
-    getAndAddStage(stages, varianceFilterStage(mainConfig))
-
-    // Fifth Transformation: Apply Outlier Filtering
+    // Apply Outlier Filtering
     getAndAddStage(stages, outlierFilterStage(mainConfig))
 
-    // Sixth Transformation: Apply Covariance Filtering
+    // Apply Vector Assembler
+    getAndAddStage(stages, vectorAssemblerStage(mainConfig, vectorizedColumns))
+
+    // Apply Variance filter
+    getAndAddStage(stages, varianceFilterStage(mainConfig))
+
+    // Apply Covariance Filtering
     getAndAddStage(stages, covarianceFilteringStage(mainConfig))
 
-    //Seventh Tranformation: Apply Pearson Filtering
+    // Apply Pearson Filtering
     getAndAddStage(stages, pearsonFilteringStage(mainConfig))
 
+    // Third Transformation
+    val thirdPipelineModel = new Pipeline().setStages(stages.toArray).fit(secondTransformationDf)
+    val thirdTransformationDf = thirdPipelineModel.transform(secondTransformationDf)
+    val oheInputCols = thirdTransformationDf
+      .columns
+      .filter(item => item.endsWith(PipelineEnums.SI_SUFFIX.value))
+      .filterNot(item => (mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value).equals(item))
+
     // Apply OneHotEncoding Options
-    getAndAddStage(stages, oneHotEncodingStage(mainConfig))
+    val lastStages = new ArrayBuffer[PipelineStage]()
+    getAndAddStage(lastStages, oneHotEncodingStage(mainConfig, oheInputCols))
+    getAndAddStage(lastStages, dropColumns(Array(mainConfig.featuresCol)))
+    // Execute Vector Assembler Again
+    getAndAddStage(
+      lastStages,
+      vectorAssemblerStage(
+        mainConfig, oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
+        ++ vectorizedColumns.filterNot(_.endsWith(PipelineEnums.SI_SUFFIX.value))))
 
     // Apply Scaler option
-    getAndAddStage(stages, scalerStage(mainConfig))
+    val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
+    getAndAddStage(lastStages, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol))
+    getAndAddStage(lastStages, scalerStage(mainConfig))
+    getAndAddStage(lastStages, dropColumns(Array(renamedFeatureCol)))
+
+    //Drop OHE input columns
+    getAndAddStage(lastStages, dropColumns(oheInputCols))
+    // Ksampler stages
+    getAndAddStages(lastStages, ksamplerStages(mainConfig))
+
+    // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label and features (and synthetic from ksampler)
+    removeColumns ++= oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
+    getAndAddStage(lastStages, dropColumns(removeColumns.toArray))
+
+    // final transformation
+    var fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(thirdTransformationDf)
+    var fourthTransformationDf = fourthPipelineModel.transform(thirdTransformationDf)
+
+    // Label refactor
+    if(SchemaUtils.isLabelRefactorNeeded(fourthTransformationDf.schema, mainConfig.labelCol)) {
+      getAndAddStage(
+        lastStages,
+        Some(new StringIndexer()
+        .setInputCol(mainConfig.labelCol)
+        .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)
+        .setHandleInvalid("keep")))
 
 
-    mergePipelineModels(initialpipelineModels += new Pipeline().setStages(stages.toArray).fit(secondTransformationDf))
+      fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(fourthTransformationDf)
+      fourthTransformationDf = fourthPipelineModel.transform(thirdTransformationDf)
+    }
 
+    FeatureEngineeringOutput(
+      mergePipelineModels(ArrayBuffer(initialPipelineModel, secondTransformationPipelineModel, thirdPipelineModel, fourthPipelineModel)),
+      originalDfTempTableName)
+  }
+
+   def addLabelIndexToString(pipelineModel: PipelineModel,
+                        dataFrame: DataFrame,
+                        mainConfig: MainConfig): PipelineModel = {
+    val stringIndexerLabels = pipelineModel.stages.reverse.find(_.isInstanceOf[StringIndexerModel]).get.asInstanceOf[StringIndexerModel].labels
+
+    val labelRefactorPipelineModel =  new Pipeline()
+      .setStages(Array(new IndexToString()
+        .setInputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)
+        .setOutputCol(mainConfig.labelCol)
+        .setLabels(stringIndexerLabels)))
+      .fit(dataFrame)
+     labelRefactorPipelineModel.transform(dataFrame)
+
+     mergePipelineModels(ArrayBuffer(pipelineModel, labelRefactorPipelineModel))
+  }
+
+  def addUserReturnViewStage(pipelineModel: PipelineModel,
+                             mainConfig: MainConfig,
+                             dataFrame: DataFrame,
+                             originalDfTempTableName: String): PipelineModel = {
+    // Generate output dataset
+    val userViewPipelineModel = new Pipeline().setStages(
+      Array(new AutoMlOutputDatasetTransformer()
+        .setTempViewOriginalDatasetName(originalDfTempTableName)
+        .setLabelColumn(mainConfig.labelCol)
+        .setFeatureColumns(Array.empty)))
+    .fit(dataFrame)
+
+    userViewPipelineModel.transform(dataFrame)
+
+    mergePipelineModels(ArrayBuffer(pipelineModel, userViewPipelineModel))
   }
 
   /**
@@ -73,10 +166,15 @@ object FeatureEngineeringPipelineContext {
     // Stage to select only those columns that are needed in the downstream stages
     // also creates a temp view of the original dataset which will then be used by the last stage
     // to return user table
+    val inputFeatures = dataFrame.columns
+      .filterNot(mainConfig.fieldsToIgnoreInVector.contains)
+      .filterNot(Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL).contains)
+      .filterNot(Array(mainConfig.labelCol).contains)
+
     val zipRegisterTempTransformer = new ZipRegisterTempTransformer()
       .setTempViewOriginalDatasetName(originalDfTempTableName)
       .setLabelColumn(mainConfig.labelCol)
-      .setFeatureColumns(mainConfig.inputFeatures)
+      .setFeatureColumns(inputFeatures)
 
     val mlFlowLoggingValidationStageTransformer = new MlFlowLoggingValidationStageTransformer()
       .setMlFlowAPIToken(mainConfig.mlFlowConfig.mlFlowAPIToken)
@@ -108,13 +206,14 @@ object FeatureEngineeringPipelineContext {
     * @return
     */
   private def applyStngIndxVectAssembler(dataFrame: DataFrame,
-                                  mainConfig: MainConfig,
-                                  originalDfTempTableName: String): PipelineModel = {
+                                         mainConfig: MainConfig,
+                                         originalDfTempTableName: String,
+                                         ignoreCols: Array[String]): VectorizationOutput = {
     val fields = SchemaUtils.extractTypes(dataFrame, mainConfig.labelCol)
-    val stringFields = fields._2
-    val vectorizableFields = fields._1.toArray
-    val dateFields = fields._3.toArray
-    val timeFields = fields._4.toArray
+    val stringFields = fields._2.filterNot(ignoreCols.contains)
+    val vectorizableFields = fields._1.toArray.filterNot(ignoreCols.contains)
+    val dateFields = fields._3.toArray.filterNot(ignoreCols.contains)
+    val timeFields = fields._4.toArray.filterNot(ignoreCols.contains)
 
     //Validate date and time fields are empty at this point
     validateDateAndTimeFeatures(dateFields, timeFields)
@@ -133,13 +232,14 @@ object FeatureEngineeringPipelineContext {
       .map(item => SchemaUtils.generateStringIndexedColumn(item))
       .toArray[String] ++ vectorizableFields
 
-    stages += new VectorAssembler()
+    VectorizationOutput(new Pipeline().setStages(stages.toArray).fit(dataFrame), featureAssemblerInputCols)
+  }
+
+  private def vectorAssemblerStage(mainConfig: MainConfig,
+                                   featureAssemblerInputCols: Array[String]): Option[PipelineStage] = {
+    Some(new VectorAssembler()
       .setInputCols(featureAssemblerInputCols)
-        .setOutputCol(mainConfig.featuresCol)
-
-    stages += new DropColumnsTransformer().setInputCols(featureAssemblerInputCols)
-
-    new Pipeline().setStages(stages.toArray).fit(dataFrame)
+      .setOutputCol(mainConfig.featuresCol))
   }
 
   private def validateDateAndTimeFeatures(dateFields: Array[String],
@@ -195,6 +295,7 @@ object FeatureEngineeringPipelineContext {
         .setContinuousDataThreshold(mainConfig.outlierConfig.continuousDataThreshold)
         .setParallelism(mainConfig.geneticConfig.parallelism)
         .setFieldsToIgnore(Array.empty)
+        .setLabelColumn(mainConfig.labelCol)
       return Some(outlierFilterTransformer)
     }
     None
@@ -203,6 +304,9 @@ object FeatureEngineeringPipelineContext {
   private def covarianceFilteringStage(mainConfig: MainConfig): Option[PipelineStage] = {
     if(mainConfig.covarianceFilteringFlag) {
       val covarianceFilterTransformer = new CovarianceFilterTransformer()
+        .setLabelColumn(mainConfig.labelCol)
+        .setCorrelationCutoffLow(mainConfig.covarianceConfig.correlationCutoffHigh)
+        .setCorrelationCutoffHigh(mainConfig.covarianceConfig.correlationCutoffLow)
       return Some(covarianceFilterTransformer)
     }
     None
@@ -211,34 +315,124 @@ object FeatureEngineeringPipelineContext {
   private def pearsonFilteringStage(mainConfig: MainConfig): Option[PipelineStage] = {
     if(mainConfig.pearsonFilteringFlag) {
       val pearsonFilterTransformer = new PearsonFilterTransformer()
+        .setLabelColumn(mainConfig.labelCol)
+        .setFeatureCol(mainConfig.featuresCol)
+        .setAutoFilterNTile(mainConfig.pearsonConfig.autoFilterNTile)
+        .setFilterDirection(mainConfig.pearsonConfig.filterDirection)
+        .setFilterManualValue(mainConfig.pearsonConfig.filterManualValue)
+        .setFilterMode(mainConfig.pearsonConfig.filterMode)
+        .setFilterStatistic(mainConfig.pearsonConfig.filterStatistic)
       return Some(pearsonFilterTransformer)
     }
     None
   }
 
-  private def oneHotEncodingStage(mainConfig: MainConfig): Option[PipelineStage] = {
+  private def oneHotEncodingStage(mainConfig: MainConfig, stngIndxCols: Array[String]): Option[PipelineStage] = {
     if(mainConfig.oneHotEncodeFlag) {
-      Some
+      return Some(new OneHotEncoderEstimator()
+        .setInputCols(stngIndxCols)
+        .setOutputCols(stngIndxCols.map(item => SchemaUtils.generateOneHotEncodedColumn(item)))
+        .setHandleInvalid("keep"))
     }
     None
   }
 
   private def scalerStage(mainConfig: MainConfig): Option[PipelineStage] = {
     if(mainConfig.scalingFlag) {
-      Some
+      return Some(new Scaler()
+        .setFeaturesCol(mainConfig.featuresCol)
+        .setScalerType(mainConfig.scalingConfig.scalerType)
+        .setScalerMin(mainConfig.scalingConfig.scalerMin)
+        .setScalerMax(mainConfig.scalingConfig.scalerMax)
+        .setStandardScalerMeanMode(
+          mainConfig.scalingConfig.standardScalerMeanFlag
+        )
+        .setStandardScalerStdDevMode(
+          mainConfig.scalingConfig.standardScalerStdDevFlag
+        )
+        .setPNorm(mainConfig.scalingConfig.pNorm)
+        .scaleFeaturesForPipeline())
     }
     None
   }
 
+  private def ksamplerStages(mainConfig: MainConfig): Option[Array[_ <: PipelineStage]] = {
+    if (mainConfig.geneticConfig.trainSplitMethod == "kSample") {
+      val arrayBuffer = new ArrayBuffer[PipelineStage]()
+      // Ksampler stage
+      arrayBuffer += new SyntheticFeatureGenTransformer()
+        .setFeatureCol(mainConfig.featuresCol)
+        .setLabelColumn(mainConfig.labelCol)
+        .setSyntheticCol(mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+        .setKGroups(mainConfig.geneticConfig.kSampleConfig.kGroups)
+        .setKMeansMaxIter(mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter)
+        .setKMeansTolerance(mainConfig.geneticConfig.kSampleConfig.kMeansTolerance)
+        .setKMeansDistanceMeasurement(mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement)
+        .setKMeansSeed(mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+        .setKMeansPredictionCol(mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol)
+        .setLshHashTables(mainConfig.geneticConfig.kSampleConfig.lshHashTables)
+        .setLshSeed(mainConfig.geneticConfig.kSampleConfig.lshSeed)
+        .setLshOutputCol(mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+        .setQuorumCount(mainConfig.geneticConfig.kSampleConfig.quorumCount)
+        .setMinimumVectorCountToMutate(mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate)
+        .setVectorMutationMethod(mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod)
+        .setMutationMode(mainConfig.geneticConfig.kSampleConfig.mutationMode)
+        .setMutationValue(mainConfig.geneticConfig.kSampleConfig.mutationValue)
+        .setLabelBalanceMode(mainConfig.geneticConfig.kSampleConfig.labelBalanceMode)
+        .setCardinalityThreshold(mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold)
+        .setNumericRatio(mainConfig.geneticConfig.kSampleConfig.numericRatio)
+        .setNumericTarget(mainConfig.geneticConfig.kSampleConfig.numericTarget)
+
+
+      // Register temp table stage for registering non-synthetic dataset later needed for the union with synthetic dataset
+      val nonSyntheticFeatureGenTmpTable = Identifiable.randomUID("nonSyntheticFeatureGenTransformer_")
+      getAndAddStage(arrayBuffer,
+        Some(new RegisterTempTableTransformer()
+          .setTempTableName(nonSyntheticFeatureGenTmpTable)
+          .setStatement(s"select * from __THIS__ where !${mainConfig.geneticConfig.kSampleConfig.syntheticCol}")))
+
+      // Get synthetic dataset
+      getAndAddStage(arrayBuffer, Some(new SQLWrapperTransformer().setStatement(s"select * from __THIS__ where ${mainConfig.geneticConfig.kSampleConfig.syntheticCol}")))
+      // If scaling is used, make sure that the synthetic data has the same scaling.
+      if (mainConfig.scalingFlag) {
+        val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
+        getAndAddStage(arrayBuffer, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol))
+        getAndAddStage(arrayBuffer, scalerStage(mainConfig))
+        getAndAddStage(arrayBuffer, dropColumns(Array(renamedFeatureCol)))
+        arrayBuffer += new DatasetsUnionTransformer().setUnionDatasetName(nonSyntheticFeatureGenTmpTable)
+        arrayBuffer += new DropTempTableTransformer().setTempTableName(nonSyntheticFeatureGenTmpTable)
+      }
+      return Some(arrayBuffer.toArray)
+    }
+    None
+  }
+
+  private def renameTransformerStage(oldLabelName: String,
+                                          newLabelName: String): Option[PipelineStage] = {
+    Some(new ColumnNameTransformer()
+      .setInputColumns(Array(oldLabelName))
+      .setOutputColumns(Array(newLabelName)))
+  }
+
+  private def dropColumns(colNames: Array[String]): Option[PipelineStage] = {
+    Some(new DropColumnsTransformer().setInputCols(colNames))
+  }
+
   private def mergePipelineModels(pipelineModels: ArrayBuffer[PipelineModel]): PipelineModel = {
-    SparkUtil.createPipelineModel(UUID.randomUUID().toString, pipelineModels.flatMap(item => item.stages).toArray)
-//null
-//    new PipelineModel(pipelineModels.flatMap(item => item.stages))
+    SparkUtil.createPipelineModel(
+      "final_ml_pipeline_"+UUID.randomUUID().toString,
+      pipelineModels.flatMap(item => item.stages).toArray)
   }
 
   def getAndAddStage[T](stages: ArrayBuffer[PipelineStage], value: Option[_ <: PipelineStage]): Unit = {
     if(value.isDefined) {
       stages += value.get
+    }
+  }
+
+  def getAndAddStages[T](stages: ArrayBuffer[PipelineStage], value: Option[Array[_ <: PipelineStage]]): Unit = {
+    if(value.isDefined) {
+      stages ++= value.get
     }
   }
 }

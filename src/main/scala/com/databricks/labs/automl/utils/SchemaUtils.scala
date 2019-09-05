@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.utils
 
+import com.databricks.labs.automl.pipeline.PipelineEnums
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{DataType, StructType}
@@ -72,6 +73,27 @@ object SchemaUtils {
     )
   }
 
+  def isLabelRefactorNeeded(schema: StructType, labelCol: String): Boolean = {
+    val labelDataType = schema.fields.find(_.name.equals(labelCol)).get.dataType
+    labelDataType.typeName match {
+      case "string"                    => true
+      case "integer"                   => false
+      case "double"                    => false
+      case "float"                     => false
+      case "long"                      => false
+      case "byte"                      => true
+      case "boolean"                   => false
+      case "binary"                    => false
+      case "date"                      => true
+      case "timestamp"                 => true
+      case z if z.take(7) == "decimal" => true
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Field '$labelCol' is of type $labelDataType, which is not supported."
+        )
+    }
+  }
+
   def validateCardinality(df: DataFrame,
                           stringFields: List[String],
                           cardinalityLimit: Int = 500,
@@ -114,7 +136,16 @@ object SchemaUtils {
   }
 
   def generateStringIndexedColumn(columnName: String): String = {
-    columnName + "_si"
+    columnName + PipelineEnums.SI_SUFFIX.value
+  }
+
+  def generateOneHotEncodedColumn(columnName: String): String = {
+    val oheSuffix = PipelineEnums.OHE_SUFFIX.value
+    if (columnName.endsWith(PipelineEnums.SI_SUFFIX.value)) {
+      columnName.dropRight(3) + oheSuffix
+    } else {
+      columnName + oheSuffix
+    }
   }
 
   def generateMapFromKeysValues[T](keys: Array[String],

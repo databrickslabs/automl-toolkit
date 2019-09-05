@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.sanitize.PearsonFiltering
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
@@ -30,7 +30,7 @@ class PearsonFilterTransformer(override val uid: String)
 
   final val filterDirection: Param[String] = new Param[String](this, "filterDirection", "filterDirection")
 
-  final val filterManualValue: IntParam = new IntParam(this, "filterManualValue", "filterManualValue")
+  final val filterManualValue: DoubleParam = new DoubleParam(this, "filterManualValue", "filterManualValue")
 
   final val filterMode: Param[String] = new Param[String](this, "filterMode", "filterMode")
 
@@ -45,9 +45,9 @@ class PearsonFilterTransformer(override val uid: String)
 
   def getFilterDirection: String = $(filterDirection)
 
-  def setFilterManualValue(value: Int): this.type = set(filterManualValue, value)
+  def setFilterManualValue(value: Double): this.type = set(filterManualValue, value)
 
-  def getFilterManualValue: Int = $(filterManualValue)
+  def getFilterManualValue: Double = $(filterManualValue)
 
   def setFilterMode(value: String): this.type = set(filterMode, value)
 
@@ -59,7 +59,9 @@ class PearsonFilterTransformer(override val uid: String)
 
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-
+    if(SchemaUtils.isNotEmpty(getFeatureColumns)) {
+      setFeatureColumns(dataset.columns.filterNot(item => Array(getLabelColumn, getAutomlInternalId).contains(item)))
+    }
     if(!getTransformCalculated) {
       // Requires a DataFrame that has a feature vector field.  Output has no feature vector.
       val pearsonFiltering = new PearsonFiltering(dataset.toDF(), getFeatureColumns)

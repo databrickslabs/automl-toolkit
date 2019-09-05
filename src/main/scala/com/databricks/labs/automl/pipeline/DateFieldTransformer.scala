@@ -19,8 +19,8 @@ class DateFieldTransformer (override val uid: String)
   def this() = {
     this(Identifiable.randomUID("DateFieldTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
-    setNewDateTimeFeatureColumns(null)
-    setOldDateTimeFeatureColumns(null)
+    setNewDateTimeFeatureColumns(Array.empty)
+      setOldDateTimeFeatureColumns(Array.empty)
   }
 
   final val mode: Param[String] = new Param[String](this, "mode", "date/time conversion mode. Possible values 'split' and 'unix'")
