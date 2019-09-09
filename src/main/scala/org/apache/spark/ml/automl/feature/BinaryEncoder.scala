@@ -23,6 +23,9 @@ trait BinaryEncoderBase
     with HasInputCols
     with HasOutputCols {
 
+  /**
+    * Configuration of the Parameter for handling invalid entries in a previously modeled feature column.
+    */
   override val handleInvalid: Param[String] = new Param[String](
     this,
     "handleInvalid",
@@ -34,6 +37,22 @@ trait BinaryEncoderBase
 
   setDefault(handleInvalid, BinaryEncoder.ERROR_INVALID)
 
+  /**
+    * Method for validating the resultant schema from the application of building and transforming using this
+    * encoder package.  The purpose of validation is to ensure that the supplied input columns are of the correct
+    * binary or nominal (ordinal numeric) type and that the output columns will contain the correct number of columns
+    * based on the configuration set.
+    * @param schema The schema of the dataset supplied for training of the model or used in transforming using the model
+    * @param keepInvalid Boolean flag for whether to allow for an additional binary encoding value to be used for
+    *                    any values that were unknown at the time of model training, which will summarily be
+    *                    converted to a 'max binary value' of the encoding length + 1 with maximum n * "1" values.
+    * @return StructType that represents the transformed schema with additional output columns appended to the
+    *         dataset structure.
+    * @since 0.5.3
+    * @throws UnsupportedOperationException if the configured input cols and output cols do not match one another in
+    *                                       length.
+    * @author Ben Wilson, Databricks
+    */
   protected def validateAndTransformSchema(schema: StructType,
                                            keepInvalid: Boolean): StructType = {
 
@@ -76,10 +95,33 @@ class BinaryEncoder(override val uid: String)
 
   def this() = this(Identifiable.randomUID("binaryEncoder"))
 
+  /**
+    * Setter for supplying the array of input columns to be encoded with the BinaryEncoder type
+    * @param values Array of column names
+    * @since 0.5.3
+    * @author Ben Wilson, Databricks
+    */
   def setInputCols(values: Array[String]): this.type = set(inputCols, values)
 
+  /**
+    * Setter for supplying the array of output columns that are the result of running a .transform from a trained
+    * model on an appropriate dataset of compatible schema
+    * @param values Array of column names that will be generated through a .transform
+    * @since 0.5.3
+    * @author Ben Wilson, Databricks
+    */
   def setOutputCols(values: Array[String]): this.type = set(outputCols, values)
 
+  /**
+    * Setter for supplying an optional 'keep' or 'error' (Default: 'error') for un-seen values that arrive into a
+    * pre-trained model.  With the 'keep' setting, an additional vector position is added to the output column
+    * to ensure no collisions may exist with real data and the values throughout each of the Array[Double] locations
+    * in the DenseVector output will all be set to '1'
+    * @param value String: either 'keep' or 'error' (Default: 'error')
+    * @throws SparkException if the configuration value supplied is not either 'keep' or 'error'
+    * @since 0.5.3
+    * @author Ben Wilson, Databricks
+    */
   def setHandleInvalid(value: String): this.type = set(handleInvalid, value)
 
   override def transformSchema(schema: StructType): StructType = {
@@ -87,6 +129,16 @@ class BinaryEncoder(override val uid: String)
     validateAndTransformSchema(schema, keepInvalid = keepInvalid)
   }
 
+  /**
+    * Main fit method that will build a BinaryEncoder model from the data set and the configured input and output columns
+    * specified in the setters.
+    * The primary principle at work here is dimensionality reduction for the encoding of extremely high-cardinality
+    * StringIndexed columns.  OneHotEncoding works extremely well for this purpose, but has the side-effect of
+    * requiring extremely large amounts of columns to be generated when performing OHE is increased memory pressure.
+    * This package allows for a lossy reduction
+    * @param dataset
+    * @return
+    */
   override def fit(dataset: Dataset[_]): BinaryEncoderModel = {
 
     transformSchema(dataset.schema)
@@ -177,14 +229,15 @@ class BinaryEncoderModel(override val uid: String,
       val origCategorySize = localCategorySizes(colIdx)
 
       val maxCategorySize =
-        BinaryEncoderCommon.convertToBinaryString(origCategorySize).length
+        BinaryEncoderCommon.convertToBinaryString(Some(origCategorySize)).length
 
       // Add additional index position to vector if the
       val idxLength = if (keepInvalid) maxCategorySize + 1 else maxCategorySize
 
-      val encodedData = BinaryEncoderCommon.convertToBinary(label, idxLength)
+      val encodedData =
+        BinaryEncoderCommon.convertToBinary(Some(label), idxLength)
 
-      val idx = if (encodedData.length < origCategorySize) {
+      val idx = if (encodedData.length <= origCategorySize) {
         encodedData
       } else {
         if (keepInvalid) {
@@ -349,13 +402,14 @@ private[feature] object BinaryEncoderCommon {
 
   }
 
-  //TODO: this should all be the output of StringIndexer, so maybe simplify this to just do Double/Int conversion?
-  private[feature] def convertToBinaryString[A <: Any](value: A): String = {
+  private[feature] def convertToBinaryString[A <: Any](
+    value: Option[A]
+  ): String = {
 
-    value match {
+    value.get match {
       case a: Boolean => if (a) "1" else "0"
       case a: Byte    => a.toByte.toBinaryString
-      case a: Char    => a.toChar.toBinaryString //TODO: maybe remove this?
+      case a: Char    => a.toChar.toBinaryString
       case a: Int     => a.toInt.toBinaryString
       case a: Long    => a.toLong.toBinaryString
       case a: Float   => a.toFloat.toByte.toBinaryString
@@ -363,8 +417,8 @@ private[feature] object BinaryEncoderCommon {
       case a: String =>
         a.toString.toCharArray
           .flatMap(_.toBinaryString)
-          .mkString("") //TODO: maybe remove this?
-      case a: BigDecimal => a.toByte.toBinaryString
+          .mkString("")
+      case a: BigDecimal => a.toString.toByte.toBinaryString
       case _ =>
         throw new UnsupportedOperationException(
           s"ordinalToBinary does not support type :" +
@@ -375,7 +429,7 @@ private[feature] object BinaryEncoderCommon {
   }
 
   private[feature] def convertToBinary[A <: Any](
-    ordinalValue: A,
+    ordinalValue: Option[A],
     encodingSize: Int
   ): Array[Double] = {
 
@@ -452,9 +506,9 @@ private[feature] object BinaryEncoderCommon {
                                   keepInvalid: Boolean): AttributeGroup = {
 
     val maxAttributeSize = if (keepInvalid) {
-      BinaryEncoderCommon.convertToBinaryString(numAttrs).length + 1
+      BinaryEncoderCommon.convertToBinaryString(Some(numAttrs)).length + 1
     } else {
-      BinaryEncoderCommon.convertToBinaryString(numAttrs).length
+      BinaryEncoderCommon.convertToBinaryString(Some(numAttrs)).length
     }
 
     val outputAttrNames = Array.tabulate(maxAttributeSize)(_.toString)
@@ -484,7 +538,9 @@ private[feature] object BinaryEncoderCommon {
     inputAttr match {
       case nominal: NominalAttribute =>
         val outputCardinality =
-          BinaryEncoderCommon.convertToBinaryString(nominal.values).length
+          BinaryEncoderCommon
+            .convertToBinaryString(Some(nominal.values.get.length))
+            .length
         Some((0 to outputCardinality).toArray.map(_.toString))
       case binary: BinaryAttribute =>
         if (binary.values.isDefined) {
