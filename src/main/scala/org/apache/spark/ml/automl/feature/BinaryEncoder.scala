@@ -1,21 +1,21 @@
 package org.apache.spark.ml.automl.feature
 
-import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.hadoop.fs.Path
+import org.apache.spark.SparkException
 import org.apache.spark.ml.attribute._
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.ml.param._
-import org.apache.spark.ml.param.shared.{HasHandleInvalid, HasInputCols, HasOutputCols}
+import org.apache.spark.ml.param.shared.{
+  HasHandleInvalid,
+  HasInputCols,
+  HasOutputCols
+}
 import org.apache.spark.ml.util._
 import org.apache.spark.ml.{Estimator, Model}
 import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql.functions.{col, udf}
-import org.apache.spark.sql.types.{DoubleType, NumericType, StructField, StructType}
+import org.apache.spark.sql.functions.{col, lit, udf}
+import org.apache.spark.sql.types.{DoubleType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
-import org.apache.spark.{SparkContext, SparkException}
-import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods._
-import org.json4s.{JObject, _}
 
 trait BinaryEncoderBase
     extends Params
@@ -34,20 +34,6 @@ trait BinaryEncoderBase
 
   setDefault(handleInvalid, BinaryEncoder.ERROR_INVALID)
 
-  // This has to be defined here since NumericType validation is hidden behind the protection of [spark]
-  private[encoders] def checkNumericType(schema: StructType,
-                                         colName: String): Unit = {
-
-    val columnDataType = schema(colName).dataType
-
-    require(
-      columnDataType.isInstanceOf[NumericType],
-      s"Column $colName must be of numeric type but was actually of type " +
-        s"${columnDataType.catalogString}"
-    )
-
-  }
-
   protected def validateAndTransformSchema(schema: StructType,
                                            keepInvalid: Boolean): StructType = {
 
@@ -64,7 +50,7 @@ trait BinaryEncoderBase
     )
 
     // Validate that the supplied input columns are of numeric type
-    inputColNames.foreach(checkNumericType(schema, _))
+    inputColNames.foreach(SchemaUtils.checkNumericType(schema, _))
 
     val inputFields = $(inputCols).map(schema(_))
 
@@ -147,15 +133,14 @@ class BinaryEncoder(override val uid: String)
   }
 
   override def copy(extra: ParamMap): BinaryEncoder = defaultCopy(extra)
-//  private[encoders] def calculateEncodingLength()
 
 }
 
 object BinaryEncoder extends DefaultParamsReadable[BinaryEncoder] {
 
-  private[encoders] val KEEP_INVALID: String = "keep"
-  private[encoders] val ERROR_INVALID: String = "error"
-  private[encoders] val supportedHandleInvalids: Array[String] =
+  private[feature] val KEEP_INVALID: String = "keep"
+  private[feature] val ERROR_INVALID: String = "error"
+  private[feature] val supportedHandleInvalids: Array[String] =
     Array(KEEP_INVALID, ERROR_INVALID)
 
   override def load(path: String): BinaryEncoder = super.load(path)
@@ -167,6 +152,8 @@ class BinaryEncoderModel(override val uid: String,
     extends Model[BinaryEncoderModel]
     with BinaryEncoderBase
     with MLWritable {
+
+  import BinaryEncoderModel._
 
   private def getConfigedCategorySizes: Array[Int] = {
 
@@ -241,7 +228,7 @@ class BinaryEncoderModel(override val uid: String,
     val configedSizes = getConfigedCategorySizes
     $(outputCols).zipWithIndex.foreach {
       case (outputColName, idx) =>
-        val inputColName = $(inputColName)(idx)
+        val inputColName = $(inputCols)(idx)
         val attrGroup = AttributeGroup.fromStructField(schema(outputColName))
 
         if (attrGroup.attributes.nonEmpty) {
@@ -259,21 +246,44 @@ class BinaryEncoderModel(override val uid: String,
   override def transform(dataset: Dataset[_]): DataFrame = {
 
     val transformedSchema = transformSchema(dataset.schema, logging = true)
-    //todo finish
+
+    val keepInvalid = $(handleInvalid) == BinaryEncoder.KEEP_INVALID
+
+    val encodedColumns = $(inputCols).indices.map { idx =>
+      val inputColName = $(inputCols)(idx)
+      val outputColName = $(outputCols)(idx)
+
+      val metadata = BinaryEncoderCommon
+        .createAttrGroupForAttrNames(
+          outputColName,
+          categorySizes(idx),
+          keepInvalid
+        )
+        .toMetadata()
+
+      encoder(col(inputColName).cast(DoubleType), lit(idx))
+        .as(outputColName, metadata)
+    }
+
+    dataset.withColumns($(outputCols), encodedColumns)
+
   }
+
+  override def copy(extra: ParamMap): BinaryEncoderModel = {
+    val copied = new BinaryEncoderModel(uid, categorySizes)
+    copyValues(copied, extra).setParent(parent)
+  }
+
+  override def write: MLWriter = new BinaryEncoderModelWriter(this)
 
 }
 
-object BinaryEncoderModel
-    extends MLReadable[BinaryEncoderModel] {
-
+object BinaryEncoderModel extends MLReadable[BinaryEncoderModel] {
   private[BinaryEncoderModel] class BinaryEncoderModelWriter(
     instance: BinaryEncoderModel
   ) extends MLWriter {
 
     private case class Data(categorySizes: Array[Int])
-
-
 
     override protected def saveImpl(path: String): Unit = {
 
@@ -288,14 +298,32 @@ object BinaryEncoderModel
     }
   }
 
+  private class BinaryEncoderModelReader extends MLReader[BinaryEncoderModel] {
+
+    private val className = classOf[BinaryEncoderModel].getName
+
+    override def load(path: String): BinaryEncoderModel = {
+      val metadata = DefaultParamsReader.loadMetadata(path, sc, className)
+      val dataPath = new Path(path, "data").toString
+      val data = sparkSession.read
+        .parquet(dataPath)
+        .select("categorySizes")
+        .head()
+      val categorySizes = data.getAs[Seq[Int]](0).toArray
+      val model = new BinaryEncoderModel(metadata.uid, categorySizes)
+      metadata.getAndSetParams(model)
+      model
+    }
 
   }
 
+  override def read: MLReader[BinaryEncoderModel] = new BinaryEncoderModelReader
 
+  override def load(path: String): BinaryEncoderModel = super.load(path)
 
 }
 
-private[encoders] object BinaryEncoderCommon {
+private[feature] object BinaryEncoderCommon {
 
   /**
     * Helper method for appropriately padding leading zero's based on the BinaryString Length value and the
@@ -303,8 +331,8 @@ private[encoders] object BinaryEncoderCommon {
     * @param inputString A supplied BinaryString encoded value
     * @return Padded string to the prescribed encoding length
     */
-  private[encoders] def padZeros(inputString: String,
-                                 encodingSize: Int): String = {
+  private[feature] def padZeros(inputString: String,
+                                encodingSize: Int): String = {
 
     val deltaLength = encodingSize - inputString.length
 
@@ -322,7 +350,7 @@ private[encoders] object BinaryEncoderCommon {
   }
 
   //TODO: this should all be the output of StringIndexer, so maybe simplify this to just do Double/Int conversion?
-  private[encoders] def convertToBinaryString[A <: Any](value: A): String = {
+  private[feature] def convertToBinaryString[A <: Any](value: A): String = {
 
     value match {
       case a: Boolean => if (a) "1" else "0"
@@ -346,7 +374,7 @@ private[encoders] object BinaryEncoderCommon {
 
   }
 
-  private[encoders] def convertToBinary[A <: Any](
+  private[feature] def convertToBinary[A <: Any](
     ordinalValue: A,
     encodingSize: Int
   ): Array[Double] = {
@@ -356,7 +384,7 @@ private[encoders] object BinaryEncoderCommon {
     binaryStringToDoubleArray(padded)
   }
 
-  private[encoders] def binaryStringToDoubleArray(
+  private[feature] def binaryStringToDoubleArray(
     binary: String
   ): Array[Double] = {
 
@@ -478,7 +506,14 @@ private[encoders] object BinaryEncoderCommon {
                                   keepInvalid: Boolean = false): StructField = {
 
     val outputAttrNames = genOutputAttrNames(inputCol)
-
+    val filteredOutputAttrNames = outputAttrNames.map { names =>
+      if (keepInvalid) {
+        names ++ Seq("invalidValues")
+      } else {
+        names
+      }
+    }
+    genOutputAttrGroup(filteredOutputAttrNames, outputColName).toStructField()
   }
 
 }
