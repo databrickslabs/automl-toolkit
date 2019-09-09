@@ -565,7 +565,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     decision
   }
 
-  def generateCleanData(naFillConfig: NaFillConfig = null, refactorLabelFlag: Boolean = true): (DataFrame, NaFillConfig, String) = {
+  def generateCleanData(naFillConfig: NaFillConfig = null, refactorLabelFlag: Boolean = true, decidedModel: String = ""): (DataFrame, NaFillConfig, String) = {
 
     val preFilter = if(refactorLabelFlag) {
       refactorLabel(data, _labelCol)
@@ -583,7 +583,11 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
       .na
       .fill(fillMap.categoricalColumns)
 
-    (filledData, fillMap, decideModel())
+    if(decidedModel != null && decidedModel.nonEmpty) {
+      (filledData, fillMap, decidedModel)
+    } else {
+      (filledData, fillMap, decideModel())
+    }
 
   }
 

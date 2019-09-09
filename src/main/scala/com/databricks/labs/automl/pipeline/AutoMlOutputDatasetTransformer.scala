@@ -26,11 +26,19 @@ class AutoMlOutputDatasetTransformer (override val uid: String)
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val originalUserDf =  dataset.sqlContext.sql(s"select * from $getTempViewOriginalDatasetName")
-    val userViewDf = dataset
-      .drop(getFeatureColumns:_*)
-      .drop(getLabelColumn)
-      .join(originalUserDf, getAutomlInternalId)
-      .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    val userViewDf =
+    if(dataset.columns.contains(getLabelColumn)) {
+      dataset
+        .drop(getFeatureColumns:_*)
+        .drop(getLabelColumn)
+        .join(originalUserDf, getAutomlInternalId)
+        .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    } else {
+      dataset
+        .drop(getFeatureColumns:_*)
+        .join(originalUserDf, getAutomlInternalId)
+        .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    }
     dataset.sqlContext.dropTempTable(getTempViewOriginalDatasetName)
     userViewDf.toDF()
   }

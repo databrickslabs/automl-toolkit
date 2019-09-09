@@ -3,20 +3,21 @@ package com.databricks.labs.automl.pipeline
 import java.util.UUID
 
 import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, TimeFeatureConversionException}
-import com.databricks.labs.automl.params.MainConfig
+import com.databricks.labs.automl.params.{GenericModelReturn, GroupedModelReturn, MainConfig}
 import com.databricks.labs.automl.sanitize.Scaler
 import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.util.Identifiable
-import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
+import org.apache.spark.ml.{Model, Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.col
 
 import scala.collection.mutable.ArrayBuffer
 
 final case class VectorizationOutput(pipelineModel: PipelineModel, vectorizedCols: Array[String])
-final case class FeatureEngineeringOutput(pipelineModel: PipelineModel, originalDfViewName: String)
+final case class FeatureEngineeringOutput(pipelineModel: PipelineModel,
+                                          originalDfViewName: String, decidedModel: String,
+                                          transformedForTrainingDf: DataFrame)
 
 object FeatureEngineeringPipelineContext {
 
@@ -35,7 +36,6 @@ object FeatureEngineeringPipelineContext {
     val secondTransformation = applyStngIndxVectAssembler(
       initialTransformationDf,
       mainConfig,
-      originalDfTempTableName,
       Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     )
     val vectorizedColumns = secondTransformation.vectorizedCols
@@ -70,8 +70,18 @@ object FeatureEngineeringPipelineContext {
       .filter(item => item.endsWith(PipelineEnums.SI_SUFFIX.value))
       .filterNot(item => (mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value).equals(item))
 
-    // Apply OneHotEncoding Options
+    // Ksampler stages
+    val ksampleStages = ksamplerStages(mainConfig)
+    var ksampledDf = thirdTransformationDf
+    if(ksampleStages.isDefined) {
+      val ksamplerPipelineModel = new Pipeline().setStages(ksampleStages.get).fit(thirdTransformationDf)
+      ksampledDf = ksamplerPipelineModel.transform(thirdTransformationDf)
+    }
+
     val lastStages = new ArrayBuffer[PipelineStage]()
+    // Roundup OHE input Cols
+    getAndAddStage(lastStages, Some(new RoundUpDoubleTransformer().setInputCols(oheInputCols)))
+    // Apply OneHotEncoding Options
     getAndAddStage(lastStages, oneHotEncodingStage(mainConfig, oheInputCols))
     getAndAddStage(lastStages, dropColumns(Array(mainConfig.featuresCol)))
     // Execute Vector Assembler Again
@@ -87,18 +97,13 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(lastStages, scalerStage(mainConfig))
     getAndAddStage(lastStages, dropColumns(Array(renamedFeatureCol)))
 
-    //Drop OHE input columns
-    getAndAddStage(lastStages, dropColumns(oheInputCols))
-    // Ksampler stages
-    getAndAddStages(lastStages, ksamplerStages(mainConfig))
-
-    // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label and features (and synthetic from ksampler)
+    // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
     removeColumns ++= oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
     getAndAddStage(lastStages, dropColumns(removeColumns.toArray))
 
     // final transformation
-    var fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(thirdTransformationDf)
-    var fourthTransformationDf = fourthPipelineModel.transform(thirdTransformationDf)
+    var fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
+    var fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
 
     // Label refactor
     if(SchemaUtils.isLabelRefactorNeeded(fourthTransformationDf.schema, mainConfig.labelCol)) {
@@ -109,33 +114,80 @@ object FeatureEngineeringPipelineContext {
         .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)
         .setHandleInvalid("keep")))
 
-
-      fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(fourthTransformationDf)
-      fourthTransformationDf = fourthPipelineModel.transform(thirdTransformationDf)
+      fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
+      fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
     }
+
+    //Extract Decided model from DataSanitizer stage
+    val dataSanitizerStage = thirdPipelineModel.stages.find(item => item.isInstanceOf[DataSanitizerTransformer]).get
 
     FeatureEngineeringOutput(
       mergePipelineModels(ArrayBuffer(initialPipelineModel, secondTransformationPipelineModel, thirdPipelineModel, fourthPipelineModel)),
-      originalDfTempTableName)
+      originalDfTempTableName,
+      dataSanitizerStage.getOrDefault(dataSanitizerStage.getParam("decideModel")).asInstanceOf[String],
+      fourthTransformationDf
+    )
   }
 
-   def addLabelIndexToString(pipelineModel: PipelineModel,
+  def buildFullPredictPipeline(featureEngOutput: FeatureEngineeringOutput,
+                               modelReport: Array[GroupedModelReturn],
+                               mainConfiguration: MainConfig,
+                               originalDf: DataFrame): PipelineModel = {
+    val pipelineModelStages = new ArrayBuffer[PipelineModel]()
+    //Build Pipeline here
+    // get Feature eng. pipeline model
+    pipelineModelStages += featureEngOutput.pipelineModel
+
+    // Append Model Pipeline stage TODO: update to get the right model
+    val bestModel = getBestModel(modelReport, mainConfiguration.scoringOptimizationStrategy)
+    val mlPipelineModel = SparkUtil.createPipelineModel(Array(bestModel.model.asInstanceOf[Model[_]]))
+
+    pipelineModelStages += mlPipelineModel
+    val pipelinewithMlModel = FeatureEngineeringPipelineContext.mergePipelineModels(pipelineModelStages)
+    val pipelinewithMlModelDf = mlPipelineModel.transform(featureEngOutput.transformedForTrainingDf)
+
+    // Add Index To String Stage
+    val pipelineModelWithLabelSi = addLabelIndexToString(
+      pipelinewithMlModel,
+      pipelinewithMlModelDf,
+      mainConfiguration)
+    val pipelineModelWithLabelSiDf = pipelineModelWithLabelSi.transform(originalDf)
+
+    addUserReturnViewStage(
+      pipelineModelWithLabelSi,
+      mainConfiguration,
+      pipelineModelWithLabelSiDf,
+      featureEngOutput.originalDfViewName)
+  }
+
+  private def getBestModel(runData: Array[GroupedModelReturn],
+                           optimizationStrategy: String): GroupedModelReturn = {
+    optimizationStrategy match {
+      case "minimize" => runData.sortWith(_.score < _.score)(0)
+      case _ => runData.sortWith(_.score > _.score)(0)
+    }
+  }
+   private def addLabelIndexToString(pipelineModel: PipelineModel,
                         dataFrame: DataFrame,
                         mainConfig: MainConfig): PipelineModel = {
-    val stringIndexerLabels = pipelineModel.stages.reverse.find(_.isInstanceOf[StringIndexerModel]).get.asInstanceOf[StringIndexerModel].labels
+     if(SchemaUtils.isLabelRefactorNeeded(dataFrame.schema, mainConfig.labelCol)) {
+       //Find the last string indexer by reversing the pipeline mode stages
+       val stringIndexerLabels = pipelineModel.stages.reverse.find(_.isInstanceOf[StringIndexerModel]).get.asInstanceOf[StringIndexerModel].labels
 
-    val labelRefactorPipelineModel =  new Pipeline()
-      .setStages(Array(new IndexToString()
-        .setInputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)
-        .setOutputCol(mainConfig.labelCol)
-        .setLabels(stringIndexerLabels)))
-      .fit(dataFrame)
-     labelRefactorPipelineModel.transform(dataFrame)
+       val labelRefactorPipelineModel =  new Pipeline()
+         .setStages(Array(new IndexToString()
+           .setInputCol("prediction")
+           .setOutputCol("prediction")
+           .setLabels(stringIndexerLabels)))
+         .fit(dataFrame)
+       labelRefactorPipelineModel.transform(dataFrame)
 
-     mergePipelineModels(ArrayBuffer(pipelineModel, labelRefactorPipelineModel))
+       mergePipelineModels(ArrayBuffer(pipelineModel, labelRefactorPipelineModel))
+     }
+     pipelineModel
   }
 
-  def addUserReturnViewStage(pipelineModel: PipelineModel,
+  private def addUserReturnViewStage(pipelineModel: PipelineModel,
                              mainConfig: MainConfig,
                              dataFrame: DataFrame,
                              originalDfTempTableName: String): PipelineModel = {
@@ -207,7 +259,6 @@ object FeatureEngineeringPipelineContext {
     */
   private def applyStngIndxVectAssembler(dataFrame: DataFrame,
                                          mainConfig: MainConfig,
-                                         originalDfTempTableName: String,
                                          ignoreCols: Array[String]): VectorizationOutput = {
     val fields = SchemaUtils.extractTypes(dataFrame, mainConfig.labelCol)
     val stringFields = fields._2.filterNot(ignoreCols.contains)
@@ -424,13 +475,13 @@ object FeatureEngineeringPipelineContext {
       pipelineModels.flatMap(item => item.stages).toArray)
   }
 
-  def getAndAddStage[T](stages: ArrayBuffer[PipelineStage], value: Option[_ <: PipelineStage]): Unit = {
+  private def getAndAddStage[T](stages: ArrayBuffer[PipelineStage], value: Option[_ <: PipelineStage]): Unit = {
     if(value.isDefined) {
       stages += value.get
     }
   }
 
-  def getAndAddStages[T](stages: ArrayBuffer[PipelineStage], value: Option[Array[_ <: PipelineStage]]): Unit = {
+  private def getAndAddStages[T](stages: ArrayBuffer[PipelineStage], value: Option[Array[_ <: PipelineStage]]): Unit = {
     if(value.isDefined) {
       stages ++= value.get
     }

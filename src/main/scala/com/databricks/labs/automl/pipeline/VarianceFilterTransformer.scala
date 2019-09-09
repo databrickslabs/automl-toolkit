@@ -45,7 +45,11 @@ class VarianceFilterTransformer(override val uid: String)
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     // Get columns without label,  feature column and automl_internal_id columns
-    val colsToIgnoreForVariance = Array(getLabelColumn, getFeatureCol, getAutomlInternalId)
+    val colsToIgnoreForVariance = if(dataset.columns.contains(getLabelColumn)) {
+      Array(getLabelColumn, getFeatureCol, getAutomlInternalId)
+    } else {
+      Array(getFeatureCol, getAutomlInternalId)
+    }
 
     if(!getTransformCalculated) {
       val fields = dataset.columns.filterNot(field => colsToIgnoreForVariance.contains(field))
@@ -84,8 +88,10 @@ class VarianceFilterTransformer(override val uid: String)
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    if(SchemaUtils.isNotEmpty(getRemovedColumns.toList)) {
-      return StructType(schema.fields.filterNot(field => getRemovedColumns.contains(field.name)))
+    if(schema.fieldNames.contains(getLabelColumn)) {
+      if (SchemaUtils.isNotEmpty(getRemovedColumns.toList)) {
+        return StructType(schema.fields.filterNot(field => getRemovedColumns.contains(field.name)))
+      }
     }
     schema
   }

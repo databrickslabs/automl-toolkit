@@ -3,7 +3,7 @@ package com.databricks.labs.automl.pipeline
 import com.databricks.labs.automl.feature.SyntheticFeatureGenerator
 import com.databricks.labs.automl.utils.AutoMlPipelineUtils
 import org.apache.spark.ml.param._
-import org.apache.spark.ml.util.{DefaultParamsReadable, Identifiable}
+import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.{BooleanType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
@@ -12,12 +12,11 @@ class SyntheticFeatureGenTransformer(override val uid: String)
     with HasLabelColumn
     with HasFeatureColumn
     with HasFieldsToIgnore
-    with HasTransformCalculated {
+    with DefaultParamsWritable {
 
   def this() = {
     this(Identifiable.randomUID("SyntheticFeatureGenTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
-    setTransformCalculated(false)
     setFieldsToIgnore(Array(getAutomlInternalId))
   }
 
@@ -63,9 +62,7 @@ class SyntheticFeatureGenTransformer(override val uid: String)
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     transformSchemaInternal(dataset.schema)
-    if(!getTransformCalculated) {
-      setTransformCalculated(true)
-      return SyntheticFeatureGenerator(
+    SyntheticFeatureGenerator(
         dataset.toDF(),
         getFeatureCol,
         getLabelColumn,
@@ -90,15 +87,10 @@ class SyntheticFeatureGenTransformer(override val uid: String)
         $(numericRatio),
         $(numericTarget)
       )
-    }
-    dataset.toDF()
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    if(!getTransformCalculated) {
-      return StructType(schema.fields ++ Array(StructField($(syntheticCol), BooleanType, nullable = true)))
-    }
-    schema
+    StructType(schema.fields ++ Array(StructField($(syntheticCol), BooleanType, nullable = true)))
   }
 
   override def copy(extra: ParamMap): SyntheticFeatureGenTransformer = defaultCopy(extra)

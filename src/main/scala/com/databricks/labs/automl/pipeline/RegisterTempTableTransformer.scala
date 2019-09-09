@@ -8,8 +8,7 @@ import org.apache.spark.sql.types.StructType
 
 class RegisterTempTableTransformer(override val uid: String)
   extends AbstractTransformer
-    with DefaultParamsWritable
-    with HasTransformCalculated {
+    with DefaultParamsWritable {
 
   final val tempTableName = new Param[String](this, "tempTableName", "tempTableName")
   final val statement = new Param[String](this, "statement", "statement")
@@ -26,20 +25,16 @@ class RegisterTempTableTransformer(override val uid: String)
   def this() = {
     this(Identifiable.randomUID("RegisterTempTableTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
-    setTransformCalculated(false)
   }
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    if(!getTransformCalculated) {
-      setTransformCalculated(true)
-      val tmpTableName = Identifiable.randomUID("InternalRegisterTempTableTransformer_")
-      dataset.createOrReplaceTempView(tmpTableName)
-      dataset
-        .sqlContext
-        .sql(getStatement.replaceAll("__THIS__", tmpTableName))
-        .createOrReplaceTempView(getTempTableName)
-      dataset.sqlContext.dropTempTable(tmpTableName)
-    }
+    val tmpTableName = Identifiable.randomUID("InternalRegisterTempTableTransformer_")
+    dataset.createOrReplaceTempView(tmpTableName)
+    dataset
+      .sqlContext
+      .sql(getStatement.replaceAll("__THIS__", tmpTableName))
+      .createOrReplaceTempView(getTempTableName)
+    dataset.sqlContext.dropTempTable(tmpTableName)
     dataset.toDF()
   }
 

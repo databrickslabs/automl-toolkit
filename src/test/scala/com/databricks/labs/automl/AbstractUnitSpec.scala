@@ -122,7 +122,7 @@ object AutomationUnitTestsUtil {
 
   def getLogisticRegressionConfig(inputDataset: DataFrame,
                                   evolutionStrategy: String): AutomationRunner = {
-    new AutomationRunner(inputDataset)
+   new AutomationRunner(inputDataset)
       .setModelingFamily("LogisticRegression")
       .setLabelCol("label")
       .setFeaturesCol("features")
@@ -153,6 +153,7 @@ object AutomationUnitTestsUtil {
       .setFeatureImportanceCutoffValue(12.0)
       .setEvolutionStrategy(evolutionStrategy)
       .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .setTrainSplitMethod("kSample")
   }
 
   def getXgBoostConfig(inputDataset: DataFrame,

@@ -67,27 +67,29 @@ class OutlierFilterTransformer(override val uid: String)
 
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    // Output has no feature vector
-    val outlierFiltering = new OutlierFiltering(dataset.toDF())
-      .setLabelCol(getLabelColumn)
-      .setFilterBounds(getFilterBounds)
-      .setLowerFilterNTile(getLowerFilterNTile)
-      .setUpperFilterNTile(getUpperFilterNTile)
-      .setFilterPrecision(getFilterPrecision)
-      .setParallelism(getParallelism)
-      .setContinuousDataThreshold(getContinuousDataThreshold)
+    if(dataset.columns.contains(getLabelColumn)) {
+      // Output has no feature vector
+      val outlierFiltering = new OutlierFiltering(dataset.toDF())
+        .setLabelCol(getLabelColumn)
+        .setFilterBounds(getFilterBounds)
+        .setLowerFilterNTile(getLowerFilterNTile)
+        .setUpperFilterNTile(getUpperFilterNTile)
+        .setFilterPrecision(getFilterPrecision)
+        .setParallelism(getParallelism)
+        .setContinuousDataThreshold(getContinuousDataThreshold)
 
-    val (outlierCleanedData, outlierRemovedData, filteringMap) =
-      outlierFiltering.filterContinuousOutliers(Array(getAutomlInternalId)++getFieldsToIgnore, getFieldsToIgnore)
+      val (outlierCleanedData, outlierRemovedData, filteringMap) =
+        outlierFiltering.filterContinuousOutliers(Array(getAutomlInternalId) ++ getFieldsToIgnore, getFieldsToIgnore)
 
-    val outlierRemovalInfo =
-      s"Removed outlier data.  Total rows removed = ${outlierRemovedData.count()}"
-    logger.log(Level.INFO, outlierRemovalInfo)
-    println(outlierRemovalInfo)
-
-//    setInferenceOutlierMap(filteringMap)
-
-    outlierCleanedData
+      val outlierRemovalInfo =
+        s"Removed outlier data.  Total rows removed = ${outlierRemovedData.count()}"
+      logger.log(Level.INFO, outlierRemovalInfo)
+      println(outlierRemovalInfo)
+      //setInferenceOutlierMap(filteringMap)
+      outlierCleanedData
+    } else {
+      dataset.toDF()
+    }
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {

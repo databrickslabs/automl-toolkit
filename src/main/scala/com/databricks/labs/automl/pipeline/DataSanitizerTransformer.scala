@@ -169,9 +169,9 @@ class DataSanitizerTransformer(override val uid: String)
       if (getNaFillFlag) {
         val naFillConfigTmp = buildNaConfig()
         if(naFillConfigTmp.isDefined) {
-          naConfig.generateCleanData(naFillConfigTmp.get, refactorLabelFlag = false)
+          naConfig.generateCleanData(naFillConfigTmp.get, refactorLabelFlag = false, decidedModel = getDecideModel)
         } else {
-          naConfig.generateCleanData(refactorLabelFlag = false)
+          naConfig.generateCleanData(refactorLabelFlag = false, decidedModel = getDecideModel)
         }
       } else {
         (

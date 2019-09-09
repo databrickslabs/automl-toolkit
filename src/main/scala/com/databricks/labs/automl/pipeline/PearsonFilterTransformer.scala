@@ -59,39 +59,47 @@ class PearsonFilterTransformer(override val uid: String)
 
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    if(SchemaUtils.isNotEmpty(getFeatureColumns)) {
-      setFeatureColumns(dataset.columns.filterNot(item => Array(getLabelColumn, getAutomlInternalId).contains(item)))
-    }
-    if(!getTransformCalculated) {
-      // Requires a DataFrame that has a feature vector field.  Output has no feature vector.
-      val pearsonFiltering = new PearsonFiltering(dataset.toDF(), getFeatureColumns)
-        .setLabelCol(getLabelColumn)
-        .setFeaturesCol(getFeatureCol)
-        .setFilterStatistic(getFilterStatistic)
-        .setFilterDirection(getFilterDirection)
-        .setFilterManualValue(getFilterManualValue)
-        .setFilterMode(getFilterMode)
-        .setAutoFilterNTile(getAutoFilterNTile)
-        .filterFields(Array(getAutomlInternalId))
+    if (dataset.columns.contains(getLabelColumn)) {
+      if (SchemaUtils.isNotEmpty(getFeatureColumns)) {
+        setFeatureColumns(dataset.columns.filterNot(item => Array(getLabelColumn, getAutomlInternalId).contains(item)))
+      }
+      if (!getTransformCalculated) {
+        // Requires a DataFrame that has a feature vector field.  Output has no feature vector.
+        val pearsonFiltering = new PearsonFiltering(dataset.toDF(), getFeatureColumns)
+          .setLabelCol(getLabelColumn)
+          .setFeaturesCol(getFeatureCol)
+          .setFilterStatistic(getFilterStatistic)
+          .setFilterDirection(getFilterDirection)
+          .setFilterManualValue(getFilterManualValue)
+          .setFilterMode(getFilterMode)
+          .setAutoFilterNTile(getAutoFilterNTile)
+          .filterFields(Array(getAutomlInternalId))
 
-      val removedFields = getFeatureColumns
-        .filterNot(field => pearsonFiltering.schema.fieldNames.contains(field))
+        val removedFields = getFeatureColumns
+          .filterNot(field => pearsonFiltering.schema.fieldNames.contains(field))
 
-      val pearsonFilterLog =
-        s"Pearson Filtering completed.\n Removed fields: ${removedFields.mkString(", ")}"
-      logger.log(Level.INFO, pearsonFiltering)
-      println(pearsonFilterLog)
+        val pearsonFilterLog =
+          s"Pearson Filtering completed.\n Removed fields: ${removedFields.mkString(", ")}"
+        logger.log(Level.INFO, pearsonFiltering)
+        println(pearsonFilterLog)
 
-      setFieldsRemoved(removedFields)
-      setTransformCalculated(true)
-      pearsonFiltering
+        setFieldsRemoved(removedFields)
+        setTransformCalculated(true)
+        pearsonFiltering
+      } else {
+        dataset.drop(getFieldsRemoved: _*)
+      }
     } else {
-      dataset.drop(getFieldsRemoved:_*)
+      dataset.toDF()
     }
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    StructType(schema.fields.filterNot(field => getFieldsRemoved.contains(field.name)))
+    if(schema.fieldNames.contains(getLabelColumn)) {
+      StructType(schema.fields.filterNot(field => getFieldsRemoved.contains(field.name)))
+    } else {
+      schema
+    }
   }
 
   override def copy(extra: ParamMap): PearsonFilterTransformer = defaultCopy(extra)

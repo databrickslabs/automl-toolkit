@@ -31,19 +31,31 @@ class ZipRegisterTempTransformer(override val uid: String)
 
     dfWithId.createOrReplaceTempView(getTempViewOriginalDatasetName)
 
+    val colsSelectTmp = if(dfWithId.columns.contains(getLabelColumn)) {
+      Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, getLabelColumn)
+    } else {
+      Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    }
+
     val colsToSelect =
-      (Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, getLabelColumn) ++ getFeatureColumns)
+      (colsSelectTmp ++ getFeatureColumns)
       .map(field => col(field))
 
     dfWithId.select(colsToSelect:_*)
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    StructType(schema.fields.filter(field => $(featureColumns).contains(field.name))
-      :+
-      StructField(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false)
-      :+
-      StructField(getLabelColumn, StringType, nullable=false))
+   if(schema.fieldNames.contains(getLabelColumn)) {
+      StructType(schema.fields.filter(field => $(featureColumns).contains(field.name))
+        :+
+        StructField(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false)
+        :+
+        StructField(getLabelColumn, StringType, nullable=false))
+    } else {
+      StructType(schema.fields.filter(field => $(featureColumns).contains(field.name))
+        :+
+        StructField(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false))
+    }
   }
 
   override def copy(extra: ParamMap): ZipRegisterTempTransformer = defaultCopy(extra)

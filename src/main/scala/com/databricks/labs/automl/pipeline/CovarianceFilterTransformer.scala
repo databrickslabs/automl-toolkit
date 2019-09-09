@@ -42,33 +42,41 @@ class CovarianceFilterTransformer(override val uid: String)
 
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    if(SchemaUtils.isNotEmpty(getFeatureColumns)) {
-      setFeatureColumns(dataset.columns.filterNot(item => Array(getLabelColumn, getAutomlInternalId).contains(item)))
-    }
-    // Output has no feature vector
-    if(!getTransformCalculated) {
-      val covarianceFilteredData =
-        new FeatureCorrelationDetection(dataset.toDF(), getFeatureColumns.filterNot(item => getAutomlInternalId.contains(item)))
-          .setLabelCol(getLabelColumn)
-          .setCorrelationCutoffLow(getCorrelationCutoffLow)
-          .setCorrelationCutoffHigh(getCorrelationCutoffHigh)
-          .filterFeatureCorrelation()
+    if(dataset.columns.contains(getLabelColumn)) {
+      if (SchemaUtils.isNotEmpty(getFeatureColumns)) {
+        setFeatureColumns(dataset.columns.filterNot(item => Array(getLabelColumn, getAutomlInternalId).contains(item)))
+      }
+      // Output has no feature vector
+      if (!getTransformCalculated) {
+        val covarianceFilteredData =
+          new FeatureCorrelationDetection(dataset.toDF(), getFeatureColumns.filterNot(item => getAutomlInternalId.contains(item)))
+            .setLabelCol(getLabelColumn)
+            .setCorrelationCutoffLow(getCorrelationCutoffLow)
+            .setCorrelationCutoffHigh(getCorrelationCutoffHigh)
+            .filterFeatureCorrelation()
 
-      setFieldsRemoved(getFeatureColumns.filterNot(field => covarianceFilteredData.columns.contains(field)))
-      setTransformCalculated(true)
-      val covarianceFilterLog =
-        s"Covariance Filtering completed.\n  Removed fields: ${getFieldsRemoved.mkString(", ")}"
+        setFieldsRemoved(getFeatureColumns.filterNot(field => covarianceFilteredData.columns.contains(field)))
+        setTransformCalculated(true)
+        val covarianceFilterLog =
+          s"Covariance Filtering completed.\n  Removed fields: ${getFieldsRemoved.mkString(", ")}"
 
-      logger.log(Level.INFO, covarianceFilterLog)
-      println(covarianceFilterLog)
-      covarianceFilteredData
+        logger.log(Level.INFO, covarianceFilterLog)
+        println(covarianceFilterLog)
+        covarianceFilteredData
+      } else {
+        dataset.drop(getFieldsRemoved: _*)
+      }
     } else {
-      dataset.drop(getFieldsRemoved:_*)
+      dataset.toDF()
     }
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    StructType(schema.fields.filterNot(field => getFieldsRemoved.contains(field.name)))
+    if(schema.fieldNames.contains(getLabelColumn)) {
+      StructType(schema.fields.filterNot(field => getFieldsRemoved.contains(field.name)))
+    } else {
+      schema
+    }
   }
 
   override def copy(extra: ParamMap): CovarianceFilterTransformer = defaultCopy(extra)

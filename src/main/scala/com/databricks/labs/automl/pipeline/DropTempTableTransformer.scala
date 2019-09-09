@@ -8,8 +8,7 @@ import org.apache.spark.sql.types.StructType
 
 class DropTempTableTransformer(override val uid: String)
   extends AbstractTransformer
-    with DefaultParamsWritable
-    with HasTransformCalculated {
+    with DefaultParamsWritable {
 
   final val tempTableName = new Param[String](this, "tempTableName", "tempTableName")
 
@@ -20,14 +19,10 @@ class DropTempTableTransformer(override val uid: String)
   def this() = {
     this(Identifiable.randomUID("DropTempTableTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
-    setTransformCalculated(false)
   }
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    if(!getTransformCalculated) {
-      dataset.sqlContext.dropTempTable(getTempTableName)
-      setTransformCalculated(true)
-    }
+    dataset.sqlContext.dropTempTable(getTempTableName)
     dataset.toDF()
   }
 
