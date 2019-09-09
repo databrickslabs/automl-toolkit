@@ -157,7 +157,12 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   }
 
 
-  //TODO: Get PipelineModel for feature engineering and append with model stage from executeTuning
+  /**
+    *
+    * @return grouped results same as execute [[FamilyFinalOutputWithPipeline]] but
+    *         also contains a map of model family and best pipeline model based on
+    *         optimization strategy settings
+    */
   def executeWithPipeline(): FamilyFinalOutputWithPipeline = {
 
     val outputBuffer = ArrayBuffer[FamilyOutput]()
