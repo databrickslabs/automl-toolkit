@@ -287,7 +287,6 @@ object PipelineTestUtils {
     if(dropColumns) {
       stages += new DropColumnsTransformer().setInputCols(featureAssemblerInputCols)
     }
-
     stages.toArray
   }
 
