@@ -1,12 +1,11 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.sanitize.FeatureCorrelationDetection
 import com.databricks.labs.automl.utils.AutoMlPipelineUtils
 import org.apache.spark.ml.param.{Param, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
-import org.apache.spark.sql.functions._
 
 import scala.util.Sorting
 
@@ -35,7 +34,6 @@ class DatasetsUnionTransformer(override val uid: String)
     setDebugEnabled(false)
   }
 
-
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val dfs = prepareUnion(
       dataset.sqlContext.sql(s"select * from $getUnionDatasetName"),
@@ -55,7 +53,6 @@ class DatasetsUnionTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): DatasetsUnionTransformer = defaultCopy(extra)
-
 }
 
 object DatasetsUnionTransformer extends DefaultParamsReadable[DatasetsUnionTransformer] {

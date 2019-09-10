@@ -42,12 +42,9 @@ class DropColumnsTransformer (override val uid: String)
     schema
   }
 
-
   override def copy(extra: ParamMap): DropColumnsTransformer = defaultCopy(extra)
 }
 
 object DropColumnsTransformer extends DefaultParamsReadable[DropColumnsTransformer] {
-
   override def load(path: String): DropColumnsTransformer = super.load(path)
-
 }

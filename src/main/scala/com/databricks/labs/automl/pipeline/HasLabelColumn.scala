@@ -13,5 +13,4 @@ trait HasLabelColumn extends Params{
   def setLabelColumn(value: String): this.type = set(labelColumn, value)
 
   def getLabelColumn: String = $(labelColumn)
-
 }

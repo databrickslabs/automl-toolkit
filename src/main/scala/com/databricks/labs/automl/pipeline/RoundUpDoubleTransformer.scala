@@ -41,7 +41,6 @@ class RoundUpDoubleTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): RoundUpDoubleTransformer = defaultCopy(extra)
-
 }
 
 object RoundUpDoubleTransformer extends DefaultParamsReadable[RoundUpDoubleTransformer] {

@@ -13,5 +13,4 @@ trait HasTransformCalculated extends Params {
   def setTransformCalculated(value: Boolean): this.type = set(transformCalculated, value)
 
   def getTransformCalculated: Boolean = $(transformCalculated)
-
 }

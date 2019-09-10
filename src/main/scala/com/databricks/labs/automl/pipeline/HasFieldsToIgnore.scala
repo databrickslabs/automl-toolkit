@@ -13,5 +13,4 @@ trait HasFieldsToIgnore extends Params {
   def setFieldsToIgnore(value: Array[String]): this.type = set(fieldsToIgnore, value)
 
   def getFieldsToIgnore: Array[String] = $(fieldsToIgnore)
-
 }

@@ -40,7 +40,6 @@ class DropTempTableTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): DropTempTableTransformer = defaultCopy(extra)
-
 }
 
 object DropTempTableTransformer extends DefaultParamsReadable[DropTempTableTransformer] {

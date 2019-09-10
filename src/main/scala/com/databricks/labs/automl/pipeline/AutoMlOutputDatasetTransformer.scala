@@ -18,7 +18,6 @@ import org.apache.spark.sql.types.{LongType, StructField, StructType}
   * downstream of inference step
   * @param dataset
   */
-
 class AutoMlOutputDatasetTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -69,11 +68,8 @@ class AutoMlOutputDatasetTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): AutoMlOutputDatasetTransformer = defaultCopy(extra)
-
 }
 
 object AutoMlOutputDatasetTransformer extends DefaultParamsReadable[AutoMlOutputDatasetTransformer] {
-
   override def load(path: String): AutoMlOutputDatasetTransformer = super.load(path)
-
 }

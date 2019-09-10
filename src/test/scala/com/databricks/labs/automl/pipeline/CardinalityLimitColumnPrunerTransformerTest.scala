@@ -10,7 +10,6 @@ import scala.collection.mutable.ArrayBuffer
 class CardinalityLimitColumnPrunerTransformerTest extends AbstractUnitSpec {
 
   "CardinalityLimitColumnPrunerTransformerTest" should " should check cardinality" in {
-
     val testVars = PipelineTestUtils.getTestVars()
     val stages = new ArrayBuffer[PipelineStage]
     val nonFeatureCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
@@ -24,9 +23,7 @@ class CardinalityLimitColumnPrunerTransformerTest extends AbstractUnitSpec {
       .setCardinalityLimit(2)
     val pipelineModel = PipelineTestUtils.saveAndLoadPipeline(stages.toArray, testVars.df, "card-limit-pipeline")
     val adultCadDf = pipelineModel.transform(testVars.df)
-
     assertCardinalityTest(adultCadDf)
-
     adultCadDf.show(10)
   }
 

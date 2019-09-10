@@ -45,7 +45,6 @@ class CovarianceFilterTransformer(override val uid: String)
 
   def getCorrelationCutoffHigh: Double = $(correlationCutoffHigh)
 
-
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if(dataset.columns.contains(getLabelColumn)) {
       if (SchemaUtils.isNotEmpty(getFeatureColumns)) {
@@ -82,11 +81,8 @@ class CovarianceFilterTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): CovarianceFilterTransformer = defaultCopy(extra)
-
 }
 
 object CovarianceFilterTransformer extends DefaultParamsReadable[CovarianceFilterTransformer] {
-
   override def load(path: String): CovarianceFilterTransformer = super.load(path)
-
 }

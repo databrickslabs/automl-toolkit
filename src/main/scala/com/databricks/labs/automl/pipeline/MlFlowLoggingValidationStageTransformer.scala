@@ -25,16 +25,13 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String)
     setDebugEnabled(false)
   }
 
-
   final val mlFlowLoggingFlag: BooleanParam = new BooleanParam(this, "mlFlowLoggingFlag", "whether to log to MlFlow or not")
-
 
   final val mlFlowTrackingURI: Param[String] = new Param[String](this, "mlFlowTrackingURI", "MlFlow Tracking URI")
 
   final val mlFlowAPIToken: Param[String] = new Param[String](this, "mlFlowAPIToken", "MlFlow API token")
 
   final val mlFlowExperimentName: Param[String] = new Param[String](this, "mlFlowExperimentName", "MlFlow Experiment name")
-
 
   def setMlFlowLoggingFlag(value: Boolean): this.type = set(mlFlowLoggingFlag, value)
 
@@ -51,7 +48,6 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String)
   def setMlFlowExperimentName(value: String): this.type = set(mlFlowExperimentName, value)
 
   def getMlFlowExperimentName: String = $(mlFlowExperimentName)
-
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if (getMlFlowLoggingFlag) {
@@ -85,7 +81,5 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String)
 }
 
 object MlFlowLoggingValidationStageTransformer extends DefaultParamsReadable[MlFlowLoggingValidationStageTransformer] {
-
   override def load(path: String): MlFlowLoggingValidationStageTransformer = super.load(path)
-
 }

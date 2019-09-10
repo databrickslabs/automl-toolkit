@@ -14,10 +14,8 @@ class ZipRegisterTempTransformerTest extends AbstractUnitSpec {
       .setLabelColumn(testVars.labelCol)
       .setTempViewOriginalDatasetName("zipRegisterTempTransformer")
       .setDebugEnabled(true)
-
 //    LogManager.getRootLogger.setLevel(Level.DEBUG)
     val transformedAdultDf = zipRegisterTempTransformer.transform(testVars.df)
-
     assert(transformedAdultDf.count() == 99, "transformed table rows shouldn't have changed")
     assert(transformedAdultDf.columns.contains(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL), "Id column should have been generated")
   }

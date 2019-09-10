@@ -103,7 +103,5 @@ class DateFieldTransformer (override val uid: String)
 }
 
 object DateFieldTransformer extends DefaultParamsReadable[DateFieldTransformer] {
-
   override def load(path: String): DateFieldTransformer = super.load(path)
-
 }

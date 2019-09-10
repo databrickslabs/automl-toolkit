@@ -13,5 +13,4 @@ trait HasFeatureColumn extends Params {
   def setFeatureCol(value: String): this.type = set(featureCol, value)
 
   def getFeatureCol: String = $(featureCol)
-
 }

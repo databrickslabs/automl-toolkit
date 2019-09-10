@@ -32,15 +32,12 @@ class DataSanitizerTransformer(override val uid: String)
   final val numericColumnValues = new DoubleArrayParam(this, "numericColumnValues", "Numeric Columns' Values")
   final val decideModel: Param[String] = new Param[String](this, "decideModel", "Decided model")
   final val fillMode: Param[String] = new Param[String](this, "fillMode", "fillMode")
-
   final val characterNABlanketFill: Param[String] = new Param[String](this, "characterNABlanketFill", "characterNABlanketFill")
   final val numericNABlanketFill: DoubleParam = new DoubleParam(this, "numericNABlanketFill", "numericNABlanketFill")
   final val categoricalNAFillMapKeys: StringArrayParam = new StringArrayParam(this, "categoricalNAFillMapKeys", "categoricalNAFillMapKeys")
   final val categoricalNAFillMapValues: StringArrayParam = new StringArrayParam(this, "categoricalNAFillMapValues", "categoricalNAFillMapValues")
   final val numericNAFillMapKeys: StringArrayParam = new StringArrayParam(this, "numericNAFillMapKeys", "numericNAFillMapKeys")
   final val numericNAFillMapValues: DoubleArrayParam = new DoubleArrayParam(this, "numericNAFillMapValues", "numericNAFillMapValues")
-
-
 
   def setNumericFillStat(value: String): this.type = set(numericFillStat, value)
 
@@ -208,11 +205,8 @@ class DataSanitizerTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): DataSanitizerTransformer = defaultCopy(extra)
-
 }
 
 object DataSanitizerTransformer extends DefaultParamsReadable[DataSanitizerTransformer] {
-
   override def load(path: String): DataSanitizerTransformer = super.load(path)
-
 }

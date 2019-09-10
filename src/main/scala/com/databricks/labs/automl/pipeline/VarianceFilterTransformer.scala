@@ -42,7 +42,6 @@ class VarianceFilterTransformer(override val uid: String)
     setDebugEnabled(false)
   }
 
-
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     // Get columns without label,  feature column and automl_internal_id columns
     val colsToIgnoreForVariance = if(dataset.columns.contains(getLabelColumn)) {
@@ -97,11 +96,8 @@ class VarianceFilterTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): VarianceFilterTransformer = defaultCopy(extra)
-
 }
 
 object VarianceFilterTransformer extends DefaultParamsReadable[VarianceFilterTransformer] {
-
   override def load(path: String): VarianceFilterTransformer = super.load(path)
-
 }

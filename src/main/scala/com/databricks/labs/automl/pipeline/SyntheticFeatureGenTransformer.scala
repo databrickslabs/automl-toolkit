@@ -101,11 +101,8 @@ class SyntheticFeatureGenTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): SyntheticFeatureGenTransformer = defaultCopy(extra)
-
 }
 
 object SyntheticFeatureGenTransformer extends DefaultParamsReadable[SyntheticFeatureGenTransformer] {
-
   override def load(path: String): SyntheticFeatureGenTransformer = super.load(path)
-
 }

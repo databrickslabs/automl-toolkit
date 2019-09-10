@@ -30,7 +30,6 @@ class ColumnNameTransformer(override val uid: String)
 
   def setOutputColumns(value: Array[String]): this.type = set(outputCols, value)
 
-
   override def transform(dataset: Dataset[_]): DataFrame = {
     transformSchema(dataset.schema)
     var newDataset = dataset
@@ -57,7 +56,6 @@ class ColumnNameTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): ColumnNameTransformer = defaultCopy(extra)
-
 }
 
 object ColumnNameTransformer extends DefaultParamsReadable[ColumnNameTransformer] {

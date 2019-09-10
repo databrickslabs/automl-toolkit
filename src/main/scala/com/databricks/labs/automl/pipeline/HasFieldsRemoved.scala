@@ -13,5 +13,4 @@ trait HasFieldsRemoved extends Params {
   def setFieldsRemoved(value: Array[String]): this.type = set(fieldsRemoved, value)
 
   def getFieldsRemoved: Array[String] = $(fieldsRemoved)
-
 }

@@ -24,7 +24,6 @@ abstract class AbstractUnitSpec
     with Inside
     with Inspectors
 
-
 object AutomationUnitTestsUtil {
 
   lazy val sparkSession: SparkSession = SparkSession
@@ -76,7 +75,6 @@ object AutomationUnitTestsUtil {
 
   def getRandomForestConfig(inputDataset: DataFrame,
                             evolutionStrategy: String): AutomationRunner = {
-
     val rfBoundaries = Map(
       "numTrees" -> Tuple2(50.0, 1000.0),
       "maxBins" -> Tuple2(10.0, 100.0),
@@ -84,7 +82,6 @@ object AutomationUnitTestsUtil {
       "minInfoGain" -> Tuple2(0.0, 0.075),
       "subSamplingRate" -> Tuple2(0.5, 1.0)
     )
-
     new AutomationRunner(inputDataset)
       .setModelingFamily("RandomForest")
       .setLabelCol("label")
@@ -240,7 +237,6 @@ case class TestVars(df: DataFrame,
                     featuresCol: String = "features")
 
 object PipelineTestUtils {
-
   def getTestVars(): TestVars = {
     TestVars(
       AutomationUnitTestsUtil.getAdultDf(),
@@ -329,7 +325,6 @@ object PipelineTestUtils {
 }
 
 object InferenceUnitTestUtil {
-
   def generateInferencePayload() : InferencePayload = {
     val adultDataset = AutomationUnitTestsUtil.getAdultDf()
     val adultDsColumns = adultDataset.columns;

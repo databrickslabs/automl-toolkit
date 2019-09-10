@@ -41,9 +41,6 @@ class OutlierFilterTransformer(override val uid: String)
 
   final val continuousDataThreshold: IntParam = new IntParam(this, "continuousDataThreshold", "continuousDataThreshold")
 
-//  val inferenceOutlierMap = new Param[Map[String, (Double, String)]](this, "inferenceOutlierMap", "inferenceOutlierMap")
-
-
   def setFilterBounds(value: String): this.type = set(filterBounds, value)
 
   def getFilterBounds: String = $(filterBounds)
@@ -67,11 +64,6 @@ class OutlierFilterTransformer(override val uid: String)
   def setContinuousDataThreshold(value: Int): this.type = set(continuousDataThreshold, value)
 
   def getContinuousDataThreshold: Int = $(continuousDataThreshold)
-
-//  def setInferenceOutlierMap(value: Map[String, (Double, String)]): this.type = set(inferenceOutlierMap, value)
-
-//  def getInferenceOutlierMap: Map[String, (Double, String)] = $(inferenceOutlierMap)
-
 
   //TODO (Jas): Is there anything for this stage that needs to be applied to the inference step ?
   // For example, the columns removed in [[com.databricks.labs.automl.pipeline.CovarianceFilterTransformer]]
@@ -107,11 +99,8 @@ class OutlierFilterTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): OutlierFilterTransformer = defaultCopy(extra)
-
 }
 
 object OutlierFilterTransformer extends DefaultParamsReadable[OutlierFilterTransformer] {
-
   override def load(path: String): OutlierFilterTransformer = super.load(path)
-
 }

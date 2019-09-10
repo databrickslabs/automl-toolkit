@@ -7,23 +7,17 @@ class MlFlowLoggingValidationStageTransformerTest extends AbstractUnitSpec{
 
   "MlFlowLoggingValidationStageTransformerTest" should "not changed input dataset" in {
     val spark = AutomationUnitTestsUtil.sparkSession
-
     val mlFlowLoggingValidationStageTransformer = new MlFlowLoggingValidationStageTransformer()
       .setMlFlowLoggingFlag(false)
       .setMlFlowExperimentName("test_name")
       .setMlFlowTrackingURI("test_Uri")
       .setMlFlowAPIToken("test_token")
-
     val adultDf = AutomationUnitTestsUtil.getAdultDf()
-
     val adultDfMlFlowValidation = mlFlowLoggingValidationStageTransformer.transform(adultDf)
-
     assert(adultDf.count() == adultDfMlFlowValidation.count(),
       "MlFlowLoggingValidationStageTransformerTest should not have changed input dataset rows")
-
     assert(adultDf.columns.length == adultDfMlFlowValidation.columns.length,
       "MlFlowLoggingValidationStageTransformerTest should not have changed number of columns")
-
     assert(adultDf.columns.sameElements(adultDfMlFlowValidation.columns),
       "MlFlowLoggingValidationStageTransformerTest should not have changed columns")
   }
@@ -38,5 +32,4 @@ class MlFlowLoggingValidationStageTransformerTest extends AbstractUnitSpec{
         .transform(AutomationUnitTestsUtil.getAdultDf())
     }
   }
-
 }

@@ -15,10 +15,8 @@ class DateFieldTransformerTest extends AbstractUnitSpec{
 
   "DateFieldTransformerTest" should "should convert data/time fiels" in {
     val spark = AutomationUnitTestsUtil.sparkSession
-
     val dateColToBeTransformed = "download_date"
     val tsColToBeTransformed = "event_ts"
-
     val sourceDF = spark.createDataFrame(
       List(
         Row(300L, Date.valueOf("2016-09-30"), Timestamp.valueOf("2007-09-23 10:10:10.0") , 0),
@@ -30,38 +28,29 @@ class DateFieldTransformerTest extends AbstractUnitSpec{
         StructField("label", IntegerType, nullable = false)
       ))
     )
-
     val stages = new ArrayBuffer[PipelineStage]
-
     stages += PipelineTestUtils
       .addZipRegisterTmpTransformerStage(
         "label",
         Array("download_events", "download_date", "event_ts")
       )
-
-
     stages += new DateFieldTransformer()
       .setLabelColumn("label")
       .setMode("split")
-
     val transformedDfwithDateTsFeatures = PipelineTestUtils
       .saveAndLoadPipeline(stages.toArray, sourceDF, "date-field-tran-pipeline")
       .transform(sourceDF)
-
     val expectedColsToBePresent =
       Array("download_date_year", "download_date_month", "download_date_day",
         "event_ts_year", "event_ts_month", "event_ts_day", "event_ts_hour", "event_ts_minute", "event_ts_second"
     )
-
     assert(
       !transformedDfwithDateTsFeatures.columns.exists(col => Array(dateColToBeTransformed, tsColToBeTransformed).contains(col)),
       s"""Original columns ${Array(dateColToBeTransformed, tsColToBeTransformed).mkString(", ")} should have been dropped"""
     )
-
     assert(
       transformedDfwithDateTsFeatures.columns.exists(col => expectedColsToBePresent.contains(col)),
       s"""These columns ${dateColToBeTransformed.mkString(", ")} should have been added"""
     )
   }
-
 }

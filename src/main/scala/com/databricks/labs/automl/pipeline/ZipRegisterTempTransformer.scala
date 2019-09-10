@@ -33,23 +33,18 @@ class ZipRegisterTempTransformer(override val uid: String)
 
   def getTempViewOriginalDatasetName: String = $(tempViewOriginalDatasetName)
 
-
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val dfWithId = dataset
       .withColumn(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, monotonically_increasing_id())
-
     dfWithId.createOrReplaceTempView(getTempViewOriginalDatasetName)
-
     val colsSelectTmp = if(dfWithId.columns.contains(getLabelColumn)) {
       Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, getLabelColumn)
     } else {
       Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     }
-
     val colsToSelect =
       (colsSelectTmp ++ getFeatureColumns)
       .map(field => col(field))
-
     dfWithId.select(colsToSelect:_*)
   }
 
@@ -68,11 +63,8 @@ class ZipRegisterTempTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): ZipRegisterTempTransformer = defaultCopy(extra)
-
 }
 
 object ZipRegisterTempTransformer extends DefaultParamsReadable[ZipRegisterTempTransformer] {
-
   override def load(path: String): ZipRegisterTempTransformer = super.load(path)
-
 }

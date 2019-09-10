@@ -18,7 +18,6 @@ import org.apache.spark.sql.types.StructType
 class RegisterTempTableTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable {
-
   final val tempTableName = new Param[String](this, "tempTableName", "tempTableName")
   final val statement = new Param[String](this, "statement", "statement")
 
@@ -29,7 +28,6 @@ class RegisterTempTableTransformer(override val uid: String)
   def setStatement(value: String): this.type = set(statement, value)
 
   def getStatement: String = $(statement)
-
 
   def this() = {
     this(Identifiable.randomUID("RegisterTempTableTransformer"))

@@ -10,7 +10,6 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
 //  "FeatureEngineeringPipelineContextTest"
   ignore should "correctly generate feature engineered dataset" in {
     val testVars = PipelineTestUtils.getTestVars()
-
     // Generate config
     val overrides = Map(
       "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
@@ -38,17 +37,14 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
     randomForestConfig.tunerConfig.tunerGeneticMixing = 0.8
     randomForestConfig.tunerConfig.tunerGenerationalMutationStrategy = "fixed"
     randomForestConfig.tunerConfig.tunerEvolutionStrategy = "batch"
-
     val featuresEngPipelineModel = FeatureEngineeringPipelineContext
       .generatePipelineModel(
         testVars.df,
         ConfigurationGenerator.generateMainConfig(randomForestConfig)
       )
       .pipelineModel
-
     val pipelineModel =
       PipelineTestUtils.saveAndLoadPipelineModel(featuresEngPipelineModel, testVars.df, "full-feature-eng-pipeline")
-
     assert(
       pipelineModel.transform(testVars.df)
       .count() == 99, "Total row count shouldn't have changed")
@@ -84,16 +80,12 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
     )
     val randomForestConfig = ConfigurationGenerator
       .generateConfigFromMap("RandomForest", "classifier", overrides)
-
     val runner = FamilyRunner(testVars.df, Array(randomForestConfig)).executeWithPipeline()
     val predictDf = runner.bestPipelineModel("RandomForest").transform(testVars.df.drop("label"))
-
     assert(predictDf.count() == testVars.df.count(),
     "Inference df count should have matched the input dataset")
-
     assert(testVars.df.columns.filterNot("label".equals(_)).forall(item => predictDf.columns.contains(item)),
     "All original columns must be present in the predict dataset")
-
     // Test write and load of full inference pipeline
     val pipelineSavePath = AutomationUnitTestsUtil.getProjectDir() + "/target/pipeline-tests/infer-final-pipeline"
     runner.bestPipelineModel("RandomForest").write.overwrite().save(pipelineSavePath)

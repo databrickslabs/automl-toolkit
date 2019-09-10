@@ -21,6 +21,7 @@ import org.apache.spark.sql.DataFrame
 import scala.collection.mutable.ArrayBuffer
 
 final case class VectorizationOutput(pipelineModel: PipelineModel, vectorizedCols: Array[String])
+
 final case class FeatureEngineeringOutput(pipelineModel: PipelineModel,
                                           originalDfViewName: String, decidedModel: String,
                                           transformedForTrainingDf: DataFrame)

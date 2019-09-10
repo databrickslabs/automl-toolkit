@@ -46,5 +46,4 @@ trait HasDebug extends Params {
       case _ => value
     }
   }
-
 }

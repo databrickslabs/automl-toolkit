@@ -41,7 +41,6 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
 
   def getPrunedColumns: Array[String] = $(prunedColumns)
 
-
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if(!getTransformCalculated) {
       val columnTypes = SchemaUtils.extractTypes(dataset.toDF(), getLabelColumn)
@@ -77,12 +76,9 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): CardinalityLimitColumnPrunerTransformer = defaultCopy(extra)
-
 }
 
 object CardinalityLimitColumnPrunerTransformer extends DefaultParamsReadable[CardinalityLimitColumnPrunerTransformer] {
-
   override def load(path: String): CardinalityLimitColumnPrunerTransformer = super.load(path)
-
 }
 

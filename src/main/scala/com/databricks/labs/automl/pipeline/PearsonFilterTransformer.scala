@@ -42,7 +42,6 @@ class PearsonFilterTransformer(override val uid: String)
 
   final val autoFilterNTile: DoubleParam = new DoubleParam(this, "autoFilterNTile", "autoFilterNTile")
 
-
   def setFilterStatistic(value: String): this.type = set(filterStatistic, value)
 
   def getFilterStatistic: String = $(filterStatistic)
@@ -62,7 +61,6 @@ class PearsonFilterTransformer(override val uid: String)
   def setAutoFilterNTile(value: Double): this.type = set(autoFilterNTile, value)
 
   def getAutoFilterNTile: Double = $(autoFilterNTile)
-
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if (dataset.columns.contains(getLabelColumn)) {
@@ -106,11 +104,8 @@ class PearsonFilterTransformer(override val uid: String)
   }
 
   override def copy(extra: ParamMap): PearsonFilterTransformer = defaultCopy(extra)
-
 }
 
 object PearsonFilterTransformer extends DefaultParamsReadable[PearsonFilterTransformer] {
-
   override def load(path: String): PearsonFilterTransformer = super.load(path)
-
 }

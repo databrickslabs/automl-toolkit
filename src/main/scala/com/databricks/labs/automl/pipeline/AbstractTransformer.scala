@@ -42,7 +42,6 @@ abstract class AbstractTransformer
     outputDf
   }
 
-
   final private def logAutoMlInternalIdPresent(outputDf: Dataset[_]): Unit = {
     val idAbsentMessage = s"Missing $getAutomlInternalId in the input columns"
     val isIdColumnNeeded = outputDf.schema.fieldNames.contains(getAutomlInternalId) || this.isInstanceOf[AutoMlOutputDatasetTransformer]
@@ -51,7 +50,6 @@ abstract class AbstractTransformer
     }
     assert(isIdColumnNeeded, idAbsentMessage)
   }
-
 
   /**
     * Abstract Method to be implemented by all AutoML transformers
@@ -66,5 +64,4 @@ abstract class AbstractTransformer
     * @return schema of new output [[DataFrame]] [[StructType]]
     */
   def transformSchemaInternal(schema: StructType): StructType
-
 }

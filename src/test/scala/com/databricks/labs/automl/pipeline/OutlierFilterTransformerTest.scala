@@ -10,21 +10,15 @@ class OutlierFilterTransformerTest extends AbstractUnitSpec {
 
   "OutlierFilterTransformerTest" should "correctly apply outlier filtering" in {
     val testVars = PipelineTestUtils.getTestVars()
-
     val stages = new ArrayBuffer[PipelineStage]
-
     val nonFeatureCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
-
     stages += PipelineTestUtils
       .addZipRegisterTmpTransformerStage(
         testVars.labelCol,
         testVars.df.columns.filterNot(item => nonFeatureCols.contains(item))
       )
-
     stages ++= PipelineTestUtils.buildFeaturesPipelineStages(testVars.df, testVars.labelCol, dropColumns = false)
-
     stages += new DropColumnsTransformer().setInputCols(Array(testVars.featuresCol))
-
     stages += new OutlierFilterTransformer()
       .setLabelColumn(testVars.labelCol)
         .setFilterBounds("both")
@@ -38,8 +32,6 @@ class OutlierFilterTransformerTest extends AbstractUnitSpec {
     val outlierDf = PipelineTestUtils
       .saveAndLoadPipeline(stages.toArray, testVars.df, "outlier-filter-pipeline")
       .transform(testVars.df)
-
     assert(outlierDf.count() == 31, "OutlierFilterTransformer should have filtered rows, check outlier filter settings")
   }
-
 }
