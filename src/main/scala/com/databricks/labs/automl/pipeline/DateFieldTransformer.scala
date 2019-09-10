@@ -9,7 +9,12 @@ import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
 
-
+/**
+  * @author Jas Bali
+  * A transformer stage that breaks down date and field columns into the following feature columns:
+  * Date = day, month, year
+  * time = day, month, year, hour, minutes, seconds
+  */
 class DateFieldTransformer (override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -20,7 +25,8 @@ class DateFieldTransformer (override val uid: String)
     this(Identifiable.randomUID("DateFieldTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     setNewDateTimeFeatureColumns(Array.empty)
-      setOldDateTimeFeatureColumns(Array.empty)
+    setOldDateTimeFeatureColumns(Array.empty)
+    setDebugEnabled(false)
   }
 
   final val mode: Param[String] = new Param[String](this, "mode", "date/time conversion mode. Possible values 'split' and 'unix'")

@@ -92,7 +92,8 @@ case class SwitchConfig(var naFillFlag: Boolean,
                         var oneHotEncodeFlag: Boolean,
                         var scalingFlag: Boolean,
                         var dataPrepCachingFlag: Boolean,
-                        var autoStoppingFlag: Boolean)
+                        var autoStoppingFlag: Boolean,
+                        var pipelineDebugFlag: Boolean)
 
 case class TunerConfig(var tunerAutoStoppingScore: Double,
                        var tunerParallelism: Int,

@@ -7,13 +7,22 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * A [[WithNoopsStage]] transformer stage that does MlFlow validation before
+  * continuing with the rest of the stages. This should be added in the earliest stages of a
+  * pipeline
+  * @param uid
+  */
 class MlFlowLoggingValidationStageTransformer(override val uid: String)
   extends AbstractTransformer
-  with DefaultParamsWritable {
+  with DefaultParamsWritable
+  with WithNoopsStage {
 
   def this() = {
     this(Identifiable.randomUID("MlFlowLoggingValidationStageTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setDebugEnabled(false)
   }
 
 

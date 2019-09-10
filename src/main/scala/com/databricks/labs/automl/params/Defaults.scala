@@ -81,6 +81,8 @@ trait Defaults {
 
   def _defaultDataReductionFactor: Double = 0.5
 
+  def _defaultPipelineDebugFlag: Boolean = false
+
   def _defaultDateTimeConversionType: String = "split"
 
   def _defaultFieldsToIgnoreInVector: Array[String] = Array.empty[String]
@@ -371,7 +373,8 @@ trait Defaults {
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
-    dataReductionFactor = _defaultDataReductionFactor
+    dataReductionFactor = _defaultDataReductionFactor,
+    pipelineDebugFlag = _defaultPipelineDebugFlag
   )
 
   def _featureImportancesDefaults = MainConfig(
@@ -437,7 +440,8 @@ trait Defaults {
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
-    dataReductionFactor = _defaultDataReductionFactor
+    dataReductionFactor = _defaultDataReductionFactor,
+    pipelineDebugFlag = false
   )
 
   def _treeSplitDefaults = MainConfig(
@@ -503,7 +507,7 @@ trait Defaults {
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
-    dataReductionFactor = _defaultDataReductionFactor
+    dataReductionFactor = _defaultDataReductionFactor,
+    pipelineDebugFlag = false
   )
-
 }

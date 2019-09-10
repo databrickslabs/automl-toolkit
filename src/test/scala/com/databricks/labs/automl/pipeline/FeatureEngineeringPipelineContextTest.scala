@@ -2,10 +2,8 @@ package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.executor.FamilyRunner
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
-import com.databricks.labs.automl.{AbstractUnitSpec, AutomationRunner, AutomationUnitTestsUtil, PipelineTestUtils}
+import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil, PipelineTestUtils}
 import org.apache.spark.ml.PipelineModel
-
-import scala.collection.mutable.ArrayBuffer
 
 class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
 
@@ -81,7 +79,8 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
       "tunerNumberOfMutationsPerGeneration" -> 1,
       "tunerGeneticMixing" -> 0.8,
       "tunerGenerationalMutationStrategy" -> "fixed",
-      "tunerEvolutionStrategy" -> "batch"
+      "tunerEvolutionStrategy" -> "batch",
+      "pipelineDebugFlag" -> false
     )
     val randomForestConfig = ConfigurationGenerator
       .generateConfigFromMap("RandomForest", "classifier", overrides)

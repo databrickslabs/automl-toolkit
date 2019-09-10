@@ -6,6 +6,15 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
 
+/**
+  * @author Jas Bali
+  * A [[WithNoopsStage]] transformer stage that is helpful when a following pipeline stage needs access to more
+  * than a single dataset. This is to bypass pipeline semantics of only being able to pass a single dataset.
+  * Useful for [[SyntheticFeatureGenTransformer]] where original rows need to be appended with synthetic rows from
+  * [[com.databricks.labs.automl.feature.KSampling]]
+  * @author Jas Bali
+  * @param uid
+  */
 class RegisterTempTableTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable {
@@ -25,6 +34,7 @@ class RegisterTempTableTransformer(override val uid: String)
   def this() = {
     this(Identifiable.randomUID("RegisterTempTableTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setDebugEnabled(false)
   }
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {

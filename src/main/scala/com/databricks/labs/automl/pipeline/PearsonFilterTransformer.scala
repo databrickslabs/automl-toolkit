@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.sanitize.PearsonFiltering
+import com.databricks.labs.automl.sanitize.{OutlierFiltering, PearsonFiltering}
 import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, ParamMap}
@@ -8,6 +8,11 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * This transformer wraps [[PearsonFiltering]] in a transform method
+  * @param uid
+  */
 class PearsonFilterTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -24,6 +29,7 @@ class PearsonFilterTransformer(override val uid: String)
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     setFieldsRemoved(Array.empty)
     setTransformCalculated(false)
+    setDebugEnabled(false)
   }
 
   final val filterStatistic: Param[String] = new Param[String](this, "filterStatistic", "filterStatistic")
@@ -85,13 +91,10 @@ class PearsonFilterTransformer(override val uid: String)
 
         setFieldsRemoved(removedFields)
         setTransformCalculated(true)
-        pearsonFiltering
-      } else {
-        dataset.drop(getFieldsRemoved: _*)
+        return pearsonFiltering
       }
-    } else {
-      dataset.toDF()
     }
+    dataset.drop(getFieldsRemoved: _*)
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {

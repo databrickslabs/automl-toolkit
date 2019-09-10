@@ -565,6 +565,21 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  def setPipelineDebugFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.pipelineDebugFlag = value
+    this
+  }
+
+  def pipelineDebugFlagOn(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.pipelineDebugFlag = true
+    this
+  }
+
+  def pipelineDebugFlagOff(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.pipelineDebugFlag = false
+    this
+  }
+
   // Feature Engineering Config
 
   /**
@@ -2135,7 +2150,8 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       ),
       inferenceConfigSaveLocation =
         config.loggingConfig.inferenceConfigSaveLocation,
-      dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor
+      dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor,
+      pipelineDebugFlag = config.switchConfig.pipelineDebugFlag
     )
 
   }
@@ -2380,6 +2396,12 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       .setAutoStoppingFlag(
         config
           .getOrElse("autoStoppingFlag", defaultMap("autoStoppingFlag"))
+          .toString
+          .toBoolean
+      )
+      .setPipelineDebugFlag(
+        config
+          .getOrElse("pipelineDebugFlag", defaultMap("pipelineDebugFlag"))
           .toString
           .toBoolean
       )

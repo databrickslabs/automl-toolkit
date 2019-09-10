@@ -301,6 +301,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _dataReductionFactor: Double = _defaultDataReductionFactor
 
+  var _pipelineDebugFlag: Boolean = _defaultPipelineDebugFlag
+
   private def setConfigs(): this.type = {
     setMainConfig()
   }
@@ -1832,7 +1834,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
       inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
-      dataReductionFactor = _dataReductionFactor
+      dataReductionFactor = _dataReductionFactor,
+      pipelineDebugFlag = _pipelineDebugFlag
     )
     this
   }
@@ -1875,7 +1878,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
       inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
-      dataReductionFactor = _dataReductionFactor
+      dataReductionFactor = _dataReductionFactor,
+      pipelineDebugFlag = _pipelineDebugFlag
     )
     this
   }
@@ -1923,7 +1927,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
       mlFlowConfig = _mlFlowConfig,
       inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
-      dataReductionFactor = _dataReductionFactor
+      dataReductionFactor = _dataReductionFactor,
+      pipelineDebugFlag = _pipelineDebugFlag
     )
     this
   }

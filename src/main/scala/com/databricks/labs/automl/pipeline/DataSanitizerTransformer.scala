@@ -146,6 +146,7 @@ class DataSanitizerTransformer(override val uid: String)
     setCharacterNABlanketFill("")
     setNumericNABlanketFill(0.0)
     setFillMode("auto")
+    setDebugEnabled(false)
   }
 
 

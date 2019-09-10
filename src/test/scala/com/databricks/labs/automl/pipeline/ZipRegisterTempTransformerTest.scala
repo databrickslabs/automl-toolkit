@@ -2,6 +2,7 @@ package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.utils.AutoMlPipelineUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, PipelineTestUtils}
+import org.apache.log4j.{Level, LogManager}
 
 class ZipRegisterTempTransformerTest extends AbstractUnitSpec {
 
@@ -12,7 +13,9 @@ class ZipRegisterTempTransformerTest extends AbstractUnitSpec {
       .setFeatureColumns(featureColumns)
       .setLabelColumn(testVars.labelCol)
       .setTempViewOriginalDatasetName("zipRegisterTempTransformer")
+      .setDebugEnabled(true)
 
+//    LogManager.getRootLogger.setLevel(Level.DEBUG)
     val transformedAdultDf = zipRegisterTempTransformer.transform(testVars.df)
 
     assert(transformedAdultDf.count() == 99, "transformed table rows shouldn't have changed")

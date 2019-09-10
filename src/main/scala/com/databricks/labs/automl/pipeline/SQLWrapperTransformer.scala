@@ -7,6 +7,10 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
 
+/**
+  * @author Jas Bali
+  * This transformer wraps [[SQLTransformer]] and is useful to add logging capability from [[AbstractTransformer]]
+  */
 class SQLWrapperTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable {
@@ -20,6 +24,7 @@ class SQLWrapperTransformer(override val uid: String)
   def this() = {
     this(Identifiable.randomUID("SQLWrapperTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setDebugEnabled(false)
   }
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {

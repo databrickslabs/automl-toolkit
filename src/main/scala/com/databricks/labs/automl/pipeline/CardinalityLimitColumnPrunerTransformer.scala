@@ -6,6 +6,12 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * A transformer to apply cardinality limit rules to the input dataset.
+  * Given a cardinality limit, this transformer will drop all columns with
+  * the cardinality higher than that of a pre-defined limit
+  */
 class CardinalityLimitColumnPrunerTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -18,6 +24,7 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
     setCardinalityLimit(500)
     setTransformCalculated(false)
     setPrunedColumns(null)
+    setDebugEnabled(false)
   }
 
   final val cardinalityLimit: IntParam = new IntParam(

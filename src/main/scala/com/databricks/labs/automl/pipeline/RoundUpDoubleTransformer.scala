@@ -8,6 +8,10 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.functions._
 
+/**
+  * @author Jas Bali
+  * This transformer rounds up input columns of type Double to Whole Double.
+  */
 class RoundUpDoubleTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -20,6 +24,7 @@ class RoundUpDoubleTransformer(override val uid: String)
     this(Identifiable.randomUID("RoundUpDoubleTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     setTransformCalculated(false)
+    setDebugEnabled(false)
   }
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {

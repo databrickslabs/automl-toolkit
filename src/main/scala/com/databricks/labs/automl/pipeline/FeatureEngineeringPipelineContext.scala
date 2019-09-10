@@ -3,7 +3,7 @@ package com.databricks.labs.automl.pipeline
 import java.util.UUID
 
 import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, TimeFeatureConversionException}
-import com.databricks.labs.automl.params.{GenericModelReturn, GroupedModelReturn, MainConfig}
+import com.databricks.labs.automl.params.{GroupedModelReturn, MainConfig}
 import com.databricks.labs.automl.sanitize.Scaler
 import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
 import org.apache.spark.ml.feature._
@@ -11,6 +11,12 @@ import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Model, Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
+
+/**
+  * @author Jas Bali
+  * This singleton encapsulates generation of feature engineering pipeline as well as inference pipeline, given
+  * [[MainConfig]] and input [[DataFrame]]
+  */
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -83,7 +89,7 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(lastStages, Some(new RoundUpDoubleTransformer().setInputCols(oheInputCols)))
     // Apply OneHotEncoding Options
     getAndAddStage(lastStages, oneHotEncodingStage(mainConfig, oheInputCols))
-    getAndAddStage(lastStages, dropColumns(Array(mainConfig.featuresCol)))
+    getAndAddStage(lastStages, dropColumns(Array(mainConfig.featuresCol), mainConfig))
     // Execute Vector Assembler Again
     getAndAddStage(
       lastStages,
@@ -93,13 +99,13 @@ object FeatureEngineeringPipelineContext {
 
     // Apply Scaler option
     val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
-    getAndAddStage(lastStages, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol))
+    getAndAddStage(lastStages, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol, mainConfig))
     getAndAddStage(lastStages, scalerStage(mainConfig))
-    getAndAddStage(lastStages, dropColumns(Array(renamedFeatureCol)))
+    getAndAddStage(lastStages, dropColumns(Array(renamedFeatureCol), mainConfig))
 
     // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
     removeColumns ++= oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
-    getAndAddStage(lastStages, dropColumns(removeColumns.toArray))
+    getAndAddStage(lastStages, dropColumns(removeColumns.toArray, mainConfig))
 
     // final transformation
     var fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
@@ -167,7 +173,8 @@ object FeatureEngineeringPipelineContext {
       case _ => runData.sortWith(_.score > _.score)(0)
     }
   }
-   private def addLabelIndexToString(pipelineModel: PipelineModel,
+
+  private def addLabelIndexToString(pipelineModel: PipelineModel,
                         dataFrame: DataFrame,
                         mainConfig: MainConfig): PipelineModel = {
      if(SchemaUtils.isLabelRefactorNeeded(dataFrame.schema, mainConfig.labelCol)) {
@@ -227,20 +234,24 @@ object FeatureEngineeringPipelineContext {
       .setTempViewOriginalDatasetName(originalDfTempTableName)
       .setLabelColumn(mainConfig.labelCol)
       .setFeatureColumns(inputFeatures)
+      .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
     val mlFlowLoggingValidationStageTransformer = new MlFlowLoggingValidationStageTransformer()
       .setMlFlowAPIToken(mainConfig.mlFlowConfig.mlFlowAPIToken)
       .setMlFlowTrackingURI(mainConfig.mlFlowConfig.mlFlowTrackingURI)
       .setMlFlowExperimentName(mainConfig.mlFlowConfig.mlFlowExperimentName)
       .setMlFlowLoggingFlag(mainConfig.mlFlowLoggingFlag)
+      .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
     val cardinalityLimitColumnPrunerTransformer = new CardinalityLimitColumnPrunerTransformer()
       .setLabelColumn(mainConfig.labelCol)
       .setCardinalityLimit(500)
+      .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
     val dateFieldTransformer = new DateFieldTransformer()
       .setLabelColumn(mainConfig.labelCol)
       .setMode(mainConfig.dateTimeConversionType)
+      .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
     new Pipeline().setStages(Array(
         zipRegisterTempTransformer,
@@ -277,7 +288,7 @@ object FeatureEngineeringPipelineContext {
         .setHandleInvalid("keep")
     }
     )
-    stages += new DropColumnsTransformer().setInputCols(stringFields.toArray)
+    stages += new DropColumnsTransformer().setInputCols(stringFields.toArray).setDebugEnabled(mainConfig.pipelineDebugFlag)
 
     val featureAssemblerInputCols: Array[String] = stringFields
       .map(item => SchemaUtils.generateStringIndexedColumn(item))
@@ -323,6 +334,8 @@ object FeatureEngineeringPipelineContext {
        .setNumericNABlanketFill(mainConfig.fillConfig.numericNABlanketFillValue)
        .setCharacterNABlanketFill(mainConfig.fillConfig.characterNABlanketFillValue)
        .setNaFillFlag(mainConfig.naFillFlag)
+       .setDebugEnabled(mainConfig.pipelineDebugFlag)
+
     Some(dataSanitizerTransformer)
   }
 
@@ -331,6 +344,7 @@ object FeatureEngineeringPipelineContext {
       val varianceFilterTransformer = new VarianceFilterTransformer()
         .setLabelColumn(mainConfig.labelCol)
         .setFeatureCol(mainConfig.featuresCol)
+        .setDebugEnabled(mainConfig.pipelineDebugFlag)
       return Some(varianceFilterTransformer)
     }
     None
@@ -347,6 +361,7 @@ object FeatureEngineeringPipelineContext {
         .setParallelism(mainConfig.geneticConfig.parallelism)
         .setFieldsToIgnore(Array.empty)
         .setLabelColumn(mainConfig.labelCol)
+        .setDebugEnabled(mainConfig.pipelineDebugFlag)
       return Some(outlierFilterTransformer)
     }
     None
@@ -358,6 +373,7 @@ object FeatureEngineeringPipelineContext {
         .setLabelColumn(mainConfig.labelCol)
         .setCorrelationCutoffLow(mainConfig.covarianceConfig.correlationCutoffHigh)
         .setCorrelationCutoffHigh(mainConfig.covarianceConfig.correlationCutoffLow)
+        .setDebugEnabled(mainConfig.pipelineDebugFlag)
       return Some(covarianceFilterTransformer)
     }
     None
@@ -373,6 +389,7 @@ object FeatureEngineeringPipelineContext {
         .setFilterManualValue(mainConfig.pearsonConfig.filterManualValue)
         .setFilterMode(mainConfig.pearsonConfig.filterMode)
         .setFilterStatistic(mainConfig.pearsonConfig.filterStatistic)
+        .setDebugEnabled(mainConfig.pipelineDebugFlag)
       return Some(pearsonFilterTransformer)
     }
     None
@@ -433,6 +450,7 @@ object FeatureEngineeringPipelineContext {
         .setCardinalityThreshold(mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold)
         .setNumericRatio(mainConfig.geneticConfig.kSampleConfig.numericRatio)
         .setNumericTarget(mainConfig.geneticConfig.kSampleConfig.numericTarget)
+        .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
 
       // Register temp table stage for registering non-synthetic dataset later needed for the union with synthetic dataset
@@ -440,16 +458,19 @@ object FeatureEngineeringPipelineContext {
       getAndAddStage(arrayBuffer,
         Some(new RegisterTempTableTransformer()
           .setTempTableName(nonSyntheticFeatureGenTmpTable)
-          .setStatement(s"select * from __THIS__ where !${mainConfig.geneticConfig.kSampleConfig.syntheticCol}")))
+          .setStatement(s"select * from __THIS__ where !${mainConfig.geneticConfig.kSampleConfig.syntheticCol}")
+          .setDebugEnabled(mainConfig.pipelineDebugFlag)))
 
       // Get synthetic dataset
-      getAndAddStage(arrayBuffer, Some(new SQLWrapperTransformer().setStatement(s"select * from __THIS__ where ${mainConfig.geneticConfig.kSampleConfig.syntheticCol}")))
+      getAndAddStage(arrayBuffer, Some(new SQLWrapperTransformer()
+        .setStatement(s"select * from __THIS__ where ${mainConfig.geneticConfig.kSampleConfig.syntheticCol}")
+        .setDebugEnabled(mainConfig.pipelineDebugFlag)))
       // If scaling is used, make sure that the synthetic data has the same scaling.
       if (mainConfig.scalingFlag) {
         val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
-        getAndAddStage(arrayBuffer, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol))
+        getAndAddStage(arrayBuffer, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol, mainConfig))
         getAndAddStage(arrayBuffer, scalerStage(mainConfig))
-        getAndAddStage(arrayBuffer, dropColumns(Array(renamedFeatureCol)))
+        getAndAddStage(arrayBuffer, dropColumns(Array(renamedFeatureCol), mainConfig))
         arrayBuffer += new DatasetsUnionTransformer().setUnionDatasetName(nonSyntheticFeatureGenTmpTable)
         arrayBuffer += new DropTempTableTransformer().setTempTableName(nonSyntheticFeatureGenTmpTable)
       }
@@ -459,14 +480,16 @@ object FeatureEngineeringPipelineContext {
   }
 
   private def renameTransformerStage(oldLabelName: String,
-                                          newLabelName: String): Option[PipelineStage] = {
+                                     newLabelName: String,
+                                     mainConfig: MainConfig): Option[PipelineStage] = {
     Some(new ColumnNameTransformer()
       .setInputColumns(Array(oldLabelName))
-      .setOutputColumns(Array(newLabelName)))
+      .setOutputColumns(Array(newLabelName))
+      .setDebugEnabled(mainConfig.pipelineDebugFlag))
   }
 
-  private def dropColumns(colNames: Array[String]): Option[PipelineStage] = {
-    Some(new DropColumnsTransformer().setInputCols(colNames))
+  private def dropColumns(colNames: Array[String], mainConfig: MainConfig): Option[PipelineStage] = {
+    Some(new DropColumnsTransformer().setInputCols(colNames).setDebugEnabled(mainConfig.pipelineDebugFlag))
   }
 
   private def mergePipelineModels(pipelineModels: ArrayBuffer[PipelineModel]): PipelineModel = {

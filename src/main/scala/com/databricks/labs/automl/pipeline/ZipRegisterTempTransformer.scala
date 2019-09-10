@@ -7,6 +7,14 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{LongType, StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * This transformer stage is supposed to be the first stage of a pipeline and is useful for adding an
+  * ID column to the input dataset, drop ignored columns and register original dataset a temp. view
+  * This is supposed to work with [[AutoMlOutputDatasetTransformer]] as the last stage of a pipeline
+  * which reverts the transformed dataset with the ignored fields using ID column
+  * @param uid
+  */
 class ZipRegisterTempTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -16,6 +24,7 @@ class ZipRegisterTempTransformer(override val uid: String)
   def this() = {
     this(Identifiable.randomUID("ZipRegisterTempTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setDebugEnabled(false)
   }
 
   final val tempViewOriginalDatasetName: Param[String] = new Param[String](this, "tempViewOriginalDatasetName", "Temp table name")

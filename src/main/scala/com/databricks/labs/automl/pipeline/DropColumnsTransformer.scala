@@ -7,6 +7,14 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * A transformer stage that can drop columns from an input Dataset.
+  * Necessary when there are intermediate stages that require columns to be
+  * removed from an input dataset because they aren't needed in the downstream
+  * stages anymore, such as input columns for SI are not needed for OHE, input cols for
+  * VA etc
+  */
 class DropColumnsTransformer (override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -15,6 +23,7 @@ class DropColumnsTransformer (override val uid: String)
   def this() = {
     this(Identifiable.randomUID("DropColumnsTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setDebugEnabled(false)
   }
 
   def setInputCols(value: Array[String]): this.type = set(inputCols, value)

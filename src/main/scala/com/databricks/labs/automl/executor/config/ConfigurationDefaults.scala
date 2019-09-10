@@ -351,6 +351,7 @@ trait ConfigurationDefaults {
     val scaleFlag = scalingFlag(family)
     val dataPrepCachingFlag = true
     val autoStoppingFlag = false
+    val pipelineDebugFlag = false
 
     SwitchConfig(
       naFillFlag,
@@ -361,7 +362,8 @@ trait ConfigurationDefaults {
       oheFlag,
       scaleFlag,
       dataPrepCachingFlag,
-      autoStoppingFlag
+      autoStoppingFlag,
+      pipelineDebugFlag
     )
   }
 
@@ -633,6 +635,7 @@ trait ConfigurationDefaults {
       "scalingFlag" -> switchDef.scalingFlag,
       "dataPrepCachingFlag" -> switchDef.dataPrepCachingFlag,
       "autoStoppingFlag" -> switchDef.autoStoppingFlag,
+      "pipelineDebugFlag" -> switchDef.pipelineDebugFlag,
       "fillConfigNumericFillStat" -> featDef.numericFillStat,
       "fillConfigCharacterFillStat" -> featDef.characterFillStat,
       "fillConfigModelSelectionDistinctThreshold" -> featDef.modelSelectionDistinctThreshold,

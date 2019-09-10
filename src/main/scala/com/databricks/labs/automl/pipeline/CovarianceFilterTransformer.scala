@@ -8,6 +8,10 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * A transformer stage that wraps [[FeatureCorrelationDetection]] in the transform method.
+  */
 class CovarianceFilterTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
@@ -26,6 +30,7 @@ class CovarianceFilterTransformer(override val uid: String)
     setCorrelationCutoffLow(-0.99)
     setCorrelationCutoffHigh(0.99)
     setFeatureColumns(Array.empty)
+    setDebugEnabled(false)
   }
 
   final val correlationCutoffLow: DoubleParam = new DoubleParam(this, "correlationCutoffLow", "correlationCutoffLow")
@@ -62,13 +67,10 @@ class CovarianceFilterTransformer(override val uid: String)
 
         logger.log(Level.INFO, covarianceFilterLog)
         println(covarianceFilterLog)
-        covarianceFilteredData
-      } else {
-        dataset.drop(getFieldsRemoved: _*)
+        return covarianceFilteredData
       }
-    } else {
-      dataset.toDF()
     }
+    dataset.drop(getFieldsRemoved: _*)
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {

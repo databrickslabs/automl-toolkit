@@ -7,14 +7,23 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * This is a useful transformer, if there is a need to rename columns
+  * in the intermediate transformations of a pipeline. Using this transformer
+  * can help avoid doing intermediate "fit" on pipeline just to rename columns
+  * in the output dataset
+  */
 class ColumnNameTransformer(override val uid: String)
   extends Transformer
   with DefaultParamsWritable
   with HasInputCols
-  with HasOutputCols {
+  with HasOutputCols
+  with HasDebug {
 
   def this() = {
     this(Identifiable.randomUID("ColumnNameTransformer"))
+    setDebugEnabled(false)
   }
 
   def setInputColumns(value: Array[String]): this.type = set(inputCols, value)
@@ -28,6 +37,7 @@ class ColumnNameTransformer(override val uid: String)
     for((key, i) <- getInputCols.view.zipWithIndex) {
       newDataset = dataset.withColumnRenamed(key, getOutputCols(i))
     }
+    logTransformation(dataset, newDataset)
     newDataset.toDF()
   }
 

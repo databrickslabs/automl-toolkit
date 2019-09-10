@@ -8,11 +8,17 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+/**
+  * @author Jas Bali
+  * This transformer wraps [[OutlierFiltering]] in a transform method
+  * @param uid
+  */
 class OutlierFilterTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
-    with HasFieldsToIgnore {
+    with HasFieldsToIgnore
+    with IsTrainingStage {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -20,6 +26,7 @@ class OutlierFilterTransformer(override val uid: String)
     this(Identifiable.randomUID("OutlierFilterTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     setFieldsToIgnore(Array.empty)
+    setDebugEnabled(false)
   }
 
   final val filterBounds: Param[String] = new Param[String](this, "filterBounds", "Filter Bounds")
@@ -66,6 +73,9 @@ class OutlierFilterTransformer(override val uid: String)
 //  def getInferenceOutlierMap: Map[String, (Double, String)] = $(inferenceOutlierMap)
 
 
+  //TODO (Jas): Is there anything for this stage that needs to be applied to the inference step ?
+  // For example, the columns removed in [[com.databricks.labs.automl.pipeline.CovarianceFilterTransformer]]
+  // will be removed for inference dataset as well
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if(dataset.columns.contains(getLabelColumn)) {
       // Output has no feature vector

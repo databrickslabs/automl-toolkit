@@ -10,11 +10,12 @@ import org.apache.spark.sql.{DataFrame, Dataset}
   * Abstract transformer should be extended for all AutoML transformers
   * This can contain common validation, exceptions and log messages.
   * Internally extends Spark Pipeline transformer [[Transformer]]
-  *
   */
+
 abstract class AbstractTransformer
     extends Transformer
-    with HasAutoMlIdColumn {
+    with HasAutoMlIdColumn
+    with HasDebug {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -29,6 +30,7 @@ abstract class AbstractTransformer
 
   /**
     * Final overridden method that cannot be modified by AutoML transformers
+    *
     * @param dataset
     * @return Transformed DataFrame [[DataFrame]]
     */
@@ -36,16 +38,18 @@ abstract class AbstractTransformer
     val outputDf =  transformInternal(dataset)
     transformSchemaInternal(dataset.schema)
     logAutoMlInternalIdPresent(outputDf)
+    logTransformation(dataset, outputDf)
     outputDf
   }
 
+
   final private def logAutoMlInternalIdPresent(outputDf: Dataset[_]): Unit = {
     val idAbsentMessage = s"Missing $getAutomlInternalId in the input columns"
-    val idPresent = outputDf.schema.fieldNames.contains(getAutomlInternalId) || this.isInstanceOf[AutoMlOutputDatasetTransformer]
-    if(!idPresent) {
+    val isIdColumnNeeded = outputDf.schema.fieldNames.contains(getAutomlInternalId) || this.isInstanceOf[AutoMlOutputDatasetTransformer]
+    if(!isIdColumnNeeded) {
       logger.fatal(s"idAbsentMessage in ${this.getClass}")
     }
-    assert(idPresent, idAbsentMessage)
+    assert(isIdColumnNeeded, idAbsentMessage)
   }
 
 

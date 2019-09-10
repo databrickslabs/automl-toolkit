@@ -13,7 +13,6 @@ import scala.collection.mutable.ArrayBuffer
   * @author Jas Bali
   * Input: Vectorized feature columns
   * Output: variance filtered DataFrame [[DataFrame]]
-  *
   */
 class VarianceFilterTransformer(override val uid: String)
   extends AbstractTransformer
@@ -40,6 +39,7 @@ class VarianceFilterTransformer(override val uid: String)
     setPreserveColumns(Array.empty)
     setRemovedColumns(Array.empty)
     setTransformCalculated(false)
+    setDebugEnabled(false)
   }
 
 
@@ -84,7 +84,7 @@ class VarianceFilterTransformer(override val uid: String)
           return dataset.select(selectFields map col:_*).toDF()
         }
     }
-    dataset.toDF()
+    dataset.drop(getRemovedColumns:_*)
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {

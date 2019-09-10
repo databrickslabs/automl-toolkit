@@ -7,7 +7,19 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.apache.spark.sql.types.{LongType, StructField, StructType}
 
-class AutoMlOutputDatasetTransformer (override val uid: String)
+/**
+  * @author Jas Bali
+  * This transformer is intended to be used as a last stage in the inference pipeline.
+  * Note: This transformer is supposed to be used with [[ZipRegisterTempTransformer]],
+  * as the first transformer in the Inference/Training pipeline. It generates the final
+  * dataset that is returned as a result of doing a transform on the [[org.apache.spark.ml.PipelineModel]]
+  * This is extremely useful for making sure all the original columns are present in the final
+  * transformed dataset, since there may be a need to JOIN operations on ignored columns in the
+  * downstream of inference step
+  * @param dataset
+  */
+
+class AutoMlOutputDatasetTransformer(override val uid: String)
   extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
@@ -16,6 +28,7 @@ class AutoMlOutputDatasetTransformer (override val uid: String)
   def this() = {
     this(Identifiable.randomUID("AutoMlOutputDatasetTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setDebugEnabled(false)
   }
 
   final val tempViewOriginalDatasetName: Param[String] = new Param[String](this, "tempViewOriginalDatasetName", "Temp table name")

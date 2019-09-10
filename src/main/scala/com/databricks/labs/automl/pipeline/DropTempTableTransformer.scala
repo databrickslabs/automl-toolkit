@@ -6,9 +6,17 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
 
+/**
+  * @author Jas Bali
+  * A [[WithNoopsStage]] transformer stage that is helpful when a previous stage
+  * registers a temp table and is no longer required for the rest of the pipeline.
+  * Supposed to be used with [[RegisterTempTableTransformer]] and [[DatasetsUnionTransformer]]
+  * @param uid
+  */
 class DropTempTableTransformer(override val uid: String)
   extends AbstractTransformer
-    with DefaultParamsWritable {
+    with DefaultParamsWritable
+    with WithNoopsStage {
 
   final val tempTableName = new Param[String](this, "tempTableName", "tempTableName")
 
@@ -19,6 +27,7 @@ class DropTempTableTransformer(override val uid: String)
   def this() = {
     this(Identifiable.randomUID("DropTempTableTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setDebugEnabled(false)
   }
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {

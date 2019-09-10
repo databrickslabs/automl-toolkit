@@ -7,17 +7,24 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.types.{BooleanType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+
+/**
+  * @author Jas Bali
+  * This transformer wraps [[SyntheticFeatureGenerator]]
+  */
 class SyntheticFeatureGenTransformer(override val uid: String)
   extends AbstractTransformer
     with HasLabelColumn
     with HasFeatureColumn
     with HasFieldsToIgnore
-    with DefaultParamsWritable {
+    with DefaultParamsWritable
+    with IsTrainingStage {
 
   def this() = {
     this(Identifiable.randomUID("SyntheticFeatureGenTransformer"))
     setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     setFieldsToIgnore(Array(getAutomlInternalId))
+    setDebugEnabled(false)
   }
 
   final val syntheticCol: Param[String] = new Param[String](this, "syntheticCol", "syntheticCol")
