@@ -2,7 +2,7 @@ name := "AutomatedML"
 
 organization := "com.databricks"
 
-version := "0.5.2"
+version := "0.5.3"
 
 scalaVersion := "2.11.12"
 scalacOptions ++= Seq("-Xmax-classfile-name", "78")
@@ -18,7 +18,7 @@ libraryDependencies += "junit" % "junit" % "4.8.1" % "test"
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.6" % "test"
 
 lazy val commonSettings = Seq(
-  version := "0.5.1",
+  version := "0.5.3",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )
