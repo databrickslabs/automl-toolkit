@@ -2,6 +2,7 @@ package com.databricks.labs.automl.executor.config
 
 import com.databricks.labs.automl.exploration.structures.FeatureImportanceConfig
 import com.databricks.labs.automl.params._
+import com.databricks.labs.automl.pipeline.PipelineStateCache
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.{read, writePretty}
 import org.json4s.{Formats, NoTypeHints}
@@ -2153,7 +2154,6 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor,
       pipelineDebugFlag = config.switchConfig.pipelineDebugFlag
     )
-
   }
 
   /**

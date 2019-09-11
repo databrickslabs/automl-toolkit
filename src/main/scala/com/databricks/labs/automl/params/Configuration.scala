@@ -1,5 +1,7 @@
 package com.databricks.labs.automl.params
 
+import com.databricks.labs.automl.pipeline.PipelineStateCache
+
 case class MainConfig(modelFamily: String,
                       labelCol: String,
                       featuresCol: String,
@@ -32,7 +34,8 @@ case class MainConfig(modelFamily: String,
                       mlFlowConfig: MLFlowConfig,
                       inferenceConfigSaveLocation: String,
                       dataReductionFactor: Double,
-                      pipelineDebugFlag: Boolean)
+                      pipelineDebugFlag: Boolean,
+                      pipelineId: String = PipelineStateCache.generatePipelineId())
 
 case class DataPrepConfig(naFillFlag: Boolean,
                           varianceFilterFlag: Boolean,

@@ -13,6 +13,8 @@ import org.apache.spark.sql.{DataFrame, Dataset}
   * in the intermediate transformations of a pipeline. Using this transformer
   * can help avoid doing intermediate "fit" on pipeline just to rename columns
   * in the output dataset
+  *
+  * Note: This is a noops transformer if input columns are not present in the dataset
   */
 class ColumnNameTransformer(override val uid: String)
   extends Transformer
@@ -31,18 +33,19 @@ class ColumnNameTransformer(override val uid: String)
   def setOutputColumns(value: Array[String]): this.type = set(outputCols, value)
 
   override def transform(dataset: Dataset[_]): DataFrame = {
-    transformSchema(dataset.schema)
-    var newDataset = dataset
-    for((key, i) <- getInputCols.view.zipWithIndex) {
-      newDataset = dataset.withColumnRenamed(key, getOutputCols(i))
+    if(getInputCols.forall(item => dataset.columns.contains(item))) {
+      transformSchema(dataset.schema)
+      var newDataset = dataset
+      for((key, i) <- getInputCols.view.zipWithIndex) {
+        newDataset = dataset.withColumnRenamed(key, getOutputCols(i))
+      }
+      logTransformation(dataset, newDataset)
+      return newDataset.toDF()
     }
-    logTransformation(dataset, newDataset)
-    newDataset.toDF()
+    dataset.toDF()
   }
 
   override def transformSchema(schema: StructType): StructType = {
-    require(schema.fieldNames.exists(item => getInputCols.contains(item)),
-      s"""Input columns ${getInputCols.filterNot(item => schema.fieldNames.contains(item)).mkString(", ")} are not present in the dataset""")
     require(
      getInputCols.length == getOutputCols.length,
      s"${getInputCols.toList} input columns array is not equal in length to output columns array ${getOutputCols.toList}")

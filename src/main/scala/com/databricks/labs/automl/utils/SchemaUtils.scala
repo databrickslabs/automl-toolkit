@@ -157,6 +157,4 @@ object SchemaUtils {
     }
     map.toMap
   }
-
-
 }

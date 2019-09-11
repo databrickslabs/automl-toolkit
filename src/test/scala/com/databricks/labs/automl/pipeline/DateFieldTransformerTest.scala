@@ -1,14 +1,13 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil, PipelineTestUtils}
 import java.sql.{Date, Timestamp}
-import java.util
 
-import org.apache.spark.ml.{Pipeline, PipelineStage}
+import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil, PipelineTestUtils}
+import org.apache.spark.ml.PipelineStage
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
-import collection.JavaConverters._
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
 class DateFieldTransformerTest extends AbstractUnitSpec{
@@ -22,12 +21,13 @@ class DateFieldTransformerTest extends AbstractUnitSpec{
         Row(300L, Date.valueOf("2016-09-30"), Timestamp.valueOf("2007-09-23 10:10:10.0") , 0),
         Row(400L, Date.valueOf("2016-10-30"), Timestamp.valueOf("2007-09-24 12:05:55.0"), 1)).asJava,
       StructType(Array(
-        StructField("download_events", LongType, nullable = true),
+        StructField("download_events", ArrayType(StringType, false), nullable = true),
         StructField(dateColToBeTransformed, DateType, nullable = true),
         StructField(tsColToBeTransformed, TimestampType, nullable = true),
         StructField("label", IntegerType, nullable = false)
       ))
     )
+
     val stages = new ArrayBuffer[PipelineStage]
     stages += PipelineTestUtils
       .addZipRegisterTmpTransformerStage(

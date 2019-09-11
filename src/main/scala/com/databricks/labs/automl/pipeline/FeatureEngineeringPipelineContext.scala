@@ -11,6 +11,7 @@ import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Model, Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
+import com.databricks.labs.automl.pipeline.PipelineVars._
 
 /**
   * @author Jas Bali
@@ -49,6 +50,7 @@ object FeatureEngineeringPipelineContext {
     removeColumns ++= vectorizedColumns
     val secondTransformationPipelineModel = secondTransformation.pipelineModel
     val secondTransformationDf = secondTransformationPipelineModel.transform(initialTransformationDf)
+
 
     val stages = new ArrayBuffer[PipelineStage]()
     // Fill with Na
@@ -109,21 +111,8 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(lastStages, dropColumns(removeColumns.toArray, mainConfig))
 
     // final transformation
-    var fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
-    var fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
-
-    // Label refactor
-    if(SchemaUtils.isLabelRefactorNeeded(fourthTransformationDf.schema, mainConfig.labelCol)) {
-      getAndAddStage(
-        lastStages,
-        Some(new StringIndexer()
-        .setInputCol(mainConfig.labelCol)
-        .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)
-        .setHandleInvalid("keep")))
-
-      fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
-      fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
-    }
+    val fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
+    val fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
 
     //Extract Decided model from DataSanitizer stage
     val dataSanitizerStage = thirdPipelineModel.stages.find(item => item.isInstanceOf[DataSanitizerTransformer]).get
@@ -145,7 +134,6 @@ object FeatureEngineeringPipelineContext {
     // get Feature eng. pipeline model
     pipelineModelStages += featureEngOutput.pipelineModel
 
-    // Append Model Pipeline stage TODO: update to get the right model
     val bestModel = getBestModel(modelReport, mainConfiguration.scoringOptimizationStrategy)
     val mlPipelineModel = SparkUtil.createPipelineModel(Array(bestModel.model.asInstanceOf[Model[_]]))
 
@@ -178,19 +166,39 @@ object FeatureEngineeringPipelineContext {
   private def addLabelIndexToString(pipelineModel: PipelineModel,
                         dataFrame: DataFrame,
                         mainConfig: MainConfig): PipelineModel = {
-     if(SchemaUtils.isLabelRefactorNeeded(dataFrame.schema, mainConfig.labelCol)) {
+     if(SchemaUtils.isLabelRefactorNeeded(dataFrame.schema, mainConfig.labelCol)
+       ||
+       PipelineStateCache
+         .getFromPipelineByIdAndKey(
+             mainConfig.pipelineId,
+             PIPELINE_LABEL_REFACTOR_NEEDED_KEY.key)
+         .asInstanceOf[Boolean]
+       ) {
        //Find the last string indexer by reversing the pipeline mode stages
-       val stringIndexerLabels = pipelineModel.stages.reverse.find(_.isInstanceOf[StringIndexerModel]).get.asInstanceOf[StringIndexerModel].labels
+       val stringIndexerLabels =
+         pipelineModel
+         .stages
+         .find(_.uid.startsWith(PipelineEnums.LABEL_STRING_INDEXER_STAGE_NAME.value))
+         .get
+         .asInstanceOf[StringIndexerModel]
+         .labels
 
        val labelRefactorPipelineModel =  new Pipeline()
-         .setStages(Array(new IndexToString()
+         .setStages(Array(
+           new IndexToString()
            .setInputCol("prediction")
-           .setOutputCol("prediction")
-           .setLabels(stringIndexerLabels)))
+           .setOutputCol("prediction_stng")
+           .setLabels(stringIndexerLabels),
+           new DropColumnsTransformer()
+             .setInputCols(Array("prediction")),
+           new ColumnNameTransformer()
+             .setInputColumns(Array("prediction_stng"))
+             .setOutputColumns(Array("prediction"))
+         ))
          .fit(dataFrame)
        labelRefactorPipelineModel.transform(dataFrame)
 
-       mergePipelineModels(ArrayBuffer(pipelineModel, labelRefactorPipelineModel))
+       return mergePipelineModels(ArrayBuffer(pipelineModel, labelRefactorPipelineModel))
      }
      pipelineModel
   }
@@ -273,7 +281,7 @@ object FeatureEngineeringPipelineContext {
                                          mainConfig: MainConfig,
                                          ignoreCols: Array[String]): VectorizationOutput = {
     val fields = SchemaUtils.extractTypes(dataFrame, mainConfig.labelCol)
-    val stringFields = fields._2.filterNot(ignoreCols.contains)
+    val stringFields = fields._2.filterNot(ignoreCols.contains).filterNot(item => item.equals(mainConfig.labelCol))
     val vectorizableFields = fields._1.toArray.filterNot(ignoreCols.contains)
     val dateFields = fields._3.toArray.filterNot(ignoreCols.contains)
     val timeFields = fields._4.toArray.filterNot(ignoreCols.contains)
@@ -282,6 +290,27 @@ object FeatureEngineeringPipelineContext {
     validateDateAndTimeFeatures(dateFields, timeFields)
 
     val stages = new ArrayBuffer[PipelineStage]
+
+    // Label refactor
+    if(SchemaUtils.isLabelRefactorNeeded(dataFrame.schema, mainConfig.labelCol)) {
+      getAndAddStage(
+        stages,
+        Some(new StringIndexer(PipelineEnums.LABEL_STRING_INDEXER_STAGE_NAME.value + Identifiable.randomUID("strIdx"))
+          .setInputCol(mainConfig.labelCol)
+          .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)
+          .setHandleInvalid("keep")))
+      getAndAddStage(stages, dropColumns(Array(mainConfig.labelCol), mainConfig))
+      getAndAddStage(stages,
+        renameTransformerStage(
+          mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value,
+          mainConfig.labelCol,
+          mainConfig))
+      PipelineStateCache
+        .addToPipelineCache(
+          mainConfig.pipelineId,
+          PipelineVars.PIPELINE_LABEL_REFACTOR_NEEDED_KEY.key, true)
+    }
+
     stringFields.foreach(columnName => {
       stages += new StringIndexer()
         .setInputCol(columnName)

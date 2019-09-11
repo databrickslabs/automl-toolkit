@@ -3,7 +3,7 @@ package com.databricks.labs.automl.executor
 import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.params._
-import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext}
+import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext, PipelineStateCache}
 import com.databricks.labs.automl.tracking.MLFlowReportStructure
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.ml.mleap.SparkUtil
@@ -195,8 +195,9 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
   def withPipelineInferenceModel(familyFinalOutput: FamilyFinalOutput,
                                  configs: Array[InstanceConfig],
-                                 pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)])
-  : FamilyFinalOutputWithPipeline = {
+                                 pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)]):
+
+  FamilyFinalOutputWithPipeline = {
     val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
     configs.foreach(config => {
       val modelReport = familyFinalOutput.modelReport.filter(item => item.modelFamily.equals(config.modelFamily))

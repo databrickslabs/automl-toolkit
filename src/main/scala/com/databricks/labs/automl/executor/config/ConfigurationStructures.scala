@@ -161,7 +161,7 @@ case class LoggingConfig(var mlFlowLoggingFlag: Boolean,
                          var inferenceConfigSaveLocation: String,
                          var mlFlowCustomRunTags: Map[String, String])
 
-case class InstanceConfig(
+case class InstanceConfig (
   var modelFamily: String,
   var predictionType: String,
   var genericConfig: GenericConfig,
