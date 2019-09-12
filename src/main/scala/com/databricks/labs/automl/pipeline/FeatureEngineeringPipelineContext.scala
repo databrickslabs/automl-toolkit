@@ -305,12 +305,14 @@ object FeatureEngineeringPipelineContext {
           mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value,
           mainConfig.labelCol,
           mainConfig))
-      PipelineStateCache
-        .addToPipelineCache(
-          mainConfig.pipelineId,
-          PipelineVars.PIPELINE_LABEL_REFACTOR_NEEDED_KEY.key, true)
+      // Register label refactor needed var for this pipeline context
+      // LabelRefactor needed
+      addToPipelineCacheInternal(mainConfig, refactorNeeded = true)
+    } else {
+      // Register label refactor needed var for this pipeline context
+      //Label refactor not required
+      addToPipelineCacheInternal(mainConfig, refactorNeeded= false)
     }
-
     stringFields.foreach(columnName => {
       stages += new StringIndexer()
         .setInputCol(columnName)
@@ -325,6 +327,13 @@ object FeatureEngineeringPipelineContext {
       .toArray[String] ++ vectorizableFields
 
     VectorizationOutput(new Pipeline().setStages(stages.toArray).fit(dataFrame), featureAssemblerInputCols)
+  }
+
+  private def addToPipelineCacheInternal(mainConfig: MainConfig, refactorNeeded: Boolean): Unit = {
+    PipelineStateCache
+      .addToPipelineCache(
+        mainConfig.pipelineId,
+        PipelineVars.PIPELINE_LABEL_REFACTOR_NEEDED_KEY.key, refactorNeeded)
   }
 
   private def vectorAssemblerStage(mainConfig: MainConfig,
