@@ -79,7 +79,7 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
       "tunerGeneticMixing" -> 0.8,
       "tunerGenerationalMutationStrategy" -> "fixed",
       "tunerEvolutionStrategy" -> "batch",
-      "pipelineDebugFlag" -> false
+      "pipelineDebugFlag" -> true
     )
     val randomForestConfig = ConfigurationGenerator
       .generateConfigFromMap("RandomForest", "classifier", overrides)

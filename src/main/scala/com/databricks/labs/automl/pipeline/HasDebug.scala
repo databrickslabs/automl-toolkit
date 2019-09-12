@@ -3,6 +3,7 @@ package com.databricks.labs.automl.pipeline
 import org.apache.log4j.Logger
 import org.apache.spark.ml.param.{BooleanParam, Param, Params}
 import org.apache.spark.sql.Dataset
+import org.apache.spark.sql.types.{StructField, StructType}
 
 /**
   * Base trait for setting/accessing debug flags. Meant to be extended by all pipeline stages,
@@ -22,16 +23,21 @@ trait HasDebug extends Params {
                         outputDataset: Dataset[_],
                         stageExecutionTime: Long): Unit = {
     if(getDebugEnabled) {
+      val stageExecTime = if(stageExecutionTime < 1000) {
+        s"$stageExecutionTime ms"
+      } else {
+        s"${stageExecutionTime.toDouble/1000} seconds"
+      }
       // Keeping this INFO level, since debug level can easily pollute this important block of debug information
       val logStrng = s"\n \n" +
         s"=== AutoML Pipeline Stage: ${this.getClass} log ==> \n" +
         s"Stage Name: ${this.uid} \n" +
-        s"Total Stage Execution time: ${stageExecutionTime/1000} seconds \n" +
+        s"Total Stage Execution time: $stageExecTime \n" +
         s"Stage Params: ${paramsAsString(this.params)} \n " +
         s"Input dataset count: ${inputDataset.count()} \n " +
         s"Output dataset count: ${outputDataset.count()} \n " +
         s"Input dataset schema: ${inputDataset.schema.treeString} \n " +
-        s"Output dataset schama: ${outputDataset.schema.treeString} " + "\n" +
+        s"Output dataset schema: ${outputDataset.schema.treeString} " + "\n" +
         s"=== End of ${this.getClass} Pipeline Stage log <==" + "\n"
       println(logStrng)
       logger.info(logStrng)
@@ -40,7 +46,7 @@ trait HasDebug extends Params {
 
   private def paramsAsString(params: Array[Param[_]]): String = {
     params.map { param =>
-      s"\t${param.toString()}: ${paramValueAsString(this.extractParamMap().get(param).get)}"
+      s"\t${param.name}: ${paramValueAsString(this.extractParamMap().get(param).get)}"
     }.mkString("{\n", ",\n", "\n}")
   }
 
