@@ -10,7 +10,7 @@ import org.apache.spark.sql.functions.{col, trim, when}
 class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
 
 //  "FeatureEngineeringPipelineContextTest"
-  "FeatureEngineeringPipelineContextTest" should "correctly generate feature engineered dataset" in {
+  ignore should "correctly generate feature engineered dataset" in {
     val testVars = PipelineTestUtils.getTestVars()
     // Generate config
     val overrides = Map(
@@ -53,7 +53,7 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
   }
 
   //
-  "FeatureEngineeringPipelineContextTest" should "run train pipeline" in {
+  "FeatureEngineeringPipelineContextTest" should "run train, save/load pipeline and predict" in {
     val testVars = PipelineTestUtils.getTestVars()
     val overrides = Map(
       "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
@@ -84,18 +84,21 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
     val randomForestConfig = ConfigurationGenerator
       .generateConfigFromMap("RandomForest", "classifier", overrides)
     val runner = FamilyRunner(testVars.df, Array(randomForestConfig)).executeWithPipeline()
-    val predictDf = runner.bestPipelineModel("RandomForest").transform(testVars.df.drop("label"))
+    val pipelineModel = runner.bestPipelineModel("RandomForest")
+    val bcPipelineModel = testVars.df.sparkSession.sparkContext.broadcast(pipelineModel)
+
+    val predictDf = bcPipelineModel.value.transform(testVars.df.drop("label"))
     assert(predictDf.count() == testVars.df.count(),
     "Inference df count should have matched the input dataset")
     assert(testVars.df.columns.filterNot("label".equals(_)).forall(item => predictDf.columns.contains(item)),
     "All original columns must be present in the predict dataset")
     // Test write and load of full inference pipeline
     val pipelineSavePath = AutomationUnitTestsUtil.getProjectDir() + "/target/pipeline-tests/infer-final-pipeline"
-    runner.bestPipelineModel("RandomForest").write.overwrite().save(pipelineSavePath)
+    pipelineModel.write.overwrite().save(pipelineSavePath)
     PipelineModel.load(pipelineSavePath).transform(testVars.df.drop("label")).show(100)
   }
 
-  "FeatureEngineeringPipelineContextTest" should "run train pipeline" in {
+  ignore should "run train pipeline" in {
     val overrides = Map(
       "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
       "scalingFlag" -> true, "oneHotEncodeFlag" -> true,

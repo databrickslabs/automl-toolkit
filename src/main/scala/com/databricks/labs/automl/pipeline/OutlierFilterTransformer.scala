@@ -20,7 +20,7 @@ class OutlierFilterTransformer(override val uid: String)
     with HasFieldsToIgnore
     with IsTrainingStage {
 
-  private val logger: Logger = Logger.getLogger(this.getClass)
+  @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 
   def this() = {
     this(Identifiable.randomUID("OutlierFilterTransformer"))

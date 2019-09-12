@@ -17,7 +17,7 @@ abstract class AbstractTransformer
     with HasAutoMlIdColumn
     with HasDebug {
 
-  private val logger: Logger = Logger.getLogger(this.getClass)
+  @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 
   /**
     * Final overridden method that cannot be modified by AutoML transformers

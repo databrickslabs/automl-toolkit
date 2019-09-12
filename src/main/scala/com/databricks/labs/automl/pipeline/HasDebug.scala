@@ -10,7 +10,7 @@ import org.apache.spark.sql.Dataset
   */
 trait HasDebug extends Params {
 
-  private val logger: Logger = Logger.getLogger(this.getClass)
+  @transient private val logger: Logger = Logger.getLogger(this.getClass)
 
   final val isDebugEnabled: BooleanParam = new BooleanParam(this, "isDebugEnabled", "Debug option flag")
 

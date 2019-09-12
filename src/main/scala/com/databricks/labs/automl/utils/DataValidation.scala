@@ -20,7 +20,7 @@ trait DataValidation {
   def _allowableCategoricalFilterModes = List("silent", "warn")
   def _allowableCardinalilties = List("approx", "exact")
 
-  private val logger: Logger = Logger.getLogger(this.getClass)
+  @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 
   def invalidateSelection(value: String, allowances: Seq[String]): String = {
     s"${allowances.foldLeft("")((a, b) => a + " " + b)}"
