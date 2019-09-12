@@ -18,18 +18,21 @@ trait HasDebug extends Params {
 
   def getDebugEnabled: Boolean = $(isDebugEnabled)
 
-  def logTransformation(inputDataset: Dataset[_], outputDataset: Dataset[_]): Unit = {
+  def logTransformation(inputDataset: Dataset[_],
+                        outputDataset: Dataset[_],
+                        stageExecutionTime: Long): Unit = {
     if(getDebugEnabled) {
       // Keeping this INFO level, since debug level can easily pollute this important block of debug information
-      val logStrng = s"""\n \n" +
-        "=== AutoML Custom Transformers log ==> \n \n" +
-        s"Stage: ${this.getClass} \n" +
+      val logStrng = s"\n \n" +
+        s"=== AutoML Pipeline Stage: ${this.getClass} log ==> \n" +
+        s"Stage Name: ${this.uid} \n" +
+        s"Total Stage Execution time: ${stageExecutionTime/1000} seconds \n" +
         s"Stage Params: ${paramsAsString(this.params)} \n " +
         s"Input dataset count: ${inputDataset.count()} \n " +
         s"Output dataset count: ${outputDataset.count()} \n " +
         s"Input dataset schema: ${inputDataset.schema.treeString} \n " +
         s"Output dataset schama: ${outputDataset.schema.treeString} " + "\n" +
-        "=== End of AutoML Custom Transformer log <==" + "\n"""
+        s"=== End of ${this.getClass} Pipeline Stage log <==" + "\n"
       println(logStrng)
       logger.info(logStrng)
     }

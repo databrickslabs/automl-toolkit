@@ -35,10 +35,11 @@ abstract class AbstractTransformer
     * @return Transformed DataFrame [[DataFrame]]
     */
   final override def transform(dataset: Dataset[_]): DataFrame = {
+    val startMillis = System.currentTimeMillis()
     val outputDf =  transformInternal(dataset)
     transformSchemaInternal(dataset.schema)
     logAutoMlInternalIdPresent(outputDf)
-    logTransformation(dataset, outputDf)
+    logTransformation(dataset, outputDf, System.currentTimeMillis() - startMillis)
     outputDf
   }
 

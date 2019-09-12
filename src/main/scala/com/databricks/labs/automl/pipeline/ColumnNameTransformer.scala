@@ -33,13 +33,14 @@ class ColumnNameTransformer(override val uid: String)
   def setOutputColumns(value: Array[String]): this.type = set(outputCols, value)
 
   override def transform(dataset: Dataset[_]): DataFrame = {
+    val startMillis = System.currentTimeMillis()
     if(getInputCols.forall(item => dataset.columns.contains(item))) {
       transformSchema(dataset.schema)
       var newDataset = dataset
       for((key, i) <- getInputCols.view.zipWithIndex) {
         newDataset = dataset.withColumnRenamed(key, getOutputCols(i))
       }
-      logTransformation(dataset, newDataset)
+      logTransformation(dataset, newDataset, System.currentTimeMillis() - startMillis)
       return newDataset.toDF()
     }
     dataset.toDF()
