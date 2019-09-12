@@ -21,7 +21,7 @@ trait HasDebug extends Params {
   def logTransformation(inputDataset: Dataset[_], outputDataset: Dataset[_]): Unit = {
     if(getDebugEnabled) {
       // Keeping this INFO level, since debug level can easily pollute this important block of debug information
-      logger.info( "\n \n" +
+      val logStrng = s"""\n \n" +
         "=== AutoML Custom Transformers log ==> \n \n" +
         s"Stage: ${this.getClass} \n" +
         s"Stage Params: ${paramsAsString(this.params)} \n " +
@@ -29,7 +29,9 @@ trait HasDebug extends Params {
         s"Output dataset count: ${outputDataset.count()} \n " +
         s"Input dataset schema: ${inputDataset.schema.treeString} \n " +
         s"Output dataset schama: ${outputDataset.schema.treeString} " + "\n" +
-        "=== End of AutoML Custom Transformer log <==" + "\n")
+        "=== End of AutoML Custom Transformer log <==" + "\n"""
+      println(logStrng)
+      logger.info(logStrng)
     }
   }
 
