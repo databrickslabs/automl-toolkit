@@ -8,7 +8,7 @@ import org.apache.spark.ml.feature.{MaxAbsScaler, MinHashLSH, MinHashLSHModel, V
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 
 import scala.collection.mutable.ListBuffer
 
@@ -662,6 +662,8 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     assembler.transform(dataFrame.drop(conf.featuresCol))
   }
 
+  case class MapTypeVal(colName: String, colValue: Column)
+
   private def addDummyDataForIgnoredColumns(dataframe: DataFrame,
                                             fieldsToIgnore: Array[StructField]): DataFrame = {
     var newDataFrame: DataFrame = dataframe
@@ -670,24 +672,24 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     val dummyTime = Calendar.getInstance().getTime
 
     fieldsToIgnore.map(item => item.dataType match {
-        case StringType => (item.name, lit("DUMMY"))
-        case IntegerType => (item.name, lit(0))
-        case DoubleType => (item.name, lit(0.0))
-        case FloatType => (item.name, lit(0.0f))
-        case LongType => (item.name, lit(0L))
-        case ByteType => (item.name, lit("DUMMY".getBytes))
-        case BooleanType => (item.name, lit(false))
-        case BinaryType => (item.name, lit(0))
-        case DateType => (item.name, lit(dummyDate))
-        case TimestampType => (item.name, lit(dummyTime))
+        case StringType => MapTypeVal(item.name, lit("DUMMY"))
+        case IntegerType => MapTypeVal(item.name, lit(0))
+        case DoubleType => MapTypeVal(item.name, lit(0.0))
+        case FloatType => MapTypeVal(item.name, lit(0.0f))
+        case LongType => MapTypeVal(item.name, lit(0L))
+        case ByteType => MapTypeVal(item.name, lit("DUMMY".getBytes))
+        case BooleanType => MapTypeVal(item.name, lit(false))
+        case BinaryType => MapTypeVal(item.name, lit(0))
+        case DateType => MapTypeVal(item.name, lit(dummyDate))
+        case TimestampType => MapTypeVal(item.name, lit(dummyTime))
         case _ =>
           throw new UnsupportedOperationException(
             s"Field '${item.name}' is of type ${item.dataType}, which is not supported."
           )
       }
-    ).foreach(item => {
-      newDataFrame = newDataFrame.withColumn(item._1, item._2)
-    })
+    ).foreach{
+      m: MapTypeVal => newDataFrame = newDataFrame.withColumn(m.colName, m.colValue)
+    }
 
     newDataFrame
   }
