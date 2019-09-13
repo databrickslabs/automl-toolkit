@@ -91,11 +91,11 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
           metrics = y.metrics,
           generation = y.generation
         )
-        generationReport +: x.generationReport
-        modelReportDataFrame.union(x.modelReportDataFrame)
-        generationReportDataFrame.union(x.generationReportDataFrame)
-        mlFlowOutput += x.mlFlowOutput
       }
+      generationReport +: x.generationReport
+      modelReportDataFrame.union(x.modelReportDataFrame)
+      generationReportDataFrame.union(x.generationReportDataFrame)
+      mlFlowOutput += x.mlFlowOutput
     }
 
     FamilyFinalOutput(
