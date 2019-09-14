@@ -3,11 +3,11 @@ package com.databricks.labs.automl.pipeline
 import org.apache.log4j.Logger
 import org.apache.spark.ml.param.{BooleanParam, Param, Params}
 import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.types.{StructField, StructType}
 
 /**
   * Base trait for setting/accessing debug flags. Meant to be extended by all pipeline stages,
-  * which inherit pipeline staging logging by default
+  * which inherit pipeline stage logging by default
+  * @author Jas Bali
   */
 trait HasDebug extends Params {
 

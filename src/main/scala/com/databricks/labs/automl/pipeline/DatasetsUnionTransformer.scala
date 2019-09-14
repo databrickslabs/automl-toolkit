@@ -38,11 +38,11 @@ class DatasetsUnionTransformer(override val uid: String)
     val dfs = prepareUnion(
       dataset.sqlContext.sql(s"select * from $getUnionDatasetName"),
       dataset.toDF())
-    dfs._1.union(dfs._2)
+    dfs._1.unionByName(dfs._2)
   }
 
   private def prepareUnion(df1: DataFrame, df2: DataFrame):  (DataFrame, DataFrame) = {
-    assert(df1.columns.length == df2.columns.length, "Different number of columns")
+    assert(df1.schema.equals(df2.schema), "Different schemas for union DFs")
     val colNames = df1.schema.fieldNames
     Sorting.quickSort(colNames)
     (df1.select( colNames map col:_*), df2.select( colNames map col:_*))

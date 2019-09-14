@@ -1818,6 +1818,11 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  def setTunerOutputDfRepartitionScaleFactor(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerOutputDfRepartitionScaleFactor = value
+    this
+  }
+
   /**
     * MLFlow Logging Config
     */
@@ -2091,7 +2096,8 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           cardinalityThreshold =
             config.tunerConfig.tunerKSampleCardinalityThreshold,
           numericRatio = config.tunerConfig.tunerKSampleNumericRatio,
-          numericTarget = config.tunerConfig.tunerKSampleNumericTarget
+          numericTarget = config.tunerConfig.tunerKSampleNumericTarget,
+          outputDfRepartitionScaleFactor = config.tunerConfig.tunerOutputDfRepartitionScaleFactor
         ),
         trainSplitChronologicalColumn =
           config.tunerConfig.tunerTrainSplitChronologicalColumn,
@@ -2876,6 +2882,13 @@ object ConfigurationGenerator extends ConfigurationDefaults {
             "tunerKSampleNumericTarget",
             defaultMap("tunerKSampleNumericTarget")
           )
+          .toString
+          .toInt
+      )
+      .setTunerOutputDfRepartitionScaleFactor(
+        config
+          .getOrElse("tunerOutputDfRepartitionScaleFactor",
+            defaultMap("tunerOutputDfRepartitionScaleFactor"))
           .toString
           .toInt
       )

@@ -122,7 +122,8 @@ trait Defaults {
     labelBalanceMode = "percentage",
     cardinalityThreshold = 20,
     numericRatio = 0.2,
-    numericTarget = 500
+    numericTarget = 500,
+    outputDfRepartitionScaleFactor = 3
   )
 
   def _geneticTunerDefaults = GeneticConfig(

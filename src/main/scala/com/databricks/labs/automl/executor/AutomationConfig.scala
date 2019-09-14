@@ -181,6 +181,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _numericTarget: Int = _geneticTunerDefaults.kSampleConfig.numericTarget
 
+  var _outputDfRepartitionScaleFactor: Int = _geneticTunerDefaults.kSampleConfig.outputDfRepartitionScaleFactor
+
   var _trainSplitChronologicalColumn: String =
     _geneticTunerDefaults.trainSplitChronologicalColumn
 
@@ -976,7 +978,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       labelBalanceMode = _labelBalanceMode,
       cardinalityThreshold = _cardinalityThreshold,
       numericRatio = _numericRatio,
-      numericTarget = _numericTarget
+      numericTarget = _numericTarget,
+      outputDfRepartitionScaleFactor = _outputDfRepartitionScaleFactor
     )
     this
   }

@@ -145,7 +145,8 @@ case class TunerConfig(var tunerAutoStoppingScore: Double,
                        var tunerInitialGenerationMode: String,
                        var tunerInitialGenerationPermutationCount: Int,
                        var tunerInitialGenerationIndexMixingMode: String,
-                       var tunerInitialGenerationArraySeed: Long)
+                       var tunerInitialGenerationArraySeed: Long,
+                       var tunerOutputDfRepartitionScaleFactor: Int)
 
 case class AlgorithmConfig(var stringBoundaries: Map[String, List[String]],
                            var numericBoundaries: Map[String, (Double, Double)])

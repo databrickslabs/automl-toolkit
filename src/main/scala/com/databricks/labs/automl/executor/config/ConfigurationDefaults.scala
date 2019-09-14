@@ -505,6 +505,7 @@ trait ConfigurationDefaults {
     val tunerInitialGenerationPermutationCount = 10
     val tunerInitialGenerationIndexMixingMode = "linear"
     val tunerInitialGenerationArraySeed = 42L
+    val tunerOutputDfRepartitionScaleFactor = 3
 
     TunerConfig(
       tunerAutoStoppingScore,
@@ -557,7 +558,8 @@ trait ConfigurationDefaults {
       tunerInitialGenerationMode,
       tunerInitialGenerationPermutationCount,
       tunerInitialGenerationIndexMixingMode,
-      tunerInitialGenerationArraySeed
+      tunerInitialGenerationArraySeed,
+      tunerOutputDfRepartitionScaleFactor
     )
   }
 
@@ -725,6 +727,7 @@ trait ConfigurationDefaults {
       "tunerInitialGenerationPermutationCount" -> tunerDef.tunerInitialGenerationPermutationCount,
       "tunerInitialGenerationIndexMixingMode" -> tunerDef.tunerInitialGenerationIndexMixingMode,
       "tunerInitialGenerationArraySeed" -> tunerDef.tunerInitialGenerationArraySeed,
+      "tunerOutputDfRepartitionScaleFactor" -> tunerDef.tunerOutputDfRepartitionScaleFactor,
       "mlFlowLoggingFlag" -> logDef.mlFlowLoggingFlag,
       "mlFlowLogArtifactsFlag" -> logDef.mlFlowLogArtifactsFlag,
       "mlFlowTrackingURI" -> logDef.mlFlowTrackingURI,

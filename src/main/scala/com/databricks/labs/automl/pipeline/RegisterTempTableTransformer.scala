@@ -12,7 +12,6 @@ import org.apache.spark.sql.types.StructType
   * than a single dataset. This is to bypass pipeline semantics of only being able to pass a single dataset.
   * Useful for [[SyntheticFeatureGenTransformer]] where original rows need to be appended with synthetic rows from
   * [[com.databricks.labs.automl.feature.KSampling]]
-  * @author Jas Bali
   * @param uid
   */
 class RegisterTempTableTransformer(override val uid: String)

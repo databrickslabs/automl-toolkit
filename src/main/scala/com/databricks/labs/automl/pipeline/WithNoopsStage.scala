@@ -2,7 +2,6 @@ package com.databricks.labs.automl.pipeline
 
 
 /**
-  * @author Jas Bali
   * Marker interface to signify any transformer extending this trait will not alter
   * an input dataset. This is only for the edge cases where it is required to do an external
   * Ops before pipeline execution can continue. An example would be to do Mlflow params Validation

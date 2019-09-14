@@ -105,7 +105,8 @@ case class KSampleConfig(syntheticCol: String,
                          labelBalanceMode: String,
                          cardinalityThreshold: Int,
                          numericRatio: Double,
-                         numericTarget: Int)
+                         numericTarget: Int,
+                         outputDfRepartitionScaleFactor: Int)
 
 case class GeneticConfig(parallelism: Int,
                          kFold: Int,

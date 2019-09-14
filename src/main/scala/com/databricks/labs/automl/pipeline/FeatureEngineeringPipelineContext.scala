@@ -51,7 +51,6 @@ object FeatureEngineeringPipelineContext {
     val secondTransformationPipelineModel = secondTransformation.pipelineModel
     val secondTransformationDf = secondTransformationPipelineModel.transform(initialTransformationDf)
 
-
     val stages = new ArrayBuffer[PipelineStage]()
     // Fill with Na
     getAndAddStage(stages, fillNaStage(mainConfig))
@@ -491,6 +490,9 @@ object FeatureEngineeringPipelineContext {
         .setNumericTarget(mainConfig.geneticConfig.kSampleConfig.numericTarget)
         .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
+      //Repartition after Ksampler stage
+      arrayBuffer += new RepartitionTransformer()
+        .setPartitionScaleFactor(mainConfig.geneticConfig.kSampleConfig.outputDfRepartitionScaleFactor)
 
       // Register temp table stage for registering non-synthetic dataset later needed for the union with synthetic dataset
       val nonSyntheticFeatureGenTmpTable = Identifiable.randomUID("nonSyntheticFeatureGenTransformer_")
@@ -513,6 +515,7 @@ object FeatureEngineeringPipelineContext {
         arrayBuffer += new DatasetsUnionTransformer().setUnionDatasetName(nonSyntheticFeatureGenTmpTable)
         arrayBuffer += new DropTempTableTransformer().setTempTableName(nonSyntheticFeatureGenTmpTable)
       }
+
       return Some(arrayBuffer.toArray)
     }
     None
