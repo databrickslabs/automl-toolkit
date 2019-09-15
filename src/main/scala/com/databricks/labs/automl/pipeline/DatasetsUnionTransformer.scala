@@ -42,10 +42,15 @@ class DatasetsUnionTransformer(override val uid: String)
   }
 
   private def prepareUnion(df1: DataFrame, df2: DataFrame):  (DataFrame, DataFrame) = {
-    assert(df1.schema.equals(df2.schema), "Different schemas for union DFs")
     val colNames = df1.schema.fieldNames
     Sorting.quickSort(colNames)
-    (df1.select( colNames map col:_*), df2.select( colNames map col:_*))
+    val newDf1 = df1.select( colNames map col:_*)
+    val newDf2 = df2.select( colNames map col:_*)
+    val returnVal = (newDf1, newDf2)
+    assert(newDf1.schema.toString().equals(newDf2.schema.toString()),
+      s"Different schemas for union DFs. \n DF1 schema ${newDf1.schema.toString} \n " +
+        s"DF2 schema ${newDf2.schema.toString()} \n")
+    returnVal
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
