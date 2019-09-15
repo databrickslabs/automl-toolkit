@@ -42,15 +42,25 @@ class DatasetsUnionTransformer(override val uid: String)
   }
 
   private def prepareUnion(df1: DataFrame, df2: DataFrame):  (DataFrame, DataFrame) = {
+    validateUnion(df1, df2)
     val colNames = df1.schema.fieldNames
     Sorting.quickSort(colNames)
     val newDf1 = df1.select( colNames map col:_*)
     val newDf2 = df2.select( colNames map col:_*)
     val returnVal = (newDf1, newDf2)
-    assert(newDf1.schema.toString().equals(newDf2.schema.toString()),
-      s"Different schemas for union DFs. \n DF1 schema ${newDf1.schema.toString} \n " +
-        s"DF2 schema ${newDf2.schema.toString()} \n")
     returnVal
+  }
+
+  private def validateUnion(df1: DataFrame, df2: DataFrame): Unit = {
+    val df1Cols = df1.schema.fieldNames
+    Sorting.quickSort(df1Cols)
+    val df2Cols = df2.schema.fieldNames
+    Sorting.quickSort(df2Cols)
+    val df1SchemaString = df1.select(df1Cols map col:_*).schema.toString()
+    val df2SchemaString = df2.select(df2Cols map col:_*).schema.toString()
+    assert(df1SchemaString.equals(df2SchemaString),
+      s"Different schemas for union DFs. \n DF1 schema $df1SchemaString \n " +
+        s"DF2 schema $df2SchemaString \n")
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
