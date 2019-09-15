@@ -2,6 +2,7 @@ package com.databricks.labs.automl.executor.config
 
 import com.databricks.labs.automl.exploration.structures.FeatureImportanceConfig
 import com.databricks.labs.automl.params._
+import com.databricks.labs.automl.pipeline.PipelineStateCache
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.{read, writePretty}
 import org.json4s.{Formats, NoTypeHints}
@@ -562,6 +563,21 @@ class ConfigurationGenerator(modelFamily: String,
     */
   def setAutoStoppingFlag(value: Boolean): this.type = {
     _instanceConfig.switchConfig.autoStoppingFlag = value
+    this
+  }
+
+  def setPipelineDebugFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.pipelineDebugFlag = value
+    this
+  }
+
+  def pipelineDebugFlagOn(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.pipelineDebugFlag = true
+    this
+  }
+
+  def pipelineDebugFlagOff(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.pipelineDebugFlag = false
     this
   }
 
@@ -1802,6 +1818,11 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  def setTunerOutputDfRepartitionScaleFactor(value: Int): this.type = {
+    _instanceConfig.tunerConfig.tunerOutputDfRepartitionScaleFactor = value
+    this
+  }
+
   /**
     * MLFlow Logging Config
     */
@@ -2075,7 +2096,8 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           cardinalityThreshold =
             config.tunerConfig.tunerKSampleCardinalityThreshold,
           numericRatio = config.tunerConfig.tunerKSampleNumericRatio,
-          numericTarget = config.tunerConfig.tunerKSampleNumericTarget
+          numericTarget = config.tunerConfig.tunerKSampleNumericTarget,
+          outputDfRepartitionScaleFactor = config.tunerConfig.tunerOutputDfRepartitionScaleFactor
         ),
         trainSplitChronologicalColumn =
           config.tunerConfig.tunerTrainSplitChronologicalColumn,
@@ -2135,9 +2157,9 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       ),
       inferenceConfigSaveLocation =
         config.loggingConfig.inferenceConfigSaveLocation,
-      dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor
+      dataReductionFactor = config.featureEngineeringConfig.dataReductionFactor,
+      pipelineDebugFlag = config.switchConfig.pipelineDebugFlag
     )
-
   }
 
   /**
@@ -2380,6 +2402,12 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       .setAutoStoppingFlag(
         config
           .getOrElse("autoStoppingFlag", defaultMap("autoStoppingFlag"))
+          .toString
+          .toBoolean
+      )
+      .setPipelineDebugFlag(
+        config
+          .getOrElse("pipelineDebugFlag", defaultMap("pipelineDebugFlag"))
           .toString
           .toBoolean
       )
@@ -2854,6 +2882,13 @@ object ConfigurationGenerator extends ConfigurationDefaults {
             "tunerKSampleNumericTarget",
             defaultMap("tunerKSampleNumericTarget")
           )
+          .toString
+          .toInt
+      )
+      .setTunerOutputDfRepartitionScaleFactor(
+        config
+          .getOrElse("tunerOutputDfRepartitionScaleFactor",
+            defaultMap("tunerOutputDfRepartitionScaleFactor"))
           .toString
           .toInt
       )

@@ -400,6 +400,7 @@ class MLFlowTracker extends InferenceTools {
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 
+    //TODO(Jas): This needs to be synchronized to make sure two a true runVersion is generated
     val runVersion: Int = totalVersion + 1
 
     val runId = generateMlFlowRun(

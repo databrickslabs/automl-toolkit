@@ -351,6 +351,7 @@ trait ConfigurationDefaults {
     val scaleFlag = scalingFlag(family)
     val dataPrepCachingFlag = true
     val autoStoppingFlag = false
+    val pipelineDebugFlag = false
 
     SwitchConfig(
       naFillFlag,
@@ -361,7 +362,8 @@ trait ConfigurationDefaults {
       oheFlag,
       scaleFlag,
       dataPrepCachingFlag,
-      autoStoppingFlag
+      autoStoppingFlag,
+      pipelineDebugFlag
     )
   }
 
@@ -503,6 +505,7 @@ trait ConfigurationDefaults {
     val tunerInitialGenerationPermutationCount = 10
     val tunerInitialGenerationIndexMixingMode = "linear"
     val tunerInitialGenerationArraySeed = 42L
+    val tunerOutputDfRepartitionScaleFactor = 3
 
     TunerConfig(
       tunerAutoStoppingScore,
@@ -555,7 +558,8 @@ trait ConfigurationDefaults {
       tunerInitialGenerationMode,
       tunerInitialGenerationPermutationCount,
       tunerInitialGenerationIndexMixingMode,
-      tunerInitialGenerationArraySeed
+      tunerInitialGenerationArraySeed,
+      tunerOutputDfRepartitionScaleFactor
     )
   }
 
@@ -633,6 +637,7 @@ trait ConfigurationDefaults {
       "scalingFlag" -> switchDef.scalingFlag,
       "dataPrepCachingFlag" -> switchDef.dataPrepCachingFlag,
       "autoStoppingFlag" -> switchDef.autoStoppingFlag,
+      "pipelineDebugFlag" -> switchDef.pipelineDebugFlag,
       "fillConfigNumericFillStat" -> featDef.numericFillStat,
       "fillConfigCharacterFillStat" -> featDef.characterFillStat,
       "fillConfigModelSelectionDistinctThreshold" -> featDef.modelSelectionDistinctThreshold,
@@ -722,6 +727,7 @@ trait ConfigurationDefaults {
       "tunerInitialGenerationPermutationCount" -> tunerDef.tunerInitialGenerationPermutationCount,
       "tunerInitialGenerationIndexMixingMode" -> tunerDef.tunerInitialGenerationIndexMixingMode,
       "tunerInitialGenerationArraySeed" -> tunerDef.tunerInitialGenerationArraySeed,
+      "tunerOutputDfRepartitionScaleFactor" -> tunerDef.tunerOutputDfRepartitionScaleFactor,
       "mlFlowLoggingFlag" -> logDef.mlFlowLoggingFlag,
       "mlFlowLogArtifactsFlag" -> logDef.mlFlowLogArtifactsFlag,
       "mlFlowTrackingURI" -> logDef.mlFlowTrackingURI,

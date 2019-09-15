@@ -92,7 +92,8 @@ case class SwitchConfig(var naFillFlag: Boolean,
                         var oneHotEncodeFlag: Boolean,
                         var scalingFlag: Boolean,
                         var dataPrepCachingFlag: Boolean,
-                        var autoStoppingFlag: Boolean)
+                        var autoStoppingFlag: Boolean,
+                        var pipelineDebugFlag: Boolean)
 
 case class TunerConfig(var tunerAutoStoppingScore: Double,
                        var tunerParallelism: Int,
@@ -144,7 +145,8 @@ case class TunerConfig(var tunerAutoStoppingScore: Double,
                        var tunerInitialGenerationMode: String,
                        var tunerInitialGenerationPermutationCount: Int,
                        var tunerInitialGenerationIndexMixingMode: String,
-                       var tunerInitialGenerationArraySeed: Long)
+                       var tunerInitialGenerationArraySeed: Long,
+                       var tunerOutputDfRepartitionScaleFactor: Int)
 
 case class AlgorithmConfig(var stringBoundaries: Map[String, List[String]],
                            var numericBoundaries: Map[String, (Double, Double)])
@@ -160,7 +162,7 @@ case class LoggingConfig(var mlFlowLoggingFlag: Boolean,
                          var inferenceConfigSaveLocation: String,
                          var mlFlowCustomRunTags: Map[String, String])
 
-case class InstanceConfig(
+case class InstanceConfig (
   var modelFamily: String,
   var predictionType: String,
   var genericConfig: GenericConfig,

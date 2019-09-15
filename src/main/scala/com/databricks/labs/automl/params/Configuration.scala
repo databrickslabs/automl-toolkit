@@ -1,5 +1,7 @@
 package com.databricks.labs.automl.params
 
+import com.databricks.labs.automl.pipeline.PipelineStateCache
+
 case class MainConfig(modelFamily: String,
                       labelCol: String,
                       featuresCol: String,
@@ -31,7 +33,9 @@ case class MainConfig(modelFamily: String,
                       mlFlowLogArtifactsFlag: Boolean,
                       mlFlowConfig: MLFlowConfig,
                       inferenceConfigSaveLocation: String,
-                      dataReductionFactor: Double)
+                      dataReductionFactor: Double,
+                      pipelineDebugFlag: Boolean,
+                      pipelineId: String = PipelineStateCache.generatePipelineId())
 
 case class DataPrepConfig(naFillFlag: Boolean,
                           varianceFilterFlag: Boolean,
@@ -101,7 +105,8 @@ case class KSampleConfig(syntheticCol: String,
                          labelBalanceMode: String,
                          cardinalityThreshold: Int,
                          numericRatio: Double,
-                         numericTarget: Int)
+                         numericTarget: Int,
+                         outputDfRepartitionScaleFactor: Int)
 
 case class GeneticConfig(parallelism: Int,
                          kFold: Int,

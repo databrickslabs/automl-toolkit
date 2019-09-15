@@ -1,13 +1,13 @@
 package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.AutomationRunner
-import com.databricks.labs.automl.executor.config.{
-  ConfigurationGenerator,
-  InstanceConfig
-}
+import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.params._
+import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext, PipelineStateCache}
 import com.databricks.labs.automl.tracking.MLFlowReportStructure
 import com.databricks.labs.automl.utils.SparkSessionWrapper
+import org.apache.spark.ml.mleap.SparkUtil
+import org.apache.spark.ml.{Model, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -67,9 +67,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     * @param outputArray output array of each modeling family's run
     * @return condensed report structure for all of the runs in a similar API return format.
     */
-  private def unifyFamilyOutput(
-    outputArray: Array[FamilyOutput]
-  ): FamilyFinalOutput = {
+  private def unifyFamilyOutput(outputArray: Array[FamilyOutput]): FamilyFinalOutput = {
 
     import spark.implicits._
 
@@ -82,10 +80,13 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
     outputArray.map { x =>
       x.modelReport.map { y =>
+
+        val model = y.model
+
         modelReport += GroupedModelReturn(
           modelFamily = x.modelType,
           hyperParams = y.hyperParams,
-          model = y.model,
+          model = model,
           score = y.score,
           metrics = y.metrics,
           generation = y.generation
@@ -104,14 +105,35 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
       generationReportDataFrame = generationReportDataFrame,
       mlFlowReport = mlFlowOutput.toArray
     )
+  }
 
+  def getNewFamilyOutPut(output: TunerOutput,
+                         instanceConfig: InstanceConfig,
+                         featureEngineeringOutput: FeatureEngineeringOutput = null,
+                         mainConfig: MainConfig = null): FamilyOutput = {
+    new FamilyOutput(instanceConfig.modelFamily, output.mlFlowOutput) {
+      override def modelReport: Array[GenericModelReturn] = output.modelReport
+
+      override def generationReport: Array[GenerationalReport] =
+        output.generationReport
+
+      override def modelReportDataFrame: DataFrame =
+        augmentDF(instanceConfig.modelFamily, output.modelReportDataFrame)
+
+      override def generationReportDataFrame: DataFrame =
+        augmentDF(instanceConfig.modelFamily, output.generationReportDataFrame)
+    }
   }
 
   /**
-    * Main method for executing the family runs as configured.
     *
+    * @deprecated Use [[executeWithPipeline()]] instead.
+    *             Start using executeWithPipeline to leverage Pipeline semantics
+    *
+    *             Main method for executing the family runs as configured.
     * @return FamilyOutput object that reports the results of each of the family modeling runs.
     */
+  @Deprecated
   def execute(): FamilyFinalOutput = {
 
     val outputBuffer = ArrayBuffer[FamilyOutput]()
@@ -119,7 +141,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
 
-      val runner: AutomationRunner = new AutomationRunner(data)
+      val runner = new AutomationRunner(data)
         .setMainConfig(mainConfiguration)
 
       val preppedData = runner.prepData()
@@ -128,21 +150,66 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
       val output = runner.executeTuning(preppedDataOverride)
 
-      outputBuffer += new FamilyOutput(x.modelFamily, output.mlFlowOutput) {
-        override def modelReport: Array[GenericModelReturn] = output.modelReport
-        override def generationReport: Array[GenerationalReport] =
-          output.generationReport
-        override def modelReportDataFrame: DataFrame =
-          augmentDF(x.modelFamily, output.modelReportDataFrame)
-        override def generationReportDataFrame: DataFrame =
-          augmentDF(x.modelFamily, output.generationReportDataFrame)
-      }
+      outputBuffer += getNewFamilyOutPut(output, x)
     }
-
     unifyFamilyOutput(outputBuffer.toArray)
 
   }
 
+
+  /**
+    *
+    * @return grouped results same as execute [[FamilyFinalOutputWithPipeline]] but
+    *         also contains a map of model family and best pipeline model based on
+    *         optimization strategy settings
+    */
+  def executeWithPipeline(): FamilyFinalOutputWithPipeline = {
+
+    val outputBuffer = ArrayBuffer[FamilyOutput]()
+
+    val pipelineConfigMap = scala.collection.mutable.Map[String, (FeatureEngineeringOutput, MainConfig)]()
+    configs.foreach { x =>
+      val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
+      val runner = new AutomationRunner(data).setMainConfig(mainConfiguration)
+      //Get feature engineering pipeline and transform it to get feature engineered dataset
+      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration)
+      val featureEngineeredDf = featureEngOutput.transformedForTrainingDf
+
+      val preppedDataOverride = DataGeneration(
+        featureEngineeredDf,
+        featureEngineeredDf.columns,
+        featureEngOutput.decidedModel
+      ).copy(modelType = x.predictionType)
+
+      val output = runner.executeTuning(preppedDataOverride)
+
+      outputBuffer += getNewFamilyOutPut(output, x, featureEngOutput, mainConfiguration)
+      pipelineConfigMap += x.modelFamily -> (featureEngOutput, mainConfiguration)
+    }
+    withPipelineInferenceModel(
+      unifyFamilyOutput(outputBuffer.toArray),
+      configs,
+      pipelineConfigMap.toMap
+    )
+  }
+
+  def withPipelineInferenceModel(familyFinalOutput: FamilyFinalOutput,
+                                 configs: Array[InstanceConfig],
+                                 pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)]):
+
+  FamilyFinalOutputWithPipeline = {
+    val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
+    configs.foreach(config => {
+      val modelReport = familyFinalOutput.modelReport.filter(item => item.modelFamily.equals(config.modelFamily))
+      pipelineModels += config.modelFamily -> FeatureEngineeringPipelineContext
+        .buildFullPredictPipeline(
+          pipelineConfigs(config.modelFamily)._1,
+          modelReport,
+          pipelineConfigs(config.modelFamily)._2,
+          data)
+    })
+    FamilyFinalOutputWithPipeline(familyFinalOutput, pipelineModels.toMap)
+  }
 }
 
 /**

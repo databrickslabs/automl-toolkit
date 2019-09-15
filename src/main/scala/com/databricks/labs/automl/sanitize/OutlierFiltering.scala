@@ -175,8 +175,10 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
 
           mutatedDF = filterLow(mutatedDF, x, lowerBoundary)
           mutatedDF = filterHigh(mutatedDF, x, upperBoundary)
+          //TODO (Jas): Shouldn't this be a union all. I see an issue with outlierDF where filter high returns non-empty DF, but is then
+          // overwritten by an empty DF resulting from filterLow
           outlierDF = filterHigh(outlierDF, x, lowerBoundary)
-          outlierDF = filterLow(outlierDF, x, upperBoundary)
+          outlierDF = filterLow(outlierDF, x, upperBoundary).union(outlierDF)
       }
     }
     (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*),

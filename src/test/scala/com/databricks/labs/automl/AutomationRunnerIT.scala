@@ -21,6 +21,7 @@ class AutomationRunnerIT extends AbstractUnitSpec {
 
   it should "return confusion report for XgBoost in batch evolution strategy" in {
     val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
+    adultDfwithLabel.show(1000)
     val fullConfig = AutomationUnitTestsUtil.getXgBoostConfig(adultDfwithLabel, "batch")
     val confusionOutput = fullConfig.runWithConfusionReport()
     AutomationUnitTestsUtil.assertConfusionOutput(confusionOutput)

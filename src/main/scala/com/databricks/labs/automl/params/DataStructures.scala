@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.params
 
 import com.databricks.labs.automl.tracking.MLFlowReportStructure
+import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.LinearRegressionModel
 import org.apache.spark.sql.DataFrame
@@ -225,6 +226,9 @@ case class FamilyFinalOutput(modelReport: Array[GroupedModelReturn],
                              modelReportDataFrame: DataFrame,
                              generationReportDataFrame: DataFrame,
                              mlFlowReport: Array[MLFlowReportStructure])
+
+case class FamilyFinalOutputWithPipeline(familyFinalOutput: FamilyFinalOutput,
+                                         bestPipelineModel: Map[String, PipelineModel])
 
 sealed trait ModelType[A, B]
 

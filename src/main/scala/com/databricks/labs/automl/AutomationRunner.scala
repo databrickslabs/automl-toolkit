@@ -1744,7 +1744,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
               s"\n ${e.getStackTraceString}"
           )
           logger.log(Level.FATAL, e.getStackTraceString)
-          generateDummyMLFlowReturn("error")
+          generateDummyMLFlowReturn("error").get
       }
 
       implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
@@ -1753,7 +1753,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       logger.log(Level.INFO, pretty)
       mlFlowResult
     } else {
-      generateDummyMLFlowReturn("undefined")
+      generateDummyMLFlowReturn("undefined").get
     }
 
     val generationalData = extractGenerationalScores(
@@ -1781,20 +1781,24 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  private def generateDummyMLFlowReturn(msg: String): MLFlowReportStructure = {
-    val genTracker = new MLFlowTracker()
-      .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
-      .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
-      .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
-      .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
-      .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
-      .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
-    val dummyLog = MLFlowReturn(
-      genTracker.createHostedMlFlowClient(),
-      msg,
-      Array((msg, 0.0))
-    )
-    MLFlowReportStructure(dummyLog, dummyLog)
+  private def generateDummyMLFlowReturn(msg: String): Option[MLFlowReportStructure] = {
+    try {
+      val genTracker = new MLFlowTracker()
+        .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
+        .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
+        .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
+        .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
+        .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
+        .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
+      val dummyLog = MLFlowReturn(
+        genTracker.createHostedMlFlowClient(),
+        msg,
+        Array((msg, 0.0))
+      )
+      Some(MLFlowReportStructure(dummyLog, dummyLog))
+    } catch {
+      case ex: Exception => Some(MLFlowReportStructure(null, null))
+    }
   }
 
   protected[automl] def predictFromBestModel(
@@ -2055,7 +2059,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   def runWithConfusionReport(): ConfusionOutput = {
     val predictionPayload = runWithPrediction()
-
     val confusionData = predictionPayload.dataWithPredictions
       .select("prediction", _mainConfig.labelCol)
       .groupBy("prediction", _mainConfig.labelCol)

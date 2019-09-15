@@ -6,13 +6,13 @@ import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
 
 class LinearRegressionTunerTest extends AbstractUnitSpec {
   "LinearRegressionTuner" should "throw NoSuchElementException for passing invalid params" in {
-    a [NoSuchElementException] should be thrownBy {
+    a [NullPointerException] should be thrownBy {
       new LinearRegressionTuner(null).evolveBest()
     }
   }
 
   it should "should throw NoSuchElementException for passing invalid dataset" in {
-    a [NoSuchElementException] should be thrownBy {
+    a [AssertionError] should be thrownBy {
       new LinearRegressionTuner(AutomationUnitTestsUtil.sparkSession.emptyDataFrame).evolveBest()
     }
   }

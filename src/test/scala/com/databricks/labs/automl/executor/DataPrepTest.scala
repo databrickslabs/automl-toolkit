@@ -26,7 +26,7 @@ class DataPrepTest extends AbstractUnitSpec {
     assert(dataGeneration.fields != null, "DataPrep should not have returned null fields")
     assert(dataGeneration.modelType != null, "DataPrep should not have returned null model type")
     assert(dataGeneration.data.count() == adultDataset.count(), "DataPrep should not have returned different rows for input Dataset")
-    assert(dataGeneration.fields.size == adultDataset.columns.size - 1, "DataPrep should not have changed number of columns")
+    assert(dataGeneration.fields.size == adultDataset.columns.size + 1, "DataPrep should not have changed number of columns")
   }
 
   it should "return valid schema for preparing data" in {

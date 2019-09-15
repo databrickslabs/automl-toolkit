@@ -1,24 +1,14 @@
 package com.databricks.labs.automl.feature
 
-import com.databricks.labs.automl.feature.structures.{
-  CentroidVectors,
-  RowGenerationConfig,
-  RowMapping,
-  SchemaDefinitions,
-  SchemaMapping,
-  StructMapping
-}
+import java.util.{Calendar, Date}
+
+import com.databricks.labs.automl.feature.structures.{CentroidVectors, RowGenerationConfig, RowMapping, SchemaDefinitions, SchemaMapping, StructMapping}
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
-import org.apache.spark.ml.feature.{
-  MaxAbsScaler,
-  MinHashLSH,
-  MinHashLSHModel,
-  VectorAssembler
-}
+import org.apache.spark.ml.feature.{MaxAbsScaler, MinHashLSH, MinHashLSHModel, VectorAssembler}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 
 import scala.collection.mutable.ListBuffer
 
@@ -669,8 +659,39 @@ class KSampling(df: DataFrame) extends KSamplingBase {
       .setInputCols(featureFields.map(_.fieldName))
       .setOutputCol(conf.featuresCol)
 
-    assembler.transform(dataFrame)
+    assembler.transform(dataFrame.drop(conf.featuresCol))
+  }
 
+  case class MapTypeVal(colName: String, colValue: Column)
+
+  private def addDummyDataForIgnoredColumns(dataframe: DataFrame,
+                                            fieldsToIgnore: Array[StructField]): DataFrame = {
+    var newDataFrame: DataFrame = dataframe
+
+    val dummyDate = new Date()
+    val dummyTime = Calendar.getInstance().getTime
+
+    fieldsToIgnore.map(item => item.dataType match {
+        case StringType => MapTypeVal(item.name, lit("DUMMY"))
+        case IntegerType => MapTypeVal(item.name, lit(0))
+        case DoubleType => MapTypeVal(item.name, lit(0.0))
+        case FloatType => MapTypeVal(item.name, lit(0.0f))
+        case LongType => MapTypeVal(item.name, lit(0L))
+        case ByteType => MapTypeVal(item.name, lit("DUMMY".getBytes))
+        case BooleanType => MapTypeVal(item.name, lit(false))
+        case BinaryType => MapTypeVal(item.name, lit(0))
+        case DateType => MapTypeVal(item.name, lit(dummyDate))
+        case TimestampType => MapTypeVal(item.name, lit(dummyTime))
+        case _ =>
+          throw new UnsupportedOperationException(
+            s"Field '${item.name}' is of type ${item.dataType}, which is not supported."
+          )
+      }
+    ).foreach{
+      m: MapTypeVal => newDataFrame = newDataFrame.withColumn(m.colName, m.colValue)
+    }
+
+    newDataFrame
   }
 
   /**
@@ -687,12 +708,12 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     )
 
     // Get the schema information
+    val ignoredFieldsTypes = df.schema.fields.filter(field => conf.fieldsToIgnore.contains(field.name))
     val origSchema = df.schema.names
-    val startingSchema = df.schema
     val schemaMappings =
       generateSchemaInformationPayload(df.schema, collectedFieldsToIgnore)
-    val doublesSchema =
-      generateDoublesSchema(df, collectedFieldsToIgnore.toList)
+
+    val doublesSchema = generateDoublesSchema(df, collectedFieldsToIgnore.toList)
 
     // Scale the feature vector
     val scaled = scaleFeatureVector(df)
@@ -706,7 +727,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     // Transform the scaled data with the KMeans model
     val kModelData = kModel.transform(scaled)
 
-    labelValues
+    val returnfinalDf = labelValues
       .map { x =>
         val vecs = acquireNearestVectorToCentroids(
           scaled.filter(col(conf.labelCol) === x.labelValue),
@@ -738,8 +759,11 @@ class KSampling(df: DataFrame) extends KSamplingBase {
       }
       .reduce(_.union(_))
       .toDF()
+
+    addDummyDataForIgnoredColumns(returnfinalDf, ignoredFieldsTypes)
       .select(origSchema map col: _*)
       .withColumn(conf.syntheticCol, lit(true))
+
 
   }
 

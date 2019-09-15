@@ -41,7 +41,7 @@ class AutomationRunnerTest extends AbstractUnitSpec {
   }
 
   it should "throw NullPointerException with empty input dataset with schema" in {
-    a [NullPointerException] should be thrownBy {
+    a [IllegalArgumentException] should be thrownBy {
       val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
       new AutomationRunner(AutomationUnitTestsUtil.sparkSession.createDataFrame(
               AutomationUnitTestsUtil.sparkSession.sparkContext.emptyRDD[Row],

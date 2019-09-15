@@ -4,7 +4,7 @@
     <groupId>com.databricks</groupId>
     <artifactId>automatedml</artifactId>
     <packaging>jar</packaging>
-    <version>0.5.3-SNAPSHOT</version>
+    <version>2_11-0.6.0</version>
 
     <properties>
         <scala.version>2.11.12</scala.version>
@@ -86,11 +86,38 @@
             <version>3.0.6</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.databricks</groupId>
+            <artifactId>dbutils-api_2.11</artifactId>
+            <version>0.0.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ml.combust.mleap</groupId>
+            <artifactId>mleap-runtime_2.11</artifactId>
+            <version>0.14.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ml.combust.mleap</groupId>
+            <artifactId>mleap-spark_2.11</artifactId>
+            <version>0.14.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
-
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
@@ -166,6 +193,37 @@
                     <forkCount>8</forkCount>
                     <reuseForks>true</reuseForks>
                     <argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <artifactItems>
+                        <artifactItem>
+                            <groupId>com.databricks</groupId>
+                            <artifactId>automatedml</artifactId>
+                            <version>${version}</version>
+                            <type>jar</type>
+                            <overWrite>true</overWrite>
+                            <outputDirectory>${project.basedir}/bin</outputDirectory>
+                        </artifactItem>
+                    </artifactItems>
+                    <outputDirectory>${project.basedir}/bin</outputDirectory>
+                    <overWriteReleases>true</overWriteReleases>
+                    <overWriteSnapshots>true</overWriteSnapshots>
                 </configuration>
             </plugin>
 
