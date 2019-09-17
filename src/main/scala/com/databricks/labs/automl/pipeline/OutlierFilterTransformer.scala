@@ -65,9 +65,6 @@ class OutlierFilterTransformer(override val uid: String)
 
   def getContinuousDataThreshold: Int = $(continuousDataThreshold)
 
-  //TODO (Jas): Is there anything for this stage that needs to be applied to the inference step ?
-  // For example, the columns removed in [[com.databricks.labs.automl.pipeline.CovarianceFilterTransformer]]
-  // will be removed for inference dataset as well
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if(dataset.columns.contains(getLabelColumn)) {
       // Output has no feature vector
@@ -82,16 +79,25 @@ class OutlierFilterTransformer(override val uid: String)
 
       val (outlierCleanedData, outlierRemovedData, filteringMap) =
         outlierFiltering.filterContinuousOutliers(Array(getAutomlInternalId) ++ getFieldsToIgnore, getFieldsToIgnore)
-
       val outlierRemovalInfo =
         s"Removed outlier data.  Total rows removed = ${outlierRemovedData.count()}"
       logger.log(Level.INFO, outlierRemovalInfo)
       println(outlierRemovalInfo)
       //setInferenceOutlierMap(filteringMap)
+      // Validate mutated Dfs
+      validateMutatedf(dataset.toDF(), outlierCleanedData, outlierRemovedData)
       outlierCleanedData
     } else {
       dataset.toDF()
     }
+  }
+
+  private def validateMutatedf(originalDf: DataFrame,
+                               mutatedDf: DataFrame,
+                               outlierDf: DataFrame): Unit = {
+    assert(
+      originalDf.count() == mutatedDf.count() + outlierDf.count(),
+      "Original Df count doesn't match the sum of outlier filter output data and removed data")
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {

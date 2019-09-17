@@ -12,6 +12,7 @@ import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Model, Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
 import com.databricks.labs.automl.pipeline.PipelineVars._
+import org.apache.log4j.Logger
 
 /**
   * @author Jas Bali
@@ -28,6 +29,8 @@ final case class FeatureEngineeringOutput(pipelineModel: PipelineModel,
                                           transformedForTrainingDf: DataFrame)
 
 object FeatureEngineeringPipelineContext {
+
+  @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 
   def generatePipelineModel(originalInputDataset: DataFrame,
                             mainConfig: MainConfig): FeatureEngineeringOutput = {
@@ -147,11 +150,23 @@ object FeatureEngineeringPipelineContext {
       mainConfiguration)
     val pipelineModelWithLabelSiDf = pipelineModelWithLabelSi.transform(originalDf)
 
-    addUserReturnViewStage(
+    val finalPipelineModel = addUserReturnViewStage(
       pipelineModelWithLabelSi,
       mainConfiguration,
       pipelineModelWithLabelSiDf,
       featureEngOutput.originalDfViewName)
+
+    // Removes train-only stages, if present, such as OutlierTransformer and SyntheticDataTransformer
+    lintPipelineStages(finalPipelineModel)
+  }
+
+  private def lintPipelineStages(pipelineModel: PipelineModel): PipelineModel = {
+    val nonTrainingStages = pipelineModel.stages.filterNot(_.isInstanceOf[IsTrainingStage])
+    logger.debug(
+      s"""Removed following training stages from inference-only pipeline ${nonTrainingStages.map(_.uid).mkString(", ")}""")
+    SparkUtil.createPipelineModel(
+      Identifiable.randomUID("final_linted_infer_pipeline"),
+      nonTrainingStages)
   }
 
   private def getBestModel(runData: Array[GroupedModelReturn],
