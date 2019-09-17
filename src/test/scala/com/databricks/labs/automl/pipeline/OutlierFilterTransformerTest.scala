@@ -28,6 +28,7 @@ class OutlierFilterTransformerTest extends AbstractUnitSpec {
         .setContinuousDataThreshold(50)
         .setParallelism(10)
         .setFieldsToIgnore(Array.empty)
+        .setDebugEnabled(true)
 
     val outlierDf = PipelineTestUtils
       .saveAndLoadPipeline(stages.toArray, testVars.df, "outlier-filter-pipeline")
