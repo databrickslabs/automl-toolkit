@@ -35,7 +35,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
   private var _continuousDataThreshold: Int = 50
   private var _parallelism: Int = 20
 
-  final private val _filterBoundaryAllowances: Array[String] = Array("lower", "upper", "both")
+  final private val _filterBoundaryAllowances: Array[String] = Array(LOWER, UPPER, BOTH)
   final private val _dfSchema = df.schema.fieldNames
 
   def setLabelCol(value: String): this.type = {
@@ -218,12 +218,12 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
 
     manualFilter.foreach{x =>
       _filterBounds match {
-        case "lower" =>
+        case LOWER =>
           inferenceOutlierMap.put(x.field, (x.threshold, LOWER))
           val outlierDfs = filterLow(mutatedDF, x.field, x.threshold)
           mutatedDF = outlierDfs.mutatedDf
           outlierDF = outlierDfs.outlierDf
-        case "upper" =>
+        case UPPER =>
           inferenceOutlierMap.put(x.field, (x.threshold, UPPER))
           val outlierDfs = filterHigh(mutatedDF, x.field, x.threshold)
           mutatedDF = outlierDfs.mutatedDf
@@ -233,7 +233,7 @@ class OutlierFiltering(df: DataFrame) extends SparkSessionWrapper with DataValid
             outlierDfs.outlierDf
           }
         case _ => throw new UnsupportedOperationException(
-          s"Filter mode '${_filterBounds} is not supported.  Please use either 'lower' or 'upper'")
+          s"Filter mode '${_filterBounds} is not supported.  Please use either '$LOWER' or '$UPPER'")
       }
     }
     (mutatedDF.select(totalFields.distinct map col: _*), outlierDF.select(totalFields.distinct map col: _*),
