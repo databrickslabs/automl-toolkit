@@ -93,6 +93,7 @@ class WorkspaceDirectoryValidation(apiURL: String,
     val statusReturn =
       statusCall.lineStream_!(ProcessLogger(statusBuffer append _)).toString()
 
+    //TODO: Critical - handle the possible bad return here!!!!!
     val statusAnswer = statusReturn.split("\"")(1)
 
     statusAnswer match {
