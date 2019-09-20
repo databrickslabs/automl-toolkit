@@ -11,7 +11,6 @@ import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
-import scala.math._
 
 /**
   * Provides log search space results based on HyperParameter Vector similarity to prevent too-similar post-run
@@ -44,9 +43,9 @@ class EuclideanSpaceSearch(df: DataFrame,
       .map(_ / outputCount.toDouble)
       .toArray
       .map(x => {
-        val b = log(1.0 / 1E-2) / (1.0 - 1E-2)
-        val a = 1.0 / exp(b)
-        a * exp(b * x)
+        val b = math.log(1.0 / 1E-2) / (1.0 - 1E-2)
+        val a = 1.0 / math.exp(b)
+        a * math.exp(b * x)
       })
   }
 

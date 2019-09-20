@@ -13,6 +13,9 @@ import com.databricks.labs.automl.params.{
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
+import org.json4s.{Formats, _}
+import org.json4s.jackson.Serialization
+import org.json4s.jackson.Serialization.writePretty
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -260,4 +263,18 @@ trait AutomationTools extends SparkSessionWrapper {
 
   }
 
+  /**
+    * Provide a human-readable report into stdout and in the logs that show the configuration for a model run
+    * with the key -> value relationship shown as json
+    * @param config AnyRef -> a defined case class
+    * @return String in the form of pretty print syntax
+    */
+  def prettyPrintConfig(config: AnyRef): String = {
+
+    implicit val formats: Formats =
+      Serialization.formats(hints = FullTypeHints(List(config.getClass)))
+    writePretty(config)
+      .replaceAll(": \\{", "\\{")
+      .replaceAll(":", "->")
+  }
 }
