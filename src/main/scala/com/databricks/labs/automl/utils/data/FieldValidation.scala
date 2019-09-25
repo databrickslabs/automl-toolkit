@@ -137,7 +137,7 @@ class FieldValidation(data: DataFrame) {
       .map { x =>
         val cardinality =
           calculateCardinality(data, x, cardinalityType, precision).rdd
-            .map(r => r.getLong(0))
+            .map(r => r.getAs[Long](0))
             .take(1)(0)
         cardinality match {
           case y if y <= cardinalityLimit => x

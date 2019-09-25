@@ -181,7 +181,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _numericTarget: Int = _geneticTunerDefaults.kSampleConfig.numericTarget
 
-  var _outputDfRepartitionScaleFactor: Int = _geneticTunerDefaults.kSampleConfig.outputDfRepartitionScaleFactor
+  var _outputDfRepartitionScaleFactor: Int =
+    _geneticTunerDefaults.kSampleConfig.outputDfRepartitionScaleFactor
 
   var _trainSplitChronologicalColumn: String =
     _geneticTunerDefaults.trainSplitChronologicalColumn
@@ -1433,7 +1434,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setFirstGenerationConfig(): this.type = {
+  private def setFirstGenerationConfig(): this.type = {
     _firstGenerationConfig = FirstGenerationConfig(
       permutationCount = _firstGenerationPermutationCount,
       indexMixingMode = _firstGenerationIndexMixingMode,
@@ -1843,8 +1844,206 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  private def setFillConfig(config: FillConfig): this.type = {
+
+    _fillConfig = config
+    _numericFillStat = config.numericFillStat
+    _characterFillStat = config.characterFillStat
+    _modelSelectionDistinctThreshold = config.modelSelectionDistinctThreshold
+    _cardinalitySwitchFlag = config.cardinalitySwitch
+    _cardinalityType = config.cardinalityType
+    _cardinalityLimit = config.cardinalityLimit
+    _cardinalityPrecision = config.cardinalityPrecision
+    _cardinalityCheckMode = config.cardinalityCheckMode
+    _naFillFilterPrecision = config.filterPrecision
+    _categoricalNAFillMap = config.categoricalNAFillMap
+    _numericNAFillMap = config.numericNAFillMap
+    _characterNABlanketFillValue = config.characterNABlanketFillValue
+    _numericNABlanketFillValue = config.numericNABlanketFillValue
+    _naFillMode = config.naFillMode
+
+    this
+  }
+
+  private def setOutlierConfig(config: OutlierConfig): this.type = {
+
+    _outlierConfig = config
+    _filterBounds = config.filterBounds
+    _lowerFilterNTile = config.lowerFilterNTile
+    _upperFilterNTile = config.upperFilterNTile
+    _filterPrecision = config.filterPrecision
+    _continuousDataThreshold = config.continuousDataThreshold
+    _fieldsToIgnore = config.fieldsToIgnore
+
+    this
+  }
+
+  private def setPearsonConfig(config: PearsonConfig): this.type = {
+
+    _pearsonConfig = config
+    _pearsonFilterStatistic = config.filterStatistic
+    _pearsonFilterDirection = config.filterDirection
+    _pearsonFilterManualValue = config.filterManualValue
+    _pearsonFilterMode = config.filterMode
+    _pearsonAutoFilterNTile = config.autoFilterNTile
+
+    this
+  }
+
+  private def setCovarianceConfig(config: CovarianceConfig): this.type = {
+    _covarianceConfig = config
+    _correlationCutoffLow = config.correlationCutoffLow
+    _correlationCutoffHigh = config.correlationCutoffHigh
+
+    this
+  }
+
+  private def setScalerConfig(config: ScalingConfig): this.type = {
+
+    _scalingConfig = config
+    _scalerType = config.scalerType
+    _scalerMin = config.scalerMin
+    _scalerMax = config.scalerMax
+    _standardScalerMeanFlag = config.standardScalerMeanFlag
+    _standardScalerStdDevFlag = config.standardScalerStdDevFlag
+    _pNorm = config.pNorm
+
+    this
+  }
+
+  private def setKSampleConfig(config: KSampleConfig): this.type = {
+
+    _kSampleConfig = config
+    _syntheticCol = config.syntheticCol
+    _kGroups = config.kGroups
+    _kMeansMaxIter = config.kMeansMaxIter
+    _kMeansTolerance = config.kMeansTolerance
+    _kMeansDistanceMeasurement = config.kMeansDistanceMeasurement
+    _kMeansSeed = config.kMeansSeed
+    _kMeansPredictionCol = config.kMeansPredictionCol
+    _lshHashTables = config.lshHashTables
+    _lshSeed = config.lshSeed
+    _lshOutputCol = config.lshOutputCol
+    _quorumCount = config.quorumCount
+    _minimumVectorCountToMutate = config.minimumVectorCountToMutate
+    _vectorMutationMethod = config.vectorMutationMethod
+    _mutationMode = config.mutationMode
+    _mutationValue = config.mutationValue
+    _labelBalanceMode = config.labelBalanceMode
+    _cardinalityThreshold = config.cardinalityThreshold
+    _numericRatio = config.numericRatio
+    _numericTarget = config.numericTarget
+    _outputDfRepartitionScaleFactor = config.outputDfRepartitionScaleFactor
+
+    this
+  }
+
+  private def setFirstGenerationConfig(
+    config: FirstGenerationConfig
+  ): this.type = {
+
+    _firstGenerationConfig = config
+    _firstGenerationPermutationCount = config.permutationCount
+    _firstGenerationIndexMixingMode = config.indexMixingMode
+    _firstGenerationArraySeed = config.arraySeed
+
+    this
+  }
+
+  private def setGeneticConfig(config: GeneticConfig): this.type = {
+
+    _geneticConfig = config
+    _parallelism = config.parallelism
+    _kFold = config.kFold
+    _trainPortion = config.trainPortion
+    _trainSplitMethod = config.trainSplitMethod
+    setKSampleConfig(config.kSampleConfig)
+    _trainSplitChronologicalColumn = config.trainSplitChronologicalColumn
+    _trainSplitChronologicalRandomPercentage =
+      config.trainSplitChronologicalRandomPercentage
+    _seed = config.seed
+    _firstGenerationGenePool = config.firstGenerationGenePool
+    _numberOfGenerations = config.numberOfGenerations
+    _numberOfParentsToRetain = config.numberOfParentsToRetain
+    _numberOfMutationsPerGeneration = config.numberOfMutationsPerGeneration
+    _geneticMixing = config.geneticMixing
+    _generationalMutationStrategy = config.generationalMutationStrategy
+    _fixedMutationValue = config.fixedMutationValue
+    _mutationMagnitudeMode = config.mutationMagnitudeMode
+    _evolutionStrategy = config.evolutionStrategy
+    _continuousEvolutionMaxIterations = config.continuousEvolutionMaxIterations
+    _continuousEvolutionStoppingScore = config.continuousEvolutionStoppingScore
+    _continuousEvolutionParallelism = config.continuousEvolutionParallelism
+    _continuousEvolutionMutationAggressiveness =
+      config.continuousEvolutionMutationAggressiveness
+    _continuousEvolutionGeneticMixing = config.continuousEvolutionGeneticMixing
+    _continuousEvolutionRollingImprovementCount =
+      config.continuousEvolutionRollingImprovementCount
+    _modelSeedMap = config.modelSeed
+    _hyperSpaceInference = config.hyperSpaceInference
+    _hyperSpaceInferenceCount = config.hyperSpaceInferenceCount
+    _hyperSpaceModelType = config.hyperSpaceModelType
+    _hyperSpaceModelCount = config.hyperSpaceModelCount
+    _firstGenerationMode = config.initialGenerationMode
+    setFirstGenerationConfig(config.initialGenerationConfig)
+
+    this
+  }
+
+  private def resetMlFlowConfig(config: MLFlowConfig): this.type = {
+
+    _mlFlowConfig = config
+    _mlFlowTrackingURI = config.mlFlowTrackingURI
+    _mlFlowExperimentName = config.mlFlowExperimentName
+    _mlFlowAPIToken = config.mlFlowAPIToken
+    _mlFlowModelSaveDirectory = config.mlFlowModelSaveDirectory
+    _mlFlowLoggingMode = config.mlFlowLoggingMode
+    _mlFlowBestSuffix = config.mlFlowBestSuffix
+    _mlFlowCustomRunTags = config.mlFlowCustomRunTags
+
+    this
+  }
+
   def setMainConfig(value: MainConfig): this.type = {
     _mainConfig = value
+
+    /**
+      * Reset all of the local var's so that setters can be used in a chained manner without reverting to defaults.
+      */
+    _modelingFamily = value.modelFamily
+    _labelCol = value.labelCol
+    _featuresCol = value.featuresCol
+    _naFillFlag = value.naFillFlag
+    _varianceFilterFlag = value.varianceFilterFlag
+    _outlierFilterFlag = value.outlierFilterFlag
+    _pearsonFilterFlag = value.pearsonFilteringFlag
+    _covarianceFilterFlag = value.covarianceFilteringFlag
+    _oneHotEncodeFlag = value.oneHotEncodeFlag
+    _scalingFlag = value.scalingFlag
+    _dataPrepCachingFlag = value.dataPrepCachingFlag
+    _autoStoppingFlag = value.autoStoppingFlag
+    _autoStoppingScore = value.autoStoppingScore
+    _featureImportanceCutoffType = value.featureImportanceCutoffType
+    _featureImportanceCutoffValue = value.featureImportanceCutoffValue
+    _dateTimeConversionType = value.dateTimeConversionType
+    _fieldsToIgnoreInVector = value.fieldsToIgnoreInVector
+    _numericBoundaries = value.numericBoundaries
+    _stringBoundaries = value.stringBoundaries
+    _scoringMetric = value.scoringMetric
+    _scoringOptimizationStrategy = value.scoringOptimizationStrategy
+    setFillConfig(value.fillConfig)
+    setOutlierConfig(value.outlierConfig)
+    setPearsonConfig(value.pearsonConfig)
+    setCovarianceConfig(value.covarianceConfig)
+    setScalerConfig(value.scalingConfig)
+    setGeneticConfig(value.geneticConfig)
+    _mlFlowLoggingFlag = value.mlFlowLoggingFlag
+    _mlFlowArtifactsFlag = value.mlFlowLogArtifactsFlag
+    resetMlFlowConfig(value.mlFlowConfig)
+    _inferenceConfigSaveLocation = value.inferenceConfigSaveLocation
+    _dataReductionFactor = value.dataReductionFactor
+    _pipelineDebugFlag = value.pipelineDebugFlag
+
     this
   }
 
