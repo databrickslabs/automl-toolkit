@@ -101,13 +101,16 @@ class PostModelingOptimization
   }
 
   private def euclideanRestrict(df: DataFrame,
-                                topPredictions: Int): DataFrame = {
+                                topPredictions: Int,
+                                additionalFields: Array[String] =
+                                  Array[String]()): DataFrame = {
 
     EuclideanSpaceSearch(
       df,
       _numericBoundaries.keys.toArray,
       _stringBoundaries.keys.toArray,
-      topPredictions
+      topPredictions,
+      additionalFields
     )
 
   }
@@ -364,7 +367,11 @@ class PostModelingOptimization
       .limit(topPredictions)
 
     convertLinearRegressionResultToConfig(
-      euclideanRestrict(restrictedData, topPredictions)
+      euclideanRestrict(
+        restrictedData,
+        topPredictions,
+        Array("fitIntercept", "standardization")
+      )
     )
   }
 
@@ -429,7 +436,11 @@ class PostModelingOptimization
       .limit(topPredictions)
 
     convertLogisticRegressionResultToConfig(
-      euclideanRestrict(restrictedData, topPredictions)
+      euclideanRestrict(
+        restrictedData,
+        topPredictions,
+        Array("fitIntercept", "standardization")
+      )
     )
   }
 
@@ -487,7 +498,13 @@ class PostModelingOptimization
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
 
-    convertSVMResultToConfig(euclideanRestrict(restrictedData, topPredictions))
+    convertSVMResultToConfig(
+      euclideanRestrict(
+        restrictedData,
+        topPredictions,
+        Array("fitIntercept", "standardization")
+      )
+    )
   }
 
   //XGBOOST METHODS
