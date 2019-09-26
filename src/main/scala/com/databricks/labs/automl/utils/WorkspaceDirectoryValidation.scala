@@ -93,8 +93,18 @@ class WorkspaceDirectoryValidation(apiURL: String,
     val statusReturn =
       statusCall.lineStream_!(ProcessLogger(statusBuffer append _)).toString()
 
-    //TODO: Critical - handle the possible bad return here!!!!!
-    val statusAnswer = statusReturn.split("\"")(1)
+    val statusAnswer = try {
+      statusReturn.split("\"")(1)
+    } catch {
+      case e: java.lang.ArrayIndexOutOfBoundsException =>
+        println(
+          s"The directory that you are attempting to log mlflow results to in your Workspace does not have " +
+            s"the correct permissions for your account to create this directory.  Please provide a valid location" +
+            s"in the Workspace.  Invalid access for path: $adjustedPath"
+        )
+        println(s"\n\n ${e.printStackTrace()}")
+        throw e
+    }
 
     statusAnswer match {
       case "error_code" =>
@@ -116,6 +126,7 @@ class WorkspaceDirectoryValidation(apiURL: String,
       case _ => true
     }
   }
+
 }
 
 object WorkspaceDirectoryValidation {
