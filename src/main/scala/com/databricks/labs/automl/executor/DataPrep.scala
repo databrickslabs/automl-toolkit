@@ -37,7 +37,11 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       s"\n MlFlow Logging Flag: ${_mainConfig.mlFlowLoggingFlag.toString}" +
       s"\n Early Stopping Flag: ${_mainConfig.autoStoppingFlag.toString}" +
       s"\n Data Prep Caching Flag: ${_mainConfig.dataPrepCachingFlag.toString}"
-    println(configString)
+    println(
+      configString + "\nFull Model Tuning Run Config: \n" + prettyPrintConfig(
+        _mainConfig
+      )
+    )
     logger.log(Level.INFO, configString)
 
   }

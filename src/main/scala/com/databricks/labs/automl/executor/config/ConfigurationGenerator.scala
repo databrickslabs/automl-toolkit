@@ -2,10 +2,9 @@ package com.databricks.labs.automl.executor.config
 
 import com.databricks.labs.automl.exploration.structures.FeatureImportanceConfig
 import com.databricks.labs.automl.params._
-import com.databricks.labs.automl.pipeline.PipelineStateCache
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.{read, writePretty}
-import org.json4s.{Formats, NoTypeHints}
+import org.json4s.{Formats, FullTypeHints, NoTypeHints}
 
 import scala.collection.mutable.ListBuffer
 
@@ -2097,7 +2096,8 @@ object ConfigurationGenerator extends ConfigurationDefaults {
             config.tunerConfig.tunerKSampleCardinalityThreshold,
           numericRatio = config.tunerConfig.tunerKSampleNumericRatio,
           numericTarget = config.tunerConfig.tunerKSampleNumericTarget,
-          outputDfRepartitionScaleFactor = config.tunerConfig.tunerOutputDfRepartitionScaleFactor
+          outputDfRepartitionScaleFactor =
+            config.tunerConfig.tunerOutputDfRepartitionScaleFactor
         ),
         trainSplitChronologicalColumn =
           config.tunerConfig.tunerTrainSplitChronologicalColumn,
@@ -2257,6 +2257,36 @@ object ConfigurationGenerator extends ConfigurationDefaults {
 
     implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
     writePretty(config)
+  }
+
+  /**
+    * User quality of life method for showing human readable config in pseudo-Map form
+    * @param config Instance config object
+    */
+  def printFullConfig(config: InstanceConfig): Unit = {
+
+    implicit val formats: Formats =
+      Serialization.formats(hints = FullTypeHints(List(config.getClass)))
+    println(
+      writePretty(config)
+        .replaceAll(": \\{", "\\{")
+        .replaceAll(":", "->")
+    )
+  }
+
+  /**
+    * User quality of life method for showing human readable config in pseudo-Map form
+    * @param config Instance config object
+    */
+  def printFullConfig(config: MainConfig): Unit = {
+
+    implicit val formats: Formats =
+      Serialization.formats(hints = FullTypeHints(List(config.getClass)))
+    println(
+      writePretty(config)
+        .replaceAll(": \\{", "\\{")
+        .replaceAll(":", "->")
+    )
   }
 
   /**
@@ -2887,8 +2917,10 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       )
       .setTunerOutputDfRepartitionScaleFactor(
         config
-          .getOrElse("tunerOutputDfRepartitionScaleFactor",
-            defaultMap("tunerOutputDfRepartitionScaleFactor"))
+          .getOrElse(
+            "tunerOutputDfRepartitionScaleFactor",
+            defaultMap("tunerOutputDfRepartitionScaleFactor")
+          )
           .toString
           .toInt
       )
