@@ -40,6 +40,7 @@ assemblyExcludedJars in assembly := {
   cp filter { f =>
     f.data.getName.contains("spark-core") ||
     f.data.getName.contains("spark-mllib") ||
-    f.data.getName.contains("spark-sql")
+    f.data.getName.contains("spark-sql") ||
+    f.data.getName.contains("com.databricks.backend")
   }
 }

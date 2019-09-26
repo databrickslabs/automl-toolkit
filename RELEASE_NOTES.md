@@ -1,5 +1,33 @@
 ## Auto ML Toolkit Release Notes
 
+### Version 0.6.0
+
+#### Features
+* MainConfig settings are now pretty printed to stdout and logged as json strings to aid in readability.
+* PostModelingOptimization will now search through a logspace based on euclidean distance of vector similarity to 
+minimize (not remove) the probability of too-similar hyper parameters from being tested in final phase.
+[NOTE] - this feature is not supported for MLPC due to the complexity involved in layer estimation 
+for distance calculations.
+* MLflow settings are now defaulted: api Key, uri are default configured to work with the current notebook context
+that is calling the class.  These can still be overridden.  
+* MLflow logging is now defaulted to the same parent directory of the notebook executing it through reflection
+during runtime.  This is to maintain parity with how hosted MLFlow works.  This can be overridden if an alternate
+Workspace path is desired for logging to.
+* Binary Encoder stand-alone package (transformer) has been added and is compatible with the SparkML Pipeline API
+This is intended to be used as an alternative to OneHotEncoding for high cardinality
+nominal fields.  It is an information loss algorithm, though.  Integration options with the automl
+toolkit will be coming in a future release.
+
+#### Bug Fixes
+* If a setter(s) were used after the mainConfig was set on AutomationRunner, the default values would be applied
+to the instance of the Automation or FamilyRunner.  This behavior has been fixed and chained setters can be used
+even after the mapped configuration has been applied.
+* KSample (distributed SMOTE) bug fixes for scalability and reliability.
+* Eliminated the scaling bug when using a model that doesn't have ksample as its trainSplitMethodology set has a 
+scaling task set.
+
+
+
 ### Version 0.5.2
 
 #### Fix XGBoost 0.9.0 issue with classifiers

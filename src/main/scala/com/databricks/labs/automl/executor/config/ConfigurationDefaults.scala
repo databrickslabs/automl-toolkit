@@ -1,5 +1,7 @@
 package com.databricks.labs.automl.executor.config
 
+import com.databricks.labs.automl.utils.DBUtilsHelper
+
 trait ConfigurationDefaults {
 
   import FamilyValidator._
@@ -566,10 +568,10 @@ trait ConfigurationDefaults {
   private[config] def loggingConfig(): LoggingConfig = {
     val mlFlowLoggingFlag = true
     val mlFlowLogArtifactsFlag = false
-    val mlFlowTrackingURI = "hosted"
-    val mlFlowExperimentName = "default"
-    val mlFlowAPIToken = "default"
-    val mlFlowModelSaveDirectory = "/mlflow/experiments/"
+    val mlFlowTrackingURI = DBUtilsHelper.getTrackingURI
+    val mlFlowExperimentName = DBUtilsHelper.getNotebookDirectory + "MLFlowLogs"
+    val mlFlowAPIToken = DBUtilsHelper.getAPIToken
+    val mlFlowModelSaveDirectory = "dbfs:/mlflow/experiments/"
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"
     val inferenceSaveLocation = "/inference/"

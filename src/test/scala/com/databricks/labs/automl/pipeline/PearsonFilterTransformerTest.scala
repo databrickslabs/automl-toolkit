@@ -11,16 +11,26 @@ class PearsonFilterTransformerTest extends AbstractUnitSpec {
   "PearsonFilterTransformerTest" should "correctly apply pearson filter" in {
     val testVars = PipelineTestUtils.getTestVars()
     val stages = new ArrayBuffer[PipelineStage]()
-    val nonFeatureCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
+    val nonFeatureCols =
+      Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
     stages += PipelineTestUtils
       .addZipRegisterTmpTransformerStage(
         testVars.labelCol,
         testVars.df.columns.filterNot(item => nonFeatureCols.contains(item))
       )
     val vectFeatures = PipelineTestUtils
-      .getVectorizedFeatures(testVars.df, testVars.labelCol, Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL))
+      .getVectorizedFeatures(
+        testVars.df,
+        testVars.labelCol,
+        Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+      )
     stages ++= PipelineTestUtils
-      .buildFeaturesPipelineStages(testVars.df, testVars.labelCol, dropColumns = false, ignoreCols=Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL))
+      .buildFeaturesPipelineStages(
+        testVars.df,
+        testVars.labelCol,
+        dropColumns = false,
+        ignoreCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+      )
     stages += new PearsonFilterTransformer()
       .setLabelColumn(testVars.labelCol)
       .setFeatureCol(testVars.featuresCol)
@@ -31,8 +41,15 @@ class PearsonFilterTransformerTest extends AbstractUnitSpec {
       .setFilterMode("auto")
       .setFilterStatistic("pearsonStat")
     val pearsonDf = PipelineTestUtils
-      .saveAndLoadPipeline(stages.toArray, testVars.df, "pearson-filter-pipeline")
+      .saveAndLoadPipeline(
+        stages.toArray,
+        testVars.df,
+        "pearson-filter-pipeline"
+      )
       .transform(testVars.df)
-    assert(pearsonDf.columns.length == 8, "PearsonFilterTransformer should have retained only 7 columns")
+    assert(
+      pearsonDf.columns.length == 6,
+      "PearsonFilterTransformer should have retained only 6 columns"
+    )
   }
 }

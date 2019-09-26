@@ -23,7 +23,8 @@ import org.apache.spark.sql.functions._
 class EuclideanSpaceSearch(df: DataFrame,
                            numericParams: Array[String],
                            stringParams: Array[String],
-                           outputCount: Int)
+                           outputCount: Int,
+                           additionalFields: Array[String] = Array[String]())
     extends Serializable
     with SparkSessionWrapper {
 
@@ -33,7 +34,7 @@ class EuclideanSpaceSearch(df: DataFrame,
   private final val DISTANCE_COL: String = "distanceEuclid"
 
   @transient private lazy val fullColumns
-    : Seq[String] = numericParams.toSeq ++ stringParams.toSeq
+    : Seq[String] = numericParams.toSeq ++ stringParams.toSeq ++ additionalFields.toSeq
 
   private def euclidean(vec: Vector): UserDefinedFunction =
     udf((feat: Vector) => Vectors.sqdist(feat, vec))
@@ -110,8 +111,14 @@ object EuclideanSpaceSearch {
   def apply(df: DataFrame,
             numericParams: Array[String],
             stringParams: Array[String],
-            outputCount: Int): DataFrame =
-    new EuclideanSpaceSearch(df, numericParams, stringParams, outputCount)
-      .searchSpace()
+            outputCount: Int,
+            additionalFields: Array[String] = Array[String]()): DataFrame =
+    new EuclideanSpaceSearch(
+      df,
+      numericParams,
+      stringParams,
+      outputCount,
+      additionalFields
+    ).searchSpace()
 
 }
