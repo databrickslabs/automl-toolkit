@@ -13,6 +13,8 @@ class PostModelingOptimization
     with ModelConfigGenerators
     with SparkSessionWrapper {
 
+  private final val PERMUTATION_FACTOR: Int = 10
+
   var _modelFamily = ""
   var _modelType = ""
   var _hyperParameterSpaceCount = 100000
@@ -98,6 +100,18 @@ class PostModelingOptimization
     )
   }
 
+  private def euclideanRestrict(df: DataFrame,
+                                topPredictions: Int): DataFrame = {
+
+    EuclideanSpaceSearch(
+      df,
+      _numericBoundaries.keys.toArray,
+      _stringBoundaries.keys.toArray,
+      topPredictions
+    )
+
+  }
+
   //RANDOM FOREST METHODS
   /**
     * Generates an array of RandomForestConfig hyper parameters to meet the configured target size
@@ -160,9 +174,11 @@ class PostModelingOptimization
     val restrictedData = fittedPipeline
       .transform(fullSearchSpaceDataSet)
       .orderBy(col("prediction").desc)
-      .limit(topPredictions)
+      .limit(topPredictions * PERMUTATION_FACTOR)
 
-    convertRandomForestResultToConfig(restrictedData)
+    convertRandomForestResultToConfig(
+      euclideanRestrict(restrictedData, topPredictions)
+    )
 
   }
 
@@ -221,7 +237,9 @@ class PostModelingOptimization
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
 
-    convertTreesResultToConfig(restrictedData)
+    convertTreesResultToConfig(
+      euclideanRestrict(restrictedData, topPredictions)
+    )
   }
 
   //GBT METHODS
@@ -281,7 +299,7 @@ class PostModelingOptimization
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
 
-    convertGBTResultToConfig(restrictedData)
+    convertGBTResultToConfig(euclideanRestrict(restrictedData, topPredictions))
   }
 
   //LINEAR REGRESSION METHODS
@@ -345,7 +363,9 @@ class PostModelingOptimization
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
 
-    convertLinearRegressionResultToConfig(restrictedData)
+    convertLinearRegressionResultToConfig(
+      euclideanRestrict(restrictedData, topPredictions)
+    )
   }
 
   //LOGISTIC REGRESSION METHODS
@@ -408,7 +428,9 @@ class PostModelingOptimization
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
 
-    convertLogisticRegressionResultToConfig(restrictedData)
+    convertLogisticRegressionResultToConfig(
+      euclideanRestrict(restrictedData, topPredictions)
+    )
   }
 
   //SUPPORT VECTOR MACHINES METHODS
@@ -465,7 +487,7 @@ class PostModelingOptimization
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
 
-    convertSVMResultToConfig(restrictedData)
+    convertSVMResultToConfig(euclideanRestrict(restrictedData, topPredictions))
   }
 
   //XGBOOST METHODS
@@ -527,7 +549,9 @@ class PostModelingOptimization
       .orderBy(col("prediction").desc)
       .limit(topPredictions)
 
-    convertXGBoostResultToConfig(restrictedData)
+    convertXGBoostResultToConfig(
+      euclideanRestrict(restrictedData, topPredictions)
+    )
   }
 
   //MLPC METHODS
@@ -619,7 +643,6 @@ class PostModelingOptimization
       restrictedData,
       featureInputSize,
       classDistinctCount + 1
-
     )
   }
 
