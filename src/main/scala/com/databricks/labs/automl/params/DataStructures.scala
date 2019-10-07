@@ -227,8 +227,10 @@ case class FamilyFinalOutput(modelReport: Array[GroupedModelReturn],
                              generationReportDataFrame: DataFrame,
                              mlFlowReport: Array[MLFlowReportStructure])
 
-case class FamilyFinalOutputWithPipeline(familyFinalOutput: FamilyFinalOutput,
-                                         bestPipelineModel: Map[String, PipelineModel])
+case class FamilyFinalOutputWithPipeline(
+  familyFinalOutput: FamilyFinalOutput,
+  bestPipelineModel: Map[String, PipelineModel]
+)
 
 sealed trait ModelType[A, B]
 

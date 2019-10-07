@@ -1,45 +1,58 @@
 package com.databricks.labs.automl.model.tools
 
 import com.databricks.labs.automl.exceptions.ModelingTypeException
-import com.databricks.labs.automl.model.tools.structures.{
-  GBTModelRunReport,
-  LinearRegressionModelRunReport,
-  LogisticRegressionModelRunReport,
-  MLPCModelRunReport,
-  RandomForestModelRunReport,
-  SVMModelRunReport,
-  TreesModelRunReport,
-  XGBoostModelRunReport
-}
-import com.databricks.labs.automl.params.{
-  GBTConfig,
-  GBTModelsWithResults,
-  LinearRegressionConfig,
-  LinearRegressionModelsWithResults,
-  LogisticRegressionConfig,
-  LogisticRegressionModelsWithResults,
-  MLPCConfig,
-  MLPCModelsWithResults,
-  RandomForestConfig,
-  RandomForestModelsWithResults,
-  SVMConfig,
-  SVMModelsWithResults,
-  TreesConfig,
-  TreesModelsWithResults,
-  XGBoostConfig,
-  XGBoostModelsWithResults
-}
+import com.databricks.labs.automl.model.tools.structures._
+import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.utils.SparkSessionWrapper
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.StringType
+import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
+import org.apache.spark.ml.feature.{
+  MaxAbsScaler,
+  StringIndexer,
+  VectorAssembler
+}
+import org.apache.spark.ml.regression.{LinearRegression, RandomForestRegressor}
+import org.apache.spark.ml.{Pipeline, PipelineModel}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{StringType, StructType}
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
 
 case class LayerConfig(layers: Int, hiddenLayers: Int)
+
+case class MLPCExtractConfig(layers: Int,
+                             maxIter: Int,
+                             solver: String,
+                             stepSize: Double,
+                             tolerance: Double,
+                             hiddenLayerSize: Int)
+
+case class FieldTypes(numericHyperParams: Array[String],
+                      stringHyperParams: Array[String],
+                      allHyperParams: Array[String])
+
+object ModelTypes extends Enumeration {
+  type ModelTypes = Value
+  val Trees, GBT, LinearRegressor, LogisticRegression, MLPC, NaiveBayes,
+  RandomForest, SVM, XGBoost = Value
+}
+
+object RegressorTypes extends Enumeration {
+  type RegressorTypes = Value
+  val RF, LR, XG = Value
+}
+
+object OptimizationTypes extends Enumeration {
+  type OptimizationTypes = Value
+  val Minimize, Maximize = Value
+}
 
 trait GenerationOptimizerBase extends SparkSessionWrapper {
 
   import com.databricks.labs.automl.model.tools.ModelTypes._
+  import com.databricks.labs.automl.model.tools.OptimizationTypes._
+  import com.databricks.labs.automl.model.tools.RegressorTypes._
 
   private def layerExtract(layers: Array[Int]): LayerConfig = {
 
@@ -73,7 +86,7 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
     value match {
       case "Trees"              => Trees
       case "GBT"                => GBT
-      case "LinearRegression"   => LinearRegression
+      case "LinearRegression"   => LinearRegressor
       case "LogisticRegression" => LogisticRegression
       case "MLPC"               => MLPC
       case "NaiveBayes"         => NaiveBayes
@@ -89,8 +102,31 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
 
   }
 
-  def convertConfigToDF[A](modelType: ModelTypes,
-                           config: Array[A]): DataFrame = {
+  def enumerateRegressorType(value: String): RegressorTypes = {
+    value match {
+      case "RandomForest"     => RF
+      case "LinearRegression" => LR
+      case "XGBoost"          => XG
+      case _ =>
+        throw ModelingTypeException(
+          value,
+          RegressorTypes.values.map(_.toString).toArray
+        )
+    }
+  }
+
+  def enumerateOptimizationType(value: String): OptimizationTypes = {
+    value match {
+      case "minimize" => Minimize
+      case "maximize" => Maximize
+      case _ =>
+        throw ModelingTypeException(value, Array("minimize", "maximize"))
+    }
+  }
+
+  def convertConfigToDF[A](modelType: ModelTypes, config: Array[A])(
+    implicit c: ClassTag[A]
+  ): DataFrame = {
 
     val data = modelType match {
       case Trees =>
@@ -124,7 +160,7 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
           )
         })
         spark.createDataFrame(report)
-      case LinearRegression =>
+      case LinearRegressor =>
         val conf = config.asInstanceOf[Array[LinearRegressionModelsWithResults]]
         val report = conf.map(x => {
           val hyperParams = x.modelHyperParams
@@ -225,14 +261,14 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
     data
   }
 
-  def convertCandidatesToDF(modelType: ModelTypes,
-                            candidates: Array[AnyRef]): DataFrame = {
+  def convertCandidatesToDF[B](modelType: ModelTypes,
+                               candidates: Array[B]): DataFrame = {
     modelType match {
       case Trees =>
         spark.createDataFrame(candidates.asInstanceOf[Array[TreesConfig]])
       case GBT =>
         spark.createDataFrame(candidates.asInstanceOf[Array[GBTConfig]])
-      case LinearRegression =>
+      case LinearRegressor =>
         spark.createDataFrame(
           candidates.asInstanceOf[Array[LinearRegressionConfig]]
         )
@@ -265,65 +301,431 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
     }
   }
 
-}
+  def fit(df: Dataset[_], pipeline: Pipeline): PipelineModel = {
 
-object ModelTypes extends Enumeration {
-  type ModelTypes = Value
-  val Trees, GBT, LinearRegression, LogisticRegression, MLPC, NaiveBayes,
-  RandomForest, SVM, XGBoost = Value
-}
+    pipeline.fit(df)
 
-class GenerationOptimizer[A](val modelType: String, var history: ArrayBuffer[A])
-    extends GenerationOptimizerBase {
+  }
 
-  private final val modelEnum = enumerateModelType(modelType)
+  def transform(df: Dataset[_], pipeline: PipelineModel): DataFrame = {
 
-  def evaluateCandidates() = {
-
-    val scoredDF = convertConfigToDF(modelEnum, history.toArray)
-
-    val scoredSchema = scoredDF.schema
-
-    val hyperParamNames = scoredSchema.names.filterNot("score".contains)
-
-    val columnsToStringIndex = scoredSchema.fields.map(
-      x =>
-        x.dataType match {
-          case y if y == StringType => x.name
-      }
-    )
-
-    val siColumns = columnsToStringIndex.map(x => x + "_si")
-
-    // Build a pipeline to string index the values
-
-    // Vectorize
-
-    // Build a Regressor
-
-    // fit the pipeline on the historical
-
-    // transform the candidates
-
-    // sort, limit
-
-    // convert the config objects to the appropriate config object to return (probably need a method for each model type)
-
-    // don't forget to handle the MLPC re-conversion nonsense to build the layer array
-
-    // The MLPC method needs to have the static values of inputFeatureSize and distinctClasses to function correctly!!!
-    // use mlpcLayerGenerator to convert back to MLPCConfig object type for each of the elements of the Dataframe row
-    // after filtering!!!!!
+    pipeline.transform(df)
 
   }
 
 }
 
-object GenerationOptimizer {}
+class GenerationOptimizer[A, B](val modelType: String,
+                                val regressorType: String,
+                                var history: ArrayBuffer[A],
+                                var candidates: Array[B],
+                                val optimizationType: String,
+                                val candidateCount: Int)
+    extends GenerationOptimizerBase {
 
-case class MLPCExtractConfig(layers: Int,
-                             maxIter: Int,
-                             solver: String,
-                             stepSize: Double,
-                             tolerance: Double,
-                             hiddenLayerSize: Int)
+  import com.databricks.labs.automl.model.tools.OptimizationTypes._
+  import com.databricks.labs.automl.model.tools.RegressorTypes._
+
+  final val LABEL_COLUMN: String = "score"
+  final val UNSCALED_FEATURE_COLUMN: String = "features"
+  final val SCALED_FEATURE_COLUMN: String = "features_scaled"
+  final val PREDICTION_COLUMN: String = "predicted_score"
+  final val SI_SUFFIX: String = "_si"
+
+  private final val modelEnum = enumerateModelType(modelType)
+  private final val regressorEnum = enumerateRegressorType(regressorType)
+  private final val optimizationEnum = enumerateOptimizationType(
+    optimizationType
+  )
+
+  private def extractFieldsToStringIndex(schema: StructType): FieldTypes = {
+
+    val allHyperParams = schema.names.filterNot(LABEL_COLUMN.contains)
+    val stringHyperParams = schema
+      .filter(_.dataType == StringType)
+      .map(_.name)
+      .toArray
+      .filterNot(LABEL_COLUMN.contains)
+    val numericHyperParams =
+      allHyperParams.filterNot(stringHyperParams.contains)
+
+    FieldTypes(
+      numericHyperParams = numericHyperParams,
+      stringHyperParams = stringHyperParams,
+      allHyperParams = allHyperParams
+    )
+  }
+
+  private def buildFeaturePipeline(fields: FieldTypes): Pipeline = {
+
+    val stringIndexers = fields.stringHyperParams.map(
+      x => new StringIndexer().setInputCol(x).setOutputCol(x + SI_SUFFIX)
+    )
+    val vectorNames = fields.stringHyperParams.map(_ + SI_SUFFIX) ++ fields.numericHyperParams
+
+    val vectorAssembler = new VectorAssembler()
+      .setInputCols(vectorNames)
+      .setOutputCol(UNSCALED_FEATURE_COLUMN)
+
+    val scaler = new MaxAbsScaler()
+      .setInputCol(UNSCALED_FEATURE_COLUMN)
+      .setOutputCol(SCALED_FEATURE_COLUMN)
+
+    val regressor = regressorEnum match {
+      case LR => new LinearRegression().setPredictionCol(PREDICTION_COLUMN)
+      case RF => new RandomForestRegressor().setPredictionCol(PREDICTION_COLUMN)
+      case XG =>
+        new XGBoostRegressor()
+          .setMissing(0.0f)
+          .setPredictionCol(PREDICTION_COLUMN)
+    }
+
+    regressor.setLabelCol(LABEL_COLUMN).setFeaturesCol(SCALED_FEATURE_COLUMN)
+
+    new Pipeline()
+      .setStages(stringIndexers :+ vectorAssembler :+ scaler :+ regressor)
+
+  }
+
+  private def sortRestrict(df: DataFrame, limit: Int): DataFrame = {
+    optimizationEnum match {
+      case Maximize => df.orderBy(col(PREDICTION_COLUMN).desc).limit(limit)
+      case Minimize => df.orderBy(col(PREDICTION_COLUMN).asc).limit(limit)
+    }
+
+  }
+
+  private def evaluateCandidates()(implicit c: ClassTag[A]): DataFrame = {
+
+    val historyDF = convertConfigToDF(modelEnum, history.toArray)
+
+    val historyFields = extractFieldsToStringIndex(historyDF.schema)
+
+    val candidateDF = convertCandidatesToDF(modelEnum, candidates)
+
+    val candidateFields = extractFieldsToStringIndex(candidateDF.schema)
+
+    val pipeline = buildFeaturePipeline(historyFields)
+
+    val model = fit(historyDF, pipeline)
+
+    val prediction = transform(candidateDF, model)
+
+    sortRestrict(prediction, candidateCount)
+
+  }
+
+  def generateRandomForestCandidates()(
+    implicit c: ClassTag[A]
+  ): Array[RandomForestConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          RandomForestConfig(
+            numTrees = x.getAs[Int]("numTrees"),
+            impurity = x.getAs[String]("impurity"),
+            maxBins = x.getAs[Int]("maxBins"),
+            maxDepth = x.getAs[Int]("maxDepth"),
+            minInfoGain = x.getAs[Double]("minInfoGain"),
+            subSamplingRate = x.getAs[Double]("subSamplingRate"),
+            featureSubsetStrategy = x.getAs[String]("featureSubsetStrategy")
+        )
+      )
+  }
+
+  def generateDecisionTreesCandidates()(
+    implicit c: ClassTag[A]
+  ): Array[TreesConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          TreesConfig(
+            impurity = x.getAs[String]("impurity"),
+            maxBins = x.getAs[Int]("maxBins"),
+            maxDepth = x.getAs[Int]("maxDepth"),
+            minInfoGain = x.getAs[Double]("minInfoGain"),
+            minInstancesPerNode = x.getAs[Int]("minInstancesPerNode")
+        )
+      )
+  }
+
+  def generateGBTCandidates()(implicit c: ClassTag[A]): Array[GBTConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          GBTConfig(
+            impurity = x.getAs[String]("impurity"),
+            lossType = x.getAs[String]("lossType"),
+            maxBins = x.getAs[Int]("maxBins"),
+            maxDepth = x.getAs[Int]("maxDepth"),
+            maxIter = x.getAs[Int]("maxIter"),
+            minInfoGain = x.getAs[Double]("minInfoGain"),
+            minInstancesPerNode = x.getAs[Int]("minInstancesPerNode"),
+            stepSize = x.getAs[Double]("stepSize")
+        )
+      )
+  }
+
+  def generateLinearRegressionCandidates()(
+    implicit c: ClassTag[A]
+  ): Array[LinearRegressionConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          LinearRegressionConfig(
+            elasticNetParams = x.getAs[Double]("elasticNetParams"),
+            fitIntercept = x.getAs[Boolean]("fitIntercept"),
+            loss = x.getAs[String]("loss"),
+            maxIter = x.getAs[Int]("maxIter"),
+            regParam = x.getAs[Double]("regParam"),
+            standardization = x.getAs[Boolean]("standardization"),
+            tolerance = x.getAs[Double]("tolerance")
+        )
+      )
+  }
+
+  def generateLogisticRegressionCandidates()(
+    implicit c: ClassTag[A]
+  ): Array[LogisticRegressionConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          LogisticRegressionConfig(
+            elasticNetParams = x.getAs[Double]("elasticNetParams"),
+            fitIntercept = x.getAs[Boolean]("fitIntercept"),
+            maxIter = x.getAs[Int]("maxIter"),
+            regParam = x.getAs[Double]("regParam"),
+            standardization = x.getAs[Boolean]("standardization"),
+            tolerance = x.getAs[Double]("tolerance")
+        )
+      )
+
+  }
+
+  def generateSVMCandidates()(implicit c: ClassTag[A]): Array[SVMConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          SVMConfig(
+            fitIntercept = x.getAs[Boolean]("fitIntercept"),
+            maxIter = x.getAs[Int]("maxIter"),
+            regParam = x.getAs[Double]("regParam"),
+            standardization = x.getAs[Boolean]("standardization"),
+            tolerance = x.getAs[Double]("tolerance")
+        )
+      )
+  }
+
+  def generateXGBoostCandidates()(
+    implicit c: ClassTag[A]
+  ): Array[XGBoostConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          XGBoostConfig(
+            alpha = x.getAs[Double]("alpha"),
+            eta = x.getAs[Double]("eta"),
+            gamma = x.getAs[Double]("gamma"),
+            lambda = x.getAs[Double]("lambda"),
+            maxDepth = x.getAs[Int]("maxDepth"),
+            subSample = x.getAs[Double]("subSample"),
+            minChildWeight = x.getAs[Double]("minChildWeight"),
+            numRound = x.getAs[Int]("numRound"),
+            maxBins = x.getAs[Int]("maxBins"),
+            trainTestRatio = x.getAs[Double]("trainTestRatio")
+        )
+      )
+
+  }
+
+  def generateMLPCCandidates(inputFeatures: Int, distinctClasses: Int)(
+    implicit c: ClassTag[A]
+  ): Array[MLPCConfig] = {
+
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(x => {
+
+        val layers = mlpcLayerGenerator(
+          inputFeatures,
+          distinctClasses,
+          x.getAs[Int]("layers"),
+          x.getAs[Int]("hiddenLayersSize")
+        )
+
+        MLPCConfig(
+          layers = layers,
+          maxIter = x.getAs[Int]("maxIter"),
+          solver = x.getAs[String]("solver"),
+          stepSize = x.getAs[Double]("stepSize"),
+          tolerance = x.getAs[Double]("tolerance")
+        )
+      })
+
+  }
+
+}
+
+object GenerationOptimizer {
+
+  def randomForestCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[RandomForestConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateRandomForestCandidates()
+
+  def decisionTreesCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[TreesConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateDecisionTreesCandidates()
+
+  def gbtCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[GBTConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateGBTCandidates()
+
+  def linearRegressionCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[LinearRegressionConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateLinearRegressionCandidates()
+
+  def logisticRegressionCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[LogisticRegressionConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateLogisticRegressionCandidates()
+
+  def svmCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[SVMConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateSVMCandidates()
+
+  def xgBoostCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[XGBoostConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateXGBoostCandidates()
+
+  def mlpcCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int,
+    inputFeatures: Int,
+    distinctClasses: Int
+  )(implicit c: ClassTag[A]): Array[MLPCConfig] =
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateMLPCCandidates(inputFeatures, distinctClasses)
+
+}

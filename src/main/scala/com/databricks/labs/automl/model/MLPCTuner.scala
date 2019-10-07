@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.{
+  GenerationOptimizer,
   HyperParameterFullSearch,
   ModelReporting
 }
@@ -572,12 +573,24 @@ class MLPCTuner(df: DataFrame)
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(
+          val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration,
+            _numberOfMutationsPerGeneration * 25,
             mutationAggressiveness,
             _geneticMixing
           )
+
+          val evolution = GenerationOptimizer
+            .mlpcCandidates(
+              "MLPC",
+              "XGBoost",
+              fossilRecord,
+              expandedCandidates,
+              _optimizationStrategy,
+              _numberOfMutationsPerGeneration,
+              _featureInputSize,
+              _classDistinctCount
+            )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -608,12 +621,24 @@ class MLPCTuner(df: DataFrame)
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(
+        val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration,
+          _numberOfMutationsPerGeneration * 25,
           mutationAggressiveness,
           _geneticMixing
         )
+
+        val evolution = GenerationOptimizer
+          .mlpcCandidates(
+            "MLPC",
+            "XGBoost",
+            fossilRecord,
+            expandedCandidates,
+            _optimizationStrategy,
+            _numberOfMutationsPerGeneration,
+            _featureInputSize,
+            _classDistinctCount
+          )
 
         var evolve = runBattery(evolution, generation)
         generation += 1

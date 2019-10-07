@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.{
+  GenerationOptimizer,
   HyperParameterFullSearch,
   ModelReporting
 }
@@ -562,12 +563,22 @@ class LogisticRegressionTuner(df: DataFrame)
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(
+          val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration,
+            _numberOfMutationsPerGeneration * 25,
             mutationAggressiveness,
             _geneticMixing
           )
+
+          val evolution = GenerationOptimizer
+            .logisticRegressionCandidates(
+              "LogisticRegression",
+              "XGBoost",
+              fossilRecord,
+              expandedCandidates,
+              _optimizationStrategy,
+              _numberOfMutationsPerGeneration
+            )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -598,12 +609,22 @@ class LogisticRegressionTuner(df: DataFrame)
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(
+        val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration,
+          _numberOfMutationsPerGeneration * 25,
           mutationAggressiveness,
           _geneticMixing
         )
+
+        val evolution = GenerationOptimizer
+          .logisticRegressionCandidates(
+            "LogisticRegression",
+            "XGBoost",
+            fossilRecord,
+            expandedCandidates,
+            _optimizationStrategy,
+            _numberOfMutationsPerGeneration
+          )
 
         var evolve = runBattery(evolution, generation)
         generation += 1

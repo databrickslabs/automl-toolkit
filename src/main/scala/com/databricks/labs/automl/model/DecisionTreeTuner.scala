@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.{
+  GenerationOptimizer,
   HyperParameterFullSearch,
   ModelReporting
 }
@@ -634,12 +635,22 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(
+          val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration,
+            _numberOfMutationsPerGeneration * 25,
             mutationAggressiveness,
             _geneticMixing
           )
+
+          val evolution = GenerationOptimizer
+            .decisionTreesCandidates(
+              "Trees",
+              "XGBoost",
+              fossilRecord,
+              expandedCandidates,
+              _optimizationStrategy,
+              _numberOfMutationsPerGeneration
+            )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -670,12 +681,22 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(
+        val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration,
+          _numberOfMutationsPerGeneration * 25,
           mutationAggressiveness,
           _geneticMixing
         )
+
+        val evolution = GenerationOptimizer
+          .decisionTreesCandidates(
+            "Trees",
+            "XGBoost",
+            fossilRecord,
+            expandedCandidates,
+            _optimizationStrategy,
+            _numberOfMutationsPerGeneration
+          )
 
         var evolve = runBattery(evolution, generation)
         generation += 1
