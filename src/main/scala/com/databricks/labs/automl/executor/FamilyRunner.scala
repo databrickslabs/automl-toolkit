@@ -192,6 +192,11 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     )
   }
 
+  /**
+    *
+    * @return Generates feature engineering pipeline for a given configuration under a given Model Family
+    *         Note: It does not trigger any Model training.
+    */
   def generateFeatureEngineeredPipeline(verbose: Boolean = false): Map[String, PipelineModel] = {
     val featureEngineeredMap = scala.collection.mutable.Map[String, PipelineModel]()
     configs.foreach { x =>
