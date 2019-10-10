@@ -193,7 +193,8 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   }
 
   /**
-    *
+    * @param verbose: If set to true, any dataset transformed with this feature engineered pipeline will include all
+    *               input columns for the vector assembler stage.
     * @return Generates feature engineering pipeline for a given configuration under a given Model Family
     *         Note: It does not trigger any Model training.
     */
