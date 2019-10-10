@@ -220,16 +220,26 @@ object FeatureEngineeringPipelineContext {
      pipelineModel
   }
 
+  private def getInputFeautureCols(inputDataFrame: DataFrame,
+                                   mainConfig: MainConfig): Array[String] = {
+    inputDataFrame.columns
+      .filterNot(mainConfig.fieldsToIgnoreInVector.contains)
+      .filterNot(Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL).contains)
+      .filterNot(Array(mainConfig.labelCol).contains)
+  }
+
   def addUserReturnViewStage(pipelineModel: PipelineModel,
                              mainConfig: MainConfig,
                              dataFrame: DataFrame,
                              originalDfTempTableName: String): PipelineModel = {
     // Generate output dataset
+    val inputFeatures = getInputFeautureCols(dataFrame.sqlContext.sql(s"select * from $originalDfTempTableName"), mainConfig)
+
     val userViewPipelineModel = new Pipeline().setStages(
       Array(new AutoMlOutputDatasetTransformer()
         .setTempViewOriginalDatasetName(originalDfTempTableName)
         .setLabelColumn(mainConfig.labelCol)
-        .setFeatureColumns(Array.empty)))
+        .setFeatureColumns(inputFeatures)))
     .fit(dataFrame)
 
     userViewPipelineModel.transform(dataFrame)
@@ -251,10 +261,7 @@ object FeatureEngineeringPipelineContext {
     // Stage to select only those columns that are needed in the downstream stages
     // also creates a temp view of the original dataset which will then be used by the last stage
     // to return user table
-    val inputFeatures = dataFrame.columns
-      .filterNot(mainConfig.fieldsToIgnoreInVector.contains)
-      .filterNot(Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL).contains)
-      .filterNot(Array(mainConfig.labelCol).contains)
+    val inputFeatures = getInputFeautureCols(dataFrame, mainConfig)
 
     val zipRegisterTempTransformer = new ZipRegisterTempTransformer()
       .setTempViewOriginalDatasetName(originalDfTempTableName)
@@ -291,7 +298,7 @@ object FeatureEngineeringPipelineContext {
     * Apply string indexers, apply vector assembler, drop unnecessary columns
     * @param dataFrame
     * @param mainConfig
-    * @param originalDfTempTableName
+    * @param ignoreCols
     * @return
     */
   private def applyStngIndxVectAssembler(dataFrame: DataFrame,
