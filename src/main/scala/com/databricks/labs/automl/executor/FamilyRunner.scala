@@ -3,6 +3,7 @@ package com.databricks.labs.automl.executor
 import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.params._
+import com.databricks.labs.automl.pipeline.FeatureEngineeringPipelineContext.addUserReturnViewStage
 import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext, PipelineStateCache}
 import com.databricks.labs.automl.tracking.MLFlowReportStructure
 import com.databricks.labs.automl.utils.SparkSessionWrapper
@@ -108,9 +109,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   }
 
   def getNewFamilyOutPut(output: TunerOutput,
-                         instanceConfig: InstanceConfig,
-                         featureEngineeringOutput: FeatureEngineeringOutput = null,
-                         mainConfig: MainConfig = null): FamilyOutput = {
+                         instanceConfig: InstanceConfig): FamilyOutput = {
     new FamilyOutput(instanceConfig.modelFamily, output.mlFlowOutput) {
       override def modelReport: Array[GenericModelReturn] = output.modelReport
 
@@ -183,7 +182,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
       val output = runner.executeTuning(preppedDataOverride)
 
-      outputBuffer += getNewFamilyOutPut(output, x, featureEngOutput, mainConfiguration)
+      outputBuffer += getNewFamilyOutPut(output, x)
       pipelineConfigMap += x.modelFamily -> (featureEngOutput, mainConfiguration)
     }
     withPipelineInferenceModel(
@@ -191,6 +190,21 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
       configs,
       pipelineConfigMap.toMap
     )
+  }
+
+  def generateFeatureEngineeredPipeline(): Map[String, PipelineModel] = {
+    val featureEngineeredMap = scala.collection.mutable.Map[String, PipelineModel]()
+    configs.foreach { x =>
+      val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
+      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration, verbose = true)
+      val finalPipelineModel = FeatureEngineeringPipelineContext.addUserReturnViewStage(
+        featureEngOutput.pipelineModel,
+        mainConfiguration,
+        featureEngOutput.pipelineModel.transform(data),
+        featureEngOutput.originalDfViewName)
+      featureEngineeredMap += x.modelFamily -> finalPipelineModel
+    }
+    featureEngineeredMap.toMap
   }
 
   def withPipelineInferenceModel(familyFinalOutput: FamilyFinalOutput,

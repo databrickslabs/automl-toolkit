@@ -32,8 +32,10 @@ object FeatureEngineeringPipelineContext {
 
   @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 
+  //TODO (Jas): verbose true, only works for only feature engineering pipeline, for full predict pipeline this needs to be update.
   def generatePipelineModel(originalInputDataset: DataFrame,
-                            mainConfig: MainConfig): FeatureEngineeringOutput = {
+                            mainConfig: MainConfig,
+                            verbose: Boolean = false): FeatureEngineeringOutput = {
 
     val originalDfTempTableName = Identifiable.randomUID("zipWithId")
 
@@ -110,8 +112,9 @@ object FeatureEngineeringPipelineContext {
 
     // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
     removeColumns ++= oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
-    getAndAddStage(lastStages, dropColumns(removeColumns.toArray, mainConfig))
-
+    if(!verbose) {
+      getAndAddStage(lastStages, dropColumns(removeColumns.toArray, mainConfig))
+    }
     // final transformation
     val fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
     val fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
@@ -217,7 +220,7 @@ object FeatureEngineeringPipelineContext {
      pipelineModel
   }
 
-  private def addUserReturnViewStage(pipelineModel: PipelineModel,
+  def addUserReturnViewStage(pipelineModel: PipelineModel,
                              mainConfig: MainConfig,
                              dataFrame: DataFrame,
                              originalDfTempTableName: String): PipelineModel = {
