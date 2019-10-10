@@ -40,15 +40,17 @@ class AutoMlOutputDatasetTransformer(override val uid: String)
     val originalUserDf =  dataset.sqlContext.sql(s"select * from $getTempViewOriginalDatasetName")
     val userViewDf =
     if(dataset.columns.contains(getLabelColumn)) {
-      dataset
+      val tmpDf = dataset
         .drop(getFeatureColumns:_*)
         .drop(getLabelColumn)
-        .join(originalUserDf, getAutomlInternalId)
+      originalUserDf
+        .join(tmpDf, getAutomlInternalId)
         .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     } else {
-      dataset
+      val tmpDf = dataset
         .drop(getFeatureColumns:_*)
-        .join(originalUserDf, getAutomlInternalId)
+      originalUserDf
+        .join(tmpDf, getAutomlInternalId)
         .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     }
     dataset.sqlContext.dropTempTable(getTempViewOriginalDatasetName)
