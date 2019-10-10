@@ -192,11 +192,11 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     )
   }
 
-  def generateFeatureEngineeredPipeline(): Map[String, PipelineModel] = {
+  def generateFeatureEngineeredPipeline(verbose: Boolean = false): Map[String, PipelineModel] = {
     val featureEngineeredMap = scala.collection.mutable.Map[String, PipelineModel]()
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
-      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration, verbose = true)
+      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration, verbose)
       val finalPipelineModel = FeatureEngineeringPipelineContext.addUserReturnViewStage(
         featureEngOutput.pipelineModel,
         mainConfiguration,
