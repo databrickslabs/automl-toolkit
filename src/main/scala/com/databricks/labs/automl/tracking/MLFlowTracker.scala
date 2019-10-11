@@ -134,7 +134,8 @@ class MLFlowTracker extends InferenceTools {
 
     val experimentId = getOrCreateExperimentId(client).toString
 
-    val runId = client.createRun(experimentId, runIdentifier).getRunUuid
+    val runId = client.createRun(experimentId).getRunId
+    client.setTag(runId, "mlflow.runName",runIdentifier)
 
     runId
 
@@ -149,14 +150,15 @@ class MLFlowTracker extends InferenceTools {
     val request: CreateRun.Builder = CreateRun
       .newBuilder()
       .setExperimentId(experimentID)
-      .setRunName(runName)
-      .setSourceVersion(sourceVer)
-      .setSourceName(runIdentifier)
       .setStartTime(System.currentTimeMillis())
 
     val run = client.createRun(request.build())
 
-    run.getRunUuid
+    client.setTag(run.getRunId, "mlflow.runName",runName)
+    client.setTag(run.getRunId, "mlflow.source.name",runIdentifier)
+    client.setTag(run.getRunId, "mlflow.source.version",sourceVer)
+
+    run.getRunId
   }
 
   private def createFusePath(path: String): String = {
