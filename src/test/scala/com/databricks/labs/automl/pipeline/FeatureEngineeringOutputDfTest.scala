@@ -30,13 +30,13 @@ class FeatureEngineeringOutputDfTest extends AbstractUnitSpec {
       master("local[*]")
       .appName("providentiaml-unit-tests")
       .getOrCreate().createDataFrame(
-      (List.fill(100)(Row(
+      (List.fill(50)(Row(
         scala.math.abs(scala.util.Random.nextLong()),
         scala.math.abs(scala.util.Random.nextLong()) + "",
         Date.valueOf(s"${startYear + random.nextInt( (endYear - startYear) + 1 )}-${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}-${startDay + random.nextInt( (endDay - startDay) + 1 )}"),
         Timestamp.valueOf(s"${startYear + random.nextInt( (endYear - startYear) + 1 )}-${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}-${startDay + random.nextInt( (endDay - startDay) + 1 )} ${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}:${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}:${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}.${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}"),
         0
-      )) ++ List.fill(100)(Row(
+      )) ++ List.fill(50)(Row(
         scala.math.abs(scala.util.Random.nextLong()),
         scala.math.abs(scala.util.Random.nextLong()) + "",
         Date.valueOf("2016-10-30"),
@@ -80,14 +80,18 @@ class FeatureEngineeringOutputDfTest extends AbstractUnitSpec {
       "tunerGenerationalMutationStrategy" -> "fixed",
       "tunerEvolutionStrategy" -> "batch",
       "pipelineDebugFlag" -> true,
-      "mlFlowLoggingFlag" -> false
+      "mlFlowLoggingFlag" -> false,
+      "fillConfigCardinalityLimit" -> "100"
     )
 
     val randomForestConfig = ConfigurationGenerator.generateConfigFromMap("RandomForest", "classifier", overrides)
     val runner = FamilyRunner(sourceDF, Array(randomForestConfig)).generateFeatureEngineeredPipeline(verbose = true)
-    val noOfCols = runner("RandomForest").transform(sourceDF).columns
+    val outputDf = runner("RandomForest").transform(sourceDF)
+    val noOfCols = outputDf.columns
     assert(noOfCols.length == 17,
       s"Feature engineered dataset's columns should have been 17, but $noOfCols were found")
+    outputDf.show(100)
+
   }
 
 }

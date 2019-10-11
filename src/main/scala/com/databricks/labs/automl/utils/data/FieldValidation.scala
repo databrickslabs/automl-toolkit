@@ -141,12 +141,11 @@ class FieldValidation(data: DataFrame) {
             .take(1)(0)
         cardinality match {
           case y if y <= cardinalityLimit => x
+          case _ => ""
         }
       }
-      .filter(x => x != "")
-
+      .filterNot(x => x.equals(""))
   }
-
 }
 
 /**

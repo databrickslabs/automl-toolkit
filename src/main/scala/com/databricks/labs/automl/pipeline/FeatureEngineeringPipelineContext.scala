@@ -278,7 +278,10 @@ object FeatureEngineeringPipelineContext {
 
     val cardinalityLimitColumnPrunerTransformer = new CardinalityLimitColumnPrunerTransformer()
       .setLabelColumn(mainConfig.labelCol)
-      .setCardinalityLimit(500)
+      .setCardinalityLimit(mainConfig.fillConfig.cardinalityLimit)
+      .setCardinalityCheckMode(mainConfig.fillConfig.cardinalityCheckMode)
+      .setCardinalityPrecision(mainConfig.fillConfig.cardinalityPrecision)
+      .setCardinalityType(mainConfig.fillConfig.cardinalityType)
       .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
     val dateFieldTransformer = new DateFieldTransformer()
