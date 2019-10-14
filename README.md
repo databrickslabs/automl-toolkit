@@ -80,11 +80,9 @@ import com.databricks.labs.automl.executor.FamilyRunner
 val data = spark.table("ben_demo.adult_data")
 
 val overrides = Map("labelCol" -> "income",
-"mlFlowExperimentName" -> "My First AutoML Run",
-"mlFlowTrackingURI" -> "https://<my shard address>",
-"mlFlowAPIToken" -> dbutils.notebook.getContext().apiToken.get,
-"mlFlowModelSaveDirectory" -> "/ml/FirstAutoMLRun/",
-"inferenceConfigSaveLocation" -> "ml/FirstAutoMLRun/inference"
+"mlFlowExperimentName" -> (defaults to current notebook directory),
+"mlFlowModelSaveDirectory" -> "dbfs:/ml/FirstAutoMLRun/",
+"inferenceConfigSaveLocation" -> "dbfs:/ml/FirstAutoMLRun/inference"
 )
 
 val randomForestConfig = ConfigurationGenerator.generateConfigFromMap("RandomForest", "classifier", overrides)
