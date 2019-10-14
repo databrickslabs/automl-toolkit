@@ -516,7 +516,8 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-    val earlyStoppingImprovementThreshold: Int = -10
+    val earlyStoppingImprovementThreshold: Int =
+      _continuousEvolutionImprovementThreshold
 
     val totalConfigs = modelConfigLength[XGBoostConfig]
 
@@ -719,7 +720,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
 
           val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration * 25,
+            _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
             mutationAggressiveness,
             _geneticMixing
           )
@@ -727,7 +728,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
           val evolution = GenerationOptimizer
             .xgBoostCandidates(
               "XGBoost",
-              "XGBoost",
+              _geneticMBORegressorType,
               fossilRecord,
               expandedCandidates,
               _optimizationStrategy,
@@ -765,7 +766,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
 
         val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration * 25,
+          _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
           mutationAggressiveness,
           _geneticMixing
         )
@@ -773,7 +774,7 @@ class XGBoostTuner(df: DataFrame, modelSelection: String)
         val evolution = GenerationOptimizer
           .xgBoostCandidates(
             "XGBoost",
-            "XGBoost",
+            _geneticMBORegressorType,
             fossilRecord,
             expandedCandidates,
             _optimizationStrategy,

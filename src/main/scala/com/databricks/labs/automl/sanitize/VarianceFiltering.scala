@@ -6,8 +6,6 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
 
 class VarianceFiltering(data: DataFrame) {
 
@@ -21,7 +19,10 @@ class VarianceFiltering(data: DataFrame) {
   private final val dfSchema = data.schema.fieldNames
 
   def setLabelCol(value: String): this.type = {
-    require(dfSchema.contains(value), s"Label Column $value does not exist in Dataframe")
+    require(
+      dfSchema.contains(value),
+      s"Label Column $value does not exist in Dataframe"
+    )
     _labelCol = value
     this
   }
@@ -50,10 +51,11 @@ class VarianceFiltering(data: DataFrame) {
   def getParallelism: Int = _parallelism
 
   private def regenerateSchema(fieldSchema: Array[String]): Array[String] = {
-    fieldSchema.map { x => x.split("_si$")(0) }
+    fieldSchema.map { x =>
+      x.split("_si$")(0)
+    }
   }
 
-  //  TODO - This needs to be generalized as it's used in several sanitize classes
   private def getBatches(items: List[String]): Array[List[String]] = {
     val batches = ArrayBuffer[List[String]]()
     val batchSize = items.length / _parallelism
@@ -63,7 +65,9 @@ class VarianceFiltering(data: DataFrame) {
     batches.toArray
   }
 
-  def filterZeroVariance(fieldsToIgnore: Array[String] = Array.empty[String]): (DataFrame, Array[String]) = {
+  def filterZeroVariance(
+    fieldsToIgnore: Array[String] = Array.empty[String]
+  ): (DataFrame, Array[String]) = {
 
     val (featurizedData, fields, allFields) = new FeaturePipeline(data)
       .setLabelCol(_labelCol)
@@ -73,8 +77,13 @@ class VarianceFiltering(data: DataFrame) {
 
     val dfParts = featurizedData.rdd.partitions.length.toDouble
     val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
-    val stddevInformation = featurizedData.coalesce(summaryParts).summary("stddev")
-      .select(fields map col: _*).collect()(0).toSeq.toArray
+    val stddevInformation = featurizedData
+      .coalesce(summaryParts)
+      .summary("stddev")
+      .select(fields map col: _*)
+      .collect()(0)
+      .toSeq
+      .toArray
 
     val stddevData = fields.zip(stddevInformation)
 
@@ -82,7 +91,7 @@ class VarianceFiltering(data: DataFrame) {
     val removedColumns = new ArrayBuffer[String]
 
     stddevData.foreach { x =>
-      if (x._2.toString.toDouble != 0.0){
+      if (x._2.toString.toDouble != 0.0) {
         preserveColumns.append(x._1)
       } else {
         removedColumns.append(x._1)
@@ -95,7 +104,7 @@ class VarianceFiltering(data: DataFrame) {
     //    logger.log(Level.WARN, s"The following columns were removed due to zero variance: $removedColumnsString")
     val finalFields = preserveColumns.result ++ Array(_labelCol)
 
-    (data.select(finalFields map col:_*), removedColumns.toArray)
+    (data.select(finalFields map col: _*), removedColumns.toArray)
 
   }
 

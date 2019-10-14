@@ -132,6 +132,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
       .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
       .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionImprovementThreshold(
+        _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+      )
+      .setGeneticMBORegressorType(
+        _mainConfig.geneticConfig.geneticMBORegressorType
+      )
+      .setGeneticMBOCandidateFactor(
+        _mainConfig.geneticConfig.geneticMBOCandidateFactor
+      )
       .setContinuousEvolutionMaxIterations(
         _mainConfig.geneticConfig.continuousEvolutionMaxIterations
       )
@@ -310,6 +319,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
       .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
       .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionImprovementThreshold(
+        _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+      )
+      .setGeneticMBORegressorType(
+        _mainConfig.geneticConfig.geneticMBORegressorType
+      )
+      .setGeneticMBOCandidateFactor(
+        _mainConfig.geneticConfig.geneticMBOCandidateFactor
+      )
       .setContinuousEvolutionMaxIterations(
         _mainConfig.geneticConfig.continuousEvolutionMaxIterations
       )
@@ -504,6 +522,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
           .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
           .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+          .setContinuousEvolutionImprovementThreshold(
+            _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+          )
+          .setGeneticMBORegressorType(
+            _mainConfig.geneticConfig.geneticMBORegressorType
+          )
+          .setGeneticMBOCandidateFactor(
+            _mainConfig.geneticConfig.geneticMBOCandidateFactor
+          )
           .setContinuousEvolutionMaxIterations(
             _mainConfig.geneticConfig.continuousEvolutionMaxIterations
           )
@@ -695,6 +722,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
       .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
       .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionImprovementThreshold(
+        _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+      )
+      .setGeneticMBORegressorType(
+        _mainConfig.geneticConfig.geneticMBORegressorType
+      )
+      .setGeneticMBOCandidateFactor(
+        _mainConfig.geneticConfig.geneticMBOCandidateFactor
+      )
       .setContinuousEvolutionMaxIterations(
         _mainConfig.geneticConfig.continuousEvolutionMaxIterations
       )
@@ -889,6 +925,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
           .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
           .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+          .setContinuousEvolutionImprovementThreshold(
+            _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+          )
+          .setGeneticMBORegressorType(
+            _mainConfig.geneticConfig.geneticMBORegressorType
+          )
+          .setGeneticMBOCandidateFactor(
+            _mainConfig.geneticConfig.geneticMBOCandidateFactor
+          )
           .setContinuousEvolutionMaxIterations(
             _mainConfig.geneticConfig.continuousEvolutionMaxIterations
           )
@@ -1093,6 +1138,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
           .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
           .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+          .setContinuousEvolutionImprovementThreshold(
+            _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+          )
+          .setGeneticMBORegressorType(
+            _mainConfig.geneticConfig.geneticMBORegressorType
+          )
+          .setGeneticMBOCandidateFactor(
+            _mainConfig.geneticConfig.geneticMBOCandidateFactor
+          )
           .setContinuousEvolutionMaxIterations(
             _mainConfig.geneticConfig.continuousEvolutionMaxIterations
           )
@@ -1294,6 +1348,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
           .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
           .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+          .setContinuousEvolutionImprovementThreshold(
+            _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+          )
+          .setGeneticMBORegressorType(
+            _mainConfig.geneticConfig.geneticMBORegressorType
+          )
+          .setGeneticMBOCandidateFactor(
+            _mainConfig.geneticConfig.geneticMBOCandidateFactor
+          )
           .setContinuousEvolutionMaxIterations(
             _mainConfig.geneticConfig.continuousEvolutionMaxIterations
           )
@@ -1480,6 +1543,15 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
       .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
       .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionImprovementThreshold(
+        _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+      )
+      .setGeneticMBORegressorType(
+        _mainConfig.geneticConfig.geneticMBORegressorType
+      )
+      .setGeneticMBOCandidateFactor(
+        _mainConfig.geneticConfig.geneticMBOCandidateFactor
+      )
       .setContinuousEvolutionMaxIterations(
         _mainConfig.geneticConfig.continuousEvolutionMaxIterations
       )
@@ -1781,13 +1853,17 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  private def generateDummyMLFlowReturn(msg: String): Option[MLFlowReportStructure] = {
+  private def generateDummyMLFlowReturn(
+    msg: String
+  ): Option[MLFlowReportStructure] = {
     try {
       val genTracker = new MLFlowTracker()
         .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
         .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
         .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
-        .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
+        .setModelSaveDirectory(
+          _mainConfig.mlFlowConfig.mlFlowModelSaveDirectory
+        )
         .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
         .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
       val dummyLog = MLFlowReturn(
@@ -1873,6 +1949,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   )
   def exploreFeatureImportances(): FeatureImportanceReturn = {
 
+    println(
+      "[DEPRECATION WARNING] - .exploreFeatureImportances() has been replaced by " +
+        "com.databricks.labs.automl.exploration.FeatureImportances .  This method will be removed in the next release."
+    )
+
     val payload = prepData()
 
     val cachedData = if (_featureImportancesConfig.dataPrepCachingFlag) {
@@ -1908,6 +1989,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       "com.databricks.labs.automl.exploration.FeatureImportances in a future release."
   )
   def runWithFeatureCulling(): FeatureImportanceOutput = {
+
+    println(
+      "[DEPRECATION WARNING] - .runWithFeatureCulling() has been replaced by " +
+        "com.databricks.labs.automl.exploration.FeatureImportances .  This method will be removed in the next release."
+    )
 
     // Get the Feature Importances
 
@@ -1952,6 +2038,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       "com.databricks.labs.automl.exploration.FeatureImportances in a future release."
   )
   def runFeatureCullingWithPrediction(): FeatureImportancePredictionOutput = {
+
+    println(
+      "[DEPRECATION WARNING] - .runFeatureCullingWithPrediction() has been replaced by " +
+        "com.databricks.labs.automl.exploration.FeatureImportances .  This method will be removed in the next release."
+    )
 
     val featureImportanceResults = exploreFeatureImportances()
 

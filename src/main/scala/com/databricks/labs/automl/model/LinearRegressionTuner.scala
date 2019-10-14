@@ -375,7 +375,8 @@ class LinearRegressionTuner(df: DataFrame)
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-    val earlyStoppingImprovementThreshold: Int = -10
+    val earlyStoppingImprovementThreshold: Int =
+      _continuousEvolutionImprovementThreshold
 
     val totalConfigs = modelConfigLength[LinearRegressionConfig]
 
@@ -582,7 +583,7 @@ class LinearRegressionTuner(df: DataFrame)
 
           val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration * 25,
+            _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
             mutationAggressiveness,
             _geneticMixing
           )
@@ -590,7 +591,7 @@ class LinearRegressionTuner(df: DataFrame)
           val evolution = GenerationOptimizer
             .linearRegressionCandidates(
               "LinearRegression",
-              "XGBoost",
+              _geneticMBORegressorType,
               fossilRecord,
               expandedCandidates,
               _optimizationStrategy,
@@ -628,7 +629,7 @@ class LinearRegressionTuner(df: DataFrame)
 
         val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration * 25,
+          _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
           mutationAggressiveness,
           _geneticMixing
         )
@@ -636,7 +637,7 @@ class LinearRegressionTuner(df: DataFrame)
         val evolution = GenerationOptimizer
           .linearRegressionCandidates(
             "LinearRegression",
-            "XGBoost",
+            _geneticMBORegressorType,
             fossilRecord,
             expandedCandidates,
             _optimizationStrategy,

@@ -27,6 +27,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _dataPrepCachingFlag: Boolean = _defaultDataPrepCachingFlag
 
+  var _dataPrepParallelism: Int = _defaultDataPrepParallelism
+
   var _numericBoundaries: Map[String, (Double, Double)] =
     _rfDefaultNumBoundaries
 
@@ -282,6 +284,15 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _evolutionStrategy: String = _geneticTunerDefaults.evolutionStrategy
 
+  var _continuousEvolutionImprovementThreshold: Int =
+    _geneticTunerDefaults.continuousEvolutionImprovementThreshold
+
+  var _geneticMBORegressorType: String =
+    _geneticTunerDefaults.geneticMBORegressorType
+
+  var _geneticMBOCandidateFactor: Int =
+    _geneticTunerDefaults.geneticMBOCandidateFactor
+
   var _continuousEvolutionMaxIterations: Int =
     _geneticTunerDefaults.continuousEvolutionMaxIterations
 
@@ -448,6 +459,25 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def dataPrepCachingOff(): this.type = {
     _dataPrepCachingFlag = false
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for defining the number of concurrent threads allocated to performing asynchronous data prep tasks within
+    * the feature engineering aspect of this application.
+    * @param value Int: A value that must be greater than zero.
+    * @note This value has an upper limit, depending on driver size, that will restrict the efficacy of the asynchronous
+    *       tasks within the pool.  Setting this too high may cause cluster instability.
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if a value less than or equal to zero is supplied.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setDataPrepParallelism(value: Int): this.type = {
+
+    require(value > 0, s"DataPrepParallelism must be greater than zero.")
+    _dataPrepParallelism = value
     setConfigs()
     this
   }
@@ -1650,6 +1680,69 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  /**
+    * Setter for defining the secondary stopping criteria for continuous training mode ( number of consistentlt
+    * not-improving runs to terminate the learning algorithm due to diminishing returns.
+    * @param value Negative Integer (an improvement to a priori will reset the counter and subsequent non-improvements
+    *              will decrement a mutable counter.  If the counter hits this limit specified in value, the continuous
+    *              mode algorithm will stop).
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is positive.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setContinuousEvolutionImprovementThreshold(value: Int): this.type = {
+    require(
+      value < 0,
+      s"ContinuousEvolutionImprovementThreshold must be less than zero.  It is " +
+        s"recommended to set this value to less than -4."
+    )
+    _continuousEvolutionImprovementThreshold = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for selecting the type of Regressor to use for the within-epoch generation MBO of candidates
+    * @param value String - one of "XGBoost", "LinearRegression" or "RandomForest"
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is not supported
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setGeneticMBORegressorType(value: String): this.type = {
+    require(
+      allowableMBORegressorTypes.contains(value),
+      s"GeneticRegressorType $value is not a supported Regressor " +
+        s"Type.  Must be one of: ${allowableMBORegressorTypes.mkString(", ")}"
+    )
+    _geneticMBORegressorType = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for defining the factor to be applied to the candidate listing of hyperparameters to generate through
+    * mutation for each generation other than the initial and post-modeling optimization phases.  The larger this
+    * value (default: 10), the more potential space can be searched.  There is not a large performance hit to this,
+    * and as such, values in excess of 100 are viable.
+    * @param value Int - a factor to multiply the numberOfMutationsPerGeneration by to generate a count of potential
+    *              candidates.
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is not greater than zero.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setGeneticMBOCandidateFactor(value: Int): this.type = {
+    require(value > 0, s"GeneticMBOCandidateFactor must be greater than zero.")
+    _geneticMBOCandidateFactor = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
   def setFeatureImportanceCutoffType(value: String): this.type = {
 
     require(
@@ -1786,8 +1879,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       fixedMutationValue = _fixedMutationValue,
       mutationMagnitudeMode = _mutationMagnitudeMode,
       evolutionStrategy = _evolutionStrategy,
+      geneticMBORegressorType = _geneticMBORegressorType,
+      geneticMBOCandidateFactor = _geneticMBOCandidateFactor,
       continuousEvolutionMaxIterations = _continuousEvolutionMaxIterations,
       continuousEvolutionStoppingScore = _continuousEvolutionStoppingScore,
+      continuousEvolutionImprovementThreshold =
+        _continuousEvolutionImprovementThreshold,
       continuousEvolutionParallelism = _continuousEvolutionParallelism,
       continuousEvolutionMutationAggressiveness =
         _continuousEvolutionMutationAggressiveness,
@@ -1818,6 +1915,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
       dataPrepCachingFlag = _dataPrepCachingFlag,
+      dataPrepParallelism = _dataPrepParallelism,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -1985,6 +2083,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _hyperSpaceModelType = config.hyperSpaceModelType
     _hyperSpaceModelCount = config.hyperSpaceModelCount
     _firstGenerationMode = config.initialGenerationMode
+    _continuousEvolutionImprovementThreshold =
+      config.continuousEvolutionImprovementThreshold
+    _geneticMBORegressorType = config.geneticMBORegressorType
+    _geneticMBOCandidateFactor = config.geneticMBOCandidateFactor
     setFirstGenerationConfig(config.initialGenerationConfig)
 
     this
@@ -2021,6 +2123,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _oneHotEncodeFlag = value.oneHotEncodeFlag
     _scalingFlag = value.scalingFlag
     _dataPrepCachingFlag = value.dataPrepCachingFlag
+    _dataPrepParallelism = value.dataPrepParallelism
     _autoStoppingFlag = value.autoStoppingFlag
     _autoStoppingScore = value.autoStoppingScore
     _featureImportanceCutoffType = value.featureImportanceCutoffType
@@ -2060,6 +2163,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
       dataPrepCachingFlag = _dataPrepCachingFlag,
+      dataPrepParallelism = _dataPrepParallelism,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -2109,6 +2213,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
       dataPrepCachingFlag = _dataPrepCachingFlag,
+      dataPrepParallelism = _dataPrepParallelism,
       autoStoppingFlag = _autoStoppingFlag,
       autoStoppingScore = _autoStoppingScore,
       featureImportanceCutoffType = _featureImportanceCutoffType,
@@ -2166,6 +2271,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getScalingStatus: Boolean = _scalingFlag
 
   def getDataPrepCachingStatus: Boolean = _dataPrepCachingFlag
+
+  def getDataPrepParallelism: Int = _dataPrepParallelism
 
   def getNumericBoundaries: Map[String, (Double, Double)] = _numericBoundaries
 

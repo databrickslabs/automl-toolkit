@@ -358,7 +358,8 @@ class LogisticRegressionTuner(df: DataFrame)
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-    val earlyStoppingImprovementThreshold: Int = -10
+    val earlyStoppingImprovementThreshold: Int =
+      _continuousEvolutionImprovementThreshold
 
     val totalConfigs = modelConfigLength[LogisticRegressionConfig]
 
@@ -565,7 +566,7 @@ class LogisticRegressionTuner(df: DataFrame)
 
           val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration * 25,
+            _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
             mutationAggressiveness,
             _geneticMixing
           )
@@ -573,7 +574,7 @@ class LogisticRegressionTuner(df: DataFrame)
           val evolution = GenerationOptimizer
             .logisticRegressionCandidates(
               "LogisticRegression",
-              "XGBoost",
+              _geneticMBORegressorType,
               fossilRecord,
               expandedCandidates,
               _optimizationStrategy,
@@ -611,7 +612,7 @@ class LogisticRegressionTuner(df: DataFrame)
 
         val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration * 25,
+          _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
           mutationAggressiveness,
           _geneticMixing
         )
@@ -619,7 +620,7 @@ class LogisticRegressionTuner(df: DataFrame)
         val evolution = GenerationOptimizer
           .logisticRegressionCandidates(
             "LogisticRegression",
-            "XGBoost",
+            _geneticMBORegressorType,
             fossilRecord,
             expandedCandidates,
             _optimizationStrategy,

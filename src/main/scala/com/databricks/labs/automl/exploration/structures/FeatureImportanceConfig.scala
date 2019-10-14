@@ -3,6 +3,7 @@ package com.databricks.labs.automl.exploration.structures
 case class FeatureImportanceConfig(
   labelCol: String,
   featuresCol: String,
+  dataPrepParallelism: Int,
   numericBoundaries: Map[String, (Double, Double)],
   stringBoundaries: Map[String, List[String]],
   scoringMetric: String,

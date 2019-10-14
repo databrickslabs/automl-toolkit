@@ -425,9 +425,8 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-
-    //TODO: evaluate this and see if this should be an early stopping signature!!!
-    val earlyStoppingImprovementThreshold: Int = -10
+    val earlyStoppingImprovementThreshold: Int =
+      _continuousEvolutionImprovementThreshold
 
     val totalConfigs = modelConfigLength[TreesConfig]
     // Generate the first pool of attempts to seed the hyperparameter space
@@ -637,7 +636,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
 
           val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration * 25,
+            _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
             mutationAggressiveness,
             _geneticMixing
           )
@@ -645,7 +644,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
           val evolution = GenerationOptimizer
             .decisionTreesCandidates(
               "Trees",
-              "XGBoost",
+              _geneticMBORegressorType,
               fossilRecord,
               expandedCandidates,
               _optimizationStrategy,
@@ -683,7 +682,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
 
         val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration * 25,
+          _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
           mutationAggressiveness,
           _geneticMixing
         )
@@ -691,7 +690,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
         val evolution = GenerationOptimizer
           .decisionTreesCandidates(
             "Trees",
-            "XGBoost",
+            _geneticMBORegressorType,
             fossilRecord,
             expandedCandidates,
             _optimizationStrategy,

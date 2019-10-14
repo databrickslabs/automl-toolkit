@@ -28,9 +28,9 @@ import scala.concurrent.forkjoin.ForkJoinPool
   *                             .setAutoFilterNTile(0.5)
   *                             .filterFields
   */
-
-class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) extends DataValidation
-  with SanitizerDefaults {
+class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String])
+    extends DataValidation
+    with SanitizerDefaults {
 
   private var _labelCol: String = defaultLabelCol
   private var _featuresCol: String = defaultFeaturesCol
@@ -40,37 +40,47 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
   private var _filterManualValue: Double = defaultPearsonFilterManualValue
   private var _filterMode: String = defaultPearsonFilterMode
   private var _autoFilterNTile: Double = defaultPearsonAutoFilterNTile
-
+  private var _parallelism: Int = 20
 
   final private val _dataFieldNames = df.schema.fieldNames
   final private val _dataFieldTypes = df.schema.fields
 
-
   def setLabelCol(value: String): this.type = {
-    require(_dataFieldNames.contains(value), s"Label Field $value is not in DataFrame Schema.")
+    require(
+      _dataFieldNames.contains(value),
+      s"Label Field $value is not in DataFrame Schema."
+    )
     _labelCol = value
     this
   }
 
   def setFeaturesCol(value: String): this.type = {
-    require(_dataFieldNames.contains(value), s"Feature Field $value is not in DataFrame Schema.")
-    require(_dataFieldTypes.filter(_.name == value)(0).dataType.typeName == "vector",
-      s"Feature Field $value is not of vector type.")
+    require(
+      _dataFieldNames.contains(value),
+      s"Feature Field $value is not in DataFrame Schema."
+    )
+    require(
+      _dataFieldTypes.filter(_.name == value)(0).dataType.typeName == "vector",
+      s"Feature Field $value is not of vector type."
+    )
     _featuresCol = value
     this
   }
 
   def setFilterStatistic(value: String): this.type = {
-    require(_allowedStats.contains(value), s"Pearson Filtering Statistic '$value' is not a valid member of ${
-      invalidateSelection(value, _allowedStats)}")
+    require(
+      _allowedStats.contains(value),
+      s"Pearson Filtering Statistic '$value' is not a valid member of ${invalidateSelection(value, _allowedStats)}"
+    )
     _filterStatistic = value
     this
   }
 
   def setFilterDirection(value: String): this.type = {
-    require(_allowedFilterDirections.contains(value), s"Filter Direction '$value' is not a valid member of ${
-      invalidateSelection(value, _allowedFilterDirections)
-    }")
+    require(
+      _allowedFilterDirections.contains(value),
+      s"Filter Direction '$value' is not a valid member of ${invalidateSelection(value, _allowedFilterDirections)}"
+    )
     _filterDirection = value
     this
   }
@@ -86,8 +96,10 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
   }
 
   def setFilterMode(value: String): this.type = {
-    require(_allowedFilterModes.contains(value), s"Filter Mode $value is not a valid member of ${
-      invalidateSelection(value, _allowedFilterModes)}")
+    require(
+      _allowedFilterModes.contains(value),
+      s"Filter Mode $value is not a valid member of ${invalidateSelection(value, _allowedFilterModes)}"
+    )
     _filterMode = value
     this
   }
@@ -98,6 +110,11 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     this
   }
 
+  def setParallelism(value: Int): this.type = {
+    _parallelism = value
+    this
+  }
+
   def getLabelCol: String = _labelCol
   def getFeaturesCol: String = _featuresCol
   def getFilterStatistic: String = _filterStatistic
@@ -105,12 +122,14 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
   def getFilterManualValue: Double = _filterManualValue
   def getFilterMode: String = _filterMode
   def getAutoFilterNTile: Double = _autoFilterNTile
-
+  def getParallelism: Int = _parallelism
 
   private var _pearsonVectorFields: Array[String] = Array.empty
   private var _pearsonNonCategoricalFields: Array[String] = Array.empty
 
-  private def setPearsonNonCategoricalFields(value: Array[String]): this.type = {
+  private def setPearsonNonCategoricalFields(
+    value: Array[String]
+  ): this.type = {
     _pearsonNonCategoricalFields = value
     this
   }
@@ -126,7 +145,8 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     * @param featureColumn the name of the feature column vector to be used in the test.
     * @return List of the stats from the comparison calculated.
     */
-  private def buildChiSq(data: DataFrame, featureColumn: String): List[PearsonPayload] = {
+  private def buildChiSq(data: DataFrame,
+                         featureColumn: String): List[PearsonPayload] = {
     val reportBuffer = new ListBuffer[PearsonPayload]
 
     val chi = ChiSquareTest.test(data, featureColumn, _labelCol).head
@@ -134,8 +154,13 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     val degreesFreedom = chi.getSeq[Int](1).toArray
     val pearsonStat = chi.getAs[Vector](2).toArray
 
-    for(i <- _pearsonVectorFields.indices){
-      reportBuffer += PearsonPayload(_pearsonVectorFields(i), pvalues(i), degreesFreedom(i), pearsonStat(i))
+    for (i <- _pearsonVectorFields.indices) {
+      reportBuffer += PearsonPayload(
+        _pearsonVectorFields(i),
+        pvalues(i),
+        degreesFreedom(i),
+        pearsonStat(i)
+      )
     }
     reportBuffer.result
   }
@@ -147,7 +172,8 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     */
   private def acquireCardinality(column: String): Long = {
 
-    val aggregateData = df.select(col(column)).groupBy(col(column)).agg(count(col(column)))
+    val aggregateData =
+      df.select(col(column)).groupBy(col(column)).agg(count(col(column)))
     aggregateData.count()
   }
 
@@ -161,10 +187,10 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     val cardinalityOfFields = new ArrayBuffer[(String, Long)]()
 
     val featurePool = featureColumnListing.par
-    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(10))
+    val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
     featurePool.tasksupport = taskSupport
 
-    featurePool.foreach{ x=>
+    featurePool.foreach { x =>
       cardinalityOfFields += Tuple2(x, acquireCardinality(x))
     }
 
@@ -184,8 +210,9 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
 
     val determineCardinality = featuresCardinality()
 
-    determineCardinality.foreach{ x=>
-      if(x._2 < 10000) pearsonVectorBuffer += x._1 else pearsonNonCategoricalBuffer += x._1
+    determineCardinality.foreach { x =>
+      if (x._2 < 10000) pearsonVectorBuffer += x._1
+      else pearsonNonCategoricalBuffer += x._1
     }
 
     setPearsonNonCategoricalFields(pearsonNonCategoricalBuffer.result.toArray)
@@ -205,10 +232,13 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     // Create a new feature vector based on the fields that will be evaluated in PearsonFiltering
     restrictFeatureSet()
 
-    require(_pearsonVectorFields.nonEmpty, s"Pearson Filtering contains all continuous variables in the feature" +
-      s" vector, or cardinality of all features is greater than the threshold of 10k unique entries.  " +
-      s"Please turn off pearson filtering for this data set by defining the main class with the setter: " +
-      s".pearsonFilterOff() to continue.")
+    require(
+      _pearsonVectorFields.nonEmpty,
+      s"Pearson Filtering contains all continuous variables in the feature" +
+        s" vector, or cardinality of all features is greater than the threshold of 10k unique entries.  " +
+        s"Please turn off pearson filtering for this data set by defining the main class with the setter: " +
+        s".pearsonFilterOff() to continue."
+    )
 
     val assembler = new VectorAssembler()
       .setInputCols(_pearsonVectorFields)
@@ -225,15 +255,16 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     *                    methodology.
     * @return A list of fields that will be persisted and included in the feature vector going forward.
     */
-  private def filterChiSq(statPayload: List[PearsonPayload], filterValue: Double): List[String] = {
+  private def filterChiSq(statPayload: List[PearsonPayload],
+                          filterValue: Double): List[String] = {
     val fieldRestriction = new ListBuffer[String]
     _filterDirection match {
       case "greater" =>
         statPayload.foreach(x => {
-          x.getClass.getDeclaredFields foreach {f =>
+          x.getClass.getDeclaredFields foreach { f =>
             f.setAccessible(true)
-            if(f.getName == _filterStatistic)
-              if(f.get(x).asInstanceOf[Double] >= filterValue)
+            if (f.getName == _filterStatistic)
+              if (f.get(x).asInstanceOf[Double] >= filterValue)
                 fieldRestriction += x.fieldName
               else None
             else None
@@ -241,16 +272,20 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
         })
       case "lesser" =>
         statPayload.foreach(x => {
-          x.getClass.getDeclaredFields foreach {f =>
+          x.getClass.getDeclaredFields foreach { f =>
             f.setAccessible(true)
-            if(f.getName == _filterStatistic)
-              if(f.get(x).asInstanceOf[Double] <= filterValue)
+            if (f.getName == _filterStatistic)
+              if (f.get(x).asInstanceOf[Double] <= filterValue)
                 fieldRestriction += x.fieldName
               else None
             else None
           }
         })
-      case _ => throw new UnsupportedOperationException(s"${_filterDirection} is not supported for manualFilterChiSq")    }
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"${_filterDirection} is not supported for manualFilterChiSq"
+        )
+    }
     fieldRestriction.result
   }
 
@@ -262,22 +297,26 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     * @return The PearsonPayload results for each field, filtering out those elements that are either above / below
     *         the threshold configured.
     */
-  private def quantileGenerator(pearsonResults: List[PearsonPayload]): Double = {
+  private def quantileGenerator(
+    pearsonResults: List[PearsonPayload]
+  ): Double = {
 
     val statBuffer = new ListBuffer[Double]
     pearsonResults.foreach(x => {
-      x.getClass.getDeclaredFields foreach {f=>
+      x.getClass.getDeclaredFields foreach { f =>
         f.setAccessible(true)
-        if(f.getName == _filterStatistic) statBuffer += f.get(x).asInstanceOf[Double]
+        if (f.getName == _filterStatistic)
+          statBuffer += f.get(x).asInstanceOf[Double]
       }
     })
 
-    val statSorted = statBuffer.result.sortWith(_<_)
-    if(statSorted.size % 2 == 1) statSorted((statSorted.size * _autoFilterNTile).toInt)
+    val statSorted = statBuffer.result.sortWith(_ < _)
+    if (statSorted.size % 2 == 1)
+      statSorted((statSorted.size * _autoFilterNTile).toInt)
     else {
       val splitLoc = math.floor(statSorted.size * _autoFilterNTile).toInt
-      val splitCheck = if(splitLoc < 1) 1 else splitLoc.toInt
-      val(high, low) = statSorted.splitAt(splitCheck)
+      val splitCheck = if (splitLoc < 1) 1 else splitLoc.toInt
+      val (high, low) = statSorted.splitAt(splitCheck)
       (high.last + low.head) / 2
     }
 
@@ -288,7 +327,9 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
     * @param ignoreFields Fields that will be ignored from running a Pearson filter against.
     * @return
     */
-  def filterFields(ignoreFields: Array[String]=Array.empty[String]): DataFrame = {
+  def filterFields(
+    ignoreFields: Array[String] = Array.empty[String]
+  ): DataFrame = {
 
     val revectoredData = reVectorize()
 
@@ -298,10 +339,13 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String]) exten
         filterChiSq(chiSqData, _filterManualValue)
       case _ =>
         filterChiSq(chiSqData, quantileGenerator(chiSqData))
-      }
-    require(featureFields.nonEmpty, "All feature fields have been filtered out.  Adjust parameters.")
+    }
+    require(
+      featureFields.nonEmpty,
+      "All feature fields have been filtered out.  Adjust parameters."
+    )
     val fieldListing = featureFields ::: List(_labelCol) ::: ignoreFields.toList ::: _pearsonNonCategoricalFields.toList
-    df.select(fieldListing.map(col):_*)
+    df.select(fieldListing.map(col): _*)
   }
 
 }

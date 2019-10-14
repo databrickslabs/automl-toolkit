@@ -462,7 +462,8 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-    val earlyStoppingImprovementThreshold: Int = -10
+    val earlyStoppingImprovementThreshold: Int =
+      _continuousEvolutionImprovementThreshold
 
     val totalConfigs = modelConfigLength[RandomForestConfig]
 
@@ -671,7 +672,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
 
           val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration * 25,
+            _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
             mutationAggressiveness,
             _geneticMixing
           )
@@ -679,7 +680,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
           val evolution = GenerationOptimizer
             .randomForestCandidates(
               "RandomForest",
-              "XGBoost",
+              _geneticMBORegressorType,
               fossilRecord,
               expandedCandidates,
               _optimizationStrategy,
@@ -717,7 +718,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
 
         val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration * 25,
+          _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
           mutationAggressiveness,
           _geneticMixing
         )
@@ -725,7 +726,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
         val evolution = GenerationOptimizer
           .randomForestCandidates(
             "RandomForest",
-            "XGBoost",
+            _geneticMBORegressorType,
             fossilRecord,
             expandedCandidates,
             _optimizationStrategy,

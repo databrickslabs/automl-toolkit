@@ -17,6 +17,26 @@ Workspace path is desired for logging to.
 This is intended to be used as an alternative to OneHotEncoding for high cardinality
 nominal fields.  It is an information loss algorithm, though.  Integration options with the automl
 toolkit will be coming in a future release.
+* Added a new MBO algorithm on top of the Genetic Algorithm.  In each generation, a larger count of potential
+candidates are now generated, which are then fed, along with apriori hyperparameter + score information to a 
+new package (GenerationOptimizer.scala) which will train a Regressor (selectable) and return the best predicted
+hyperparameter combinations.
+* Added the following additional configuration options:
+```text
+dataPrepParallelism -> allows for setting a separate parallelism factor for the feature engineering phase
+of the application (can be useful for extremely large data sets to have a lower parallelism value than the 
+tuning parallelism setting)
+
+tunerGeneticMBOCandidateFactor -> Integer that serves as a multiplicative adjustment to the number of candidates
+that are mutated and generated from each genetic mutation epoch (only applies to stages other than first and last)
+
+tunerGeneticMBORegressorType -> One of "XGBoost", "RandomForest", or "LinearRegression"
+
+tunerContinuousEvolutionImprovementThreshold -> allows for an additional stopping criteria based on cumulative 
+gains of improvement.  NOTE: must be negative and values less negative than -5 will likely cause early stopping
+in continuous mode if parallelism is set too high.  Adjust to values closer to 0 than -5 with caution!
+
+```
 
 #### Bug Fixes
 * If a setter(s) were used after the mainConfig was set on AutomationRunner, the default values would be applied
@@ -25,6 +45,7 @@ even after the mapped configuration has been applied.
 * KSample (distributed SMOTE) bug fixes for scalability and reliability.
 * Eliminated the scaling bug when using a model that doesn't have ksample as its trainSplitMethodology set has a 
 scaling task set.
+* enabled asynchronous support for variance filtering to reflect the dataPrepParallelism setting (was hard-coded before to 10)
 
 
 

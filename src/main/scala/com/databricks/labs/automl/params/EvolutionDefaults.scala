@@ -28,6 +28,8 @@ trait EvolutionDefaults {
     List("random", "permutations")
   final val allowableInitialGenerationIndexMixingModes: List[String] =
     List("random", "linear")
+  final val allowableGeneticMBORegressorTypes: List[String] =
+    List("XGBoost", "LinearRegression", "RandomForest")
 
   def _defaultLabel: String = "label"
 
@@ -70,6 +72,12 @@ trait EvolutionDefaults {
   def _defaultEarlyStoppingFlag: Boolean = true
 
   def _defaultEvolutionStrategy: String = "batch"
+
+  def _defaultGeneticMBOCandidateFactor: Int = 10
+
+  def _defaultGeneticMBORegressorType: String = "XGBoost"
+
+  def _defaultContinuousEvolutionImprovementThreshold = -10
 
   def _defaultContinuousEvolutionMaxIterations: Int = 200
 

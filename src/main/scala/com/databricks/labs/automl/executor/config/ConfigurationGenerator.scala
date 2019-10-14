@@ -583,6 +583,24 @@ class ConfigurationGenerator(modelFamily: String,
   // Feature Engineering Config
 
   /**
+    * Setter for defining the number of concurrent threads allocated to performing asynchronous data prep tasks within
+    * the feature engineering aspect of this application.
+    * @param value Int: A value that must be greater than zero.
+    * @note This value has an upper limit, depending on driver size, that will restrict the efficacy of the asynchronous
+    *       tasks within the pool.  Setting this too high may cause cluster instability.
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if a value less than or equal to zero is supplied.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setDataPrepParallelism(value: Int): this.type = {
+
+    require(value > 0, s"DataPrepParallelism must be greater than zero.")
+    _instanceConfig.featureEngineeringConfig.dataPrepParallelism = value
+    this
+  }
+
+  /**
     * Setter
     * Specifies the behavior of the naFill algorithm for numeric (continuous) fields.<br>
     * Values that are generated as potential fill candidates are set according to the available statistics that are
@@ -1675,6 +1693,64 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  /**
+    * Setter for defining the secondary stopping criteria for continuous training mode ( number of consistentlt
+    * not-improving runs to terminate the learning algorithm due to diminishing returns.
+    * @param value Negative Integer (an improvement to a priori will reset the counter and subsequent non-improvements
+    *              will decrement a mutable counter.  If the counter hits this limit specified in value, the continuous
+    *              mode algorithm will stop).
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is positive.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerContinuousEvolutionImprovementThreshold(value: Int): this.type = {
+    require(
+      value < 0,
+      s"ContinuousEvolutionImprovementThreshold must be less than zero.  It is " +
+        s"recommended to set this value to less than -4."
+    )
+    _instanceConfig.tunerConfig.tunerContinuousEvolutionImprovementThreshold =
+      value
+    this
+  }
+
+  /**
+    * Setter for selecting the type of Regressor to use for the within-epoch generation MBO of candidates
+    * @param value String - one of "XGBoost", "LinearRegression" or "RandomForest"
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is not supported
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerGeneticMBORegressorType(value: String): this.type = {
+    validateMembership(
+      value,
+      allowableGeneticMBORegressorTypes,
+      "GeneticMBORegressorType"
+    )
+    _instanceConfig.tunerConfig.tunerGeneticMBORegressorType = value
+    this
+  }
+
+  /**
+    * Setter for defining the factor to be applied to the candidate listing of hyperparameters to generate through
+    * mutation for each generation other than the initial and post-modeling optimization phases.  The larger this
+    * value (default: 10), the more potential space can be searched.  There is not a large performance hit to this,
+    * and as such, values in excess of 100 are viable.
+    * @param value Int - a factor to multiply the numberOfMutationsPerGeneration by to generate a count of potential
+    *              candidates.
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is not greater than zero.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setTunerGeneticMBOCandidateFactor(value: Int): this.type = {
+    require(value > 0, s"GeneticMBOCandidateFactor must be greater than zero.")
+    _instanceConfig.tunerConfig.tunerGeneticMBOCandidateFactor = value
+    this
+  }
+
   def setTunerContinuousEvolutionMaxIterations(value: Int): this.type = {
     if (value > 500)
       println(
@@ -1996,6 +2072,7 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       oneHotEncodeFlag = config.switchConfig.oneHotEncodeFlag,
       scalingFlag = config.switchConfig.scalingFlag,
       dataPrepCachingFlag = config.switchConfig.dataPrepCachingFlag,
+      dataPrepParallelism = config.featureEngineeringConfig.dataPrepParallelism,
       autoStoppingFlag = config.switchConfig.autoStoppingFlag,
       autoStoppingScore = config.tunerConfig.tunerAutoStoppingScore,
       featureImportanceCutoffType =
@@ -2117,10 +2194,16 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         fixedMutationValue = config.tunerConfig.tunerFixedMutationValue,
         mutationMagnitudeMode = config.tunerConfig.tunerMutationMagnitudeMode,
         evolutionStrategy = config.tunerConfig.tunerEvolutionStrategy,
+        geneticMBORegressorType =
+          config.tunerConfig.tunerGeneticMBORegressorType,
+        geneticMBOCandidateFactor =
+          config.tunerConfig.tunerGeneticMBOCandidateFactor,
         continuousEvolutionMaxIterations =
           config.tunerConfig.tunerContinuousEvolutionMaxIterations,
         continuousEvolutionStoppingScore =
           config.tunerConfig.tunerContinuousEvolutionStoppingScore,
+        continuousEvolutionImprovementThreshold =
+          config.tunerConfig.tunerContinuousEvolutionImprovementThreshold,
         continuousEvolutionParallelism =
           config.tunerConfig.tunerContinuousEvolutionParallelism,
         continuousEvolutionMutationAggressiveness =
@@ -2177,6 +2260,7 @@ object ConfigurationGenerator extends ConfigurationDefaults {
     FeatureImportanceConfig(
       labelCol = config.genericConfig.labelCol,
       featuresCol = config.genericConfig.featuresCol,
+      dataPrepParallelism = config.featureEngineeringConfig.dataPrepParallelism,
       numericBoundaries = config.algorithmConfig.numericBoundaries,
       stringBoundaries = config.algorithmConfig.stringBoundaries,
       scoringMetric = config.genericConfig.scoringMetric,
@@ -2381,7 +2465,13 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       modelFamily,
       predictionType,
       genericConfigObject.getConfig
-    ).setNaFillFlag(
+    ).setDataPrepParallelism(
+        config
+          .getOrElse("dataPrepParallelism", defaultMap("dataPrepParallelism"))
+          .toString
+          .toInt
+      )
+      .setNaFillFlag(
         config
           .getOrElse("naFillFlag", defaultMap("naFillFlag"))
           .toString
@@ -3018,6 +3108,32 @@ object ConfigurationGenerator extends ConfigurationDefaults {
             defaultMap("tunerEvolutionStrategy")
           )
           .toString
+      )
+      .setTunerGeneticMBORegressorType(
+        config
+          .getOrElse(
+            "tunerGeneticMBORegressorType",
+            defaultMap("tunerGeneticMBORegressorType")
+          )
+          .toString
+      )
+      .setTunerGeneticMBOCandidateFactor(
+        config
+          .getOrElse(
+            "tunerGeneticMBOCandidateFactor",
+            defaultMap("tunerGeneticMBOCandidateFactor")
+          )
+          .toString
+          .toInt
+      )
+      .setTunerContinuousEvolutionImprovementThreshold(
+        config
+          .getOrElse(
+            "tunerContinuousEvolutionImprovementThreshold",
+            defaultMap("tunerContinuousEvolutionImprovementThreshold")
+          )
+          .toString
+          .toInt
       )
       .setTunerContinuousEvolutionMaxIterations(
         config
