@@ -155,6 +155,8 @@ trait ConfigurationDefaults {
       "blanketFillCharOnly",
       "blanketFillNumOnly"
     )
+  final val allowableGeneticMBORegressorTypes: List[String] =
+    List("XGBoost", "LinearRegression", "RandomForest")
 
   /**
     * Generic Helper Methods
@@ -378,6 +380,7 @@ trait ConfigurationDefaults {
     )
 
   private[config] def featureEngineeringConfig(): FeatureEngineeringConfig = {
+    val dataPrepParallelism = 20
     val numericFillStat = "mean"
     val characterFillStat = "max"
     val modelSelectionDistinctThreshold = 50
@@ -416,6 +419,7 @@ trait ConfigurationDefaults {
     val naFillMode = "auto"
 
     FeatureEngineeringConfig(
+      dataPrepParallelism,
       numericFillStat,
       characterFillStat,
       modelSelectionDistinctThreshold,
@@ -492,6 +496,9 @@ trait ConfigurationDefaults {
     val tunerFixedMutationValue = 1
     val tunerMutationMagnitudeMode = "fixed"
     val tunerEvolutionStrategy = "batch"
+    val tunerGeneticMBORegressorType = "XGBoost"
+    val tunerGeneticMBOCandidateFactor = 10
+    val tunerContinuousImprovementThreshold = -10
     val tunerContinuousEvolutionMaxIterations = 200
     val tunerContinuousEvolutionStoppingScore = 1.0
     val tunerContinuousEvolutionParallelism = 4
@@ -546,6 +553,9 @@ trait ConfigurationDefaults {
       tunerFixedMutationValue,
       tunerMutationMagnitudeMode,
       tunerEvolutionStrategy,
+      tunerGeneticMBORegressorType,
+      tunerGeneticMBOCandidateFactor,
+      tunerContinuousImprovementThreshold,
       tunerContinuousEvolutionMaxIterations,
       tunerContinuousEvolutionStoppingScore,
       tunerContinuousEvolutionParallelism,
@@ -630,6 +640,7 @@ trait ConfigurationDefaults {
       "fieldsToIgnoreInVector" -> genDef.fieldsToIgnoreInVector,
       "scoringMetric" -> genDef.scoringMetric,
       "scoringOptimizationStrategy" -> genDef.scoringOptimizationStrategy,
+      "dataPrepParallelism" -> featDef.dataPrepParallelism,
       "naFillFlag" -> switchDef.naFillFlag,
       "varianceFilterFlag" -> switchDef.varianceFilterFlag,
       "outlierFilterFlag" -> switchDef.outlierFilterFlag,
@@ -714,6 +725,9 @@ trait ConfigurationDefaults {
       "tunerFixedMutationValue" -> tunerDef.tunerFixedMutationValue,
       "tunerMutationMagnitudeMode" -> tunerDef.tunerMutationMagnitudeMode,
       "tunerEvolutionStrategy" -> tunerDef.tunerEvolutionStrategy,
+      "tunerGeneticMBORegressorType" -> tunerDef.tunerGeneticMBORegressorType,
+      "tunerGeneticMBOCandidateFactor" -> tunerDef.tunerGeneticMBOCandidateFactor,
+      "tunerContinuousEvolutionImprovementThreshold" -> tunerDef.tunerContinuousEvolutionImprovementThreshold,
       "tunerContinuousEvolutionMaxIterations" -> tunerDef.tunerContinuousEvolutionMaxIterations,
       "tunerContinuousEvolutionStoppingScore" -> tunerDef.tunerContinuousEvolutionStoppingScore,
       "tunerContinuousEvolutionParallelism" -> tunerDef.tunerContinuousEvolutionParallelism,

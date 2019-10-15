@@ -46,6 +46,7 @@ case class GenericConfig(var labelCol: String,
                          var scoringOptimizationStrategy: String)
 
 case class FeatureEngineeringConfig(
+  var dataPrepParallelism: Int,
   var numericFillStat: String,
   var characterFillStat: String,
   var modelSelectionDistinctThreshold: Int,
@@ -131,6 +132,9 @@ case class TunerConfig(var tunerAutoStoppingScore: Double,
                        var tunerFixedMutationValue: Int,
                        var tunerMutationMagnitudeMode: String,
                        var tunerEvolutionStrategy: String,
+                       var tunerGeneticMBORegressorType: String,
+                       var tunerGeneticMBOCandidateFactor: Int,
+                       var tunerContinuousEvolutionImprovementThreshold: Int,
                        var tunerContinuousEvolutionMaxIterations: Int,
                        var tunerContinuousEvolutionStoppingScore: Double,
                        var tunerContinuousEvolutionParallelism: Int,
@@ -162,7 +166,7 @@ case class LoggingConfig(var mlFlowLoggingFlag: Boolean,
                          var inferenceConfigSaveLocation: String,
                          var mlFlowCustomRunTags: Map[String, String])
 
-case class InstanceConfig (
+case class InstanceConfig(
   var modelFamily: String,
   var predictionType: String,
   var genericConfig: GenericConfig,

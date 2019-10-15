@@ -59,6 +59,9 @@ trait Defaults {
       "blanketFillNumOnly"
     )
 
+  final val allowableMBORegressorTypes =
+    List("XGBoost", "LinearRegression", "RandomForest")
+
   def _defaultModelingFamily: String = "RandomForest"
 
   def _defaultLabelCol: String = "label"
@@ -98,6 +101,8 @@ trait Defaults {
   def _defaultHyperSpaceModelCount: Int = 10
 
   def _defaultInitialGenerationMode: String = "random"
+
+  def _defaultDataPrepParallelism: Int = 20
 
   def _defaultFirstGenerationConfig = FirstGenerationConfig(
     permutationCount = 10,
@@ -146,8 +151,11 @@ trait Defaults {
     fixedMutationValue = 1,
     mutationMagnitudeMode = "fixed",
     evolutionStrategy = "batch",
+    geneticMBORegressorType = "XGBoost",
+    geneticMBOCandidateFactor = 10,
     continuousEvolutionMaxIterations = 200,
     continuousEvolutionStoppingScore = 1.0,
+    continuousEvolutionImprovementThreshold = -10,
     continuousEvolutionParallelism = 4,
     continuousEvolutionMutationAggressiveness = 3,
     continuousEvolutionGeneticMixing = 0.7,
@@ -357,6 +365,7 @@ trait Defaults {
     scalingFlag = false,
     dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
+    dataPrepParallelism = _defaultDataPrepParallelism,
     autoStoppingScore = _defaultAutoStoppingScore,
     featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
     featureImportanceCutoffValue = _defaultFeatureImportanceCutoffValue,
@@ -393,6 +402,7 @@ trait Defaults {
     scalingFlag = false,
     dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
+    dataPrepParallelism = _defaultDataPrepParallelism,
     autoStoppingScore = _defaultAutoStoppingScore,
     featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
     featureImportanceCutoffValue = _defaultFeatureImportanceCutoffValue,
@@ -425,8 +435,11 @@ trait Defaults {
       fixedMutationValue = 1,
       mutationMagnitudeMode = "fixed",
       evolutionStrategy = "batch",
+      geneticMBORegressorType = "XGBoost",
+      geneticMBOCandidateFactor = 10,
       continuousEvolutionMaxIterations = 200,
       continuousEvolutionStoppingScore = 1.0,
+      continuousEvolutionImprovementThreshold = -10,
       continuousEvolutionParallelism = 4,
       continuousEvolutionMutationAggressiveness = 3,
       continuousEvolutionGeneticMixing = 0.7,
@@ -461,6 +474,7 @@ trait Defaults {
     dataPrepCachingFlag = true,
     dateTimeConversionType = "split",
     autoStoppingFlag = _defaultAutoStoppingFlag,
+    dataPrepParallelism = _defaultDataPrepParallelism,
     autoStoppingScore = _defaultAutoStoppingScore,
     featureImportanceCutoffType = _defaultFeatureImportanceCutoffType,
     featureImportanceCutoffValue = _defaultFeatureImportanceCutoffValue,
@@ -492,8 +506,11 @@ trait Defaults {
       fixedMutationValue = 1,
       mutationMagnitudeMode = "fixed",
       evolutionStrategy = "batch",
+      geneticMBORegressorType = "XGBoost",
+      geneticMBOCandidateFactor = 10,
       continuousEvolutionMaxIterations = 200,
       continuousEvolutionStoppingScore = 1.0,
+      continuousEvolutionImprovementThreshold = -10,
       continuousEvolutionParallelism = 4,
       continuousEvolutionMutationAggressiveness = 3,
       continuousEvolutionGeneticMixing = 0.7,

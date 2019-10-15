@@ -76,7 +76,7 @@ class FeatureImportances(data: DataFrame,
         config.modelSelectionDistinctThreshold
       )
       .setFieldsToIgnoreInVector(config.fieldsToIgnore)
-      .setParallelism(config.parallelism)
+      .setParallelism(config.dataPrepParallelism)
       .setFilterPrecision(0.01)
       .generateCleanData()
 

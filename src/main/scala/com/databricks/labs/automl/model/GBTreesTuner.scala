@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.{
+  GenerationOptimizer,
   HyperParameterFullSearch,
   ModelReporting
 }
@@ -458,7 +459,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-    val earlyStoppingImprovementThreshold: Int = -10
+    val earlyStoppingImprovementThreshold: Int =
+      _continuousEvolutionImprovementThreshold
 
     // Generate the first pool of attempts to seed the hyperparameter space
     //    var runSet = ParHashSet(generateThresholdedParams(_firstGenerationGenePool): _*)
@@ -662,12 +664,22 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(
+          val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration,
+            _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
             mutationAggressiveness,
             _geneticMixing
           )
+
+          val evolution = GenerationOptimizer
+            .gbtCandidates(
+              "GBT",
+              _geneticMBORegressorType,
+              fossilRecord,
+              expandedCandidates,
+              _optimizationStrategy,
+              _numberOfMutationsPerGeneration
+            )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -698,12 +710,22 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(
+        val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration,
+          _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
           mutationAggressiveness,
           _geneticMixing
         )
+
+        val evolution = GenerationOptimizer
+          .gbtCandidates(
+            "GBT",
+            _geneticMBORegressorType,
+            fossilRecord,
+            expandedCandidates,
+            _optimizationStrategy,
+            _numberOfMutationsPerGeneration
+          )
 
         var evolve = runBattery(evolution, generation)
         generation += 1
