@@ -39,7 +39,7 @@ as listed [here](APIDOCS.md). It returns back the output of type ```Map[String, 
 
 
 ### Pipeline Configurations
-As noted above, all the pipeline APIs will work the existing configuration objects. In addition to those, pipeline API
+As noted above, all the pipeline APIs will work with the existing configuration objects. In addition to those, pipeline API
 exposes the following configurations:
 ```@text
 default: false
