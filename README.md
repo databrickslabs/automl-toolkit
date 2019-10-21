@@ -1,7 +1,7 @@
 # Databricks Labs AutoML
 [Release Notes](RELEASE_NOTES.md) |
 [Developer Docs](APIDOCS.md) |
-[Demo](demos/AutoMLPresentationDemo.html) |
+[Demo](demos) |
 [Release Artifacts](bin)
 
 
