@@ -113,7 +113,8 @@ val overrides = Map(
 )
 val randomForestConfig = ConfigurationGenerator
   .generateConfigFromMap("RandomForest", "classifier", overrides)
-val runner = FamilyRunner(data, Array(randomForestConfig)).executeWithPipeline()
+val runner = FamilyRunner(data, Array(randomForestConfig))
+  .executeWithPipeline()
 
 runner.bestPipelineModel("RandomForest").transform(data)
 
