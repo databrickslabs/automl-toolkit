@@ -92,6 +92,37 @@ val logConfig = ConfigurationGenerator.generateConfigFromMap("LogisticRegression
 val runner = FamilyRunner(data, Array(randomForestConfig, gbtConfig, logConfig)).execute()
 ```
 
+## Pipeline API
+### v0.72
+Starting with this release, AutoML now exposes an API to work with the pipeline semantics around 
+feature engineering steps and full predict pipelines. Example: 
+
+```scala
+import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.executor.FamilyRunner
+import org.apache.spark.ml.PipelineModel
+
+val data = spark.table("ben_demo.adult_data")
+val overrides = Map(
+  "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
+  "scalingFlag" -> true, "oneHotEncodeFlag" -> true,
+  "pipelineDebugFlag" -> true
+)
+val randomForestConfig = ConfigurationGenerator
+  .generateConfigFromMap("RandomForest", "classifier", overrides)
+val runner = FamilyRunner(data, Array(randomForestConfig)).executeWithPipeline()
+
+runner.bestPipelineModel("RandomForest").transform(data)
+
+//Serialize it
+runner.bestPipelineModel("RandomForest").write.overwrite().save("tmp/predict-pipeline-1")
+
+// Load it for running inference
+val pipelineModel = PipelineModel.load("tmp/predict-pipeline-1")
+val predictDf = pipelineModel.transform(data)
+```
+For all available pipeline APIs. please see [Developer Docs](PIPELINE_API_DOCS.md)
+
 This example will take the default configuration for all of the application parameters (excepting the overridden parameters in overrides Map) and execute Data Preparation tasks, Feature Vectorization, and automatic tuning of all 3 specified model types.  At the conclusion of each run, the results and model artifacts will be logged to the mlflow location that was specified in the configuration.
 
 For a listing of all available parameter overrides and their functionality, see the [Developer Docs](APIDOCS.md)
