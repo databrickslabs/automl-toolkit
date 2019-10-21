@@ -1,4 +1,9 @@
 # Databricks Labs AutoML
+[Release Notes](RELEASE_NOTES.md) |
+[Developer Docs](APIDOCS.md) |
+[Demo](demos/AutoMLPresentationDemo.html) |
+[Release Artifacts](bin)
+
 
 This Databricks Labs project is a non-supported end-to-end supervised learning solution for automating:
 * Feature clean-up
