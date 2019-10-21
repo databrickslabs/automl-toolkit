@@ -578,9 +578,9 @@ trait ConfigurationDefaults {
   private[config] def loggingConfig(): LoggingConfig = {
     val mlFlowLoggingFlag = true
     val mlFlowLogArtifactsFlag = false
-    val mlFlowTrackingURI = DBUtilsHelper.getTrackingURI
-    val mlFlowExperimentName = DBUtilsHelper.getNotebookDirectory + "MLFlowLogs"
-    val mlFlowAPIToken = DBUtilsHelper.getAPIToken
+    val mlFlowTrackingURI = if(mlFlowLogArtifactsFlag) DBUtilsHelper.getTrackingURI else ""
+    val mlFlowExperimentName = if(mlFlowLogArtifactsFlag) DBUtilsHelper.getNotebookDirectory + "MLFlowLogs" else ""
+    val mlFlowAPIToken = if(mlFlowLogArtifactsFlag) DBUtilsHelper.getAPIToken else ""
     val mlFlowModelSaveDirectory = "dbfs:/mlflow/experiments/"
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"

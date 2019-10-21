@@ -32,8 +32,10 @@ object FeatureEngineeringPipelineContext {
 
   @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 
+  //TODO (Jas): verbose true, only works for only feature engineering pipeline, for full predict pipeline this needs to be update.
   def generatePipelineModel(originalInputDataset: DataFrame,
-                            mainConfig: MainConfig): FeatureEngineeringOutput = {
+                            mainConfig: MainConfig,
+                            verbose: Boolean = false): FeatureEngineeringOutput = {
 
     val originalDfTempTableName = Identifiable.randomUID("zipWithId")
 
@@ -110,8 +112,9 @@ object FeatureEngineeringPipelineContext {
 
     // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
     removeColumns ++= oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
-    getAndAddStage(lastStages, dropColumns(removeColumns.toArray, mainConfig))
-
+    if(!verbose) {
+      getAndAddStage(lastStages, dropColumns(removeColumns.toArray, mainConfig))
+    }
     // final transformation
     val fourthPipelineModel = new Pipeline().setStages(lastStages.toArray).fit(ksampledDf)
     val fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
@@ -217,16 +220,26 @@ object FeatureEngineeringPipelineContext {
      pipelineModel
   }
 
-  private def addUserReturnViewStage(pipelineModel: PipelineModel,
+  private def getInputFeautureCols(inputDataFrame: DataFrame,
+                                   mainConfig: MainConfig): Array[String] = {
+    inputDataFrame.columns
+      .filterNot(mainConfig.fieldsToIgnoreInVector.contains)
+      .filterNot(Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL).contains)
+      .filterNot(Array(mainConfig.labelCol).contains)
+  }
+
+  def addUserReturnViewStage(pipelineModel: PipelineModel,
                              mainConfig: MainConfig,
                              dataFrame: DataFrame,
                              originalDfTempTableName: String): PipelineModel = {
     // Generate output dataset
+    val inputFeatures = getInputFeautureCols(dataFrame.sqlContext.sql(s"select * from $originalDfTempTableName"), mainConfig)
+
     val userViewPipelineModel = new Pipeline().setStages(
       Array(new AutoMlOutputDatasetTransformer()
         .setTempViewOriginalDatasetName(originalDfTempTableName)
         .setLabelColumn(mainConfig.labelCol)
-        .setFeatureColumns(Array.empty)))
+        .setFeatureColumns(inputFeatures)))
     .fit(dataFrame)
 
     userViewPipelineModel.transform(dataFrame)
@@ -248,10 +261,7 @@ object FeatureEngineeringPipelineContext {
     // Stage to select only those columns that are needed in the downstream stages
     // also creates a temp view of the original dataset which will then be used by the last stage
     // to return user table
-    val inputFeatures = dataFrame.columns
-      .filterNot(mainConfig.fieldsToIgnoreInVector.contains)
-      .filterNot(Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL).contains)
-      .filterNot(Array(mainConfig.labelCol).contains)
+    val inputFeatures = getInputFeautureCols(dataFrame, mainConfig)
 
     val zipRegisterTempTransformer = new ZipRegisterTempTransformer()
       .setTempViewOriginalDatasetName(originalDfTempTableName)
@@ -268,7 +278,10 @@ object FeatureEngineeringPipelineContext {
 
     val cardinalityLimitColumnPrunerTransformer = new CardinalityLimitColumnPrunerTransformer()
       .setLabelColumn(mainConfig.labelCol)
-      .setCardinalityLimit(500)
+      .setCardinalityLimit(mainConfig.fillConfig.cardinalityLimit)
+      .setCardinalityCheckMode(mainConfig.fillConfig.cardinalityCheckMode)
+      .setCardinalityPrecision(mainConfig.fillConfig.cardinalityPrecision)
+      .setCardinalityType(mainConfig.fillConfig.cardinalityType)
       .setDebugEnabled(mainConfig.pipelineDebugFlag)
 
     val dateFieldTransformer = new DateFieldTransformer()
@@ -288,7 +301,7 @@ object FeatureEngineeringPipelineContext {
     * Apply string indexers, apply vector assembler, drop unnecessary columns
     * @param dataFrame
     * @param mainConfig
-    * @param originalDfTempTableName
+    * @param ignoreCols
     * @return
     */
   private def applyStngIndxVectAssembler(dataFrame: DataFrame,

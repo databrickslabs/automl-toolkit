@@ -61,7 +61,7 @@ abstract class AbstractTransformer
 
   /**
     * Abstract Method to be implemented by all AutoML transformers
-    * @param dataset
+    * @param schema
     * @return schema of new output [[DataFrame]] [[StructType]]
     */
   def transformSchemaInternal(schema: StructType): StructType
