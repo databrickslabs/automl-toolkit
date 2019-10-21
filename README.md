@@ -91,9 +91,12 @@ val logConfig = ConfigurationGenerator.generateConfigFromMap("LogisticRegression
 
 val runner = FamilyRunner(data, Array(randomForestConfig, gbtConfig, logConfig)).execute()
 ```
+This example will take the default configuration for all of the application parameters (excepting the overridden parameters in overrides Map) and execute Data Preparation tasks, Feature Vectorization, and automatic tuning of all 3 specified model types.  At the conclusion of each run, the results and model artifacts will be logged to the mlflow location that was specified in the configuration.
+
+For a listing of all available parameter overrides and their functionality, see the [Developer Docs](APIDOCS.md)
 
 ## Pipeline API
-### v0.72
+### v0.6.0
 Starting with this release, AutoML now exposes an API to work with the pipeline semantics around 
 feature engineering steps and full predict pipelines. Example: 
 
@@ -122,10 +125,6 @@ val pipelineModel = PipelineModel.load("tmp/predict-pipeline-1")
 val predictDf = pipelineModel.transform(data)
 ```
 For all available pipeline APIs. please see [Developer Docs](PIPELINE_API_DOCS.md)
-
-This example will take the default configuration for all of the application parameters (excepting the overridden parameters in overrides Map) and execute Data Preparation tasks, Feature Vectorization, and automatic tuning of all 3 specified model types.  At the conclusion of each run, the results and model artifacts will be logged to the mlflow location that was specified in the configuration.
-
-For a listing of all available parameter overrides and their functionality, see the [Developer Docs](APIDOCS.md)
 
 ## Feedback
 

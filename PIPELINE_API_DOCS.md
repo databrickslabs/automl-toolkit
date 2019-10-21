@@ -1,4 +1,4 @@
-# AutoML-Toolkit
+# Pipeline API for the AutoML-Toolkit 
 
 The AutoML-Toolkit is an automated ML solution for Apache Spark.  It provides common data cleansing and feature 
 engineering support, automated hyper-parameter tuning through distributed genetic algorithms, and model tracking 
@@ -9,7 +9,7 @@ integration with MLFlow.  It currently supports Supervised Learning algorithms t
 The AutoML toolkit exposes the following pipeline-related APIs via [FamilyRunner](/Users/jas.bali/IdeaProjects/providentia/src/main/scala/com/databricks/labs/automl/executor/FamilyRunner.scala)
 
 
-#### Full Predict pipeline API:
+### Full Predict pipeline API:
 ```text
 executeWithPipeline()
 ```
@@ -26,7 +26,7 @@ and the best pipeline model (based on the selected ```scoringOptimizationStrateg
 
 
  
-#### Feature engineering pipeline API:
+### Feature engineering pipeline API:
 ```text
 generateFeatureEngineeredPipeline(verbose: Boolean = false)
 ```
@@ -38,7 +38,7 @@ as listed [here](APIDOCS.md). It returns back the output of type ```Map[String, 
 ```(modelFamilyName -> featureEngPipelineModel)```
 
 
-#### Pipeline Configurations
+### Pipeline Configurations
 As noted above, all the pipeline APIs will work the existing configuration objects. In addition to those, pipeline API
 exposes the following configurations:
 ```@text
