@@ -6,7 +6,7 @@ integration with MLFlow.  It currently supports Supervised Learning algorithms t
 
 ## General Overview
 
-The AutoML toolkit exposes the following pipeline-related APIs via [FamilyRunner](/Users/jas.bali/IdeaProjects/providentia/src/main/scala/com/databricks/labs/automl/executor/FamilyRunner.scala)
+The AutoML toolkit exposes the following pipeline-related APIs via [FamilyRunner](src/main/scala/com/databricks/labs/automl/executor/FamilyRunner.scala)
 
 
 ### Full Predict pipeline API:
