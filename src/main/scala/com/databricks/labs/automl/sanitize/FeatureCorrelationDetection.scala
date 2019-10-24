@@ -54,30 +54,34 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
   private def computeFeatureCorrelation(): Array[FeatureCorrelationStats] = {
 
     val correlationInteractions = new ArrayBuffer[FeatureCorrelationStats]
-    val redundantRecursionEliminator = new ArrayBuffer[String]
-
+   
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
     val fieldListingPar = fieldListing.par
     fieldListingPar.tasksupport = taskSupport
 
-
-    fieldListingPar.foreach{ x =>
-      val leftFields = fieldListing.filterNot(_.contains(x)).filterNot(f => redundantRecursionEliminator.contains(f))
-      leftFields.foreach{y =>
+   //In the previous code, both of the features having higher negative or positive correlation were getting removed
+   //because for every pair of feature a and b, in correlationInteraction (a,b) as well as (b,a) was getting added
+    fieldListingPar.foreach(cfeature =>
+    {
+      var currIndex = fieldListingPar.indexOf(cfeature)
+      while (currIndex +1 < fieldListingPar.length)
+      {
+        val nextIndex = currIndex + 1
+        val nfeature = fieldsToCheck(nextIndex)
         val corrStats: Double = try {
-          data.groupBy().agg(corr(x, y).as("pearson")).first().getDouble(0)
-        } catch {
+          dataFrame.groupBy().agg(corr(cfeature, nfeature).as("pearson")).first().getDouble(0)
+        }
+        catch {
           case e: java.lang.NullPointerException =>
-            val errorMsg = s"Correlation Calculation for $x : $y failed.  Recording Inf for correlation."
-            println(errorMsg)
-            logger.log(Level.INFO, errorMsg + s"\n ${e.printStackTrace()}")
+            val errorMsg = s"Correlation Calculation for $cfeature : $nfeature failed.  Recording Inf for correlation."
+
+            log.error(errorMsg + s"\n ${e.printStackTrace()}")
             Double.PositiveInfinity
         }
-        correlationInteractions += FeatureCorrelationStats(x, y, corrStats)
+        currIndex+=1
+        correlationInteractions += FeatureCorrelationStats(cfeature, nfeature, corrStats)
       }
-      redundantRecursionEliminator += x
     }
-
     correlationInteractions.result.toArray
   }
 
