@@ -75,7 +75,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
           case e: java.lang.NullPointerException =>
             val errorMsg = s"Correlation Calculation for $cfeature : $nfeature failed.  Recording Inf for correlation."
 
-            log.error(errorMsg + s"\n ${e.printStackTrace()}")
+             logger.log(Level.INFO, errorMsg + s"\n ${e.printStackTrace()}")
             Double.PositiveInfinity
         }
         currIndex+=1
