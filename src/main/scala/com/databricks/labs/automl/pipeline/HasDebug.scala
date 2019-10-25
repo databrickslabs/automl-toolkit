@@ -48,11 +48,15 @@ trait HasDebug extends Params {
       //Log this stage to MLFlow with useful information
       val pipelineId = paramValueAsString(this.extractParamMap().get(this.getParam("pipelineId")).get)
         .asInstanceOf[String]
-      val pipelineStatus = PipelineStateCache
-        .getFromPipelineByIdAndKey(
-          pipelineId,
-          PipelineVars.PIPELINE_STATUS.key)
-        .asInstanceOf[String]
+      val pipelineStatus = try {
+        PipelineStateCache
+          .getFromPipelineByIdAndKey(
+            pipelineId,
+            PipelineVars.PIPELINE_STATUS.key)
+          .asInstanceOf[String]
+      } catch {
+        case ex: Exception => PipelineStatus.PIPELINE_FAILED.key
+      }
       val isTrain = !pipelineStatus.equals(PipelineStatus.PIPELINE_COMPLETED.key) &&
                     !pipelineStatus.equals(PipelineStatus.PIPELINE_FAILED.key)
       if(!inputDataset.sparkSession.sparkContext.isLocal && isTrain) {
