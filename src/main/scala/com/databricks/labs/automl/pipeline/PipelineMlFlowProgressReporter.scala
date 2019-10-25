@@ -13,7 +13,7 @@ object PipelineMlFlowProgressReporter {
     PipelineStateCache
       .addToPipelineCache(
         pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_STARTED)
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_STARTED.key)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId,
@@ -27,7 +27,7 @@ object PipelineMlFlowProgressReporter {
     PipelineStateCache
       .addToPipelineCache(
         pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_RUNNING)
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_RUNNING.key)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId, Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}"
@@ -40,7 +40,7 @@ object PipelineMlFlowProgressReporter {
     PipelineStateCache
       .addToPipelineCache(
         pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_COMPLETED)
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_COMPLETED.key)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId,
@@ -54,7 +54,7 @@ object PipelineMlFlowProgressReporter {
     PipelineStateCache
       .addToPipelineCache(
         pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_FAILED)
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_FAILED.key)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId,
