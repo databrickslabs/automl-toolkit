@@ -10,6 +10,10 @@ import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFl
 object PipelineMlFlowProgressReporter {
 
   def starting(pipelineId: String): Unit = {
+    PipelineStateCache
+      .addToPipelineCache(
+        pipelineId,
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_STARTED)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId,
@@ -20,6 +24,10 @@ object PipelineMlFlowProgressReporter {
   }
 
   def runningStage(pipelineId: String, stage: String): Unit = {
+    PipelineStateCache
+      .addToPipelineCache(
+        pipelineId,
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_RUNNING)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId, Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}"
@@ -29,6 +37,10 @@ object PipelineMlFlowProgressReporter {
   }
 
   def completed(pipelineId: String, totalStagesRan: Int): Unit = {
+    PipelineStateCache
+      .addToPipelineCache(
+        pipelineId,
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_COMPLETED)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId,
@@ -39,6 +51,10 @@ object PipelineMlFlowProgressReporter {
   }
 
   def failed(pipelineId: String, message: String): Unit = {
+    PipelineStateCache
+      .addToPipelineCache(
+        pipelineId,
+        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_FAILED)
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId,

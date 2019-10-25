@@ -23,6 +23,7 @@ object PipelineVars extends Enumeration {
   val PIPELINE_LABEL_REFACTOR_NEEDED_KEY = PipelineVarsPair("labelRefactorNeeded", classOf[Boolean])
   val MLFLOW_RUN_ID = PipelineVarsPair("MlFlowRunId", classOf[String])
   val MAIN_CONFIG = PipelineVarsPair("MainConfig", classOf[MainConfig])
+  val PIPELINE_STATUS = PipelineVarsPair("PipelineStatus", classOf[String])
 
   case class PipelineVarsPair(key: String, keyType: Class[_]) extends Val
 }

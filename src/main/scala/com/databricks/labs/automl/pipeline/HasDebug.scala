@@ -46,14 +46,16 @@ trait HasDebug extends Params {
       println(logStrng)
       logger.info(logStrng)
       //Log this stage to MLFlow with useful information
-      val isTrain = try {
-         !paramValueAsString(this.extractParamMap().get(this.getParam("transformCalculated")).get).asInstanceOf[Boolean]
-      } catch {
-        case e: Exception => false
-      }
+      val pipelineId = paramValueAsString(this.extractParamMap().get(this.getParam("pipelineId")).get)
+        .asInstanceOf[String]
+      val pipelineStatus = PipelineStateCache
+        .getFromPipelineByIdAndKey(
+          pipelineId,
+          PipelineVars.PIPELINE_STATUS.key)
+        .asInstanceOf[String]
+      val isTrain = !pipelineStatus.equals(PipelineStatus.PIPELINE_COMPLETED.key) &&
+                    !pipelineStatus.equals(PipelineStatus.PIPELINE_FAILED.key)
       if(!inputDataset.sparkSession.sparkContext.isLocal && isTrain) {
-        val pipelineId = paramValueAsString(this.extractParamMap().get(this.getParam("pipelineId")).get)
-          .asInstanceOf[String]
         AutoMlPipelineMlFlowUtils
           .logTagsToMlFlow(pipelineId, Map(s"pipeline_stage_${this.getClass.getName}" -> logStrng))
         PipelineMlFlowProgressReporter.runningStage(pipelineId, this.getClass.getName)
