@@ -131,6 +131,10 @@ runner.bestPipelineModel("RandomForest").write.overwrite().save("tmp/predict-pip
 val pipelineModel = PipelineModel.load("tmp/predict-pipeline-1")
 val predictDf = pipelineModel.transform(data)
 ```
+### Inference via Mlflow Run ID
+It is also possible to use MlFlow Run ID for inference, if Mlflow logging is turned on during training.
+For usage, see [this](PIPELINE_API_DOCS.md#running-inference-pipeline-directly-against-an-mlflow-run-id-since-v061)
+
 For all available pipeline APIs. please see [Developer Docs](PIPELINE_API_DOCS.md)
 
 ## Feedback
