@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.{
+  GenerationOptimizer,
   HyperParameterFullSearch,
   ModelReporting
 }
@@ -374,7 +375,8 @@ class LinearRegressionTuner(df: DataFrame)
     var bestScore: Double = 0.0
     var rollingImprovement: Boolean = true
     var incrementalImprovementCount: Int = 0
-    val earlyStoppingImprovementThreshold: Int = -10
+    val earlyStoppingImprovementThreshold: Int =
+      _continuousEvolutionImprovementThreshold
 
     val totalConfigs = modelConfigLength[LinearRegressionConfig]
 
@@ -579,12 +581,22 @@ class LinearRegressionTuner(df: DataFrame)
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
 
-          val evolution = irradiateGeneration(
+          val expandedCandidates = irradiateGeneration(
             generateIdealParents(currentState),
-            _numberOfMutationsPerGeneration,
+            _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
             mutationAggressiveness,
             _geneticMixing
           )
+
+          val evolution = GenerationOptimizer
+            .linearRegressionCandidates(
+              "LinearRegression",
+              _geneticMBORegressorType,
+              fossilRecord,
+              expandedCandidates,
+              _optimizationStrategy,
+              _numberOfMutationsPerGeneration
+            )
 
           var evolve = runBattery(evolution, generation)
           generation += 1
@@ -615,12 +627,22 @@ class LinearRegressionTuner(df: DataFrame)
 
         val currentState = sortAndReturnAll(fossilRecord)
 
-        val evolution = irradiateGeneration(
+        val expandedCandidates = irradiateGeneration(
           generateIdealParents(currentState),
-          _numberOfMutationsPerGeneration,
+          _numberOfMutationsPerGeneration * _geneticMBOCandidateFactor,
           mutationAggressiveness,
           _geneticMixing
         )
+
+        val evolution = GenerationOptimizer
+          .linearRegressionCandidates(
+            "LinearRegression",
+            _geneticMBORegressorType,
+            fossilRecord,
+            expandedCandidates,
+            _optimizationStrategy,
+            _numberOfMutationsPerGeneration
+          )
 
         var evolve = runBattery(evolution, generation)
         generation += 1

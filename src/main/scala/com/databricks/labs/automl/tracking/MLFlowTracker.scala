@@ -39,6 +39,8 @@ class MLFlowTracker extends InferenceTools {
   private var _mlFlowBestSuffix: String = _
   private var _mlFlowCustomRunTags: Map[String, String] = Map.empty
 
+  final private val HOSTED_NAMESPACE = List("databricks.com", "databricks.net")
+
   def setMlFlowTrackingURI(value: String): this.type = {
     _mlFlowTrackingURI = value
     this
@@ -112,7 +114,7 @@ class MLFlowTracker extends InferenceTools {
 
   def createHostedMlFlowClient(): MlflowClient = {
 
-    val hosted: Boolean = _mlFlowTrackingURI.contains("databricks.com")
+    val hosted: Boolean = HOSTED_NAMESPACE.exists(_mlFlowTrackingURI.contains)
 
     if (hosted) {
       new MlflowClient(
@@ -215,9 +217,6 @@ class MLFlowTracker extends InferenceTools {
         client.setTag(runId, "ModelSaveLocation", path)
         client.setTag(runId, "TrainingPayload", modelReturn.toString)
       case "regressor_XGBoost" =>
-        //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
-        // Jackson dependency issues.  Disabling manual model storage for now.
-
         modelReturn.model
           .asInstanceOf[XGBoostRegressionModel]
           .write
@@ -225,15 +224,9 @@ class MLFlowTracker extends InferenceTools {
           .save(path)
         if (_logArtifacts)
           client.logArtifacts(runId, new File(createFusePath(path)))
-//        println(
-//          "Saving XGBoost Models is not supported at this time. It will be available soon"
-//        )
         client.setTag(runId, "ModelSaveLocation", path)
         client.setTag(runId, "TrainingPayload", modelReturn.toString)
       case "classifier_XGBoost" =>
-        //NOTE: Model serialization in Spark 2.4 current doesn't work with dmlc XGBoost4j due to
-        // Jackson dependency issues.  Disabling manual model storage for now.
-
         modelReturn.model
           .asInstanceOf[XGBoostClassificationModel]
           .write
@@ -241,9 +234,6 @@ class MLFlowTracker extends InferenceTools {
           .save(path)
         if (_logArtifacts)
           client.logArtifacts(runId, new File(createFusePath(path)))
-//        println(
-//          "Saving XGBoost Models is not supported at this time. It will be available soon"
-//        )
         client.setTag(runId, "ModelSaveLocation", path)
         client.setTag(runId, "TrainingPayload", modelReturn.toString)
       case "regressor_GBT" =>

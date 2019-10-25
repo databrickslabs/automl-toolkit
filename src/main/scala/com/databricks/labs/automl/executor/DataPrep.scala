@@ -91,7 +91,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       )
       .setNumericFillStat(_mainConfig.fillConfig.numericFillStat)
       .setCharacterFillStat(_mainConfig.fillConfig.characterFillStat)
-      .setParallelism(_mainConfig.geneticConfig.parallelism)
+      .setParallelism(_mainConfig.dataPrepParallelism)
       .setFieldsToIgnoreInVector(_mainConfig.fieldsToIgnoreInVector)
       .setFilterPrecision(_mainConfig.fillConfig.filterPrecision)
       .setCategoricalNAFillMap(_mainConfig.fillConfig.categoricalNAFillMap)
@@ -135,7 +135,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setLabelCol(_mainConfig.labelCol)
       .setFeatureCol(_mainConfig.featuresCol)
       .setDateTimeConversionType(_mainConfig.dateTimeConversionType)
-      .setParallelism(_mainConfig.geneticConfig.parallelism)
+      .setParallelism(_mainConfig.dataPrepParallelism)
 
     val (varianceFilteredData, removedColumns) =
       varianceFiltering.filterZeroVariance(_mainConfig.fieldsToIgnoreInVector)
@@ -162,7 +162,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setLowerFilterNTile(_mainConfig.outlierConfig.lowerFilterNTile)
       .setUpperFilterNTile(_mainConfig.outlierConfig.upperFilterNTile)
       .setFilterPrecision(_mainConfig.outlierConfig.filterPrecision)
-      .setParallelism(_mainConfig.geneticConfig.parallelism)
+      .setParallelism(_mainConfig.dataPrepParallelism)
       .setContinuousDataThreshold(
         _mainConfig.outlierConfig.continuousDataThreshold
       )
@@ -190,6 +190,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
 
     val covarianceFilteredData = new FeatureCorrelationDetection(data, fields)
       .setLabelCol(_mainConfig.labelCol)
+      .setParallelism(_mainConfig.dataPrepParallelism)
       .setCorrelationCutoffLow(
         _mainConfig.covarianceConfig.correlationCutoffLow
       )
@@ -224,6 +225,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       .setFilterManualValue(_mainConfig.pearsonConfig.filterManualValue)
       .setFilterMode(_mainConfig.pearsonConfig.filterMode)
       .setAutoFilterNTile(_mainConfig.pearsonConfig.autoFilterNTile)
+      .setParallelism(_mainConfig.dataPrepParallelism)
       .filterFields(_mainConfig.fieldsToIgnoreInVector)
 
     val removedFields =
@@ -314,28 +316,15 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     //DEBUG
     logger.log(Level.DEBUG, printSchema(df, "input").toString)
 
-    //TODO: evaluate this change!!!!
     val (naFilledData, fillMap, detectedModelType) = fillNA(df)
     val (entryPointData, entryPointFields, selectFields) =
       vectorPipeline(naFilledData, _mainConfig.fillConfig.cardinalitySwitch)
-
-//    // Start by converting fields
-//    val (entryPointDf, entryPointFields, selectFields) =
-//      vectorPipeline(df, _mainConfig.fillConfig.cardinalitySwitch)
 
     // Record the Inference Settings for DataConfig
     val inferenceDataConfig =
       recordInferenceDataConfig(_mainConfig, selectFields)
     InferenceConfig.setInferenceDataConfig(inferenceDataConfig)
 
-//    logger.log(Level.DEBUG, printSchema(entryPointDf, "entryPoint").toString)
-
-//    val entryPointDataRestrict = entryPointDf.select(selectFields map col: _*)
-//
-//    // this ignores the fieldsToIgnore and reparses the date and time fields.
-//    val (dataStage1, fillMap, detectedModelType) = fillNA(
-//      entryPointDataRestrict
-//    )
     val dataStage1 = entryPointData.select(selectFields map col: _*)
 
     // Record the Inference Settings for NaFillConfig mappings

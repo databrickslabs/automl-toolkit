@@ -16,7 +16,7 @@ import org.apache.spark.sql.types.{LongType, StructField, StructType}
   * This is extremely useful for making sure all the original columns are present in the final
   * transformed dataset, since there may be a need to JOIN operations on ignored columns in the
   * downstream of inference step
-  * @param dataset
+  * @param uid
   */
 class AutoMlOutputDatasetTransformer(override val uid: String)
   extends AbstractTransformer
@@ -40,15 +40,17 @@ class AutoMlOutputDatasetTransformer(override val uid: String)
     val originalUserDf =  dataset.sqlContext.sql(s"select * from $getTempViewOriginalDatasetName")
     val userViewDf =
     if(dataset.columns.contains(getLabelColumn)) {
-      dataset
+      val tmpDf = dataset
         .drop(getFeatureColumns:_*)
         .drop(getLabelColumn)
-        .join(originalUserDf, getAutomlInternalId)
+      originalUserDf
+        .join(tmpDf, getAutomlInternalId)
         .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     } else {
-      dataset
+      val tmpDf = dataset
         .drop(getFeatureColumns:_*)
-        .join(originalUserDf, getAutomlInternalId)
+      originalUserDf
+        .join(tmpDf, getAutomlInternalId)
         .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
     }
     dataset.sqlContext.dropTempTable(getTempViewOriginalDatasetName)

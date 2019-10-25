@@ -60,6 +60,10 @@ trait Evolution
   var _earlyStoppingFlag: Boolean = _defaultEarlyStoppingFlag
 
   var _evolutionStrategy: String = _defaultEvolutionStrategy
+  var _geneticMBOCandidateFactor: Int = _defaultGeneticMBOCandidateFactor
+  var _geneticMBORegressorType: String = _defaultGeneticMBORegressorType
+  var _continuousEvolutionImprovementThreshold: Int =
+    _defaultContinuousEvolutionImprovementThreshold
   var _continuousEvolutionMaxIterations: Int =
     _defaultContinuousEvolutionMaxIterations
   var _continuousEvolutionStoppingScore: Double =
@@ -546,6 +550,63 @@ trait Evolution
     this
   }
 
+  /**
+    * Setter for defining the secondary stopping criteria for continuous training mode ( number of consistentlt
+    * not-improving runs to terminate the learning algorithm due to diminishing returns.
+    * @param value Negative Integer (an improvement to a priori will reset the counter and subsequent non-improvements
+    *              will decrement a mutable counter.  If the counter hits this limit specified in value, the continuous
+    *              mode algorithm will stop).
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is positive.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setContinuousEvolutionImprovementThreshold(value: Int): this.type = {
+    require(
+      value < 0,
+      s"ContinuousEvolutionImprovementThreshold must be less than zero.  It is " +
+        s"recommended to set this value to less than -4."
+    )
+    _continuousEvolutionImprovementThreshold = value
+    this
+  }
+
+  /**
+    * Setter for selecting the type of Regressor to use for the within-epoch generation MBO of candidates
+    * @param value String - one of "XGBoost", "LinearRegression" or "RandomForest"
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is not supported
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setGeneticMBORegressorType(value: String): this.type = {
+    require(
+      allowableMBORegressorTypes.contains(value),
+      s"GeneticRegressorType $value is not a supported Regressor " +
+        s"Type.  Must be one of: ${allowableMBORegressorTypes.mkString(", ")}"
+    )
+    _geneticMBORegressorType = value
+    this
+  }
+
+  /**
+    * Setter for defining the factor to be applied to the candidate listing of hyperparameters to generate through
+    * mutation for each generation other than the initial and post-modeling optimization phases.  The larger this
+    * value (default: 10), the more potential space can be searched.  There is not a large performance hit to this,
+    * and as such, values in excess of 100 are viable.
+    * @param value Int - a factor to multiply the numberOfMutationsPerGeneration by to generate a count of potential
+    *              candidates.
+    * @author Ben Wilson, Databricks
+    * @since 0.6.0
+    * @throws IllegalArgumentException if the value is not greater than zero.
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setGeneticMBOCandidateFactor(value: Int): this.type = {
+    require(value > 0, s"GeneticMBOCandidateFactor must be greater than zero.")
+    _geneticMBOCandidateFactor = value
+    this
+  }
+
   def setContinuousEvolutionMaxIterations(value: Int): this.type = {
     if (value > 500)
       println(
@@ -706,6 +767,13 @@ trait Evolution
   def getEarlyStoppingFlag: Boolean = _earlyStoppingFlag
 
   def getEvolutionStrategy: String = _evolutionStrategy
+
+  def getGeneticMBORegressorType: String = _geneticMBORegressorType
+
+  def getGeneticMBOCandidateFactor: Int = _geneticMBOCandidateFactor
+
+  def getContinuousEvolutionImprovementThreshold: Int =
+    _continuousEvolutionImprovementThreshold
 
   def getContinuousEvolutionMaxIterations: Int =
     _continuousEvolutionMaxIterations

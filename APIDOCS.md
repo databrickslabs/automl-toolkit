@@ -1665,4 +1665,6 @@ There are two primary entry points for an inference run.  One simply requires th
 while the other requires the json string itself.  Everything needed to execute the inference prediction is 
 contained within this data structure (either the json or the Dataframe)
 
+### Pipeline API
+To use pipeline API, check [here](PIPELINE_API_DOCS.md) for an example usage.
 
