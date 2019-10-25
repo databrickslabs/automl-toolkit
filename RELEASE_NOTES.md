@@ -1,5 +1,11 @@
 ## Auto ML Toolkit Release Notes
 
+### Version 0.6.1
+* Upgraded MlFLow to 1.3.0
+* Pipeline now registers with Mlflow (including Inference Pipeline Model and feature engineered original df)
+* Added new Pipeline APIs to Run inference directly against MLFlow Run Ids
+* Training Pipeline now automatically registers pipeline progress and each stages transformations with MLFlow
+
 ### Version 0.6.0
 
 #### Features

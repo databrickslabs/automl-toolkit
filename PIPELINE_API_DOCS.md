@@ -89,6 +89,35 @@ val featEngDf = PipelineModel
 .transform(data)
 ```
 
+### Running Inference Pipeline directly against an MLflow RUN ID since v0.6.1:
+With this release, it is not possible to run inference given an Mlflow RUN ID, since pipeline now registers inference 
+pipeline model with Mlflow along with bunch of other useful information, such as Pipeline progress and each stages transformations.
+This can come very handy to view the train pipeline's progress as well as troubleshooting.
+Example:
+```scala
+import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.executor.FamilyRunner
+import org.apache.spark.ml.PipelineModel
+import com.databricks.labs.automl.pipeline.inference.PipelineModelInference
+
+val data = spark.table("ben_demo.adult_data")
+val overrides = Map(
+  "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
+  "scalingFlag" -> true, "oneHotEncodeFlag" -> true,
+  "pipelineDebugFlag" -> true
+)
+val randomForestConfig = ConfigurationGenerator
+  .generateConfigFromMap("RandomForest", "classifier", overrides)
+val runner = FamilyRunner(data, Array(randomForestConfig))
+  .executeWithPipeline()
+
+val mlFlowRunId = runner.bestMlFlowRunId("RandomForest")
+
+val loggingConfig = randomForestConfig.loggingConfig
+val pipelineModel = PipelineModelInference.getPipelineModelByMlFlowRunId(mlFlowRunId, loggingConfig)
+pipelineModel.transform(data.drop("label")).drop("features").show(10)
+```
+
 ### Pipeline Configurations
 As noted above, all the pipeline APIs will work with the existing configuration objects. In addition to those, pipeline API
 exposes the following configurations:
@@ -97,7 +126,7 @@ exposes the following configurations:
 default: false
 pipelineDebugFlag: A Boolean flag for the pipeline logging purposes. When turned on, each stage in a pipeline execution 
 will print and log out a lot of useful information that can be used to track transformations for debugging/troubleshooting 
-puproses
+puproses. Since v0.6.1, when this flag is turned on, pipeline reports all of these transformations to Mlflow as Run tags.
 ```
 
 
