@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, DataValidation, SchemaUtils}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, DataValidation, SchemaUtils}
 import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
@@ -23,7 +23,7 @@ class DateFieldTransformer (override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("DateFieldTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setNewDateTimeFeatureColumns(Array.empty)
     setOldDateTimeFeatureColumns(Array.empty)
     setDebugEnabled(false)

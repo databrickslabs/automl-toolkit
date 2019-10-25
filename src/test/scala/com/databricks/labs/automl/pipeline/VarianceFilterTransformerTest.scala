@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, PipelineTestUtils}
 import org.apache.spark.ml.PipelineStage
 
@@ -14,7 +14,7 @@ class VarianceFilterTransformerTest extends AbstractUnitSpec {
     stages += PipelineTestUtils
       .addZipRegisterTmpTransformerStage(
         testVars.labelCol,
-        testVars.df.columns.filterNot(item => AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL.equals(item))
+        testVars.df.columns.filterNot(item => AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL.equals(item))
       )
     stages ++= PipelineTestUtils.buildFeaturesPipelineStages(testVars.df, testVars.labelCol, dropColumns = false)
     stages += new VarianceFilterTransformer()

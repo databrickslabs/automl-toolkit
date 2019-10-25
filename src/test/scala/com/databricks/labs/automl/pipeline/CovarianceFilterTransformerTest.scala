@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, PipelineTestUtils}
 import org.apache.spark.ml.PipelineStage
 
@@ -12,7 +12,7 @@ class CovarianceFilterTransformerTest extends AbstractUnitSpec {
     a [AssertionError] should be thrownBy {
       val testVars = PipelineTestUtils.getTestVars()
       val stages = new ArrayBuffer[PipelineStage]
-      val nonFeatureCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
+      val nonFeatureCols = Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
       stages += PipelineTestUtils
         .addZipRegisterTmpTransformerStage(
           testVars.labelCol,

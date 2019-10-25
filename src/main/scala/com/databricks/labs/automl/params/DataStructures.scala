@@ -229,7 +229,8 @@ case class FamilyFinalOutput(modelReport: Array[GroupedModelReturn],
 
 case class FamilyFinalOutputWithPipeline(
   familyFinalOutput: FamilyFinalOutput,
-  bestPipelineModel: Map[String, PipelineModel]
+  bestPipelineModel: Map[String, PipelineModel],
+  bestMlFlowRunId: Map[String, String] = Map.empty
 )
 
 sealed trait ModelType[A, B]

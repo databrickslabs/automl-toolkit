@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, PipelineTestUtils}
 import org.apache.log4j.{Level, LogManager}
 
@@ -17,7 +17,7 @@ class ZipRegisterTempTransformerTest extends AbstractUnitSpec {
 //    LogManager.getRootLogger.setLevel(Level.DEBUG)
     val transformedAdultDf = zipRegisterTempTransformer.transform(testVars.df)
     assert(transformedAdultDf.count() == 99, "transformed table rows shouldn't have changed")
-    assert(transformedAdultDf.columns.contains(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL), "Id column should have been generated")
+    assert(transformedAdultDf.columns.contains(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL), "Id column should have been generated")
   }
 
 }

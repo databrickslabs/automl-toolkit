@@ -15,7 +15,8 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 abstract class AbstractTransformer
     extends Transformer
     with HasAutoMlIdColumn
-    with HasDebug {
+    with HasDebug
+    with HasPipelineId {
 
   @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 

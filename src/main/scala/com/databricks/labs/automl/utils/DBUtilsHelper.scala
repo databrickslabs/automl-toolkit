@@ -1,5 +1,7 @@
 package com.databricks.labs.automl.utils
 import com.databricks.dbutils_v1.DBUtilsHolder.dbutils0
+import org.apache.spark.sql.SparkSession
+
 import scala.reflect.runtime.universe._
 
 /**
@@ -38,16 +40,36 @@ object DBUtilsHelper {
     * @return
     */
   def getNotebookPath: String = {
-    hijackProtectedMethods("notebookPath")
+    if(!isLocalSparkSession) {
+      return hijackProtectedMethods("notebookPath")
+    }
+    "NA"
   }
   def getNotebookDirectory: String = {
-    val notebookPath = getNotebookPath
-    notebookPath.substring(0, notebookPath.lastIndexOf("/")) + "/"
+    if(!isLocalSparkSession) {
+      val notebookPath = getNotebookPath
+      return notebookPath.substring(0, notebookPath.lastIndexOf("/")) + "/"
+    }
+    "NA"
   }
   def getTrackingURI: String = {
-    hijackProtectedMethods("apiUrl")
+    if(!isLocalSparkSession) {
+      return hijackProtectedMethods("apiUrl")
+    }
+    "NA"
   }
   def getAPIToken: String = {
-    hijackProtectedMethods("apiToken")
+    if(!isLocalSparkSession) {
+      return hijackProtectedMethods("apiToken")
+    }
+    "NA"
+  }
+
+  def isLocalSparkSession: Boolean = {
+    SparkSession
+      .builder()
+      .getOrCreate()
+      .sparkContext
+      .isLocal
   }
 }

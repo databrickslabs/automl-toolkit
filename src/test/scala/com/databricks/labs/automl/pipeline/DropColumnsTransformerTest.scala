@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil, PipelineTestUtils}
 import ml.combust.bundle.BundleFile
 import org.apache.spark.ml.PipelineStage
@@ -34,7 +34,7 @@ class DropColumnsTransformerTest extends AbstractUnitSpec {
   "DropColumnsTransformer" should "drop columns with Broadcast" in {
     val testVars = PipelineTestUtils.getTestVars()
     val stages = new ArrayBuffer[PipelineStage]
-    val nonFeatureCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
+    val nonFeatureCols = Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
     val columnsToRemove = Array("age_trimmed","workclass_trimmed","fnlwgt_trimmed")
     stages += PipelineTestUtils
       .addZipRegisterTmpTransformerStage(
