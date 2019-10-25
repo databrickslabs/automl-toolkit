@@ -90,9 +90,11 @@ val featEngDf = PipelineModel
 ```
 
 ### Running Inference Pipeline directly against an MLflow RUN ID since v0.6.1:
-With this release, it is not possible to run inference given an Mlflow RUN ID, since pipeline now registers inference 
-pipeline model with Mlflow along with bunch of other useful information, such as Pipeline progress and each stages transformations.
-This can come very handy to view the train pipeline's progress as well as troubleshooting.
+With this release, it is now possible to run inference given a Mlflow RUN ID, 
+since pipeline API now automatically registers inference pipeline model with Mlflow along with 
+a bunch of other useful information, such as pipeline execution progress and each Pipeline 
+stage transformation. This can come very handy to view the train pipeline's progress 
+as well as troubleshooting.
 Example:
 ```scala
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
