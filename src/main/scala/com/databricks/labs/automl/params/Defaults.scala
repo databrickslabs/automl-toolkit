@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.params
 
-import com.databricks.labs.automl.utils.DBUtilsHelper
+import com.databricks.labs.automl.utils.InitDbUtils
 
 trait Defaults {
 
@@ -329,9 +329,9 @@ trait Defaults {
   def _modelTypeDefault = "RandomForest"
 
   def _mlFlowConfigDefaults: MLFlowConfig = MLFlowConfig(
-    mlFlowTrackingURI = DBUtilsHelper.getTrackingURI,
-    mlFlowExperimentName = DBUtilsHelper.getNotebookDirectory + "MLFlowLogs",
-    mlFlowAPIToken = DBUtilsHelper.getAPIToken,
+    mlFlowTrackingURI = InitDbUtils.getTrackingURI,
+    mlFlowExperimentName = InitDbUtils.getNotebookDirectory + "MLFlowLogs",
+    mlFlowAPIToken = InitDbUtils.getAPIToken,
     mlFlowModelSaveDirectory = "dbfs:/mlflow/experiments/",
     mlFlowLoggingMode = "full",
     mlFlowBestSuffix = "_best",
