@@ -63,11 +63,11 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
    //because for every pair of feature a and b, in correlationInteraction (a,b) as well as (b,a) was getting added
     fieldListingPar.foreach(cfeature =>
     {
-      var currIndex = fieldListingPar.indexOf(cfeature)
-      while (currIndex +1 < fieldListingPar.length)
+      var currIndex = fieldListingPar.indexOf(cfeature) //get current index
+      while (currIndex +1 < fieldListingPar.length)    //for every index iterate over next indices only, so that for every (a,b) there won't be (b,a)
       {
         val nextIndex = currIndex + 1
-        val nfeature = fieldsToCheck(nextIndex)
+        val nfeature = fieldListing(nextIndex)      
         val corrStats: Double = try {
           dataFrame.groupBy().agg(corr(cfeature, nfeature).as("pearson")).first().getDouble(0)
         }
@@ -75,7 +75,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
           case e: java.lang.NullPointerException =>
             val errorMsg = s"Correlation Calculation for $cfeature : $nfeature failed.  Recording Inf for correlation."
 
-             logger.log(Level.INFO, errorMsg + s"\n ${e.printStackTrace()}")
+            logger.log(Level.INFO, errorMsg + s"\n ${e.printStackTrace()}")
             Double.PositiveInfinity
         }
         currIndex+=1
