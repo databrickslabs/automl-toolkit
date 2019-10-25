@@ -69,8 +69,8 @@ libraries and configurations are provided 'out of the box'
 ```
 
 Attach the following libraries to the cluster:
-* PyPi:  mlflow==0.9.1
-* Maven: org.mlflow:mlflow-client:0.9.1
+* PyPi:  mlflow==1.3.0
+* Maven: org.mlflow:mlflow-client:1.3.0
 
 ## Getting Started
 
