@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.sanitize.OutlierFiltering
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
@@ -24,7 +24,7 @@ class OutlierFilterTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("OutlierFilterTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setFieldsToIgnore(Array.empty)
     setDebugEnabled(false)
   }

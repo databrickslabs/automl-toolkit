@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.functions.col
@@ -35,7 +35,7 @@ class VarianceFilterTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("VarianceFilterTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setPreserveColumns(Array.empty)
     setRemovedColumns(Array.empty)
     setTransformCalculated(false)

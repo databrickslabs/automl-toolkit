@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.utils.data.CategoricalHandler
-import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
 import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, ParamMap, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
@@ -21,7 +21,7 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("CardinalityLimitColumnPrunerTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setCardinalityLimit(500)
     setTransformCalculated(false)
     setPrunedColumns(null)

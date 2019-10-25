@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.executor.config
 
-import com.databricks.labs.automl.utils.{DBUtilsHelper, InitDbUtils}
+import com.databricks.labs.automl.utils.InitDbUtils
 
 trait ConfigurationDefaults {
 

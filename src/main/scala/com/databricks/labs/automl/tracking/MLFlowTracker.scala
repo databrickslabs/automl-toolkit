@@ -1,24 +1,16 @@
 package com.databricks.labs.automl.tracking
 
 import java.io.File
+import java.nio.file.Paths
 
 import com.databricks.labs.automl.inference.InferenceConfig._
-import com.databricks.labs.automl.inference.{
-  InferenceModelConfig,
-  InferenceTools
-}
-import com.databricks.labs.automl.params.{GenericModelReturn, MLFlowConfig}
-import ml.dmlc.xgboost4j.scala.spark.{
-  XGBoostClassificationModel,
-  XGBoostRegressionModel
-}
+import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools}
+import com.databricks.labs.automl.params.{GenericModelReturn, MLFlowConfig, MainConfig}
+import com.databricks.labs.automl.utils.PipelineMlFlowTagKeys
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.spark.ml.classification._
-import org.apache.spark.ml.regression.{
-  DecisionTreeRegressionModel,
-  GBTRegressionModel,
-  LinearRegressionModel,
-  RandomForestRegressionModel
-}
+import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
+import org.mlflow.api.proto.Service
 import org.mlflow.api.proto.Service.CreateRun
 import org.mlflow.tracking.MlflowClient
 import org.mlflow.tracking.creds._
@@ -125,54 +117,46 @@ class MLFlowTracker extends InferenceTools {
     }
   }
 
-  /**
-    * Method for generating an entry to log to for the
-    *
-    * @param runIdentifier A unique String that identifies the run
-    * @return :(MlflowClient, String) The client logging object and the runId uuid for use in logging.
-    */
-  private def generateMlFlowRun(client: MlflowClient,
-                                runIdentifier: String): String = {
-
-    val experimentId = getOrCreateExperimentId(client).toString
-
-    val runId = client.createRun(experimentId, runIdentifier).getRunUuid
-
-    runId
-
-  }
-
   private def generateMlFlowRun(client: MlflowClient,
                                 experimentID: String,
                                 runIdentifier: String,
                                 runName: String,
                                 sourceVer: String): String = {
-
     val request: CreateRun.Builder = CreateRun
       .newBuilder()
       .setExperimentId(experimentID)
-      .setRunName(runName)
-      .setSourceVersion(sourceVer)
-      .setSourceName(runIdentifier)
       .setStartTime(System.currentTimeMillis())
-
+      .addTags(Service.RunTag.newBuilder().setKey("mlflow.runName").setValue(runName).build())
+      .addTags(Service.RunTag.newBuilder().setKey("mlflow.source.name").setValue(runIdentifier).build())
+      .addTags(Service.RunTag.newBuilder().setKey("mlflow.source.version").setValue(sourceVer).build())
     val run = client.createRun(request.build())
+    run.getRunId
+  }
 
-    run.getRunUuid
+  def generateMlFlowRunId(): String = {
+    val client = createHostedMlFlowClient()
+    val experimentId = getOrCreateExperimentId(client, _mlFlowExperimentName + _mlFlowBestSuffix).toString
+    client.createRun(experimentId).getRunId
   }
 
   private def createFusePath(path: String): String = {
     path.replace("dbfs:", "/dbfs")
   }
 
-  private def logCustomTags(client: MlflowClient,
+   def logCustomTags(client: MlflowClient,
                             runId: String,
                             tags: Map[String, String]): Unit = {
-
     if (tags.nonEmpty) {
       tags.foreach { case (k, v) => client.setTag(runId, k, v) }
     }
+   }
 
+  def deleteCustomTags(client: MlflowClient,
+                    runId: String,
+                    tagKeys: Seq[String]): Unit = {
+    if (tagKeys.nonEmpty) {
+      tagKeys.foreach(k => client.deleteTag(runId, k))
+    }
   }
 
   /**
@@ -362,19 +346,108 @@ class MLFlowTracker extends InferenceTools {
 
   }
 
+  /**
+    * This method does not save any artifacts or inference configs.
+    * For the Best Model logging mode, it logs params and metrics to a given mlFlowRunId
+    * For the tuning logging mode, it logs params and metrics to separate mlFlowRunIds
+    * @param mlFlowRunId
+    * @param runData
+    * @param modelFamily
+    * @param modelType
+    * @param optimizationStrategy
+    * @return
+    */
+  def logMlFlowForPipeline(mlFlowRunId: String,
+                           runData: Array[GenericModelReturn],
+                           modelFamily: String,
+                           modelType: String,
+                           optimizationStrategy: String
+                          ): MLFlowReportStructure = {
+    val dummyLog =
+      MLFlowReturn(createHostedMlFlowClient(), "none", Array(("none", 0.0)))
+
+    val bestLog = _mlFlowLoggingMode match {
+      case "tuningOnly" =>
+        dummyLog
+      case _ =>
+        logBestForPipeline(
+          mlFlowRunId,
+          runData,
+          modelFamily,
+          modelType,
+          optimizationStrategy
+        )
+    }
+
+    val fullLog = _mlFlowLoggingMode match {
+      case "bestOnly" => dummyLog
+      case _ =>
+        logTuningForPipeline(runData, modelFamily, modelType)
+    }
+    MLFlowReportStructure(fullLog = fullLog, bestLog = bestLog)
+  }
+
+  private def logBestForPipeline(
+                      mlFlowRunId: String,
+                      runData: Array[GenericModelReturn],
+                      modelFamily: String,
+                      modelType: String,
+                      optimizationStrategy: String): MLFlowReturn = {
+    val mlflowLoggingClient = createHostedMlFlowClient()
+
+    val experimentId = getOrCreateExperimentId(
+      mlflowLoggingClient,
+      _mlFlowExperimentName + _mlFlowBestSuffix
+    ).toString
+
+    val bestModel = getBestModel(optimizationStrategy, runData)
+
+    val runIdPayload = Array((mlFlowRunId, bestModel.score))
+
+    val modelHyperParams = bestModel.hyperParams.keys
+    val metrics = bestModel.metrics.keys
+
+    modelHyperParams.foreach { x =>
+      val valueData = bestModel.hyperParams(x)
+      mlflowLoggingClient.logParam(mlFlowRunId, x, valueData.toString)
+    }
+    metrics.foreach { x =>
+      val valueData = bestModel.metrics(x)
+      mlflowLoggingClient.logMetric(mlFlowRunId, x, valueData.toString.toDouble)
+    }
+
+    val modelDescriptor = s"${modelType}_$modelFamily"
+    mlflowLoggingClient.logParam(mlFlowRunId, "modelType", modelDescriptor)
+
+    mlflowLoggingClient.logParam(mlFlowRunId, "generation", "Best")
+
+    // Log custom tags if present
+    if (_mlFlowCustomRunTags.nonEmpty) {
+      logCustomTags(mlflowLoggingClient, mlFlowRunId, _mlFlowCustomRunTags)
+    }
+
+    MLFlowReturn(
+      mlflowLoggingClient,
+      experimentId,
+      runIdPayload)
+  }
+
+  private def getBestModel(optimizationStrategy: String,
+                           runData: Array[GenericModelReturn]): GenericModelReturn = {
+    optimizationStrategy match {
+      case "minimize" => runData.sortWith(_.score < _.score)(0)
+      case _          => runData.sortWith(_.score > _.score)(0)
+    }
+  }
+
   private def logBest(runData: Array[GenericModelReturn],
                       modelFamily: String,
                       modelType: String,
                       inferenceSaveLocation: String,
                       optimizationStrategy: String): MLFlowReturn = {
 
-    val bestModel = optimizationStrategy match {
-      case "minimize" => runData.sortWith(_.score < _.score)(0)
-      case _          => runData.sortWith(_.score > _.score)(0)
-    }
-
+    val bestModel = getBestModel(optimizationStrategy, runData)
     val mlflowLoggingClient = createHostedMlFlowClient()
-
     val experimentId = getOrCreateExperimentId(
       mlflowLoggingClient,
       _mlFlowExperimentName + _mlFlowBestSuffix
@@ -383,10 +456,7 @@ class MLFlowTracker extends InferenceTools {
     var totalVersion =
       mlflowLoggingClient.getExperiment(experimentId).getRunsCount
 
-    val baseDirectory = _modelSaveDirectory.takeRight(1) match {
-      case "/" => s"${_modelSaveDirectory}BestRun/"
-      case _   => s"${_modelSaveDirectory}/BestRun/"
-    }
+    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun/").toString
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 
@@ -435,29 +505,18 @@ class MLFlowTracker extends InferenceTools {
     }
 
     //Inference data save
-    val inferencePath = inferenceSaveLocation.takeRight(1) match {
-      case "/" => s"$inferenceSaveLocation$experimentId${_mlFlowBestSuffix}/"
-      case _   => s"$inferenceSaveLocation/$experimentId/${_mlFlowBestSuffix}/"
-    }
+    val inferencePath = Paths
+      .get(s"$inferenceSaveLocation/$experimentId/${_mlFlowBestSuffix}/")
+      .toString
     val inferenceLocation = inferencePath + runId + _mlFlowBestSuffix
-    val inferenceMlFlowConfig = MLFlowConfig(
-      mlFlowTrackingURI = _mlFlowTrackingURI,
-      mlFlowExperimentName = _mlFlowExperimentName,
-      mlFlowAPIToken = _mlFlowHostedAPIToken,
-      mlFlowModelSaveDirectory = baseDirectory,
-      mlFlowLoggingMode = _mlFlowLoggingMode,
-      mlFlowBestSuffix = _mlFlowBestSuffix,
-      mlFlowCustomRunTags = _mlFlowCustomRunTags
-    )
-    val inferenceModelConfig = InferenceModelConfig(
-      modelFamily = modelFamily,
-      modelType = modelType,
-      modelLoadMethod = "mlflow",
-      mlFlowConfig = inferenceMlFlowConfig,
-      mlFlowRunId = runId,
-      modelPathLocation = modelDir
-    )
-
+    val inferenceMlFlowConfig = getInternalMlFlowConfig(baseDirectory)
+    val inferenceModelConfig = getInferenceModelConfig(
+      modelFamily,
+      modelType,
+      "mlflow",
+      inferenceMlFlowConfig,
+      runId,
+      modelDir)
     setInferenceModelConfig(inferenceModelConfig)
     setInferenceConfigStorageLocation(inferenceLocation)
 
@@ -487,6 +546,110 @@ class MLFlowTracker extends InferenceTools {
 
   }
 
+  private def getInferenceModelConfig(modelFamily: String,
+                                      modelType: String,
+                                      modelLoadMethod: String,
+                                      inferenceMlFlowConfig: MLFlowConfig,
+                                      mlFlowRunId: String,
+                                      modelPathLocation: String): InferenceModelConfig = {
+    InferenceModelConfig(
+      modelFamily = modelFamily,
+      modelType = modelType,
+      modelLoadMethod = "mlflow",
+      mlFlowConfig = inferenceMlFlowConfig,
+      mlFlowRunId = mlFlowRunId,
+      modelPathLocation = modelPathLocation
+    )
+  }
+  private def getInternalMlFlowConfig(baseDirectory: String): MLFlowConfig = {
+    MLFlowConfig(
+      mlFlowTrackingURI = _mlFlowTrackingURI,
+      mlFlowExperimentName = _mlFlowExperimentName,
+      mlFlowAPIToken = _mlFlowHostedAPIToken,
+      mlFlowModelSaveDirectory = baseDirectory,
+      mlFlowLoggingMode = _mlFlowLoggingMode,
+      mlFlowBestSuffix = _mlFlowBestSuffix,
+      mlFlowCustomRunTags = _mlFlowCustomRunTags
+    )
+  }
+
+  private def logTuningForPipeline(
+                        runData: Array[GenericModelReturn],
+                        modelFamily: String,
+                        modelType: String): MLFlowReturn = {
+
+    val runIdPayloadBuffer = ArrayBuffer[(String, Double)]()
+
+    val mlflowLoggingClient = createHostedMlFlowClient()
+    val experimentId = getOrCreateExperimentId(mlflowLoggingClient).toString
+
+    var totalVersion =
+      mlflowLoggingClient.getExperiment(experimentId).getRunsCount
+
+    val generationSet = mutable.Set[Int]()
+    runData.map(x => generationSet += x.generation)
+    val uniqueGenerations = generationSet.result.toArray.sortWith(_ < _)
+
+    val modelDescriptor = s"${modelType}_$modelFamily"
+
+    // loop through each generation and log the data
+    uniqueGenerations.foreach { g =>
+      // get the runs from this generation
+      val currentGen = runData.filter(x => x.generation == g)
+      var withinRunId = 0
+      // Execute these writes in parallel.
+      val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(10))
+      val generations = currentGen.par
+      generations.tasksupport = taskSupport
+      generations.foreach { x =>
+        totalVersion += 1
+        val uniqueRunIdent =
+          s"${modelFamily}_${modelType}_${x.generation.toString}_${withinRunId.toString}_${x.score.toString}"
+        val runName = "run_" + x.generation.toString + "_" + withinRunId.toString
+        val runId = generateMlFlowRun(
+          mlflowLoggingClient,
+          experimentId,
+          uniqueRunIdent,
+          runName,
+          totalVersion.toString
+        )
+        runIdPayloadBuffer += Tuple2(runId, x.score)
+        val hyperParamKeys = x.hyperParams.keys
+        hyperParamKeys.foreach { k =>
+          val valueData = modelFamily match {
+            case "MLPC" =>
+              x.hyperParams(k) match {
+                case "layers" =>
+                  x.hyperParams(k).asInstanceOf[Array[Int]].mkString(",")
+                case _ => x.hyperParams(k)
+              }
+            case _ => x.hyperParams(k)
+          }
+          //val valueData = x.hyperParams(k)
+          mlflowLoggingClient.logParam(runId, k, valueData.toString)
+        }
+        val metricKeys = x.metrics.keys
+        metricKeys.foreach { k =>
+          val valueData = x.metrics(k)
+          mlflowLoggingClient.logMetric(runId, k, valueData.toString.toDouble)
+        }
+        mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
+        // log the generation
+        mlflowLoggingClient.logParam(runId, "generation", x.generation.toString)
+        // Log custom tags if present
+        if (_mlFlowCustomRunTags.nonEmpty) {
+          logCustomTags(mlflowLoggingClient, runId, _mlFlowCustomRunTags)
+        }
+        withinRunId += 1
+      }
+    }
+    MLFlowReturn(
+      mlflowLoggingClient,
+      experimentId,
+      runIdPayloadBuffer.result().toArray
+    )
+  }
+
   private def logTuning(runData: Array[GenericModelReturn],
                         modelFamily: String,
                         modelType: String,
@@ -505,10 +668,7 @@ class MLFlowTracker extends InferenceTools {
     runData.map(x => generationSet += x.generation)
     val uniqueGenerations = generationSet.result.toArray.sortWith(_ < _)
 
-    val baseDirectory = _modelSaveDirectory.takeRight(1) match {
-      case "/" => s"${_modelSaveDirectory}"
-      case _   => s"${_modelSaveDirectory}/"
-    }
+    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/").toString
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 
@@ -603,24 +763,14 @@ class MLFlowTracker extends InferenceTools {
 
         val inferenceLocation = inferencePath + runId
 
-        val inferenceMlFlowConfig = MLFlowConfig(
-          mlFlowTrackingURI = _mlFlowTrackingURI,
-          mlFlowExperimentName = _mlFlowExperimentName,
-          mlFlowAPIToken = _mlFlowHostedAPIToken,
-          mlFlowModelSaveDirectory = baseDirectory,
-          mlFlowLoggingMode = _mlFlowLoggingMode,
-          mlFlowBestSuffix = _mlFlowBestSuffix,
-          mlFlowCustomRunTags = _mlFlowCustomRunTags
-        )
-
-        val inferenceModelConfig = InferenceModelConfig(
-          modelFamily = modelFamily,
-          modelType = modelType,
-          modelLoadMethod = "mlflow",
-          mlFlowConfig = inferenceMlFlowConfig,
-          mlFlowRunId = runId,
-          modelPathLocation = modelDir
-        )
+        val inferenceMlFlowConfig = getInternalMlFlowConfig(baseDirectory)
+        val inferenceModelConfig = getInferenceModelConfig(
+          modelFamily,
+          modelType,
+          "mlflow",
+          inferenceMlFlowConfig,
+          runId,
+          modelDir)
 
         setInferenceModelConfig(inferenceModelConfig)
         setInferenceConfigStorageLocation(inferenceLocation)
@@ -661,4 +811,15 @@ class MLFlowTracker extends InferenceTools {
 
   }
 
+}
+object MLFlowTracker {
+  def apply(mlFlowConfig: MLFlowConfig): MLFlowTracker = {
+    new MLFlowTracker()
+    .setMlFlowTrackingURI(mlFlowConfig.mlFlowTrackingURI)
+    .setMlFlowHostedAPIToken(mlFlowConfig.mlFlowAPIToken)
+    .setMlFlowExperimentName(mlFlowConfig.mlFlowExperimentName)
+    .setModelSaveDirectory(mlFlowConfig.mlFlowModelSaveDirectory)
+    .setMlFlowLoggingMode(mlFlowConfig.mlFlowLoggingMode)
+    .setMlFlowBestSuffix(mlFlowConfig.mlFlowBestSuffix)
+  }
 }
