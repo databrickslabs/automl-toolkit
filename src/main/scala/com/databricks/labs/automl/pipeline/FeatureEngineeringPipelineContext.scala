@@ -106,7 +106,7 @@ object FeatureEngineeringPipelineContext {
         ++ vectorizedColumns.filterNot(_.endsWith(PipelineEnums.SI_SUFFIX.value))))
 
     // Apply Scaler option
-    getAndAddStage(lastStages, scalerStage(mainConfig, lastStages))
+    getAndAddStages(lastStages, scalerStage(mainConfig))
 
     // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
     removeColumns ++= oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
@@ -497,11 +497,11 @@ object FeatureEngineeringPipelineContext {
     None
   }
 
-  private def scalerStage(mainConfig: MainConfig,
-                          lastStages: ArrayBuffer[PipelineStage]): Option[PipelineStage] = {
+  private def scalerStage(mainConfig: MainConfig): Option[Array[PipelineStage]] = {
     if(mainConfig.scalingFlag) {
+      val arrayBuffer = new ArrayBuffer[PipelineStage]()
       val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
-      getAndAddStage(lastStages, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol, mainConfig))
+      getAndAddStage(arrayBuffer, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol, mainConfig))
       val scaler = Some(new Scaler()
         .setFeaturesCol(mainConfig.featuresCol)
         .setScalerType(mainConfig.scalingConfig.scalerType)
@@ -515,8 +515,9 @@ object FeatureEngineeringPipelineContext {
         )
         .setPNorm(mainConfig.scalingConfig.pNorm)
         .scaleFeaturesForPipeline())
-      getAndAddStage(lastStages, dropColumns(Array(renamedFeatureCol), mainConfig))
-      return scaler
+      getAndAddStage(arrayBuffer, scaler)
+      getAndAddStage(arrayBuffer, dropColumns(Array(renamedFeatureCol), mainConfig))
+      return Some(arrayBuffer.toArray)
     }
     None
   }
@@ -570,7 +571,7 @@ object FeatureEngineeringPipelineContext {
         .setPipelineId(mainConfig.pipelineId)))
       // If scaling is used, make sure that the synthetic data has the same scaling.
       if (mainConfig.scalingFlag) {
-        getAndAddStage(arrayBuffer, scalerStage(mainConfig, arrayBuffer))
+        getAndAddStages(arrayBuffer, scalerStage(mainConfig))
         arrayBuffer += new DatasetsUnionTransformer()
           .setUnionDatasetName(nonSyntheticFeatureGenTmpTable)
           .setPipelineId(mainConfig.pipelineId)
