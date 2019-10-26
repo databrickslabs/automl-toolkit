@@ -8,6 +8,7 @@ integration with MLFlow.  It currently supports Supervised Learning algorithms t
 
 The AutoML toolkit exposes the following pipeline-related APIs via [FamilyRunner](src/main/scala/com/databricks/labs/automl/executor/FamilyRunner.scala)
 
+#### [[Inference using PipelineModel]](#full-predict-pipeline-api) |  [[Inference using MLflow Run ID]](#running-inference-pipeline-directly-against-an-mlflow-run-id-since-v061)
 
 ### Full Predict pipeline API:
 ```text
