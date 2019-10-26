@@ -95,7 +95,9 @@ With this release, it is now possible to run inference given a Mlflow RUN ID,
 since pipeline API now automatically registers inference pipeline model with Mlflow along with 
 a bunch of other useful information, such as pipeline execution progress and each Pipeline 
 stage transformation. This can come very handy to view the train pipeline's progress 
-as well as troubleshooting.
+as well as troubleshooting. 
+Check [here](images/mlflow-1.png) to see an example of pipeline tags in Mlflow and 
+one of the example stages transformations [here](images/mlflow-2.png)
 Example:
 ```scala
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
