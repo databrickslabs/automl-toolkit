@@ -46,7 +46,7 @@ object PipelineMlFlowProgressReporter {
         pipelineId,
         Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}"
           ->
-          s"${PipelineStatus.PIPELINE_COMPLETED} Total Stages Executed: $totalStagesRan"
+          s"${PipelineStatus.PIPELINE_COMPLETED}. Total Stages Executed: $totalStagesRan"
         ))
   }
 

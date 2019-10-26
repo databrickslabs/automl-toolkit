@@ -90,6 +90,11 @@ object FeatureEngineeringPipelineContext {
     if(ksampleStages.isDefined) {
       val ksamplerPipelineModel = new Pipeline().setStages(ksampleStages.get).fit(thirdTransformationDf)
       ksampledDf = ksamplerPipelineModel.transform(thirdTransformationDf)
+      // Save ksampler states in pipeline cache to be accessed later for logging to Mlflow
+      PipelineStateCache
+        .addToPipelineCache(
+          mainConfig.pipelineId,
+          PipelineVars.KSAMPLER_STAGES.key, ksampleStages.get.map(item=>item.getClass.getName).mkString(", "))
     }
 
     val lastStages = new ArrayBuffer[PipelineStage]()
@@ -151,15 +156,25 @@ object FeatureEngineeringPipelineContext {
       mainConfiguration)
     val pipelineModelWithLabelSiDf = pipelineModelWithLabelSi.transform(originalDf)
 
-    val finalPipelineModel = addUserReturnViewStage(
+    val prefinalPipelineModel = addUserReturnViewStage(
       pipelineModelWithLabelSi,
       mainConfiguration,
       pipelineModelWithLabelSiDf,
       featureEngOutput.originalDfViewName)
 
     // Removes train-only stages, if present, such as OutlierTransformer and SyntheticDataTransformer
-    val finalPipeline = buildInferencePipelineStages(finalPipelineModel)
+    val finalPipelineModel = buildInferencePipelineStages(prefinalPipelineModel)
     // log full pipeline stage names to toMlFlow, save pipeline and register with MlFlow
+    savePipelineLogToMlFLow(mainConfiguration, featureEngOutput, finalPipelineModel, prefinalPipelineModel, originalDf)
+    finalPipelineModel
+  }
+
+  private def savePipelineLogToMlFLow(mainConfiguration: MainConfig,
+                                      featureEngOutput: FeatureEngineeringOutput,
+                                      finalPipelineModel: PipelineModel,
+                                      prefinalPipelineModel: PipelineModel,
+                                      originalDf: DataFrame
+                                     ): Unit = {
     if(mainConfiguration.mlFlowLoggingFlag) {
       AutoMlPipelineMlFlowUtils
         .saveInferencePipelineDfAndLogToMlFlow(
@@ -167,11 +182,19 @@ object FeatureEngineeringPipelineContext {
           featureEngOutput.decidedModel,
           mainConfiguration.modelFamily,
           mainConfiguration.mlFlowConfig.mlFlowModelSaveDirectory,
-          finalPipeline,
+          finalPipelineModel,
           originalDf)
-      PipelineMlFlowProgressReporter.completed(mainConfiguration.pipelineId, finalPipelineModel.stages.length)
+      val totalStagesExecuted = if (mainConfiguration.geneticConfig.trainSplitMethod == "kSample") {
+        prefinalPipelineModel.stages.length + PipelineStateCache
+          .getFromPipelineByIdAndKey(
+            mainConfiguration.pipelineId,
+            PipelineVars.KSAMPLER_STAGES.key)
+          .asInstanceOf[String].split(", ").length
+      } else {
+        prefinalPipelineModel.stages.length
+      }
+      PipelineMlFlowProgressReporter.completed(mainConfiguration.pipelineId, totalStagesExecuted)
     }
-    finalPipeline
   }
 
   private def buildInferencePipelineStages(pipelineModel: PipelineModel): PipelineModel = {
@@ -572,13 +595,13 @@ object FeatureEngineeringPipelineContext {
       // If scaling is used, make sure that the synthetic data has the same scaling.
       if (mainConfig.scalingFlag) {
         getAndAddStages(arrayBuffer, scalerStage(mainConfig))
-        arrayBuffer += new DatasetsUnionTransformer()
-          .setUnionDatasetName(nonSyntheticFeatureGenTmpTable)
-          .setPipelineId(mainConfig.pipelineId)
-        arrayBuffer += new DropTempTableTransformer()
-          .setTempTableName(nonSyntheticFeatureGenTmpTable)
-          .setPipelineId(mainConfig.pipelineId)
       }
+      arrayBuffer += new DatasetsUnionTransformer()
+        .setUnionDatasetName(nonSyntheticFeatureGenTmpTable)
+        .setPipelineId(mainConfig.pipelineId)
+      arrayBuffer += new DropTempTableTransformer()
+        .setTempTableName(nonSyntheticFeatureGenTmpTable)
+        .setPipelineId(mainConfig.pipelineId)
 
       return Some(arrayBuffer.toArray)
     }

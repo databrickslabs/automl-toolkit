@@ -3,10 +3,10 @@ package com.databricks.labs.automl.utils
 import java.nio.file.Paths
 
 import com.databricks.labs.automl.params.{MLFlowConfig, MainConfig}
-import com.databricks.labs.automl.pipeline.{PipelineStateCache, PipelineVars}
+import com.databricks.labs.automl.pipeline.{PearsonFilterTransformer, PipelineStateCache, PipelineVars}
 import com.databricks.labs.automl.tracking.MLFlowTracker
 import org.apache.log4j.Logger
-import org.apache.spark.ml.PipelineModel
+import org.apache.spark.ml.{PipelineModel, PredictionModel}
 import org.apache.spark.sql.DataFrame
 import org.mlflow.api.proto.Service
 
@@ -92,13 +92,7 @@ object AutoMlPipelineMlFlowUtils {
     val mlFlowRunIdAndConfig = getMainConfigByPipelineId(pipelineId: String)
     if(mlFlowRunIdAndConfig.mainConfig.mlFlowLoggingFlag) {
       // Log inference pipeline stages' names to MLFlow
-      AutoMlPipelineMlFlowUtils
-        .logTagsToMlFlow(
-          mlFlowRunIdAndConfig.mainConfig.pipelineId,
-          Map(
-            s"inference_pipeline_all_stages_${mlFlowRunIdAndConfig.mainConfig.pipelineId}"
-              ->
-              finalPipelineModel.stages.map(item => item.getClass.getName).mkString(", ")))
+      saveAllPipelineStagesToMlFlow(pipelineId, finalPipelineModel, mlFlowRunIdAndConfig.mainConfig)
       // Save Pipeline and log to MlFlow
       val modelDescriptor = s"$decidedModel" + "_" + s"$modelFamily"
       val baseDirectory = Paths.get(s"$mlFlowModelSaveDirectory/BestRun/")
@@ -121,6 +115,32 @@ object AutoMlPipelineMlFlowUtils {
       logger.info(s"Saved feature engineered df to path $finalFeatEngDfPath")
       logTagsToMlFlow(pipelineId, Map(PipelineMlFlowTagKeys.PIPELINE_TRAIN_DF_PATH_KEY -> finalFeatEngDfPath))
     }
+  }
+
+  private def saveAllPipelineStagesToMlFlow(pipelineId: String,
+                                            finalPipelineModel: PipelineModel,
+                                            mainConfig: MainConfig): Unit = {
+    val ksamplerStagesPipelineHolder = "KSAMPLER_STAGER_PLACEHOLDER"
+    val ksamplerPipelineStages = PipelineStateCache
+      .getFromPipelineByIdAndKey(
+        pipelineId,
+        PipelineVars.KSAMPLER_STAGES.key)
+      .asInstanceOf[String]
+    // Interpolate to enter ksampler pipeline stages just before the modeling stage
+    // to make sure pipeline stages are stringified in the order of their execution
+    val finalPipelineStges = finalPipelineModel.stages.map(item => {
+      if(item.isInstanceOf[PredictionModel[_, _]]) {
+        ksamplerStagesPipelineHolder + ", \n" +  item.getClass.getName
+      } else {
+        item.getClass.getName
+      }
+    }).mkString(", \n").replace(ksamplerStagesPipelineHolder, ksamplerPipelineStages)
+    AutoMlPipelineMlFlowUtils
+      .logTagsToMlFlow(
+        pipelineId,
+        Map(s"All_Stages_For_Pipeline_${pipelineId}" -> finalPipelineStges
+        )
+      )
   }
 
 }
