@@ -8,6 +8,7 @@ integration with MLFlow.  It currently supports Supervised Learning algorithms t
 
 The AutoML toolkit exposes the following pipeline-related APIs via [FamilyRunner](src/main/scala/com/databricks/labs/automl/executor/FamilyRunner.scala)
 
+#### [Inference using PipelineModel](#full-predict-pipeline-api) |  [Inference using MLflow Run ID](#running-inference-pipeline-directly-against-an-mlflow-run-id-since-v061)
 
 ### Full Predict pipeline API:
 ```text
@@ -94,8 +95,20 @@ With this release, it is now possible to run inference given a Mlflow RUN ID,
 since pipeline API now automatically registers inference pipeline model with Mlflow along with 
 a bunch of other useful information, such as pipeline execution progress and each Pipeline 
 stage transformation. This can come very handy to view the train pipeline's progress 
-as well as troubleshooting.
-Example:
+as well as troubleshooting. 
+
+<details>
+  <summary>Example of Pipeline Tags registered with Mlflow</summary>
+  
+  ## Heading
+  An example of pipeline tags in Mlflow 
+   ![Alt text](images/mlflow-1.png) 
+   
+  And one of the transformations in a pipeline
+   ![Alt text](images/mlflow-2.png) 
+</details>
+ 
+#### Example:
 ```scala
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
 import com.databricks.labs.automl.executor.FamilyRunner

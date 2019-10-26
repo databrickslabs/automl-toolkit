@@ -106,10 +106,7 @@ object FeatureEngineeringPipelineContext {
         ++ vectorizedColumns.filterNot(_.endsWith(PipelineEnums.SI_SUFFIX.value))))
 
     // Apply Scaler option
-    val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
-    getAndAddStage(lastStages, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol, mainConfig))
-    getAndAddStage(lastStages, scalerStage(mainConfig))
-    getAndAddStage(lastStages, dropColumns(Array(renamedFeatureCol), mainConfig))
+    getAndAddStages(lastStages, scalerStage(mainConfig))
 
     // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
     removeColumns ++= oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
@@ -500,9 +497,12 @@ object FeatureEngineeringPipelineContext {
     None
   }
 
-  private def scalerStage(mainConfig: MainConfig): Option[PipelineStage] = {
+  private def scalerStage(mainConfig: MainConfig): Option[Array[PipelineStage]] = {
     if(mainConfig.scalingFlag) {
-      return Some(new Scaler()
+      val arrayBuffer = new ArrayBuffer[PipelineStage]()
+      val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
+      getAndAddStage(arrayBuffer, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol, mainConfig))
+      val scaler = Some(new Scaler()
         .setFeaturesCol(mainConfig.featuresCol)
         .setScalerType(mainConfig.scalingConfig.scalerType)
         .setScalerMin(mainConfig.scalingConfig.scalerMin)
@@ -515,6 +515,9 @@ object FeatureEngineeringPipelineContext {
         )
         .setPNorm(mainConfig.scalingConfig.pNorm)
         .scaleFeaturesForPipeline())
+      getAndAddStage(arrayBuffer, scaler)
+      getAndAddStage(arrayBuffer, dropColumns(Array(renamedFeatureCol), mainConfig))
+      return Some(arrayBuffer.toArray)
     }
     None
   }
@@ -568,10 +571,7 @@ object FeatureEngineeringPipelineContext {
         .setPipelineId(mainConfig.pipelineId)))
       // If scaling is used, make sure that the synthetic data has the same scaling.
       if (mainConfig.scalingFlag) {
-        val renamedFeatureCol = mainConfig.featuresCol + PipelineEnums.FEATURE_NAME_TEMP_SUFFIX.value
-        getAndAddStage(arrayBuffer, renameTransformerStage(mainConfig.featuresCol, renamedFeatureCol, mainConfig))
-        getAndAddStage(arrayBuffer, scalerStage(mainConfig))
-        getAndAddStage(arrayBuffer, dropColumns(Array(renamedFeatureCol), mainConfig))
+        getAndAddStages(arrayBuffer, scalerStage(mainConfig))
         arrayBuffer += new DatasetsUnionTransformer()
           .setUnionDatasetName(nonSyntheticFeatureGenTmpTable)
           .setPipelineId(mainConfig.pipelineId)
