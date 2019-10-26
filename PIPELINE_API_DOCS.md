@@ -96,9 +96,19 @@ since pipeline API now automatically registers inference pipeline model with Mlf
 a bunch of other useful information, such as pipeline execution progress and each Pipeline 
 stage transformation. This can come very handy to view the train pipeline's progress 
 as well as troubleshooting. 
-Check [here](images/mlflow-1.png) to see an example of pipeline tags in Mlflow and 
-one of the example stages transformations [here](images/mlflow-2.png)
-Example:
+
+<details>
+  <summary>Example of Pipeline Tags registered with Mlflow</summary>
+  
+  ## Heading
+  An example of pipeline tags in Mlflow 
+   ![Alt text](images/mlflow-1.png) 
+   
+  And one of the transformations in a pipeline
+   ![Alt text](images/mlflow-2.png) 
+</details>
+ 
+#### Example:
 ```scala
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
 import com.databricks.labs.automl.executor.FamilyRunner
