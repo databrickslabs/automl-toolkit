@@ -161,7 +161,10 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private var _labelValidation: Boolean = false
 
-  private def labelValidationOn(): Boolean = true
+  def labelValidationOn(): this.type = {
+    _labelValidation = true
+    this
+  }
 
   private def convertLabel(df: DataFrame): DataFrame = {
 

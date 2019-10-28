@@ -24,17 +24,21 @@ object AutoMlPipelineMlFlowUtils {
   case class ConfigByPipelineIdOutput(mainConfig: MainConfig, mlFlowRunId: String)
 
   def getMainConfigByPipelineId(pipelineId: String): ConfigByPipelineIdOutput = {
-    val mlFlowRunId = PipelineStateCache
-      .getFromPipelineByIdAndKey(
-        pipelineId,
-        PipelineVars.MLFLOW_RUN_ID.key)
-      .asInstanceOf[String]
     val mainConfig = PipelineStateCache
       .getFromPipelineByIdAndKey(
         pipelineId,
         PipelineVars.MAIN_CONFIG.key)
       .asInstanceOf[MainConfig]
-    ConfigByPipelineIdOutput(mainConfig, mlFlowRunId)
+    if(mainConfig.mlFlowLoggingFlag) {
+      val mlFlowRunId = try PipelineStateCache
+        .getFromPipelineByIdAndKey(
+          pipelineId,
+          PipelineVars.MLFLOW_RUN_ID.key)
+        .asInstanceOf[String]
+       ConfigByPipelineIdOutput(mainConfig, mlFlowRunId)
+    } else {
+       ConfigByPipelineIdOutput(mainConfig, null)
+    }
   }
 
   def logTagsToMlFlow(pipelineId: String, tags: Map[String, String]): Unit = {
