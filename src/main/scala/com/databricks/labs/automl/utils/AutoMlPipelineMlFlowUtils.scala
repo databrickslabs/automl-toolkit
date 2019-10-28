@@ -120,21 +120,25 @@ object AutoMlPipelineMlFlowUtils {
   private def saveAllPipelineStagesToMlFlow(pipelineId: String,
                                             finalPipelineModel: PipelineModel,
                                             mainConfig: MainConfig): Unit = {
-    val ksamplerStagesPipelineHolder = "KSAMPLER_STAGER_PLACEHOLDER"
-    val ksamplerPipelineStages = PipelineStateCache
-      .getFromPipelineByIdAndKey(
-        pipelineId,
-        PipelineVars.KSAMPLER_STAGES.key)
-      .asInstanceOf[String]
-    // Interpolate to enter ksampler pipeline stages just before the modeling stage
-    // to make sure pipeline stages are stringified in the order of their execution
-    val finalPipelineStges = finalPipelineModel.stages.map(item => {
-      if(item.isInstanceOf[PredictionModel[_, _]]) {
-        ksamplerStagesPipelineHolder + ", \n" +  item.getClass.getName
-      } else {
-        item.getClass.getName
-      }
-    }).mkString(", \n").replace(ksamplerStagesPipelineHolder, ksamplerPipelineStages)
+    val finalPipelineStges =  if (mainConfig.geneticConfig.trainSplitMethod == "kSample") {
+      val ksamplerStagesPipelineHolder = "KSAMPLER_STAGER_PLACEHOLDER"
+      val ksamplerPipelineStages = PipelineStateCache
+        .getFromPipelineByIdAndKey(
+          pipelineId,
+          PipelineVars.KSAMPLER_STAGES.key)
+        .asInstanceOf[String]
+      // Interpolate to enter ksampler pipeline stages just before the modeling stage
+      // to make sure pipeline stages are stringified in the order of their execution
+      finalPipelineModel.stages.map(item => {
+        if(item.isInstanceOf[PredictionModel[_, _]]) {
+          ksamplerStagesPipelineHolder + ", \n" +  item.getClass.getName
+        } else {
+          item.getClass.getName
+        }
+      }).mkString(", \n").replace(ksamplerStagesPipelineHolder, ksamplerPipelineStages)
+    } else {
+      finalPipelineModel.stages.map(_.getClass.getName).mkString(", \n")
+    }
     AutoMlPipelineMlFlowUtils
       .logTagsToMlFlow(
         pipelineId,
