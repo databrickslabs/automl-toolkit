@@ -52,6 +52,14 @@ mvn clean install -DskipTests
 ```sbtshell
 sbt package
 ```
+If there is any StackOverflowError during the build, adjust the stack size on a JVM, example:
+```sbtshell
+#For Maven
+export MAVEN_OPTS=-Xss2m
+#For SBT
+export SBT_OPTS="-Xss2M"
+```
+
 
 This will skip unit test execution (it is not recommended to run unit tests in local mode against this package as unit testing is asynchronous and incredibly CPU intensive for this code base.)
 
