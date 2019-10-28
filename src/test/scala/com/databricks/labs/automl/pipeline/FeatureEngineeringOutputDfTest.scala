@@ -35,13 +35,13 @@ class FeatureEngineeringOutputDfTest extends AbstractUnitSpec {
         scala.math.abs(scala.util.Random.nextLong()) + "",
         Date.valueOf(s"${startYear + random.nextInt( (endYear - startYear) + 1 )}-${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}-${startDay + random.nextInt( (endDay - startDay) + 1 )}"),
         Timestamp.valueOf(s"${startYear + random.nextInt( (endYear - startYear) + 1 )}-${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}-${startDay + random.nextInt( (endDay - startDay) + 1 )} ${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}:${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}:${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}.${startMonth + random.nextInt( (endMonth - startMonth) + 1 )}"),
-        0
+        "pass"
       )) ++ List.fill(50)(Row(
         scala.math.abs(scala.util.Random.nextLong()),
         scala.math.abs(scala.util.Random.nextLong()) + "",
         Date.valueOf("2016-10-30"),
         Timestamp.valueOf("2007-09-24 12:05:55.0"),
-        1
+        "fail"
       ))).asJava,
       StructType(
         Array(
@@ -49,7 +49,7 @@ class FeatureEngineeringOutputDfTest extends AbstractUnitSpec {
           StructField("download_events_descr", StringType, nullable = true),
           StructField(dateColToBeTransformed, DateType, nullable = true),
           StructField(tsColToBeTransformed, TimestampType, nullable = true),
-          StructField("label", IntegerType, nullable = false)
+          StructField("label", StringType, nullable = false)
         )
       )
     )
@@ -88,7 +88,7 @@ class FeatureEngineeringOutputDfTest extends AbstractUnitSpec {
     val runner = FamilyRunner(sourceDF, Array(randomForestConfig)).generateFeatureEngineeredPipeline(verbose = true)
     val outputDf = runner("RandomForest").transform(sourceDF)
     val noOfCols = outputDf.columns
-    assert(noOfCols.length == 17,
+    assert(noOfCols.length == 18,
       s"Feature engineered dataset's columns should have been 17, but $noOfCols were found")
     outputDf.show(100)
 

@@ -49,7 +49,8 @@ object FeatureEngineeringPipelineContext {
     val secondTransformation = applyStngIndxVectAssembler(
       initialTransformationDf,
       mainConfig,
-      Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
+      Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL),
+      verbose
     )
     val vectorizedColumns = secondTransformation.vectorizedCols
     removeColumns ++= vectorizedColumns
@@ -346,7 +347,8 @@ object FeatureEngineeringPipelineContext {
     */
   private def applyStngIndxVectAssembler(dataFrame: DataFrame,
                                          mainConfig: MainConfig,
-                                         ignoreCols: Array[String]): VectorizationOutput = {
+                                         ignoreCols: Array[String],
+                                         verbose: Boolean): VectorizationOutput = {
     val fields = SchemaUtils.extractTypes(dataFrame, mainConfig.labelCol)
     val stringFields = fields._2.filterNot(ignoreCols.contains).filterNot(item => item.equals(mainConfig.labelCol))
     val vectorizableFields = fields._1.toArray.filterNot(ignoreCols.contains)
@@ -365,12 +367,14 @@ object FeatureEngineeringPipelineContext {
         Some(new StringIndexer(PipelineEnums.LABEL_STRING_INDEXER_STAGE_NAME.value + Identifiable.randomUID("strIdx"))
           .setInputCol(mainConfig.labelCol)
           .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)))
-      getAndAddStage(stages, dropColumns(Array(mainConfig.labelCol), mainConfig))
-      getAndAddStage(stages,
-        renameTransformerStage(
-          mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value,
-          mainConfig.labelCol,
-          mainConfig))
+      if(!verbose) {
+        getAndAddStage(stages, dropColumns(Array(mainConfig.labelCol), mainConfig))
+        getAndAddStage(stages,
+          renameTransformerStage(
+            mainConfig.labelCol + PipelineEnums.SI_SUFFIX.value,
+            mainConfig.labelCol,
+            mainConfig))
+      }
       // Register label refactor needed var for this pipeline context
       // LabelRefactor needed
       addToPipelineCacheInternal(mainConfig, refactorNeeded = true)
