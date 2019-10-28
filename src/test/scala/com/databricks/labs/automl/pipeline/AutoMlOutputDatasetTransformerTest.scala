@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, PipelineTestUtils}
 import org.apache.spark.sql.DataFrame
 
@@ -34,16 +34,16 @@ class AutoMlOutputDatasetTransformerTest extends AbstractUnitSpec {
    val transformedAdultDfwithLabel =  PipelineTestUtils
      .saveAndLoadPipeline(Array(pipelineAdultDf, pipelineOutputDf), testVars.df, "automl-output-df-pipe")
        .transform(testVars.df)
-    assert(!transformedAdultDfwithLabel.columns.contains(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL),
+    assert(!transformedAdultDfwithLabel.columns.contains(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL),
       "AutoMlOutputDatasetTransformer should have dropped Id column and retained original columns")
   }
 
 
   def assertAutoMlOutputDatasetTransformerTest(pipelineAdultDf: DataFrame,
                                                pipelineOutputDf: DataFrame): Unit = {
-    assert(pipelineAdultDf.columns.contains(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL),
+    assert(pipelineAdultDf.columns.contains(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL),
       "ZipRegisterTempTransformer stage should have added Id column")
-    assert(!pipelineOutputDf.columns.contains(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL),
+    assert(!pipelineOutputDf.columns.contains(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL),
       "AutoMlOutputDatasetTransformer should have dropped Id column and retained original columns")
   }
 }

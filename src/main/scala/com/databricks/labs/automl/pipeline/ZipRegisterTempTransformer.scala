@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.spark.ml.param.{Param, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.functions._
@@ -23,7 +23,7 @@ class ZipRegisterTempTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("ZipRegisterTempTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setDebugEnabled(false)
   }
 
@@ -35,12 +35,12 @@ class ZipRegisterTempTransformer(override val uid: String)
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val dfWithId = dataset
-      .withColumn(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, monotonically_increasing_id())
+      .withColumn(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL, monotonically_increasing_id())
     dfWithId.createOrReplaceTempView(getTempViewOriginalDatasetName)
     val colsSelectTmp = if(dfWithId.columns.contains(getLabelColumn)) {
-      Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, getLabelColumn)
+      Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL, getLabelColumn)
     } else {
-      Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+      Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     }
     val colsToSelect =
       (colsSelectTmp ++ getFeatureColumns)
@@ -52,13 +52,13 @@ class ZipRegisterTempTransformer(override val uid: String)
    if(schema.fieldNames.contains(getLabelColumn)) {
       StructType(schema.fields.filter(field => $(featureColumns).contains(field.name))
         :+
-        StructField(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false)
+        StructField(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false)
         :+
         StructField(getLabelColumn, StringType, nullable=false))
     } else {
       StructType(schema.fields.filter(field => $(featureColumns).contains(field.name))
         :+
-        StructField(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false))
+        StructField(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL, LongType, nullable = false))
     }
   }
 

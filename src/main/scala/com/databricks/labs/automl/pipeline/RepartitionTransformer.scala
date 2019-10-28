@@ -1,5 +1,5 @@
 package com.databricks.labs.automl.pipeline
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.spark.ml.param.{IntParam, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
@@ -19,7 +19,7 @@ class RepartitionTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("RepartitionTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setPartitionScaleFactor(1)
     setDebugEnabled(false)
   }

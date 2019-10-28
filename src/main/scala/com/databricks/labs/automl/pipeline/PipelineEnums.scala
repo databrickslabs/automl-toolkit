@@ -1,5 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
+import com.databricks.labs.automl.params.{MLFlowConfig, MainConfig}
+
 object PipelineEnums extends Enumeration {
 
   type PipelineEnums = PipelineConstants
@@ -18,7 +20,11 @@ object PipelineVars extends Enumeration {
 
   type PipelineVars = PipelineVarsPair
 
-  val PIPELINE_LABEL_REFACTOR_NEEDED_KEY = PipelineVarsPair("labelRefactorNeeded", Boolean.getClass)
+  val PIPELINE_LABEL_REFACTOR_NEEDED_KEY = PipelineVarsPair("labelRefactorNeeded", classOf[Boolean])
+  val MLFLOW_RUN_ID = PipelineVarsPair("MlFlowRunId", classOf[String])
+  val MAIN_CONFIG = PipelineVarsPair("MainConfig", classOf[MainConfig])
+  val PIPELINE_STATUS = PipelineVarsPair("PipelineStatus", classOf[String])
+  val KSAMPLER_STAGES = PipelineVarsPair("KSamplerStages", classOf[String])
 
   case class PipelineVarsPair(key: String, keyType: Class[_]) extends Val
 }

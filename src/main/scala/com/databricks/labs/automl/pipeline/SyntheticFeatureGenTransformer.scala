@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.feature.SyntheticFeatureGenerator
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.{BooleanType, StructField, StructType}
@@ -22,7 +22,7 @@ class SyntheticFeatureGenTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("SyntheticFeatureGenTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setFieldsToIgnore(Array(getAutomlInternalId))
     setDebugEnabled(false)
   }

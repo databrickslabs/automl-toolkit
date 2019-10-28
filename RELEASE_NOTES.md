@@ -1,8 +1,15 @@
 ## Auto ML Toolkit Release Notes
 
+### Version 0.6.1
+* Upgraded MlFLow to 1.3.0
+* Pipeline now registers with Mlflow (including Inference Pipeline Model and feature engineered original df)
+* Added new Pipeline APIs to Run inference directly against MLFlow Run Ids
+* Training Pipeline now automatically registers pipeline progress and each stages transformations with MLFlow
+
 ### Version 0.6.0
 
 #### Features
+* New APIs around Spark ML pipeline semantics for fetching full inference as well as feature engineering pipelines. See [this](PIPELINE_API_DOCS.md) for the usage 
 * MainConfig settings are now pretty printed to stdout and logged as json strings to aid in readability.
 * PostModelingOptimization will now search through a logspace based on euclidean distance of vector similarity to 
 minimize (not remove) the probability of too-similar hyper parameters from being tested in final phase.
@@ -46,7 +53,7 @@ even after the mapped configuration has been applied.
 * Eliminated the scaling bug when using a model that doesn't have ksample as its trainSplitMethodology set has a 
 scaling task set.
 * enabled asynchronous support for variance filtering to reflect the dataPrepParallelism setting (was hard-coded before to 10)
-
+* changed default logging location for mlflow to support azure shards
 
 
 ### Version 0.5.2

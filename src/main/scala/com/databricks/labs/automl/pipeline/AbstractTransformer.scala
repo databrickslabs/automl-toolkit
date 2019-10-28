@@ -15,7 +15,8 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 abstract class AbstractTransformer
     extends Transformer
     with HasAutoMlIdColumn
-    with HasDebug {
+    with HasDebug
+    with HasPipelineId {
 
   @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -61,7 +62,7 @@ abstract class AbstractTransformer
 
   /**
     * Abstract Method to be implemented by all AutoML transformers
-    * @param dataset
+    * @param schema
     * @return schema of new output [[DataFrame]] [[StructType]]
     */
   def transformSchemaInternal(schema: StructType): StructType

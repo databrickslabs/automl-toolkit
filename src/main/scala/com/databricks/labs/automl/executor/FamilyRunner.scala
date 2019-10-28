@@ -1,11 +1,13 @@
 package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.AutomationRunner
+import com.databricks.labs.automl.exceptions.PipelineExecutionException
 import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.params._
-import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext, PipelineStateCache}
-import com.databricks.labs.automl.tracking.MLFlowReportStructure
-import com.databricks.labs.automl.utils.SparkSessionWrapper
+import com.databricks.labs.automl.pipeline.FeatureEngineeringPipelineContext.addUserReturnViewStage
+import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext, PipelineMlFlowProgressReporter, PipelineStateCache, PipelineVars}
+import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowTracker}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, PipelineStatus, SparkSessionWrapper}
 import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.{Model, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
@@ -108,9 +110,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   }
 
   def getNewFamilyOutPut(output: TunerOutput,
-                         instanceConfig: InstanceConfig,
-                         featureEngineeringOutput: FeatureEngineeringOutput = null,
-                         mainConfig: MainConfig = null): FamilyOutput = {
+                         instanceConfig: InstanceConfig): FamilyOutput = {
     new FamilyOutput(instanceConfig.modelFamily, output.mlFlowOutput) {
       override def modelReport: Array[GenericModelReturn] = output.modelReport
 
@@ -157,11 +157,33 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   }
 
 
+  private def addMlFlowConfigForPipelineUse(mainConfig: MainConfig) = {
+    PipelineStateCache
+      .addToPipelineCache(
+        mainConfig.pipelineId,
+        PipelineVars.MAIN_CONFIG.key, mainConfig)
+    if(mainConfig.mlFlowLoggingFlag) {
+      val mlFlowRunId = MLFlowTracker(mainConfig.mlFlowConfig).generateMlFlowRunId()
+      PipelineStateCache
+        .addToPipelineCache(
+          mainConfig.pipelineId,
+          PipelineVars.MLFLOW_RUN_ID.key, mlFlowRunId)
+      AutoMlPipelineMlFlowUtils
+        .logTagsToMlFlow(
+          mainConfig.pipelineId,
+          Map(s"${PipelineMlFlowTagKeys.PIPELINE_ID}"
+            ->
+            mainConfig.pipelineId
+          ))
+      PipelineMlFlowProgressReporter.starting(mainConfig.pipelineId)
+    }
+  }
+
   /**
     *
     * @return grouped results same as execute [[FamilyFinalOutputWithPipeline]] but
-    *         also contains a map of model family and best pipeline model based on
-    *         optimization strategy settings
+    *         also contains a map of model family and best pipeline model (along with mlflow Run ID)
+    *         based on optimization strategy settings
     */
   def executeWithPipeline(): FamilyFinalOutputWithPipeline = {
 
@@ -171,20 +193,29 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
       val runner = new AutomationRunner(data).setMainConfig(mainConfiguration)
-      //Get feature engineering pipeline and transform it to get feature engineered dataset
-      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration)
-      val featureEngineeredDf = featureEngOutput.transformedForTrainingDf
+      // Setup MLflow Run
+      addMlFlowConfigForPipelineUse(mainConfiguration)
+      try {
+        //Get feature engineering pipeline and transform it to get feature engineered dataset
+        val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration)
+        val featureEngineeredDf = featureEngOutput.transformedForTrainingDf
 
-      val preppedDataOverride = DataGeneration(
-        featureEngineeredDf,
-        featureEngineeredDf.columns,
-        featureEngOutput.decidedModel
-      ).copy(modelType = x.predictionType)
+        val preppedDataOverride = DataGeneration(
+          featureEngineeredDf,
+          featureEngineeredDf.columns,
+          featureEngOutput.decidedModel
+        ).copy(modelType = x.predictionType)
 
-      val output = runner.executeTuning(preppedDataOverride)
+        val output = runner.executeTuning(preppedDataOverride, isPipeline = true)
 
-      outputBuffer += getNewFamilyOutPut(output, x, featureEngOutput, mainConfiguration)
-      pipelineConfigMap += x.modelFamily -> (featureEngOutput, mainConfiguration)
+        outputBuffer += getNewFamilyOutPut(output, x)
+        pipelineConfigMap += x.modelFamily -> (featureEngOutput, mainConfiguration)
+      } catch {
+        case ex: Exception => {
+          PipelineMlFlowProgressReporter.failed(mainConfiguration.pipelineId, ex.getMessage)
+          throw PipelineExecutionException(mainConfiguration.pipelineId, ex)
+        }
+      }
     }
     withPipelineInferenceModel(
       unifyFamilyOutput(outputBuffer.toArray),
@@ -193,12 +224,34 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     )
   }
 
+  /**
+    * @param verbose: If set to true, any dataset transformed with this feature engineered pipeline will include all
+    *               input columns for the vector assembler stage.
+    * @return Generates feature engineering pipeline for a given configuration under a given Model Family
+    *         Note: It does not trigger any Model training.
+    */
+  def generateFeatureEngineeredPipeline(verbose: Boolean = false): Map[String, PipelineModel] = {
+    val featureEngineeredMap = scala.collection.mutable.Map[String, PipelineModel]()
+    configs.foreach { x =>
+      val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
+      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration, verbose)
+      val finalPipelineModel = FeatureEngineeringPipelineContext.addUserReturnViewStage(
+        featureEngOutput.pipelineModel,
+        mainConfiguration,
+        featureEngOutput.pipelineModel.transform(data),
+        featureEngOutput.originalDfViewName)
+      featureEngineeredMap += x.modelFamily -> finalPipelineModel
+    }
+    featureEngineeredMap.toMap
+  }
+
   def withPipelineInferenceModel(familyFinalOutput: FamilyFinalOutput,
                                  configs: Array[InstanceConfig],
                                  pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)]):
 
   FamilyFinalOutputWithPipeline = {
     val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
+    val bestMlFlowRunIds = scala.collection.mutable.Map[String, String]()
     configs.foreach(config => {
       val modelReport = familyFinalOutput.modelReport.filter(item => item.modelFamily.equals(config.modelFamily))
       pipelineModels += config.modelFamily -> FeatureEngineeringPipelineContext
@@ -207,8 +260,9 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
           modelReport,
           pipelineConfigs(config.modelFamily)._2,
           data)
+      bestMlFlowRunIds += config.modelFamily -> familyFinalOutput.mlFlowReport(0).bestLog.runIdPayload(0)._1
     })
-    FamilyFinalOutputWithPipeline(familyFinalOutput, pipelineModels.toMap)
+    FamilyFinalOutputWithPipeline(familyFinalOutput, pipelineModels.toMap, bestMlFlowRunIds.toMap)
   }
 }
 

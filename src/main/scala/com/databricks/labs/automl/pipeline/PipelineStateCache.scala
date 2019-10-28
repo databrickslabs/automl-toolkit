@@ -11,16 +11,16 @@ import scala.collection.mutable
   */
 object PipelineStateCache {
 
-  lazy private val pipelineStateCache = mutable.WeakHashMap[String, mutable.Map[String, AnyVal]]()
+  lazy private val pipelineStateCache = mutable.WeakHashMap[String, mutable.Map[String, Any]]()
 
-  def addToPipelineCache(pipelineId: String, key: String, value: AnyVal): Unit = {
+  def addToPipelineCache(pipelineId: String, key: String, value: Any): Unit = {
     if(!pipelineStateCache.contains(pipelineId)) {
       pipelineStateCache += pipelineId -> mutable.Map.empty
     }
     pipelineStateCache += pipelineId -> (pipelineStateCache(pipelineId) += (key -> value))
   }
 
-  def getFromPipelineByIdAndKey(pipelineId: String, key: String): AnyVal = {
+  def getFromPipelineByIdAndKey(pipelineId: String, key: String): Any = {
     pipelineStateCache(pipelineId)(key)
   }
 

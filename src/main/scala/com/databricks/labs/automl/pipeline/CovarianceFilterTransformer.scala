@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.sanitize.FeatureCorrelationDetection
-import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.param.{DoubleParam, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
@@ -24,7 +24,7 @@ class CovarianceFilterTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("CovarianceFilterTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setFieldsRemoved(Array.empty)
     setTransformCalculated(false)
     setCorrelationCutoffLow(-0.99)

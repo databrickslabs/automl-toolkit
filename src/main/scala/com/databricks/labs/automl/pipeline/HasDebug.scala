@@ -1,5 +1,9 @@
 package com.databricks.labs.automl.pipeline
 
+import com.databricks.labs.automl.params.{MLFlowConfig, MainConfig}
+import com.databricks.labs.automl.pipeline.PipelineVars.PIPELINE_LABEL_REFACTOR_NEEDED_KEY
+import com.databricks.labs.automl.tracking.MLFlowTracker
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, PipelineStatus}
 import org.apache.log4j.Logger
 import org.apache.spark.ml.param.{BooleanParam, Param, Params}
 import org.apache.spark.sql.Dataset
@@ -28,7 +32,6 @@ trait HasDebug extends Params {
       } else {
         s"${stageExecutionTime.toDouble/1000} seconds"
       }
-      // Keeping this INFO level, since debug level can easily pollute this important block of debug information
       val logStrng = s"\n \n" +
         s"=== AutoML Pipeline Stage: ${this.getClass} log ==> \n" +
         s"Stage Name: ${this.uid} \n" +
@@ -39,8 +42,28 @@ trait HasDebug extends Params {
         s"Input dataset schema: ${inputDataset.schema.treeString} \n " +
         s"Output dataset schema: ${outputDataset.schema.treeString} " + "\n" +
         s"=== End of ${this.getClass} Pipeline Stage log <==" + "\n"
+      // Keeping this INFO level, since debug level can easily pollute this important block of debug information
       println(logStrng)
       logger.info(logStrng)
+      //Log this stage to MLFlow with useful information
+      val pipelineId = paramValueAsString(this.extractParamMap().get(this.getParam("pipelineId")).get)
+        .asInstanceOf[String]
+      val pipelineStatus = try {
+        PipelineStateCache
+          .getFromPipelineByIdAndKey(
+            pipelineId,
+            PipelineVars.PIPELINE_STATUS.key)
+          .asInstanceOf[String]
+      } catch {
+        case ex: Exception => PipelineStatus.PIPELINE_FAILED.key
+      }
+      val isTrain = !pipelineStatus.equals(PipelineStatus.PIPELINE_COMPLETED.key) &&
+                    !pipelineStatus.equals(PipelineStatus.PIPELINE_FAILED.key)
+      if(!inputDataset.sparkSession.sparkContext.isLocal && isTrain) {
+        AutoMlPipelineMlFlowUtils
+          .logTagsToMlFlow(pipelineId, Map(s"pipeline_stage_${this.getClass.getName}" -> logStrng))
+        PipelineMlFlowProgressReporter.runningStage(pipelineId, this.getClass.getName)
+      }
     }
   }
 

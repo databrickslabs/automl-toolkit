@@ -56,8 +56,10 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
   "FeatureEngineeringPipelineContextTest" should "run train, save/load pipeline and predict" in {
     val testVars = PipelineTestUtils.getTestVars()
     val overrides = Map(
-      "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
-      "scalingFlag" -> true, "oneHotEncodeFlag" -> true,
+      "labelCol" -> "label",
+      "mlFlowLoggingFlag" -> false,
+      "scalingFlag" -> true,
+      "oneHotEncodeFlag" -> true,
       "numericBoundaries" -> Map(
         "numTrees" -> Tuple2(50.0, 100.0),
         "maxBins" -> Tuple2(10.0, 20.0),
@@ -65,7 +67,7 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
         "minInfoGain" -> Tuple2(0.0, 0.03),
         "subSamplingRate" -> Tuple2(0.5, 1.0)),
       "tunerParallelism" -> 10,
-      "outlierFilterFlag" -> true,
+      "outlierFilterFlag" -> false,
       "outlierFilterPrecision" -> 0.05,
       "outlierLowerFilterNTile" -> 0.05,
       "outlierUpperFilterNTile" -> 0.95,
@@ -100,8 +102,10 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
 
   ignore should "run train pipeline" in {
     val overrides = Map(
-      "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
-      "scalingFlag" -> true, "oneHotEncodeFlag" -> true,
+      "labelCol" -> "label",
+      "mlFlowLoggingFlag" -> false,
+      "scalingFlag" -> true,
+      "oneHotEncodeFlag" -> true,
       "numericBoundaries" -> Map(
         "numTrees" -> Tuple2(50.0, 100.0),
         "maxBins" -> Tuple2(10.0, 20.0),

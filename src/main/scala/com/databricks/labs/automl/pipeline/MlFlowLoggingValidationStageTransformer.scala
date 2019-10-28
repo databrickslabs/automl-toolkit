@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.exceptions.MlFlowValidationException
-import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, WorkspaceDirectoryValidation}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, WorkspaceDirectoryValidation}
 import org.apache.spark.ml.param.{BooleanParam, Param, ParamMap}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
@@ -21,7 +21,7 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("MlFlowLoggingValidationStageTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setDebugEnabled(false)
   }
 

@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{Param, ParamMap, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
@@ -16,7 +16,7 @@ import org.apache.spark.sql.types.{LongType, StructField, StructType}
   * This is extremely useful for making sure all the original columns are present in the final
   * transformed dataset, since there may be a need to JOIN operations on ignored columns in the
   * downstream of inference step
-  * @param dataset
+  * @param uid
   */
 class AutoMlOutputDatasetTransformer(override val uid: String)
   extends AbstractTransformer
@@ -26,7 +26,7 @@ class AutoMlOutputDatasetTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("AutoMlOutputDatasetTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setDebugEnabled(false)
   }
 
@@ -40,16 +40,18 @@ class AutoMlOutputDatasetTransformer(override val uid: String)
     val originalUserDf =  dataset.sqlContext.sql(s"select * from $getTempViewOriginalDatasetName")
     val userViewDf =
     if(dataset.columns.contains(getLabelColumn)) {
-      dataset
+      val tmpDf = dataset
         .drop(getFeatureColumns:_*)
         .drop(getLabelColumn)
-        .join(originalUserDf, getAutomlInternalId)
-        .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+      originalUserDf
+        .join(tmpDf, getAutomlInternalId)
+        .drop(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     } else {
-      dataset
+      val tmpDf = dataset
         .drop(getFeatureColumns:_*)
-        .join(originalUserDf, getAutomlInternalId)
-        .drop(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+      originalUserDf
+        .join(tmpDf, getAutomlInternalId)
+        .drop(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     }
     dataset.sqlContext.dropTempTable(getTempViewOriginalDatasetName)
     userViewDf.toDF()
@@ -60,7 +62,7 @@ class AutoMlOutputDatasetTransformer(override val uid: String)
     if(spark.catalog.tableExists(getTempViewOriginalDatasetName)) {
       val originalDfSchema = spark.sql(s"select * from $getTempViewOriginalDatasetName").schema
       return StructType(
-        schema.fields.filterNot(field => AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL.equals(field.name))
+        schema.fields.filterNot(field => AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL.equals(field.name))
           ++
           originalDfSchema.fields.filterNot(field => getFeatureColumns.contains(field.name)))
     }

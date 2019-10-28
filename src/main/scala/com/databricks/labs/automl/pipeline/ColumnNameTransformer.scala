@@ -21,7 +21,8 @@ class ColumnNameTransformer(override val uid: String)
   with DefaultParamsWritable
   with HasInputCols
   with HasOutputCols
-  with HasDebug {
+  with HasDebug
+  with HasPipelineId {
 
   def this() = {
     this(Identifiable.randomUID("ColumnNameTransformer"))

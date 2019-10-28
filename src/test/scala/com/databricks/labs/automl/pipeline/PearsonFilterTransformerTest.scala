@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.AutoMlPipelineUtils
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, PipelineTestUtils}
 import org.apache.spark.ml.PipelineStage
 
@@ -12,7 +12,7 @@ class PearsonFilterTransformerTest extends AbstractUnitSpec {
     val testVars = PipelineTestUtils.getTestVars()
     val stages = new ArrayBuffer[PipelineStage]()
     val nonFeatureCols =
-      Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
+      Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL, testVars.labelCol)
     stages += PipelineTestUtils
       .addZipRegisterTmpTransformerStage(
         testVars.labelCol,
@@ -22,14 +22,14 @@ class PearsonFilterTransformerTest extends AbstractUnitSpec {
       .getVectorizedFeatures(
         testVars.df,
         testVars.labelCol,
-        Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+        Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
       )
     stages ++= PipelineTestUtils
       .buildFeaturesPipelineStages(
         testVars.df,
         testVars.labelCol,
         dropColumns = false,
-        ignoreCols = Array(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+        ignoreCols = Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
       )
     stages += new PearsonFilterTransformer()
       .setLabelColumn(testVars.labelCol)

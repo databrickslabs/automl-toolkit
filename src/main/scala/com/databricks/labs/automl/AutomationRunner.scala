@@ -9,6 +9,7 @@ import com.databricks.labs.automl.inference.{
 import com.databricks.labs.automl.model._
 import com.databricks.labs.automl.model.tools.PostModelingOptimization
 import com.databricks.labs.automl.params._
+
 import com.databricks.labs.automl.reports.{
   DecisionTreeSplits,
   RandomForestFeatureImportance
@@ -26,6 +27,8 @@ import ml.dmlc.xgboost4j.scala.spark.{
   XGBoostClassificationModel,
   XGBoostRegressionModel
 }
+
+import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{
@@ -1850,13 +1853,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
                                  modelFamily: String,
                                  modelType: String): MLFlowReportStructure = {
 
-    val mlFlowLogger = new MLFlowTracker()
-      .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
-      .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
-      .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
-      .setModelSaveDirectory(_mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
-      .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
-      .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
+    val mlFlowLogger = MLFlowTracker(_mainConfig.mlFlowConfig)
 
     if (_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn()
     else mlFlowLogger.logArtifactsOff()
@@ -1868,10 +1865,30 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.inferenceConfigSaveLocation,
       _mainConfig.scoringOptimizationStrategy
     )
-
   }
 
-  protected[automl] def executeTuning(payload: DataGeneration): TunerOutput = {
+  private def logPipelineResultsToMlFlow(
+    runData: Array[GenericModelReturn],
+    modelFamily: String,
+    modelType: String
+  ): MLFlowReportStructure = {
+
+    val mlFlowLogger = MLFlowTracker(_mainConfig.mlFlowConfig)
+    mlFlowLogger.logMlFlowForPipeline(
+      AutoMlPipelineMlFlowUtils
+        .getMainConfigByPipelineId(_mainConfig.pipelineId)
+        .mlFlowRunId,
+      runData,
+      modelFamily,
+      modelType,
+      _mainConfig.scoringOptimizationStrategy
+    )
+  }
+
+  protected[automl] def executeTuning(
+    payload: DataGeneration,
+    isPipeline: Boolean = false
+  ): TunerOutput = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
 
@@ -1992,7 +2009,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val genericResultData = genericResults.result.toArray
 
-    val mlFlow = if (_mainConfig.mlFlowLoggingFlag) {
+    val mlFlow = if (_mainConfig.mlFlowLoggingFlag && !isPipeline) {
 
       // set the Inference details in general for the run
       // TODO - Remove this - It's here and in the tracker but the values are different and should be set equal
@@ -2044,6 +2061,12 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
       logger.log(Level.INFO, pretty)
       mlFlowResult
+    } else if (isPipeline) {
+      logPipelineResultsToMlFlow(
+        genericResultData,
+        _mainConfig.modelFamily,
+        modelSelection
+      )
     } else {
       generateDummyMLFlowReturn("undefined").get
     }
@@ -2077,15 +2100,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     msg: String
   ): Option[MLFlowReportStructure] = {
     try {
-      val genTracker = new MLFlowTracker()
-        .setMlFlowTrackingURI(_mainConfig.mlFlowConfig.mlFlowTrackingURI)
-        .setMlFlowHostedAPIToken(_mainConfig.mlFlowConfig.mlFlowAPIToken)
-        .setMlFlowExperimentName(_mainConfig.mlFlowConfig.mlFlowExperimentName)
-        .setModelSaveDirectory(
-          _mainConfig.mlFlowConfig.mlFlowModelSaveDirectory
-        )
-        .setMlFlowLoggingMode(_mainConfig.mlFlowConfig.mlFlowLoggingMode)
-        .setMlFlowBestSuffix(_mainConfig.mlFlowConfig.mlFlowBestSuffix)
+      val genTracker = MLFlowTracker(_mainConfig.mlFlowConfig)
       val dummyLog = MLFlowReturn(
         genTracker.createHostedMlFlowClient(),
         msg,

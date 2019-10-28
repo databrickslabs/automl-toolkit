@@ -1,7 +1,8 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.{AutoMlPipelineUtils, SchemaUtils}
-import org.apache.spark.ml.param.{IntParam, ParamMap, StringArrayParam}
+import com.databricks.labs.automl.utils.data.CategoricalHandler
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
+import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, ParamMap, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
@@ -20,16 +21,20 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
 
   def this() = {
     this(Identifiable.randomUID("CardinalityLimitColumnPrunerTransformer"))
-    setAutomlInternalId(AutoMlPipelineUtils.AUTOML_INTERNAL_ID_COL)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setCardinalityLimit(500)
     setTransformCalculated(false)
     setPrunedColumns(null)
     setDebugEnabled(false)
   }
 
-  final val cardinalityLimit: IntParam = new IntParam(
-    this, "cardinalityLimit",
-    "Setting this to a limit will ignore columns with cardinality higher than this limit")
+  final val cardinalityLimit: IntParam = new IntParam(this, "cardinalityLimit", "Setting this to a limit will ignore columns with cardinality higher than this limit")
+
+  final val cardinalityCheckMode: Param[String] = new Param[String](this, "cardinalityCheckMode", "cardinality chec mode")
+
+  final val cardinalityType: Param[String] = new Param[String](this, "cardinalityType", "cardinality type")
+
+  final val cardinalityPrecision: DoubleParam = new DoubleParam(this, "cardinalityPrecision", "cardinality precision")
 
   final val prunedColumns: StringArrayParam = new StringArrayParam(this, "prunedColumns", "Columns to ignore based on cardinality limit")
 
@@ -41,14 +46,32 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
 
   def getPrunedColumns: Array[String] = $(prunedColumns)
 
+  def setCardinalityCheckMode(value: String): this.type = set(cardinalityCheckMode, value)
+
+  def getCardinalityCheckMode: String = $(cardinalityCheckMode)
+
+  def setCardinalityType(value: String): this.type = set(cardinalityType, value)
+
+  def getCardinalityType: String = $(cardinalityType)
+
+  def setCardinalityPrecision(value: Double): this.type = set(cardinalityPrecision, value)
+
+  def getCardinalityPrecision: Double = $(cardinalityPrecision)
+
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if(!getTransformCalculated) {
       val columnTypes = SchemaUtils.extractTypes(dataset.toDF(), getLabelColumn)
       if(SchemaUtils.isNotEmpty(columnTypes._2)) {
-        val columnsToDrop = SchemaUtils
-          .validateCardinality(dataset.toDF(), columnTypes._2, getCardinalityLimit)
-          .invalidFields
-          .filterNot(item => getAutomlInternalId.equals(item))
+
+        val colsValidated = new CategoricalHandler(dataset.toDF(), getCardinalityCheckMode)
+          .setCardinalityType(getCardinalityType)
+          .setPrecision(getCardinalityPrecision)
+          .validateCategoricalFields(
+            columnTypes._2.filterNot(item => getAutomlInternalId.equals(item)),
+            getCardinalityLimit)
+
+       val columnsToDrop =  columnTypes._2
+         .filterNot(col => colsValidated.contains(col))
 
         if(SchemaUtils.isEmpty(getPrunedColumns)) {
           setPrunedColumns(columnsToDrop.toArray[String])

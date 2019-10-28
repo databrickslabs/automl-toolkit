@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.executor.config
 
-import com.databricks.labs.automl.utils.DBUtilsHelper
+import com.databricks.labs.automl.utils.InitDbUtils
 
 trait ConfigurationDefaults {
 
@@ -578,9 +578,9 @@ trait ConfigurationDefaults {
   private[config] def loggingConfig(): LoggingConfig = {
     val mlFlowLoggingFlag = true
     val mlFlowLogArtifactsFlag = false
-    val mlFlowTrackingURI = DBUtilsHelper.getTrackingURI
-    val mlFlowExperimentName = DBUtilsHelper.getNotebookDirectory + "MLFlowLogs"
-    val mlFlowAPIToken = DBUtilsHelper.getAPIToken
+    val mlFlowTrackingURI = if(mlFlowLogArtifactsFlag) InitDbUtils.getTrackingURI else ""
+    val mlFlowExperimentName = if(mlFlowLogArtifactsFlag) InitDbUtils.getNotebookDirectory + "MLFlowLogs" else ""
+    val mlFlowAPIToken = if(mlFlowLogArtifactsFlag) InitDbUtils.getAPIToken else ""
     val mlFlowModelSaveDirectory = "dbfs:/mlflow/experiments/"
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"
