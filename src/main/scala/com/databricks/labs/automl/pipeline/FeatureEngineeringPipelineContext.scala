@@ -37,7 +37,6 @@ object FeatureEngineeringPipelineContext {
   def generatePipelineModel(originalInputDataset: DataFrame,
                             mainConfig: MainConfig,
                             verbose: Boolean = false): FeatureEngineeringOutput = {
-
     val originalDfTempTableName = Identifiable.randomUID("zipWithId")
 
     val removeColumns = new ArrayBuffer[String]
@@ -365,8 +364,7 @@ object FeatureEngineeringPipelineContext {
         stages,
         Some(new StringIndexer(PipelineEnums.LABEL_STRING_INDEXER_STAGE_NAME.value + Identifiable.randomUID("strIdx"))
           .setInputCol(mainConfig.labelCol)
-          .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)
-          .setHandleInvalid("keep")))
+          .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)))
       getAndAddStage(stages, dropColumns(Array(mainConfig.labelCol), mainConfig))
       getAndAddStage(stages,
         renameTransformerStage(
