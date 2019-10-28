@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.databricks.labs.automl.params.{
   GBTConfig,
+  LightGBMConfig,
   LinearRegressionConfig,
   LogisticRegressionConfig,
   MLPCConfig,
@@ -51,6 +52,11 @@ class ModelReporting(modelType: String, metrics: List[String]) {
       case "xgboost" =>
         convertXGBoostConfigToHumanReadable(
           config.asInstanceOf[XGBoostConfig],
+          formatter
+        )
+      case "lightgbm" =>
+        convertLightGBMConfigToHumanReadable(
+          config.asInstanceOf[LightGBMConfig],
           formatter
         )
       case "trees" =>
@@ -201,6 +207,26 @@ class ModelReporting(modelType: String, metrics: List[String]) {
       s"$formatter[numRound] -> [${conf.numRound.toString}]" +
       s"$formatter[subSample] -> [${conf.subSample.toString}]" +
       s"$formatter[trainTestRatio] -> [${conf.trainTestRatio.toString}]"
+  }
+
+  private def convertLightGBMConfigToHumanReadable(
+    conf: LightGBMConfig,
+    formatter: String
+  ): String = {
+    s"\n\t\t\tConfig: $formatter[baggingFraction] -> [${conf.baggingFraction.toString}]" +
+      s"$formatter[baggingFreq] -> [${conf.baggingFreq.toString}]" +
+      s"$formatter[featureFreaction] -> [${conf.featureFraction.toString}]" +
+      s"$formatter[learningRate] -> [${conf.learningRate.toString}]" +
+      s"$formatter[maxBin] -> [${conf.maxBin.toString}]" +
+      s"$formatter[maxDepth] -> [${conf.maxDepth.toString}" +
+      s"$formatter[minSumHessianInLeaf] -> [${conf.minSumHessianInLeaf.toString}]" +
+      s"$formatter[numIterations] -> [${conf.numIterations.toString}]" +
+      s"$formatter[numLeaves] -> [${conf.numLeaves.toString}]" +
+      s"$formatter[boostFromAverage] -> [${conf.boostFromAverage.toString}]" +
+      s"$formatter[lambdaL1] -> [${conf.lambdaL1.toString}]" +
+      s"$formatter[lambdaL2] -> [${conf.lambdaL2.toString}]" +
+      s"$formatter[alpha] -> [${conf.alpha.toString}]" +
+      s"$formatter[boostingType] -> [${conf.boostingType.toString}]"
   }
 
   /**

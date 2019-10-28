@@ -12,7 +12,19 @@ trait Defaults {
     "LogisticRegression",
     "MLPC",
     "SVM",
-    "XGBoost"
+    "XGBoost",
+    "gbmBinary",
+    "gbmMulti",
+    "gbmMultiOVA",
+    "gbmHuber",
+    "gbmFair",
+    "gbmLasso",
+    "gbmRidge",
+    "gbmPoisson",
+    "gbmQuantile",
+    "gbmMape",
+    "gbmTweedie",
+    "gbmGamma"
   )
 
   final val trainSplitMethods: List[String] = List(
@@ -232,7 +244,7 @@ trait Defaults {
     "maxDepth" -> Tuple2(3.0, 10.0),
     "subSample" -> Tuple2(0.4, 0.6),
     "minChildWeight" -> Tuple2(0.1, 10.0),
-    "numRound" -> Tuple2(5.0, 25.0),
+    "numRound" -> Tuple2(25.0, 250.0),
     "maxBins" -> Tuple2(25.0, 512.0),
     "trainTestRatio" -> Tuple2(0.2, 0.8)
   )
@@ -319,6 +331,24 @@ trait Defaults {
 
   def _naiveBayesDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "smoothing" -> Tuple2(0.0, 1.0)
+  )
+
+  def _lightGBMDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
+    "baggingFraction" -> Tuple2(0.5, 1.0),
+    "baggingFreq" -> Tuple2(0.0, 1.0),
+    "featureFraction" -> Tuple2(0.6, 1.0),
+    "maxBin" -> Tuple2(50, 1000),
+    "maxDepth" -> Tuple2(3.0, 20.0),
+    "minSumHessianInLeaf" -> Tuple2(1e-5, 50.0),
+    "numIterations" -> Tuple2(25.0, 250.0),
+    "numLeaves" -> Tuple2(10.0, 50.0),
+    "lambdaL1" -> Tuple2(0.0, 1.0),
+    "lambdaL2" -> Tuple2(0.0, 1.0),
+    "alpha" -> Tuple2(0.0, 1.0)
+  )
+
+  def _lightGBMDefaultStringBoundaries: Map[String, List[String]] = Map(
+    "boostingType" -> List("gbdt", "rf", "dart", "goss")
   )
 
   def _scoringDefaultClassifier = "f1"

@@ -796,6 +796,94 @@ trait Evolution
 
   def getDataReductionFactor: Double = _dataReduce
 
+  /**
+    * Internal method for validating if a numeric mapping that is specified contains any invalid keys
+    * @param standardConfig The static defined numeric mapping for a model type
+    * @param modConfig a user-specified mapping override
+    * @since 0.6.1
+    * @author Ben Wilson, Databricks
+    * @throws IllegalArgumentException if the key is invalid for the model type specified.
+    */
+  @throws(classOf[IllegalArgumentException])
+  protected[model] def validateNumericMapping(
+    standardConfig: Map[String, (Double, Double)],
+    modConfig: Map[String, (Double, Double)]
+  ): Unit = {
+
+    val staticKeys = standardConfig.keys.toArray
+    val modKeys = modConfig.keys.toArray
+
+    modKeys.foreach(
+      x =>
+        if (!staticKeys.contains(x))
+          throw new IllegalArgumentException(
+            s"The numeric Boundary map key " +
+              s"supplied: [$x] is not a valid member of Numeric Mapping.  " +
+              s"\nKeys are restricted to: [${staticKeys.mkString(", ")}]"
+        )
+    )
+
+  }
+
+  /**
+    * Internal method for validating if a string mapping that is specified contains any invalid keys
+    * @param standardConfig The static defined string mapping for a model type
+    * @param modConfig a user-specified mapping override
+    * @since 0.6.1
+    * @author Ben Wilson, Databricks
+    * @throws IllegalArgumentException if the key is invalid for the model type specified.
+    */
+  @throws(classOf[IllegalArgumentException])
+  protected[model] def validateStringMapping(
+    standardConfig: Map[String, List[String]],
+    modConfig: Map[String, List[String]]
+  ): Unit = {
+    val staticKeys = standardConfig.keys.toArray
+    val modKeys = modConfig.keys.toArray
+
+    modKeys.foreach(
+      x =>
+        if (!staticKeys.contains(x))
+          throw new IllegalArgumentException(
+            s"The string Boundary map key " +
+              s"supplied: [$x] is not a valid member of String Mapping.  " +
+              s"\nKeys are restricted to: [${staticKeys.mkString(", ")}]"
+        )
+    )
+  }
+
+  /**
+    * Helper function for partially updating a numeric mapping
+    * @param defaultMap The default configuration Map for a numeric mapping for model hyperparameter search space
+    * @param updateMap user-supplied updated map (doesn't have to have all elements in it)
+    * @return The default map, updated with the user-supplied overrides
+    * @since 0.6.1
+    * @author Ben Wilson, Jas Bali Databricks
+    */
+  def partialOverrideNumericMapping(
+    defaultMap: Map[String, (Double, Double)],
+    updateMap: Map[String, (Double, Double)]
+  ): Map[String, (Double, Double)] = {
+
+    defaultMap ++ updateMap
+  }
+
+  /**
+    * Helper function for partially updating a string mapping
+    *
+    * @param defaultMap The default configuration Map for a string mapping for model hyperparameter search space
+    * @param updateMap user-supplied updated map (doesn't have to have all elements in it)
+    * @return The default map, updated with the user-supplied overrides
+    * @since 0.6.1
+    * @author Ben Wilson, Jas Bali Databricks
+    */
+  def partialOverrideStringMapping(
+    defaultMap: Map[String, List[String]],
+    updateMap: Map[String, List[String]]
+  ): Map[String, List[String]] = {
+    defaultMap ++ updateMap
+  }
+
   // TODO - Calculation should take into account early stopping
   def totalModels: Int = _evolutionStrategy match {
     case "batch" =>
@@ -1367,6 +1455,17 @@ trait Evolution
       .setMetricName(metricName)
       .evaluate(data)
 
+  }
+
+  def generateAggressiveness(totalConfigs: Int, currentIteration: Int): Int = {
+    val mutationAggressiveness = _generationalMutationStrategy match {
+      case "linear" =>
+        if (totalConfigs - (currentIteration + 1) < 1) 1
+        else
+          totalConfigs - (currentIteration + 1)
+      case _ => _fixedMutationValue
+    }
+    mutationAggressiveness
   }
 
 }

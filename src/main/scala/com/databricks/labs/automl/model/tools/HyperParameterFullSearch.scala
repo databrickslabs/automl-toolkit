@@ -149,6 +149,91 @@ class HyperParameterFullSearch extends Defaults with ModelConfigGenerators {
   }
 
   /**
+    * Method for generating a geometric search space for a first-generation hyper parameter generation for LightGBM
+    * @param numericBoundaries LightGBM numeric search space boundaries
+    * @param stringBoundaries LightGBM string search space boundaries
+    * @return An array of LightGBM configs
+    * @since 0.6.1
+    * @author Ben Wilson, Databricks
+    * @throws UnsupportedOperationException if the index mixing mode supplied is invalid.
+    */
+  @throws(classOf[UnsupportedOperationException])
+  def initialGenerationSeedLightGBM(
+    numericBoundaries: Map[String, (Double, Double)],
+    stringBoundaries: Map[String, List[String]]
+  ): Array[LightGBMConfig] = {
+
+    var outputPayload = new ArrayBuffer[LightGBMConfig]()
+
+    val lightGBMConfig = PermutationConfiguration(
+      modelType = _modelType,
+      permutationTarget = _permutationCount,
+      numericBoundaries = numericBoundaries,
+      stringBoundaries = stringBoundaries
+    )
+
+    val generatedArrays = lightGBMNumericArrayGenerator(lightGBMConfig)
+
+    var _boostFromAverageIdx = 0
+    var _boostingTypeIdx = 0
+
+    var numericArrays = Array(
+      generatedArrays.baggingFractionArray,
+      generatedArrays.baggingFreqArray,
+      generatedArrays.featureFractionArray,
+      generatedArrays.learningRateArray,
+      generatedArrays.maxBinArray,
+      generatedArrays.maxDepthArray,
+      generatedArrays.minSumHessianInLeafArray,
+      generatedArrays.numIterationsArray,
+      generatedArrays.numLeavesArray,
+      generatedArrays.lambdaL1Array,
+      generatedArrays.lambdaL2Array,
+      generatedArrays.alphaArray
+    )
+
+    for (i <- 1 to _permutationCount) {
+      val selectedIndeces = _indexMixingMode match {
+        case "linear" => staticIndexSelection(numericArrays)
+        case "random" => randomIndexSelection(numericArrays)
+        case _ =>
+          throw new UnsupportedOperationException(
+            s" Index mixing mode ${_indexMixingMode} is not supported."
+          )
+      }
+      numericArrays = selectedIndeces.remainingPayload
+
+      val boostFromAverageLoop = selectCoinFlip(_boostFromAverageIdx)
+      val boostingTypeLoop =
+        selectStringIndex(stringBoundaries("boostingType"), _boostingTypeIdx)
+      _boostingTypeIdx = boostingTypeLoop.IndexCounterStatus
+
+      outputPayload += LightGBMConfig(
+        baggingFraction = selectedIndeces.selectedPayload(0),
+        baggingFreq = selectedIndeces.selectedPayload(1).toInt,
+        featureFraction = selectedIndeces.selectedPayload(2),
+        learningRate = selectedIndeces.selectedPayload(3),
+        maxBin = selectedIndeces.selectedPayload(4).toInt,
+        maxDepth = selectedIndeces.selectedPayload(5).toInt,
+        minSumHessianInLeaf = selectedIndeces.selectedPayload(6),
+        numIterations = selectedIndeces.selectedPayload(7).toInt,
+        numLeaves = selectedIndeces.selectedPayload(8).toInt,
+        boostFromAverage = boostFromAverageLoop,
+        lambdaL1 = selectedIndeces.selectedPayload(9),
+        lambdaL2 = selectedIndeces.selectedPayload(10),
+        alpha = selectedIndeces.selectedPayload(11),
+        boostingType = boostingTypeLoop.selectedStringValue
+      )
+      _boostFromAverageIdx += 1
+      _boostingTypeIdx += 1
+
+    }
+
+    outputPayload.result.toArray
+
+  }
+
+  /**
     * Method for generating a geometric search space for a first-generation hyper parameter generation for DecisionTrees
     * @param numericBoundaries numeric bounds restrictions
     * @param stringBoundaries string value restrictions

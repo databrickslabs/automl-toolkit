@@ -19,6 +19,7 @@ libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.6" % "test"
 libraryDependencies += "com.databricks" % "dbutils-api_2.11" % "0.0.3"
 libraryDependencies += "ml.combust.mleap" %% "mleap-runtime" % "0.14.0"
 libraryDependencies += "ml.combust.mleap" %% "mleap-spark" % "0.14.0"
+libraryDependencies += "com.microsoft.ml.spark" %% "mmlspark" % "0.18.1"
 
 lazy val commonSettings = Seq(
   version := "0.6.0",

@@ -18,6 +18,10 @@ import com.databricks.labs.automl.tracking.{
   MLFlowReturn,
   MLFlowTracker
 }
+import com.microsoft.ml.spark.lightgbm.{
+  LightGBMClassificationModel,
+  LightGBMRegressionModel
+}
 import ml.dmlc.xgboost4j.scala.spark.{
   XGBoostClassificationModel,
   XGBoostRegressionModel
@@ -34,8 +38,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
 import org.json4s.jackson.Serialization
-import org.json4s.{Formats, NoTypeHints}
 import org.json4s.jackson.Serialization.writePretty
+import org.json4s.{Formats, NoTypeHints}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -206,7 +210,201 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setNumericBoundaries(_mainConfig.numericBoundaries)
         .setStringBoundaries(_mainConfig.stringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
+        .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .randomForestPrediction(
+          genericResults.result.toArray,
+          _mainConfig.geneticConfig.hyperSpaceModelType,
+          _mainConfig.geneticConfig.hyperSpaceModelCount
+        )
+
+      val (hyperResults, hyperDataFrame) =
+        initialize.postRunModeledHyperParams(hyperSpaceRunCandidates)
+
+      hyperResults.foreach { x =>
+        resultBuffer += x
+      }
+      statsBuffer += hyperDataFrame
+
+    }
+
+    (
+      resultBuffer.toArray,
+      statsBuffer.reduce(_ union _),
+      payload.modelType,
+      cachedData
+    )
+
+  }
+
+  private def runLightGBM(
+    lightGBMType: String,
+    payload: DataGeneration
+  ): (Array[LightGBMModelsWithResults], DataFrame, String, DataFrame) = {
+
+    val cachedData = if (_mainConfig.dataPrepCachingFlag) {
+      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+    } else {
+      payload.data
+    }
+
+    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+
+    val initialize = new LightGBMTuner(
+      cachedData,
+      payload.modelType,
+      lightGBMType
+    ).setLabelCol(_mainConfig.labelCol)
+      .setFeaturesCol(_mainConfig.featuresCol)
+      .setLGBMNumericBoundaries(_mainConfig.numericBoundaries)
+      .setLGBMStringBoundaries(_mainConfig.stringBoundaries)
+      .setScoringMetric(_mainConfig.scoringMetric)
+      .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
+      .setTrainSplitMethod(
+        trainSplitValidation(
+          _mainConfig.geneticConfig.trainSplitMethod,
+          payload.modelType
+        )
+      )
+      .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      .setKGroups(_mainConfig.geneticConfig.kSampleConfig.kGroups)
+      .setKMeansMaxIter(_mainConfig.geneticConfig.kSampleConfig.kMeansMaxIter)
+      .setKMeansTolerance(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansTolerance
+      )
+      .setKMeansDistanceMeasurement(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansDistanceMeasurement
+      )
+      .setKMeansSeed(_mainConfig.geneticConfig.kSampleConfig.kMeansSeed)
+      .setKMeansPredictionCol(
+        _mainConfig.geneticConfig.kSampleConfig.kMeansPredictionCol
+      )
+      .setLSHHashTables(_mainConfig.geneticConfig.kSampleConfig.lshHashTables)
+      .setLSHSeed(_mainConfig.geneticConfig.kSampleConfig.lshSeed)
+      .setLSHOutputCol(_mainConfig.geneticConfig.kSampleConfig.lshOutputCol)
+      .setQuorumCount(_mainConfig.geneticConfig.kSampleConfig.quorumCount)
+      .setMinimumVectorCountToMutate(
+        _mainConfig.geneticConfig.kSampleConfig.minimumVectorCountToMutate
+      )
+      .setVectorMutationMethod(
+        _mainConfig.geneticConfig.kSampleConfig.vectorMutationMethod
+      )
+      .setMutationMode(_mainConfig.geneticConfig.kSampleConfig.mutationMode)
+      .setMutationValue(_mainConfig.geneticConfig.kSampleConfig.mutationValue)
+      .setLabelBalanceMode(
+        _mainConfig.geneticConfig.kSampleConfig.labelBalanceMode
+      )
+      .setCardinalityThreshold(
+        _mainConfig.geneticConfig.kSampleConfig.cardinalityThreshold
+      )
+      .setNumericRatio(_mainConfig.geneticConfig.kSampleConfig.numericRatio)
+      .setNumericTarget(_mainConfig.geneticConfig.kSampleConfig.numericTarget)
+      .setTrainSplitChronologicalColumn(
+        _mainConfig.geneticConfig.trainSplitChronologicalColumn
+      )
+      .setTrainSplitChronologicalRandomPercentage(
+        _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage
+      )
+      .setParallelism(_mainConfig.geneticConfig.parallelism)
+      .setKFold(_mainConfig.geneticConfig.kFold)
+      .setSeed(_mainConfig.geneticConfig.seed)
+      .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+      .setFirstGenerationGenePool(
+        _mainConfig.geneticConfig.firstGenerationGenePool
+      )
+      .setNumberOfMutationGenerations(
+        _mainConfig.geneticConfig.numberOfGenerations
+      )
+      .setNumberOfMutationsPerGeneration(
+        _mainConfig.geneticConfig.numberOfMutationsPerGeneration
+      )
+      .setNumberOfParentsToRetain(
+        _mainConfig.geneticConfig.numberOfParentsToRetain
+      )
+      .setGeneticMixing(_mainConfig.geneticConfig.geneticMixing)
+      .setGenerationalMutationStrategy(
+        _mainConfig.geneticConfig.generationalMutationStrategy
+      )
+      .setMutationMagnitudeMode(_mainConfig.geneticConfig.mutationMagnitudeMode)
+      .setFixedMutationValue(_mainConfig.geneticConfig.fixedMutationValue)
+      .setEarlyStoppingFlag(_mainConfig.autoStoppingFlag)
+      .setEarlyStoppingScore(_mainConfig.autoStoppingScore)
+      .setEvolutionStrategy(_mainConfig.geneticConfig.evolutionStrategy)
+      .setContinuousEvolutionImprovementThreshold(
+        _mainConfig.geneticConfig.continuousEvolutionImprovementThreshold
+      )
+      .setGeneticMBORegressorType(
+        _mainConfig.geneticConfig.geneticMBORegressorType
+      )
+      .setGeneticMBOCandidateFactor(
+        _mainConfig.geneticConfig.geneticMBOCandidateFactor
+      )
+      .setContinuousEvolutionMaxIterations(
+        _mainConfig.geneticConfig.continuousEvolutionMaxIterations
+      )
+      .setContinuousEvolutionStoppingScore(
+        _mainConfig.geneticConfig.continuousEvolutionStoppingScore
+      )
+      .setContinuousEvolutionParallelism(
+        _mainConfig.geneticConfig.continuousEvolutionParallelism
+      )
+      .setContinuousEvolutionMutationAggressiveness(
+        _mainConfig.geneticConfig.continuousEvolutionMutationAggressiveness
+      )
+      .setContinuousEvolutionGeneticMixing(
+        _mainConfig.geneticConfig.continuousEvolutionGeneticMixing
+      )
+      .setContinuousEvolutionRollingImporvementCount(
+        _mainConfig.geneticConfig.continuousEvolutionRollingImprovementCount
+      )
+      .setDataReductionFactor(_mainConfig.dataReductionFactor)
+      .setFirstGenMode(_mainConfig.geneticConfig.initialGenerationMode)
+      .setFirstGenPermutations(
+        _mainConfig.geneticConfig.initialGenerationConfig.permutationCount
+      )
+      .setFirstGenIndexMixingMode(
+        _mainConfig.geneticConfig.initialGenerationConfig.indexMixingMode
+      )
+      .setFirstGenArraySeed(
+        _mainConfig.geneticConfig.initialGenerationConfig.arraySeed
+      )
+      .setHyperSpaceModelCount(_mainConfig.geneticConfig.hyperSpaceModelCount)
+
+    if (_modelSeedSetStatus)
+      initialize.setModelSeed(_mainConfig.geneticConfig.modelSeed)
+
+    val (modelResultsRaw, modelStatsRaw) = initialize.evolveWithScoringDF()
+
+    val resultBuffer = modelResultsRaw.toBuffer
+    val statsBuffer = new ArrayBuffer[DataFrame]()
+    statsBuffer += modelStatsRaw
+
+    if (_mainConfig.geneticConfig.hyperSpaceInference) {
+
+      println("\n\t\tStarting Post Tuning Inference Run.\n")
+
+      val genericResults = new ArrayBuffer[GenericModelReturn]
+
+      modelResultsRaw.foreach { x =>
+        genericResults += GenericModelReturn(
+          hyperParams = extractPayload(x.modelHyperParams),
+          model = x.model,
+          score = x.score,
+          metrics = x.evalMetrics,
+          generation = x.generation
+        )
+      }
+
+      val hyperSpaceRunCandidates = new PostModelingOptimization()
+        .setModelFamily(lightGBMType)
+        .setModelType(payload.modelType)
+        .setHyperParameterSpaceCount(
+          _mainConfig.geneticConfig.hyperSpaceInferenceCount
+        )
+        .setNumericBoundaries(_mainConfig.numericBoundaries)
+        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setSeed(_mainConfig.geneticConfig.seed)
+        .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
+        .lightGBMPrediction(
           genericResults.result.toArray,
           _mainConfig.geneticConfig.hyperSpaceModelType,
           _mainConfig.geneticConfig.hyperSpaceModelCount
@@ -393,6 +591,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setNumericBoundaries(_mainConfig.numericBoundaries)
         .setStringBoundaries(_mainConfig.stringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
+        .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .xgBoostPrediction(
           genericResults.result.toArray,
           _mainConfig.geneticConfig.hyperSpaceModelType,
@@ -598,6 +797,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setNumericBoundaries(_mainConfig.numericBoundaries)
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
+            .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .mlpcPrediction(
               genericResults.result.toArray,
               _mainConfig.geneticConfig.hyperSpaceModelType,
@@ -796,6 +996,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setNumericBoundaries(_mainConfig.numericBoundaries)
         .setStringBoundaries(_mainConfig.stringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
+        .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .gbtPrediction(
           genericResults.result.toArray,
           _mainConfig.geneticConfig.hyperSpaceModelType,
@@ -1001,6 +1202,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setNumericBoundaries(_mainConfig.numericBoundaries)
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
+            .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .linearRegressionPrediction(
               genericResults.result.toArray,
               _mainConfig.geneticConfig.hyperSpaceModelType,
@@ -1214,6 +1416,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setNumericBoundaries(_mainConfig.numericBoundaries)
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
+            .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .logisticRegressionPrediction(
               genericResults.result.toArray,
               _mainConfig.geneticConfig.hyperSpaceModelType,
@@ -1424,6 +1627,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setNumericBoundaries(_mainConfig.numericBoundaries)
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
+            .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .svmPrediction(
               genericResults.result.toArray,
               _mainConfig.geneticConfig.hyperSpaceModelType,
@@ -1617,6 +1821,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setNumericBoundaries(_mainConfig.numericBoundaries)
         .setStringBoundaries(_mainConfig.stringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
+        .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .treesPrediction(
           genericResults.result.toArray,
           _mainConfig.geneticConfig.hyperSpaceModelType,
@@ -1686,6 +1891,21 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           (genericResults, stats, selection, data)
         case "XGBoost" =>
           val (results, stats, selection, data) = runXGBoost(payload)
+          results.foreach { x =>
+            genericResults += GenericModelReturn(
+              hyperParams = extractPayload(x.modelHyperParams),
+              model = x.model,
+              score = x.score,
+              metrics = x.evalMetrics,
+              generation = x.generation
+            )
+          }
+          (genericResults, stats, selection, data)
+        case "gbmBinary" | "gbmMulti" | "gbmMultiOVA" | "gbmHuber" | "gbmFair" |
+            "gbmLasso" | "gbmRidge" | "gbmPoisson" | "gbmQuantile" | "gbmMape" |
+            "gbmTweedie" | "gbmGamma" =>
+          val (results, stats, selection, data) =
+            runLightGBM(_mainConfig.modelFamily, payload)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1906,6 +2126,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             val model = bestModel.model.asInstanceOf[XGBoostClassificationModel]
             model.transform(rawData)
         }
+      case "gbmBinary" | "gbmMulti" | "gbmMultiOVA" =>
+        val model = bestModel.model.asInstanceOf[LightGBMClassificationModel]
+        model.transform(rawData)
+      case "gbmHuber" | "gbmFair" | "gbmLasso" | "gbmRidge" | "gbmPoisson" |
+          "gbmQuantile" | "gbmMape" | "gbmTweedie" | "gbmGamma" =>
+        val model = bestModel.model.asInstanceOf[LightGBMRegressionModel]
+        model.transform(rawData)
       case "GBT" =>
         modelSelection match {
           case "regressor" =>
