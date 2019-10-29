@@ -32,6 +32,18 @@ trait ConfigurationDefaults {
       case ("xgboost", "classifier")            => XGBoostClassifier
       case ("mlpc", "classifier")               => MLPC
       case ("svm", "classifier")                => SVM
+      case ("gbmbinary", "classifier")          => LightGBMBinary
+      case ("gbmmulti", "classifier")           => LightGBMMulti
+      case ("gbmmultiova", "classifier")        => LightGBMMultiOVA
+      case ("gbmhuber", "regressor")            => LightGBMHuber
+      case ("gbmfair", "regressor")             => LightGBMFair
+      case ("gbmlasso", "regressor")            => LightGBMLasso
+      case ("gbmridge", "regressor")            => LightGBMRidge
+      case ("gbmpoisson", "regressor")          => LightGBMPoisson
+      case ("gbmquantile", "regressor")         => LightGBMQuantile
+      case ("gbmmape", "regressor")             => LightGBMMape
+      case ("gbmtweedie", "regressor")          => LightGBMTweedie
+      case ("gbmgamma", "regressor")            => LightGBMGamma
       case (_, _) =>
         throw new IllegalArgumentException(
           s"'$modelFamily' Model Family and PredictionType " +
@@ -236,6 +248,11 @@ trait ConfigurationDefaults {
           value.keys.toSet
         )
       case SVM => boundaryValidation(svmNumeric.keys.toSet, value.keys.toSet)
+      case LightGBMBinary | LightGBMMulti | LightGBMMultiOVA | LightGBMHuber |
+          LightGBMFair | LightGBMLasso | LightGBMLasso | LightGBMRidge |
+          LightGBMPoisson | LightGBMQuantile | LightGBMMape | LightGBMTweedie |
+          LightGBMGamma =>
+        boundaryValidation(lightGBMnumeric.keys.toSet, value.keys.toSet)
     }
   }
 
@@ -268,6 +285,11 @@ trait ConfigurationDefaults {
       case LinearRegression       => linearRegressionNumeric
       case LogisticRegression     => logisticRegressionNumeric
       case SVM                    => svmNumeric
+      case LightGBMBinary | LightGBMMulti | LightGBMMultiOVA | LightGBMHuber |
+          LightGBMFair | LightGBMLasso | LightGBMLasso | LightGBMRidge |
+          LightGBMPoisson | LightGBMQuantile | LightGBMMape | LightGBMTweedie |
+          LightGBMGamma =>
+        lightGBMnumeric
       case _ =>
         throw new NotImplementedError(
           s"Model Type ${modelType.toString} is not implemented."
@@ -295,6 +317,11 @@ trait ConfigurationDefaults {
         boundaryValidation(gbtString.keys.toSet, value.keys.toSet)
       case LinearRegression =>
         boundaryValidation(linearRegressionString.keys.toSet, value.keys.toSet)
+      case LightGBMBinary | LightGBMMulti | LightGBMMultiOVA | LightGBMHuber |
+          LightGBMFair | LightGBMLasso | LightGBMLasso | LightGBMRidge |
+          LightGBMPoisson | LightGBMQuantile | LightGBMMape | LightGBMTweedie |
+          LightGBMGamma =>
+        boundaryValidation(lightGBMString.keys.toSet, value.keys.toSet)
       case _ => None
     }
   }
@@ -315,6 +342,11 @@ trait ConfigurationDefaults {
       case LinearRegression       => linearRegressionString
       case LogisticRegression     => Map.empty
       case SVM                    => Map.empty
+      case LightGBMBinary | LightGBMMulti | LightGBMMultiOVA | LightGBMHuber |
+          LightGBMFair | LightGBMLasso | LightGBMLasso | LightGBMRidge |
+          LightGBMPoisson | LightGBMQuantile | LightGBMMape | LightGBMTweedie |
+          LightGBMGamma =>
+        lightGBMString
       case _ =>
         throw new NotImplementedError(
           s"Model Type ${modelType.toString} is not implemented."
@@ -578,9 +610,14 @@ trait ConfigurationDefaults {
   private[config] def loggingConfig(): LoggingConfig = {
     val mlFlowLoggingFlag = true
     val mlFlowLogArtifactsFlag = false
-    val mlFlowTrackingURI = if(mlFlowLogArtifactsFlag) InitDbUtils.getTrackingURI else ""
-    val mlFlowExperimentName = if(mlFlowLogArtifactsFlag) InitDbUtils.getNotebookDirectory + "MLFlowLogs" else ""
-    val mlFlowAPIToken = if(mlFlowLogArtifactsFlag) InitDbUtils.getAPIToken else ""
+    val mlFlowTrackingURI =
+      if (mlFlowLogArtifactsFlag) InitDbUtils.getTrackingURI else ""
+    val mlFlowExperimentName =
+      if (mlFlowLogArtifactsFlag)
+        InitDbUtils.getNotebookDirectory + "MLFlowLogs"
+      else ""
+    val mlFlowAPIToken =
+      if (mlFlowLogArtifactsFlag) InitDbUtils.getAPIToken else ""
     val mlFlowModelSaveDirectory = "dbfs:/mlflow/experiments/"
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"
