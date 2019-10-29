@@ -1,19 +1,18 @@
 package com.databricks.labs.automl.pipeline
 
-import java.nio.file.Paths
 import java.util.UUID
 
 import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, TimeFeatureConversionException}
 import com.databricks.labs.automl.params.{GroupedModelReturn, MainConfig}
+import com.databricks.labs.automl.pipeline.PipelineVars._
 import com.databricks.labs.automl.sanitize.Scaler
-import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, PipelineStatus, SchemaUtils}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
+import org.apache.log4j.Logger
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Model, Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
-import com.databricks.labs.automl.pipeline.PipelineVars._
-import org.apache.log4j.Logger
 
 /**
   * @author Jas Bali
@@ -104,11 +103,16 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(lastStages, oneHotEncodingStage(mainConfig, oheInputCols))
     getAndAddStage(lastStages, dropColumns(Array(mainConfig.featuresCol), mainConfig))
     // Execute Vector Assembler Again
-    getAndAddStage(
-      lastStages,
-      vectorAssemblerStage(
-        mainConfig, oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
-        ++ vectorizedColumns.filterNot(_.endsWith(PipelineEnums.SI_SUFFIX.value))))
+    if(mainConfig.oneHotEncodeFlag) {
+      getAndAddStage(
+        lastStages,
+        vectorAssemblerStage(
+          mainConfig, oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
+            ++ vectorizedColumns.filterNot(_.endsWith(PipelineEnums.SI_SUFFIX.value))))
+    } else {
+      getAndAddStage(
+        lastStages, vectorAssemblerStage(mainConfig, vectorizedColumns))
+    }
 
     // Apply Scaler option
     getAndAddStages(lastStages, scalerStage(mainConfig))
