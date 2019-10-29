@@ -9,59 +9,53 @@ import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFl
   */
 object PipelineMlFlowProgressReporter {
 
-  def starting(pipelineId: String): Unit = {
+  private def isMlFlowOn(pipelineId: String): Boolean = {
+    AutoMlPipelineMlFlowUtils.getMainConfigByPipelineId(pipelineId).mainConfig.mlFlowLoggingFlag
+  }
+
+  private def addProgressToPipelineCache(pipelineId: String, progress: String): Unit = {
     PipelineStateCache
       .addToPipelineCache(
         pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_STARTED.key)
-    AutoMlPipelineMlFlowUtils
-      .logTagsToMlFlow(
-        pipelineId,
-        Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}"
-          ->
-          s"${PipelineStatus.PIPELINE_STARTED} (Building Pipeline from a given configuration)"
-        ))
+        PipelineVars.PIPELINE_STATUS.key, progress)
+  }
+
+  private def addProgressToMLflowRun(pipelineId: String, message: String): Unit = {
+    if(isMlFlowOn(pipelineId)) {
+      AutoMlPipelineMlFlowUtils
+        .logTagsToMlFlow(
+          pipelineId,
+          Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}" -> message
+          ))
+    }
+  }
+
+  def starting(pipelineId: String): Unit = {
+    addProgressToPipelineCache(pipelineId, PipelineStatus.PIPELINE_STARTED.key)
+    addProgressToMLflowRun(
+      pipelineId,
+      s"${PipelineStatus.PIPELINE_STARTED} (Building Pipeline from a given configuration)")
   }
 
   def runningStage(pipelineId: String, stage: String): Unit = {
-    PipelineStateCache
-      .addToPipelineCache(
-        pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_RUNNING.key)
-    AutoMlPipelineMlFlowUtils
-      .logTagsToMlFlow(
-        pipelineId, Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}"
-          ->
-          s"${PipelineStatus.PIPELINE_RUNNING} Stage: $stage"
-        ))
+    addProgressToPipelineCache(pipelineId, PipelineStatus.PIPELINE_RUNNING.key)
+    addProgressToMLflowRun(
+      pipelineId,
+      s"${PipelineStatus.PIPELINE_RUNNING} Stage: $stage")
   }
 
   def completed(pipelineId: String, totalStagesRan: Int): Unit = {
-    PipelineStateCache
-      .addToPipelineCache(
-        pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_COMPLETED.key)
-    AutoMlPipelineMlFlowUtils
-      .logTagsToMlFlow(
-        pipelineId,
-        Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}"
-          ->
-          s"${PipelineStatus.PIPELINE_COMPLETED}. Total Stages Executed: $totalStagesRan"
-        ))
+    addProgressToPipelineCache(pipelineId, PipelineStatus.PIPELINE_COMPLETED.key)
+    addProgressToMLflowRun(
+      pipelineId,
+      s"${PipelineStatus.PIPELINE_COMPLETED}. Total Stages Executed: $totalStagesRan")
   }
 
   def failed(pipelineId: String, message: String): Unit = {
-    PipelineStateCache
-      .addToPipelineCache(
-        pipelineId,
-        PipelineVars.PIPELINE_STATUS.key, PipelineStatus.PIPELINE_FAILED.key)
-    AutoMlPipelineMlFlowUtils
-      .logTagsToMlFlow(
-        pipelineId,
-        Map(s"${PipelineMlFlowTagKeys.PIPELINE_STATUS}"
-          ->
-          s"${PipelineStatus.PIPELINE_FAILED} with message: $message (Search for pipeline ID $pipelineId in the cluster logs to find more details)"
-        ))
+    addProgressToPipelineCache(pipelineId, PipelineStatus.PIPELINE_FAILED.key)
+    addProgressToMLflowRun(
+      pipelineId,
+      s"${PipelineStatus.PIPELINE_FAILED} with message: $message (Search for pipeline ID $pipelineId in the cluster logs to find more details)")
   }
 
 }
