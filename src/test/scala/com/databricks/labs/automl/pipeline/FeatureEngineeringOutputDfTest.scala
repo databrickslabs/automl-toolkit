@@ -57,7 +57,7 @@ class FeatureEngineeringOutputDfTest extends AbstractUnitSpec {
 
     val overrides = Map(
       "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
-      "scalingFlag" -> true, "oneHotEncodeFlag" -> true,
+      "scalingFlag" -> true, "oneHotEncodeFlag" -> false,
       "numericBoundaries" -> Map(
         "numTrees" -> Tuple2(50.0, 100.0),
         "maxBins" -> Tuple2(10.0, 20.0),
@@ -88,7 +88,7 @@ class FeatureEngineeringOutputDfTest extends AbstractUnitSpec {
     val runner = FamilyRunner(sourceDF, Array(randomForestConfig)).generateFeatureEngineeredPipeline(verbose = true)
     val outputDf = runner("RandomForest").transform(sourceDF)
     val noOfCols = outputDf.columns
-    assert(noOfCols.length == 18,
+    assert(noOfCols.length == 17,
       s"Feature engineered dataset's columns should have been 17, but $noOfCols were found")
     outputDf.show(100)
 
