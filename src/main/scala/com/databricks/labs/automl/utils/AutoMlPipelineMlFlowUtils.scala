@@ -30,7 +30,7 @@ object AutoMlPipelineMlFlowUtils {
         PipelineVars.MAIN_CONFIG.key)
       .asInstanceOf[MainConfig]
     if(mainConfig.mlFlowLoggingFlag) {
-      val mlFlowRunId = try PipelineStateCache
+      val mlFlowRunId = PipelineStateCache
         .getFromPipelineByIdAndKey(
           pipelineId,
           PipelineVars.MLFLOW_RUN_ID.key)
