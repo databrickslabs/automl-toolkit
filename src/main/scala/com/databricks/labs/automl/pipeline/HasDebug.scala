@@ -32,13 +32,27 @@ trait HasDebug extends Params {
       } else {
         s"${stageExecutionTime.toDouble/1000} seconds"
       }
+      val pipelineId = paramValueAsString(this.extractParamMap().get(this.getParam("pipelineId")).get)
+        .asInstanceOf[String]
+      val mainCOnfig = PipelineStateCache
+        .getFromPipelineByIdAndKey(
+          pipelineId,
+          PipelineVars.MAIN_CONFIG.key)
+        .asInstanceOf[MainConfig]
+      //Log Dfs counts
+      val countLog = if(mainCOnfig.dataPrepCachingFlag) {
+        s"Input dataset count: ${inputDataset.count()} \n " +
+        s"Output dataset count: ${outputDataset.count()} \n "
+      } else {
+        ""
+      }
+      //TODO: Log Schema flag (required when schemas are large and need to be turned off from log)
       val logStrng = s"\n \n" +
         s"=== AutoML Pipeline Stage: ${this.getClass} log ==> \n" +
         s"Stage Name: ${this.uid} \n" +
         s"Total Stage Execution time: $stageExecTime \n" +
         s"Stage Params: ${paramsAsString(this.params)} \n " +
-        s"Input dataset count: ${inputDataset.count()} \n " +
-        s"Output dataset count: ${outputDataset.count()} \n " +
+        s"$countLog" +
         s"Input dataset schema: ${inputDataset.schema.treeString} \n " +
         s"Output dataset schema: ${outputDataset.schema.treeString} " + "\n" +
         s"=== End of ${this.getClass} Pipeline Stage log <==" + "\n"
@@ -46,8 +60,6 @@ trait HasDebug extends Params {
       println(logStrng)
       logger.info(logStrng)
       //Log this stage to MLFlow with useful information
-      val pipelineId = paramValueAsString(this.extractParamMap().get(this.getParam("pipelineId")).get)
-        .asInstanceOf[String]
       val pipelineStatus = try {
         PipelineStateCache
           .getFromPipelineByIdAndKey(
