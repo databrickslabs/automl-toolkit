@@ -436,7 +436,7 @@ class LightGBMTuner(df: DataFrame, modelSelection: String, lightGBMType: String)
       case _            => regressionMetrics
     }
 
-    val statusObj = new ModelReporting(_gbmType.gbmType, metrics)
+    val statusObj = new ModelReporting("lightgbm", metrics)
 
     validateLabelAndFeatures(df, _labelCol, _featureCol)
 

@@ -94,6 +94,7 @@ object ModelDefaults {
     "baggingFraction" -> Tuple2(0.5, 1.0),
     "baggingFreq" -> Tuple2(0.0, 1.0),
     "featureFraction" -> Tuple2(0.6, 1.0),
+    "learningRate" -> Tuple2(1E-8, 1.0),
     "maxBin" -> Tuple2(50, 1000),
     "maxDepth" -> Tuple2(3.0, 20.0),
     "minSumHessianInLeaf" -> Tuple2(1e-5, 50.0),

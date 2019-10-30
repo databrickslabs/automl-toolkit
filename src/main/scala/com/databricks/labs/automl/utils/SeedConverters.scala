@@ -1,6 +1,5 @@
 package com.databricks.labs.automl.utils
 
-import com.databricks.labs.automl.model.tools.LightGBMConfig
 import com.databricks.labs.automl.params._
 
 import scala.collection.mutable.ListBuffer

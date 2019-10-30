@@ -47,7 +47,7 @@ trait LightGBMBase {
   final val allowableLightGBMClassifierTypes =
     Array("gbmBinary", "gbmMulti", "gbmMultiOVA")
 
-  final val BARRIER_MODE = true
+  final val BARRIER_MODE = false
   final val TIMEOUT = 3600
 
   protected[model] def getGBMType(modelSelection: String,
