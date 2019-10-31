@@ -4,12 +4,10 @@ import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.exceptions.PipelineExecutionException
 import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.params._
-import com.databricks.labs.automl.pipeline.FeatureEngineeringPipelineContext.addUserReturnViewStage
-import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext, PipelineMlFlowProgressReporter, PipelineStateCache, PipelineVars}
+import com.databricks.labs.automl.pipeline._
 import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowTracker}
-import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, PipelineStatus, SparkSessionWrapper}
-import org.apache.spark.ml.mleap.SparkUtil
-import org.apache.spark.ml.{Model, PipelineModel, PipelineStage}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, SparkSessionWrapper}
+import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -156,12 +154,16 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
   }
 
-
-  private def addMlFlowConfigForPipelineUse(mainConfig: MainConfig) = {
+  private def addMainConfigToPipelineCache(mainConfig: MainConfig): Unit = {
     PipelineStateCache
       .addToPipelineCache(
         mainConfig.pipelineId,
         PipelineVars.MAIN_CONFIG.key, mainConfig)
+  }
+
+
+  private def addMlFlowConfigForPipelineUse(mainConfig: MainConfig) = {
+    addMainConfigToPipelineCache(mainConfig)
     if(mainConfig.mlFlowLoggingFlag) {
       val mlFlowRunId = MLFlowTracker(mainConfig.mlFlowConfig).generateMlFlowRunId()
       PipelineStateCache
@@ -234,7 +236,8 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     val featureEngineeredMap = scala.collection.mutable.Map[String, PipelineModel]()
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
-      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration, verbose)
+      addMainConfigToPipelineCache(mainConfiguration)
+      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration, verbose, isFeatureEngineeringOnly = true)
       val finalPipelineModel = FeatureEngineeringPipelineContext.addUserReturnViewStage(
         featureEngOutput.pipelineModel,
         mainConfiguration,
