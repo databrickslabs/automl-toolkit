@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.utils
 import com.databricks.dbutils_v1.DBUtilsHolder.dbutils0
+import org.apache.log4j.Logger
 import org.apache.spark.sql.SparkSession
 
 import scala.reflect.runtime.universe._
@@ -8,6 +9,11 @@ import scala.reflect.runtime.universe._
   * Reflection Object brought to you courtesy of Jas Bali
   */
 object DBUtilsHelper {
+
+  private val logger: Logger = Logger.getLogger(this.getClass)
+
+  private val ERROR_RETURN = "NA"
+
   protected def reflectedDBUtilsMethod(methodName: String): Array[String] = {
     Array(
       dbutils0
@@ -35,34 +41,39 @@ object DBUtilsHelper {
     result(0).asInstanceOf[Option[_]].get.toString
   }
 
+  private def wrapWithException(methodName: String): String = {
+    try {
+      if(!isLocalSparkSession) {
+        return hijackProtectedMethods(methodName)
+      }
+    } catch {
+      case e: Exception => {
+        logger.debug(s"Method name $methodName not present on dbutils")
+      }
+    }
+    ERROR_RETURN
+  }
+
   /**
     * Gets the current running notebook path
     * @return
     */
   def getNotebookPath: String = {
-    if(!isLocalSparkSession) {
-      return hijackProtectedMethods("notebookPath")
-    }
-    "NA"
+    wrapWithException("notebookPath")
   }
+
   def getNotebookDirectory: String = {
-    if(!isLocalSparkSession) {
-      val notebookPath = getNotebookPath
-      return notebookPath.substring(0, notebookPath.lastIndexOf("/")) + "/"
-    }
-    "NA"
+    val notebookPath = getNotebookPath
+    val notebookPathFinal = if(!notebookPath.equals(ERROR_RETURN)) notebookPath.substring(0, notebookPath.lastIndexOf("/")) + "/" else ERROR_RETURN
+    notebookPathFinal
   }
+
   def getTrackingURI: String = {
-    if(!isLocalSparkSession) {
-      return hijackProtectedMethods("apiUrl")
-    }
-    "NA"
+    wrapWithException("apiUrl")
   }
+
   def getAPIToken: String = {
-    if(!isLocalSparkSession) {
-      return hijackProtectedMethods("apiToken")
-    }
-    "NA"
+    wrapWithException("apiToken")
   }
 
   def isLocalSparkSession: Boolean = {

@@ -610,15 +610,8 @@ trait ConfigurationDefaults {
   private[config] def loggingConfig(): LoggingConfig = {
     val mlFlowLoggingFlag = true
     val mlFlowLogArtifactsFlag = false
-    val mlFlowTrackingURI =
-      if (mlFlowLogArtifactsFlag) InitDbUtils.getTrackingURI else ""
-    val mlFlowExperimentName =
-      if (mlFlowLogArtifactsFlag)
-        InitDbUtils.getNotebookDirectory + "MLFlowLogs"
-      else ""
-    val mlFlowAPIToken =
-      if (mlFlowLogArtifactsFlag) InitDbUtils.getAPIToken else ""
-    val mlFlowModelSaveDirectory = "dbfs:/mlflow/experiments/"
+    val mlfloWLoggingConfig =
+      InitDbUtils.getMlFlowLoggingConfig(mlFlowLoggingFlag)
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"
     val inferenceSaveLocation = "/inference/"
@@ -627,10 +620,10 @@ trait ConfigurationDefaults {
     LoggingConfig(
       mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag,
-      mlFlowTrackingURI,
-      mlFlowExperimentName,
-      mlFlowAPIToken,
-      mlFlowModelSaveDirectory,
+      mlfloWLoggingConfig.mlFlowTrackingURI,
+      mlfloWLoggingConfig.mlFlowExperimentName,
+      mlfloWLoggingConfig.mlFlowAPIToken,
+      mlfloWLoggingConfig.mlFlowModelSaveDirectory,
       mlFlowLoggingMode,
       mlFlowBestSuffix,
       inferenceSaveLocation,

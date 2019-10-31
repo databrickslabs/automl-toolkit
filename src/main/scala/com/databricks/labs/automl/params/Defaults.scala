@@ -359,15 +359,18 @@ trait Defaults {
 
   def _modelTypeDefault = "RandomForest"
 
-  def _mlFlowConfigDefaults: MLFlowConfig = MLFlowConfig(
-    mlFlowTrackingURI = InitDbUtils.getTrackingURI,
-    mlFlowExperimentName = InitDbUtils.getNotebookDirectory + "MLFlowLogs",
-    mlFlowAPIToken = InitDbUtils.getAPIToken,
-    mlFlowModelSaveDirectory = "dbfs:/mlflow/experiments/",
-    mlFlowLoggingMode = "full",
-    mlFlowBestSuffix = "_best",
-    mlFlowCustomRunTags = Map[String, String]()
-  )
+  def _mlFlowConfigDefaults: MLFlowConfig = {
+    val mlfloWLoggingConfig = InitDbUtils.getMlFlowLoggingConfig(_defaultMlFlowLoggingFlag)
+    MLFlowConfig(
+      mlFlowTrackingURI = mlfloWLoggingConfig.mlFlowTrackingURI,
+      mlFlowExperimentName = mlfloWLoggingConfig.mlFlowExperimentName,
+      mlFlowAPIToken = mlfloWLoggingConfig.mlFlowAPIToken,
+      mlFlowModelSaveDirectory = mlfloWLoggingConfig.mlFlowModelSaveDirectory,
+      mlFlowLoggingMode = "full",
+      mlFlowBestSuffix = "_best",
+      mlFlowCustomRunTags = Map[String, String]()
+    )
+  }
 
   def _inferenceConfigSaveLocationDefault: String = "/models"
 
