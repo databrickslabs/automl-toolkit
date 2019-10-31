@@ -35,7 +35,8 @@ object FeatureEngineeringPipelineContext {
   //TODO (Jas): verbose true, only works for only feature engineering pipeline, for full predict pipeline this needs to be update.
   def generatePipelineModel(originalInputDataset: DataFrame,
                             mainConfig: MainConfig,
-                            verbose: Boolean = false): FeatureEngineeringOutput = {
+                            verbose: Boolean = false,
+                            isFeatureEngineeringOnly: Boolean = false): FeatureEngineeringOutput = {
     val originalDfTempTableName = Identifiable.randomUID("zipWithId")
 
     val removeColumns = new ArrayBuffer[String]
@@ -84,7 +85,7 @@ object FeatureEngineeringPipelineContext {
       .filterNot(item => (mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value).equals(item))
 
     // Ksampler stages
-    val ksampleStages = ksamplerStages(mainConfig)
+    val ksampleStages = ksamplerStages(mainConfig, isFeatureEngineeringOnly)
     var ksampledDf = thirdTransformationDf
     if(ksampleStages.isDefined) {
       val ksamplerPipelineModel = new Pipeline().setStages(ksampleStages.get).fit(thirdTransformationDf)
@@ -551,8 +552,12 @@ object FeatureEngineeringPipelineContext {
     None
   }
 
-  private def ksamplerStages(mainConfig: MainConfig): Option[Array[_ <: PipelineStage]] = {
-    if (mainConfig.geneticConfig.trainSplitMethod == "kSample") {
+  private def ksamplerStages(mainConfig: MainConfig, isFeatureEngineeringOnly: Boolean): Option[Array[_ <: PipelineStage]] = {
+    val ksampleConfigString = "kSample"
+    if(isFeatureEngineeringOnly && mainConfig.geneticConfig.trainSplitMethod == ksampleConfigString) {
+      throw new RuntimeException("Ksampler should be disabled when generating only a feature engineering pipeline.")
+    }
+    if (mainConfig.geneticConfig.trainSplitMethod == ksampleConfigString && !isFeatureEngineeringOnly) {
       val arrayBuffer = new ArrayBuffer[PipelineStage]()
       // Ksampler stage
       arrayBuffer += new SyntheticFeatureGenTransformer()
