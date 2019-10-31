@@ -218,7 +218,7 @@ class ModelReporting(modelType: String, metrics: List[String]) {
       s"$formatter[featureFreaction] -> [${conf.featureFraction.toString}]" +
       s"$formatter[learningRate] -> [${conf.learningRate.toString}]" +
       s"$formatter[maxBin] -> [${conf.maxBin.toString}]" +
-      s"$formatter[maxDepth] -> [${conf.maxDepth.toString}" +
+      s"$formatter[maxDepth] -> [${conf.maxDepth.toString}]" +
       s"$formatter[minSumHessianInLeaf] -> [${conf.minSumHessianInLeaf.toString}]" +
       s"$formatter[numIterations] -> [${conf.numIterations.toString}]" +
       s"$formatter[numLeaves] -> [${conf.numLeaves.toString}]" +

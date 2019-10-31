@@ -48,7 +48,7 @@ trait LightGBMBase {
     Array("gbmBinary", "gbmMulti", "gbmMultiOVA")
 
   final val BARRIER_MODE = false
-  final val TIMEOUT = 3600
+  final val TIMEOUT = 36000
 
   protected[model] def getGBMType(modelSelection: String,
                                   lightGBMType: String): GBMTypes.Value = {

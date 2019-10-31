@@ -32,18 +32,18 @@ trait ConfigurationDefaults {
       case ("xgboost", "classifier")            => XGBoostClassifier
       case ("mlpc", "classifier")               => MLPC
       case ("svm", "classifier")                => SVM
-      case ("gbmbinary", "classifier")          => LightGBMBinary
-      case ("gbmmulti", "classifier")           => LightGBMMulti
-      case ("gbmmultiova", "classifier")        => LightGBMMultiOVA
-      case ("gbmhuber", "regressor")            => LightGBMHuber
-      case ("gbmfair", "regressor")             => LightGBMFair
-      case ("gbmlasso", "regressor")            => LightGBMLasso
-      case ("gbmridge", "regressor")            => LightGBMRidge
-      case ("gbmpoisson", "regressor")          => LightGBMPoisson
-      case ("gbmquantile", "regressor")         => LightGBMQuantile
-      case ("gbmmape", "regressor")             => LightGBMMape
-      case ("gbmtweedie", "regressor")          => LightGBMTweedie
-      case ("gbmgamma", "regressor")            => LightGBMGamma
+//      case ("gbmbinary", "classifier")          => LightGBMBinary // turning these off until LightGBM is fixed by MSFT
+//      case ("gbmmulti", "classifier")           => LightGBMMulti
+//      case ("gbmmultiova", "classifier")        => LightGBMMultiOVA
+//      case ("gbmhuber", "regressor")            => LightGBMHuber
+//      case ("gbmfair", "regressor")             => LightGBMFair
+//      case ("gbmlasso", "regressor")            => LightGBMLasso
+//      case ("gbmridge", "regressor")            => LightGBMRidge
+//      case ("gbmpoisson", "regressor")          => LightGBMPoisson
+//      case ("gbmquantile", "regressor")         => LightGBMQuantile
+//      case ("gbmmape", "regressor")             => LightGBMMape
+//      case ("gbmtweedie", "regressor")          => LightGBMTweedie
+//      case ("gbmgamma", "regressor")            => LightGBMGamma
       case (_, _) =>
         throw new IllegalArgumentException(
           s"'$modelFamily' Model Family and PredictionType " +
