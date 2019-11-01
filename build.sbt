@@ -22,7 +22,7 @@ libraryDependencies += "ml.combust.mleap" %% "mleap-spark" % "0.14.0"
 libraryDependencies += "com.microsoft.ml.spark" %% "mmlspark" % "0.18.1"
 
 lazy val commonSettings = Seq(
-  version := "0.6.0",
+  version := "0.6.1",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )
@@ -42,6 +42,7 @@ assemblyExcludedJars in assembly := {
     f.data.getName.contains("spark-core") ||
     f.data.getName.contains("spark-mllib") ||
     f.data.getName.contains("spark-sql") ||
-    f.data.getName.contains("com.databricks.backend")
+    f.data.getName.contains("com.databricks.backend") ||
+    f.data.getName.contains("com.microsoft.ml.spark")
   }
 }

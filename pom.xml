@@ -74,6 +74,12 @@
             <artifactId>mmlspark_2.11</artifactId>
             <version>${mmlspark.version}</version>
             <scope>${dependency.scope}</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
