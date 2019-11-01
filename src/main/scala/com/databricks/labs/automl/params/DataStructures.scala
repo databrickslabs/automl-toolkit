@@ -142,6 +142,27 @@ case class NaiveBayesModelsWithResults(modelHyperParams: NaiveBayesConfig,
                                        evalMetrics: Map[String, Double],
                                        generation: Int)
 
+case class LightGBMConfig(baggingFraction: Double,
+                          baggingFreq: Int,
+                          featureFraction: Double,
+                          learningRate: Double,
+                          maxBin: Int,
+                          maxDepth: Int,
+                          minSumHessianInLeaf: Double,
+                          numIterations: Int,
+                          numLeaves: Int,
+                          boostFromAverage: Boolean,
+                          lambdaL1: Double,
+                          lambdaL2: Double,
+                          alpha: Double,
+                          boostingType: String)
+
+case class LightGBMModelsWithResults(modelHyperParams: LightGBMConfig,
+                                     model: Any,
+                                     score: Double,
+                                     evalMetrics: Map[String, Double],
+                                     generation: Int)
+
 case class StaticModelConfig(labelColumn: String, featuresColumn: String)
 
 case class GenericModelReturn(hyperParams: Map[String, Any],

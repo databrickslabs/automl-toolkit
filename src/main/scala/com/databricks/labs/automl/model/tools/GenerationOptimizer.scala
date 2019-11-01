@@ -35,7 +35,7 @@ case class FieldTypes(numericHyperParams: Array[String],
 object ModelTypes extends Enumeration {
   type ModelTypes = Value
   val Trees, GBT, LinearRegressor, LogisticRegression, MLPC, NaiveBayes,
-  RandomForest, SVM, XGBoost = Value
+  RandomForest, SVM, XGBoost, LightGBM = Value
 }
 
 object RegressorTypes extends Enumeration {
@@ -93,6 +93,7 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
       case "RandomForest"       => RandomForest
       case "SVM"                => SVM
       case "XGBoost"            => XGBoost
+      case "LightGBM"           => LightGBM
       case _ =>
         throw ModelingTypeException(
           value,
@@ -257,6 +258,29 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
           )
         })
         spark.createDataFrame(report)
+      case LightGBM =>
+        val conf = config.asInstanceOf[Array[LightGBMModelsWithResults]]
+        val report = conf.map(x => {
+          val hyperParams = x.modelHyperParams
+          LightGBMModelRunReport(
+            baggingFraction = hyperParams.baggingFraction,
+            baggingFreq = hyperParams.baggingFreq,
+            featureFraction = hyperParams.featureFraction,
+            learningRate = hyperParams.learningRate,
+            maxBin = hyperParams.maxBin,
+            maxDepth = hyperParams.maxDepth,
+            minSumHessianInLeaf = hyperParams.minSumHessianInLeaf,
+            numIterations = hyperParams.numIterations,
+            numLeaves = hyperParams.numLeaves,
+            boostFromAverage = hyperParams.boostFromAverage,
+            lambdaL1 = hyperParams.lambdaL1,
+            lambdaL2 = hyperParams.lambdaL2,
+            alpha = hyperParams.alpha,
+            boostingType = hyperParams.boostingType,
+            score = x.score
+          )
+        })
+        spark.createDataFrame(report)
     }
     data
   }
@@ -298,6 +322,8 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
         spark.createDataFrame(candidates.asInstanceOf[Array[SVMConfig]])
       case XGBoost =>
         spark.createDataFrame(candidates.asInstanceOf[Array[XGBoostConfig]])
+      case LightGBM =>
+        spark.createDataFrame(candidates.asInstanceOf[Array[LightGBMConfig]])
     }
   }
 
@@ -559,6 +585,33 @@ class GenerationOptimizer[A, B](val modelType: String,
 
   }
 
+  def generateLightGBMCandidates()(
+    implicit c: ClassTag[A]
+  ): Array[LightGBMConfig] = {
+    val candidates = evaluateCandidates()
+    candidates
+      .collect()
+      .map(
+        x =>
+          LightGBMConfig(
+            baggingFraction = x.getAs[Double]("baggingFraction"),
+            baggingFreq = x.getAs[Int]("baggingFreq"),
+            featureFraction = x.getAs[Double]("featureFraction"),
+            learningRate = x.getAs[Double]("learningRate"),
+            maxBin = x.getAs[Int]("maxBin"),
+            maxDepth = x.getAs[Int]("maxDepth"),
+            minSumHessianInLeaf = x.getAs[Double]("minSumHessianInLeaf"),
+            numIterations = x.getAs[Int]("numIterations"),
+            numLeaves = x.getAs[Int]("numLeaves"),
+            boostFromAverage = x.getAs[Boolean]("boostFromAverage"),
+            lambdaL1 = x.getAs[Double]("lambdaL1"),
+            lambdaL2 = x.getAs[Double]("lambdaL2"),
+            alpha = x.getAs[Double]("alpha"),
+            boostingType = x.getAs[String]("boostingType")
+        )
+      )
+  }
+
   def generateMLPCCandidates(inputFeatures: Int, distinctClasses: Int)(
     implicit c: ClassTag[A]
   ): Array[MLPCConfig] = {
@@ -708,6 +761,24 @@ object GenerationOptimizer {
       optimizationType,
       candidateCount
     ).generateXGBoostCandidates()
+
+  def lightGBMCandidates[A, B](
+    modelType: String,
+    regressorType: String,
+    history: ArrayBuffer[A],
+    candidates: Array[B],
+    optimizationType: String,
+    candidateCount: Int
+  )(implicit c: ClassTag[A]): Array[LightGBMConfig] = {
+    new GenerationOptimizer(
+      modelType,
+      regressorType,
+      history,
+      candidates,
+      optimizationType,
+      candidateCount
+    ).generateLightGBMCandidates()
+  }
 
   def mlpcCandidates[A, B](
     modelType: String,

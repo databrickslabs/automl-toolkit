@@ -332,6 +332,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       case "LogisticRegression" => _logisticRegressionDefaultNumBoundaries
       case "SVM"                => _svmDefaultNumBoundaries
       case "XGBoost"            => _xgboostDefaultNumBoundaries
+      case "gbmBinary" | "gbmMulti" | "gbmMultiOVA" | "gbmHuber" | "gbmFair" |
+          "gbmLasso" | "gbmRidge" | "gbmPoisson" | "gbmQuantile" | "gbmMape" |
+          "gbmTweedie" | "gbmGamma" =>
+        _lightGBMDefaultNumBoundaries
       case _ =>
         throw new IllegalArgumentException(
           s"$value is an unsupported Model Type"
@@ -346,6 +350,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       case "LogisticRegression" => _logisticRegressionDefaultStringBoundaries
       case "SVM"                => _svmDefaultStringBoundaries
       case "XGBoost"            => Map()
+      case "gbmBinary" | "gbmMulti" | "gbmMultiOVA" | "gbmHuber" | "gbmFair" |
+          "gbmLasso" | "gbmRidge" | "gbmPoisson" | "gbmQuantile" | "gbmMape" |
+          "gbmTweedie" | "gbmGamma" =>
+        _lightGBMDefaultStringBoundaries
       case _ =>
         throw new IllegalArgumentException(
           s"$value is an unsupported Model Type"

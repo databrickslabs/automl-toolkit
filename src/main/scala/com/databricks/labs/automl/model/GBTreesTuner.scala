@@ -653,13 +653,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
         while (currentIteration <= _numberOfMutationGenerations &&
                evaluateStoppingScore(currentBestResult, _earlyStoppingScore)) {
 
-          val mutationAggressiveness = _generationalMutationStrategy match {
-            case "linear" =>
-              if (totalConfigs - (currentIteration + 1) < 1) 1
-              else
-                totalConfigs - (currentIteration + 1)
-            case _ => _fixedMutationValue
-          }
+          val mutationAggressiveness: Int =
+            generateAggressiveness(totalConfigs, currentIteration)
 
           // Get the sorted state
           val currentState = sortAndReturnAll(fossilRecord)
@@ -702,11 +697,8 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
     } else {
       (1 to _numberOfMutationGenerations).map(i => {
 
-        val mutationAggressiveness = _generationalMutationStrategy match {
-          case "linear" =>
-            if (totalConfigs - (i + 1) < 1) 1 else totalConfigs - (i + 1)
-          case _ => _fixedMutationValue
-        }
+        val mutationAggressiveness: Int =
+          generateAggressiveness(totalConfigs, i)
 
         val currentState = sortAndReturnAll(fossilRecord)
 

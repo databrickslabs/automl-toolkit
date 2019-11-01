@@ -2,13 +2,14 @@ package com.databricks.labs.automl.executor.config
 
 object ModelDefaults {
 
-  protected[config] def randomForestNumeric: Map[String, (Double, Double)] = Map(
-    "numTrees" -> Tuple2(50.0, 1000.0),
-    "maxBins" -> Tuple2(10.0, 100.0),
-    "maxDepth" -> Tuple2(2.0, 20.0),
-    "minInfoGain" -> Tuple2(0.0, 1.0),
-    "subSamplingRate" -> Tuple2(0.5, 1.0)
-  )
+  protected[config] def randomForestNumeric: Map[String, (Double, Double)] =
+    Map(
+      "numTrees" -> Tuple2(50.0, 1000.0),
+      "maxBins" -> Tuple2(10.0, 100.0),
+      "maxDepth" -> Tuple2(2.0, 20.0),
+      "minInfoGain" -> Tuple2(0.0, 1.0),
+      "subSamplingRate" -> Tuple2(0.5, 1.0)
+    )
 
   protected[config] def randomForestString: Map[String, List[String]] = Map(
     "impurity" -> List("gini", "entropy"),
@@ -60,23 +61,23 @@ object ModelDefaults {
     "stepSize" -> Tuple2(1E-4, 1.0)
   )
 
-  protected[config] def gbtString: Map[String, List[String]] = Map(
-    "impurity" -> List("gini", "entropy"),
-    "lossType" -> List("logistic")
-  )
+  protected[config] def gbtString: Map[String, List[String]] =
+    Map("impurity" -> List("gini", "entropy"), "lossType" -> List("logistic"))
 
-  protected[config] def linearRegressionNumeric: Map[String, (Double, Double)] = Map(
-    "elasticNetParams" -> Tuple2(0.0, 1.0),
-    "maxIter" -> Tuple2(100.0, 10000.0),
-    "regParam" -> Tuple2(0.0, 1.0),
-    "tolerance" -> Tuple2(1E-9, 1E-5)
-  )
+  protected[config] def linearRegressionNumeric: Map[String, (Double, Double)] =
+    Map(
+      "elasticNetParams" -> Tuple2(0.0, 1.0),
+      "maxIter" -> Tuple2(100.0, 10000.0),
+      "regParam" -> Tuple2(0.0, 1.0),
+      "tolerance" -> Tuple2(1E-9, 1E-5)
+    )
 
-  protected[config] def linearRegressionString: Map[String, List[String]] = Map (
+  protected[config] def linearRegressionString: Map[String, List[String]] = Map(
     "loss" -> List("squaredError", "huber")
   )
 
-  protected[config] def logisticRegressionNumeric: Map[String, (Double, Double)] = Map(
+  protected[config] def logisticRegressionNumeric
+    : Map[String, (Double, Double)] = Map(
     "elasticNetParams" -> Tuple2(0.0, 1.0),
     "maxIter" -> Tuple2(100.0, 10000.0),
     "regParam" -> Tuple2(0.0, 1.0),
@@ -89,5 +90,23 @@ object ModelDefaults {
     "tolerance" -> Tuple2(1E-9, 1E-5)
   )
 
-}
+  protected[config] def lightGBMnumeric: Map[String, (Double, Double)] = Map(
+    "baggingFraction" -> Tuple2(0.5, 1.0),
+    "baggingFreq" -> Tuple2(0.0, 1.0),
+    "featureFraction" -> Tuple2(0.6, 1.0),
+    "learningRate" -> Tuple2(1E-8, 1.0),
+    "maxBin" -> Tuple2(50, 1000),
+    "maxDepth" -> Tuple2(3.0, 20.0),
+    "minSumHessianInLeaf" -> Tuple2(1e-5, 50.0),
+    "numIterations" -> Tuple2(25.0, 250.0),
+    "numLeaves" -> Tuple2(10.0, 50.0),
+    "lambdaL1" -> Tuple2(0.0, 1.0),
+    "lambdaL2" -> Tuple2(0.0, 1.0),
+    "alpha" -> Tuple2(0.0, 1.0)
+  )
 
+  protected[config] def lightGBMString: Map[String, List[String]] = Map(
+    "boostingType" -> List("gbdt", "rf", "dart", "goss")
+  )
+
+}

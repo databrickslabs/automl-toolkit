@@ -3,20 +3,26 @@ package com.databricks.labs.automl.executor.config
 object RegressorModels extends Enumeration {
   type RegressorModels = Value
   val TreesRegressor, GBTRegressor, LinearRegression, RandomForestRegressor,
-  SVM, XGBoostRegressor = Value
+  SVM, XGBoostRegressor, LightGBMHuber, LightGBMFair, LightGBMLasso,
+  LightGBMRidge, LightGBMPoisson, LightGBMQuantile, LightGBMMape,
+  LightGBMTweedie, LightGBMGamma = Value
 }
 
 object ClassiferModels extends Enumeration {
   type ClassifierModels = Value
   val TreesClassifier, GBTClassifier, LogisticRegression, MLPC,
-  RandomForestClassifier, XGBoostClassifier = Value
+  RandomForestClassifier, XGBoostClassifier, LightGBMBinary, LightGBMMulti,
+  LightGBMMultiOVA = Value
 }
 
 object ModelSelector extends Enumeration {
   type ModelSelector = Value
   val TreesRegressor, TreesClassifier, GBTRegressor, GBTClassifier,
   LinearRegression, LogisticRegression, MLPC, RandomForestRegressor,
-  RandomForestClassifier, SVM, XGBoostRegressor, XGBoostClassifier = Value
+  RandomForestClassifier, SVM, XGBoostRegressor, XGBoostClassifier,
+  LightGBMBinary, LightGBMMulti, LightGBMMultiOVA, LightGBMHuber, LightGBMFair,
+  LightGBMLasso, LightGBMRidge, LightGBMPoisson, LightGBMQuantile, LightGBMMape,
+  LightGBMTweedie, LightGBMGamma = Value
 }
 
 object FamilyValidator extends Enumeration {

@@ -3,6 +3,7 @@ package com.databricks.labs.automl.model.tools
 import com.databricks.labs.automl.model.tools.structures._
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.utils.SparkSessionWrapper
+import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -14,6 +15,9 @@ class PostModelingOptimization
     with SparkSessionWrapper {
 
   private final val PERMUTATION_FACTOR: Int = 10
+  private final val PREDICTION_COL: String = "prediction"
+  private final val supportedOptimizationStrategies: List[String] =
+    List("minimize", "maximize")
 
   var _modelFamily = ""
   var _modelType = ""
@@ -21,6 +25,7 @@ class PostModelingOptimization
   var _numericBoundaries: Map[String, (Double, Double)] = _
   var _stringBoundaries: Map[String, List[String]] = _
   var _seed: Long = 42L
+  var _optimizationStrategy: String = "maximize"
 
   def setModelFamily(value: String): this.type = {
     require(
@@ -73,6 +78,17 @@ class PostModelingOptimization
     this
   }
 
+  def setOptimizationStrategy(value: String): this.type = {
+
+    require(
+      supportedOptimizationStrategies.contains(value),
+      s"Optimization Strategy for Post Modeling Optimization " +
+        s"$value is not supported.  Must be one of: ${supportedOptimizationStrategies.mkString(", ")}."
+    )
+    _optimizationStrategy = value
+    this
+  }
+
   def getModelFamily: String = _modelFamily
 
   def getModelType: String = _modelType
@@ -84,6 +100,8 @@ class PostModelingOptimization
   def getStringBoundaries: Map[String, List[String]] = _stringBoundaries
 
   def getSeed: Long = _seed
+
+  def getOptimizationStrategy: String = _optimizationStrategy
 
   private def generateGenericSearchSpace(): PermutationConfiguration = {
     val calculatedPermutationValue = getPermutationCounts(
@@ -112,6 +130,35 @@ class PostModelingOptimization
       topPredictions,
       additionalFields
     )
+
+  }
+
+  /**
+    * Private method for returning the top n hyper parameters based on the direction of optimization that should occur
+    * for the metric being evaluated.
+    * @param pipeline ML Pipeline object
+    * @param data DataFrame continaing the hyper parameters to predict performance for
+    * @param topPredictions The number of potential candidates to return.
+    * @return DataFrame of relevant candidates
+    * @since 0.6.1
+    * @author Ben Wilson, Databricks
+    */
+  private def transformAndLimit(pipeline: PipelineModel,
+                                data: DataFrame,
+                                topPredictions: Int): DataFrame = {
+
+    _optimizationStrategy match {
+      case "minimize" =>
+        pipeline
+          .transform(data)
+          .orderBy(col(PREDICTION_COL).asc)
+          .limit(topPredictions * PERMUTATION_FACTOR)
+      case _ =>
+        pipeline
+          .transform(data)
+          .orderBy(col(PREDICTION_COL).desc)
+          .limit(topPredictions * PERMUTATION_FACTOR)
+    }
 
   }
 
@@ -174,10 +221,8 @@ class PostModelingOptimization
 
     val fullSearchSpaceDataSet = generateRandomForestSearchSpaceAsDataFrame()
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions * PERMUTATION_FACTOR)
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
 
     convertRandomForestResultToConfig(
       euclideanRestrict(restrictedData, topPredictions)
@@ -235,10 +280,8 @@ class PostModelingOptimization
 
     val fullSearchSpaceDataSet = generateTreesSearchSpaceAsDataFrame()
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions)
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
 
     convertTreesResultToConfig(
       euclideanRestrict(restrictedData, topPredictions)
@@ -297,10 +340,8 @@ class PostModelingOptimization
 
     val fullSearchSpaceDataSet = generateGBTSearchSpaceAsDataFrame()
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions)
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
 
     convertGBTResultToConfig(euclideanRestrict(restrictedData, topPredictions))
   }
@@ -361,10 +402,8 @@ class PostModelingOptimization
     val fullSearchSpaceDataSet =
       generateLinearRegressionSearchSpaceAsDataFrame()
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions)
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
 
     convertLinearRegressionResultToConfig(
       euclideanRestrict(
@@ -430,10 +469,8 @@ class PostModelingOptimization
     val fullSearchSpaceDataSet =
       generateLogisticRegressionSearchSpaceAsDataFrame()
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions)
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
 
     convertLogisticRegressionResultToConfig(
       euclideanRestrict(
@@ -493,10 +530,8 @@ class PostModelingOptimization
 
     val fullSearchSpaceDataSet = generateSVMSearchSpaceAsDataFrame()
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions)
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
 
     convertSVMResultToConfig(
       euclideanRestrict(
@@ -561,14 +596,79 @@ class PostModelingOptimization
 
     val fullSearchSpaceDataSet = generateXGBoostSearchSpaceAsDataFrame()
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions)
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
 
     convertXGBoostResultToConfig(
       euclideanRestrict(restrictedData, topPredictions)
     )
+  }
+
+  //LIGHTGBM METHODS
+
+  protected[tools] def generateLightGBMSearchSpace(): Array[LightGBMConfig] = {
+
+    val permutationsArray = lightGBMPermutationGenerator(
+      generateGenericSearchSpace(),
+      _hyperParameterSpaceCount,
+      _seed
+    )
+    permutationsArray.distinct
+  }
+
+  protected[tools] def generateLightGBMSearchSpaceAsDataFrame(): DataFrame = {
+    spark.createDataFrame(generateLightGBMSearchSpace())
+  }
+
+  protected[tools] def lightGBMResultMapping(
+    results: Array[GenericModelReturn]
+  ): DataFrame = {
+
+    val builder = results.map { x =>
+      val hyperParams = x.hyperParams
+      LightGBMModelRunReport(
+        baggingFraction = hyperParams("baggingFraction").toString.toDouble,
+        baggingFreq = hyperParams("baggingFreq").toString.toInt,
+        featureFraction = hyperParams("featureFraction").toString.toDouble,
+        learningRate = hyperParams("learningRate").toString.toDouble,
+        maxBin = hyperParams("maxBin").toString.toInt,
+        maxDepth = hyperParams("maxDepth").toString.toInt,
+        minSumHessianInLeaf =
+          hyperParams("minSumHessianInLeaf").toString.toDouble,
+        numIterations = hyperParams("numIterations").toString.toInt,
+        numLeaves = hyperParams("numLeaves").toString.toInt,
+        boostFromAverage = hyperParams("boostFromAverage").toString.toBoolean,
+        lambdaL1 = hyperParams("lambdaL1").toString.toDouble,
+        lambdaL2 = hyperParams("lambdaL2").toString.toDouble,
+        alpha = hyperParams("alpha").toString.toDouble,
+        boostingType = hyperParams("boostingType").toString,
+        score = x.score
+      )
+    }
+    spark.createDataFrame(builder)
+  }
+
+  def lightGBMPrediction(modelingResults: Array[GenericModelReturn],
+                         modelType: String,
+                         topPredictions: Int): Array[LightGBMConfig] = {
+
+    val inferenceDataSet = lightGBMResultMapping(modelingResults)
+
+    val fittedPipeline = new PostModelingPipelineBuilder(inferenceDataSet)
+      .setModelType(modelType)
+      .setNumericBoundaries(_numericBoundaries)
+      .setStringBoundaries(_stringBoundaries)
+      .regressionModelForPermutationTest()
+
+    val fullSearchSpaceDataSet = generateLightGBMSearchSpaceAsDataFrame()
+
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
+
+    convertLightGBMResultToConfig(
+      euclideanRestrict(restrictedData, topPredictions)
+    )
+
   }
 
   //MLPC METHODS
@@ -649,12 +749,10 @@ class PostModelingOptimization
       ).withColumnRenamed("layers", "layerConstruct")
         .withColumnRenamed("layerCount", "layers")
 
-    val restrictedData = fittedPipeline
-      .transform(fullSearchSpaceDataSet)
-      .orderBy(col("prediction").desc)
-      .limit(topPredictions)
-      .withColumnRenamed("layers", "layerCount")
-      .withColumnRenamed("layerConstruct", "layers")
+    val restrictedData =
+      transformAndLimit(fittedPipeline, fullSearchSpaceDataSet, topPredictions)
+        .withColumnRenamed("layers", "layerCount")
+        .withColumnRenamed("layerConstruct", "layers")
 
     convertMLPCResultToConfig(
       restrictedData,

@@ -12,6 +12,7 @@ trait ModelConfigGenerators extends SeedGenerator {
   /**
     * Helper method for reading a case class definition, getting the defined names of each key, and returning them as
     * an iterable list.
+    *
     * @tparam T The class type as derived through reflection
     * @return The List of all case class member names
     */
@@ -25,6 +26,7 @@ trait ModelConfigGenerators extends SeedGenerator {
     * Method for taking a collection of permutations generated per each hyper parameter and converting them
     * into a collection that can be used to execute models by building out all possible permutations of the generated
     * hyper parameter collections.
+    *
     * @param randomForestPermutationCollection The Array of values generated for possible hyper parameters for the
     *                                          permutation collection creation
     * @return Array of Random Forest configurations based on permutations of each value within the arrays supplied.
@@ -55,6 +57,7 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   /**
     * Method for generating linear and log spaces for potential hyper parameter values for the model
+    *
     * @param config Configuration value for the generation of permutation arrays
     * @return Arrays for all numeric parameters that will be generated for input into the permutation generator
     */
@@ -90,6 +93,7 @@ trait ModelConfigGenerators extends SeedGenerator {
 
   /**
     * Main accessor for generating permutations for a RandomForest Model
+    *
     * @param config Configuration for holding the numeber of permutations to generate and the boundaries of the
     *               search space
     * @param countTarget Total maximum count of permutations to return
@@ -134,6 +138,7 @@ trait ModelConfigGenerators extends SeedGenerator {
   /**
     * Helper method for converting a Dataframe of predicted hyper parameters into configurations that can be used
     * by models (for post-run hyper parameter optimization)
+    *
     * @param predictionDataFrame The predicted sets of highest probability hyper parameter collections
     * @return An Array of RandomForest Configurations to be used in generating model runs.
     */
@@ -926,6 +931,172 @@ trait ModelConfigGenerators extends SeedGenerator {
       )
     }
     collectionBuffer.result.toArray
+  }
+
+  // LightGBM METHODS
+
+  def lightGBMConfigGenerator(
+    lightGBMPermutationCollection: LightGBMPermutationCollection
+  ): Array[LightGBMConfig] = {
+
+    for {
+      baggingFraction <- lightGBMPermutationCollection.baggingFractionArray
+      baggingFreq <- lightGBMPermutationCollection.baggingFreqArray
+      featureFraction <- lightGBMPermutationCollection.featureFractionArray
+      learningRate <- lightGBMPermutationCollection.learningRateArray
+      maxBin <- lightGBMPermutationCollection.maxBinArray
+      maxDepth <- lightGBMPermutationCollection.maxDepthArray
+      minSumHessianInLeaf <- lightGBMPermutationCollection.minSumHessianInLeafArray
+      numIterations <- lightGBMPermutationCollection.numIterationsArray
+      numLeaves <- lightGBMPermutationCollection.numLeavesArray
+      boostFromAverage <- lightGBMPermutationCollection.boostFromAverageArray
+      lambdaL1 <- lightGBMPermutationCollection.lambdaL1Array
+      lambdaL2 <- lightGBMPermutationCollection.lambdaL2Array
+      alpha <- lightGBMPermutationCollection.alphaArray
+      boostingType <- lightGBMPermutationCollection.boostingTypeArray
+
+    } yield
+      LightGBMConfig(
+        baggingFraction,
+        baggingFreq.toInt,
+        featureFraction,
+        learningRate,
+        maxBin.toInt,
+        maxDepth.toInt,
+        minSumHessianInLeaf,
+        numIterations.toInt,
+        numLeaves.toInt,
+        boostFromAverage.toString.toBoolean,
+        lambdaL1,
+        lambdaL2,
+        alpha,
+        boostingType
+      )
+
+  }
+
+  protected[tools] def lightGBMNumericArrayGenerator(
+    config: PermutationConfiguration
+  ): LightGBMNumericArrays = {
+
+    LightGBMNumericArrays(
+      baggingFractionArray = generateLinearSpace(
+        extractContinuousBoundaries(
+          config.numericBoundaries("baggingFraction")
+        ),
+        config.permutationTarget
+      ),
+      baggingFreqArray = generateLinearIntSpace(
+        extractContinuousBoundaries(config.numericBoundaries("baggingFreq")),
+        config.permutationTarget
+      ),
+      featureFractionArray = generateLinearSpace(
+        extractContinuousBoundaries(
+          config.numericBoundaries("featureFraction")
+        ),
+        config.permutationTarget
+      ),
+      learningRateArray = generateLinearSpace(
+        extractContinuousBoundaries(config.numericBoundaries("learningRate")),
+        config.permutationTarget
+      ),
+      maxBinArray = generateLinearIntSpace(
+        extractContinuousBoundaries(config.numericBoundaries("maxBin")),
+        config.permutationTarget
+      ),
+      maxDepthArray = generateLinearIntSpace(
+        extractContinuousBoundaries(config.numericBoundaries("maxDepth")),
+        config.permutationTarget
+      ),
+      minSumHessianInLeafArray = generateLinearSpace(
+        extractContinuousBoundaries(
+          config.numericBoundaries("minSumHessianInLeaf")
+        ),
+        config.permutationTarget
+      ),
+      numIterationsArray = generateLinearIntSpace(
+        extractContinuousBoundaries(config.numericBoundaries("numIterations")),
+        config.permutationTarget
+      ),
+      numLeavesArray = generateLinearIntSpace(
+        extractContinuousBoundaries(config.numericBoundaries("numLeaves")),
+        config.permutationTarget
+      ),
+      lambdaL1Array = generateLogSpace(
+        extractContinuousBoundaries(config.numericBoundaries("lambdaL1")),
+        config.permutationTarget
+      ),
+      lambdaL2Array = generateLogSpace(
+        extractContinuousBoundaries(config.numericBoundaries("lambdaL2")),
+        config.permutationTarget
+      ),
+      alphaArray = generateLogSpace(
+        extractContinuousBoundaries(config.numericBoundaries("alpha")),
+        config.permutationTarget
+      )
+    )
+
+  }
+
+  def lightGBMPermutationGenerator(config: PermutationConfiguration,
+                                   countTarget: Int,
+                                   seed: Long = 42L): Array[LightGBMConfig] = {
+
+    val numericPayloads = lightGBMNumericArrayGenerator(config)
+
+    val fullPermutationConfig = LightGBMPermutationCollection(
+      baggingFractionArray = numericPayloads.baggingFractionArray,
+      baggingFreqArray = numericPayloads.baggingFreqArray,
+      featureFractionArray = numericPayloads.featureFractionArray,
+      learningRateArray = numericPayloads.learningRateArray,
+      maxBinArray = numericPayloads.maxBinArray,
+      maxDepthArray = numericPayloads.maxDepthArray,
+      minSumHessianInLeafArray = numericPayloads.minSumHessianInLeafArray,
+      numIterationsArray = numericPayloads.numIterationsArray,
+      numLeavesArray = numericPayloads.numLeavesArray,
+      boostFromAverageArray = Array(true, false),
+      lambdaL1Array = numericPayloads.lambdaL1Array,
+      lambdaL2Array = numericPayloads.lambdaL2Array,
+      alphaArray = numericPayloads.alphaArray,
+      boostingTypeArray = config.stringBoundaries("boostingType").toArray
+    )
+
+    val permutationCollection = lightGBMConfigGenerator(fullPermutationConfig)
+
+    randomSampleArray(permutationCollection, countTarget, seed)
+
+  }
+
+  def convertLightGBMResultToConfig(
+    predictionDataFrame: DataFrame
+  ): Array[LightGBMConfig] = {
+
+    val collectionBuffer = new ArrayBuffer[LightGBMConfig]()
+
+    val dataCollection = predictionDataFrame
+      .select(getCaseClassNames[LightGBMConfig] map col: _*)
+      .collect()
+
+    dataCollection.map(
+      x =>
+        LightGBMConfig(
+          baggingFraction = x(0).toString.toDouble,
+          baggingFreq = x(1).toString.toInt,
+          featureFraction = x(2).toString.toDouble,
+          learningRate = x(3).toString.toDouble,
+          maxBin = x(4).toString.toInt,
+          maxDepth = x(5).toString.toInt,
+          minSumHessianInLeaf = x(6).toString.toDouble,
+          numIterations = x(7).toString.toInt,
+          numLeaves = x(8).toString.toInt,
+          boostFromAverage = x(9).toString.toBoolean,
+          lambdaL1 = x(10).toString.toDouble,
+          lambdaL2 = x(11).toString.toDouble,
+          alpha = x(12).toString.toDouble,
+          boostingType = x(13).toString
+      )
+    )
+
   }
 
 }

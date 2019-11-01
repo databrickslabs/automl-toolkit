@@ -12,6 +12,7 @@
         <json4s.version>3.5.3</json4s.version>
         <dependency.scope>provided</dependency.scope>
         <dmlc.version>0.90</dmlc.version>
+        <mmlspark.version>0.18.1</mmlspark.version>
     </properties>
     <dependencies>
         <dependency>
@@ -68,7 +69,18 @@
             <version>4.8.1</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>com.microsoft.ml.spark</groupId>
+            <artifactId>mmlspark_2.11</artifactId>
+            <version>${mmlspark.version}</version>
+            <scope>${dependency.scope}</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.11</artifactId>

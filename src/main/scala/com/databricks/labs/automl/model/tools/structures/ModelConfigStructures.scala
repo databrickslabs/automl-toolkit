@@ -237,3 +237,50 @@ case class XGBoostModelRunReport(alpha: Double,
                                  maxBins: Int,
                                  trainTestRatio: Double,
                                  score: Double)
+
+//LightGBM
+case class LightGBMPermutationCollection(
+  baggingFractionArray: Array[Double],
+  baggingFreqArray: Array[Double],
+  featureFractionArray: Array[Double],
+  learningRateArray: Array[Double],
+  maxBinArray: Array[Double],
+  maxDepthArray: Array[Double],
+  minSumHessianInLeafArray: Array[Double],
+  numIterationsArray: Array[Double],
+  numLeavesArray: Array[Double],
+  boostFromAverageArray: Array[Boolean],
+  lambdaL1Array: Array[Double],
+  lambdaL2Array: Array[Double],
+  alphaArray: Array[Double],
+  boostingTypeArray: Array[String]
+)
+
+case class LightGBMNumericArrays(baggingFractionArray: Array[Double],
+                                 baggingFreqArray: Array[Double],
+                                 featureFractionArray: Array[Double],
+                                 learningRateArray: Array[Double],
+                                 maxBinArray: Array[Double],
+                                 maxDepthArray: Array[Double],
+                                 minSumHessianInLeafArray: Array[Double],
+                                 numIterationsArray: Array[Double],
+                                 numLeavesArray: Array[Double],
+                                 lambdaL1Array: Array[Double],
+                                 lambdaL2Array: Array[Double],
+                                 alphaArray: Array[Double])
+
+case class LightGBMModelRunReport(baggingFraction: Double,
+                                  baggingFreq: Int,
+                                  featureFraction: Double,
+                                  learningRate: Double,
+                                  maxBin: Int,
+                                  maxDepth: Int,
+                                  minSumHessianInLeaf: Double,
+                                  numIterations: Int,
+                                  numLeaves: Int,
+                                  boostFromAverage: Boolean,
+                                  lambdaL1: Double,
+                                  lambdaL2: Double,
+                                  alpha: Double,
+                                  boostingType: String,
+                                  score: Double)

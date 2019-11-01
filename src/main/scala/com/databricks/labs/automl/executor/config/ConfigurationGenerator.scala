@@ -2046,6 +2046,18 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       case "svm"                => "SVM"
       case "trees"              => "Trees"
       case "xgboost"            => "XGBoost"
+      case "gbmbinary"          => "gbmBinary"
+      case "gbmmulti"           => "gbmMulti"
+      case "gbmmultiova"        => "gbmMultiOVA"
+      case "gbmhuber"           => "gbmHuber"
+      case "gbmfair"            => "gbmFair"
+      case "gbmlasso"           => "gbmLasso"
+      case "gbmridge"           => "gbmRidge"
+      case "gbmpoisson"         => "gbmPoisson"
+      case "gbmquantile"        => "gbmQuantile"
+      case "gbmmape"            => "gbmMape"
+      case "gbmtweedie"         => "gbmTweedie"
+      case "gbmgamma"           => "gbmGamma"
       case _ =>
         throw new IllegalArgumentException(
           s"standardizeModelFamilyStrings does not have a supported" +
