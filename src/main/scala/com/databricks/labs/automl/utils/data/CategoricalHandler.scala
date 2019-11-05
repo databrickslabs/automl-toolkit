@@ -36,7 +36,7 @@ class CategoricalHandler(data: DataFrame, mode: String = "silent") {
           data,
           fields.toArray,
           _cardinalityType,
-          cardinalityLimit,
+          cardinalityLimit.toLong,
           _precision
         )
       case _ =>
@@ -44,7 +44,7 @@ class CategoricalHandler(data: DataFrame, mode: String = "silent") {
           data,
           fields.toArray,
           _cardinalityType,
-          cardinalityLimit,
+          cardinalityLimit.toLong,
           _precision
         )
     }
