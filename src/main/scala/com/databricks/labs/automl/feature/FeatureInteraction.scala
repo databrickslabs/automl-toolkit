@@ -3,25 +3,10 @@ package com.databricks.labs.automl.feature
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
-case class VarianceData(labelValue: Double, variance: Double)
-case class EntropyData(labelValue: Double, entropy: Double)
-case class InteractionPayload(left: String, right: String, outputName: String)
+class FeatureInteraction(modelingType: String) extends FeatureInteractionBase {
 
-trait FeatureInteractionBase {
-
-  final val AGGREGATE_COLUMN: String = "totalCount"
-  final val COUNT_COLUMN: String = "count"
-  final val RATIO_COLUMN: String = "labelRatio"
-  final val TOTAL_RATIO_COLUMN: String = "totalRatio"
-  final val ENTROPY_COLUMN: String = "entropy"
-  final val FIELD_ENTROPY_COLUMN: String = "fieldEntropy"
-  final val QUANTILE_THRESHOLD: Double = 0.5
-  final val QUANTILE_PRECISION: Double = 0.95
-  final val VARIANCE_STATISTIC: String = "stddev"
-
-}
-
-class FeatureInteraction extends FeatureInteractionBase {
+  import ModelingType._
+  import FieldEncodingType._
 
   private var _labelCol: String = "label"
 
@@ -113,6 +98,106 @@ class FeatureInteraction extends FeatureInteractionBase {
     this
   }
 
-  def initialize = ???
+  /**
+    * Private method for scoring a column based on the model type and the field type
+    * @param df Dataframe for evaluation
+    * @param modelType Model Type: Either Classifier or Regressor from Enum
+    * @param fieldToTest The field to be scored
+    * @param fieldType The type of the field: Either Nominal (String Indexed) or Continuous from Enum
+    * @param totalRecordCount Total number of rows in the data set in order to calculate Entropy correctly
+    * @return A Score as Double
+    * @since 0.7.0
+    * @author Ben Wilson, Databricks
+    */
+  private def scoreColumn(df: DataFrame,
+                          modelType: ModelingType.Value,
+                          fieldToTest: String,
+                          fieldType: FieldEncodingType.Value,
+                          totalRecordCount: Long): Double = {
+
+    val subsetData = df.select(fieldToTest, _labelCol)
+
+    modelType match {
+      case Classifier =>
+        fieldType match {
+          case Nominal =>
+            FeatureEvaluator.calculateCategoricalInformationGain(
+              subsetData,
+              _labelCol,
+              fieldToTest,
+              totalRecordCount
+            )
+          case Continuous =>
+            FeatureEvaluator.calculateContinuousInformationGain(
+              subsetData,
+              _labelCol,
+              fieldToTest,
+              totalRecordCount,
+              _continuousDiscretizerBucketCount
+            )
+        }
+      case Regressor =>
+        fieldType match {
+          case Nominal =>
+            FeatureEvaluator.calculateCategoricalVariance(
+              subsetData,
+              _labelCol,
+              fieldToTest
+            )
+          case Continuous =>
+            FeatureEvaluator.calculateContinuousVariance(
+              subsetData,
+              _labelCol,
+              fieldToTest,
+              _continuousDiscretizerBucketCount
+            )
+        }
+    }
+
+  }
+
+  def initialize(df: DataFrame,
+                 nominalFields: Array[String],
+                 continuousFields: Array[String]) = {
+
+    val modelType = getModelType(modelingType)
+
+    val totalRecordCount = df.count()
+
+    modelType match {
+      case Regressor  => setFullDataVariance(df)
+      case Classifier => setFullDataEntropy(df)
+    }
+
+    val nominalScores = nominalFields.map { x =>
+      x -> scoreColumn(
+        df,
+        modelType,
+        x,
+        getFieldType("nominal"),
+        totalRecordCount
+      )
+
+    }.toMap
+
+    val continuousScores = continuousFields.map { x =>
+      x -> scoreColumn(
+        df,
+        modelType,
+        x,
+        getFieldType("continuous"),
+        totalRecordCount
+      )
+    }.toMap
+
+    val mergedParentScores = nominalScores ++ continuousScores
+
+    //TODO:
+
+    // do interaction mapping and add fields
+
+    // compare fields to parents, drop if below / above threshold as configured.
+
+  }
 
 }
