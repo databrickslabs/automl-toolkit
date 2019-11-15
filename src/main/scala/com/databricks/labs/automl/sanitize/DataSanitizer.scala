@@ -234,7 +234,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
                                    statistics: String): DataFrame = {
 
     val dfParts = df.rdd.partitions.length.toDouble
-    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
+//    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
+    val summaryParts = Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {
       val colBatches = getBatches(columnList)

@@ -76,7 +76,7 @@ class VarianceFiltering(data: DataFrame) {
       .makeFeaturePipeline(fieldsToIgnore)
 
     val dfParts = featurizedData.rdd.partitions.length.toDouble
-    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
+    val summaryParts = Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
     val stddevInformation = featurizedData
       .coalesce(summaryParts)
       .summary("stddev")

@@ -418,7 +418,9 @@ object FeatureEngineeringPipelineContext {
                                    featureAssemblerInputCols: Array[String]): Option[PipelineStage] = {
     Some(new VectorAssembler()
       .setInputCols(featureAssemblerInputCols)
-      .setOutputCol(mainConfig.featuresCol))
+      .setOutputCol(mainConfig.featuresCol)
+      .setHandleInvalid("keep")
+    )
   }
 
   private def validateDateAndTimeFeatures(dateFields: Array[String],

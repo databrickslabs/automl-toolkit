@@ -54,7 +54,7 @@ class VarianceFilterTransformer(override val uid: String)
       val fields = dataset.columns.filterNot(field => colsToIgnoreForVariance.contains(field))
 
       val dfParts = dataset.rdd.partitions.length.toDouble
-      val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
+      val summaryParts = Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
       val stddevInformation = dataset.coalesce(summaryParts).summary("stddev")
         .select(fields map col: _*).collect()(0).toSeq.toArray
 
