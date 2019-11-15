@@ -23,6 +23,7 @@ object Runner extends App {
   val df = spark.table("tke_features.cost_features")
     .withColumn("cancellation_term", when('cancellation_term.isNull, "NA").otherwise('cancellation_term))
     .withColumn("TARGET", lit("HOLD"))
+    .drop("ch_start_snap_yr")
     .limit(200)
     .na.fill("NA")
 
@@ -31,7 +32,7 @@ object Runner extends App {
     "fieldsToIgnoreInVector" -> Array("UnitID"),
     "scoringMetric" -> "f1",
     "naFillFlag" -> true,
-    "varianceFilterFlag" -> false,
+    "varianceFilterFlag" -> true,
     "outlierFilterFlag" -> false,
     "pearsonFilterFlag" -> false,
     "covarianceFilterFlag" -> false,

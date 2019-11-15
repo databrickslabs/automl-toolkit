@@ -8,6 +8,7 @@ import com.databricks.labs.automl.tracking.MLFlowTracker
 import org.apache.log4j.Logger
 import org.apache.spark.ml.{PipelineModel, PredictionModel}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 import org.mlflow.api.proto.Service
 
 /**
@@ -23,6 +24,8 @@ object AutoMlPipelineMlFlowUtils {
 
   case class ConfigByPipelineIdOutput(mainConfig: MainConfig,
                                       mlFlowRunId: String)
+
+  def extractTopLevelColNames(schema: StructType) = schema.fields.map(field => field.name)
 
   def getMainConfigByPipelineId(
     pipelineId: String

@@ -71,10 +71,10 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(stages, varianceFilterStage(mainConfig))
 
     // Apply Covariance Filtering
-    getAndAddStage(stages, covarianceFilteringStage(mainConfig))
+    getAndAddStage(stages, covarianceFilteringStage(mainConfig, vectorizedColumns))
 
     // Apply Pearson Filtering
-    getAndAddStage(stages, pearsonFilteringStage(mainConfig))
+    getAndAddStage(stages, pearsonFilteringStage(mainConfig, vectorizedColumns))
 
     // Third Transformation
     val thirdPipelineModel = new Pipeline().setStages(stages.toArray).fit(secondTransformationDf)
@@ -83,6 +83,9 @@ object FeatureEngineeringPipelineContext {
       .columns
       .filter(item => item.endsWith(PipelineEnums.SI_SUFFIX.value))
       .filterNot(item => (mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value).equals(item))
+
+    //Get columns removed from above stages
+    val colsRemoved  = getColumnsRemoved(thirdPipelineModel)
 
     // Ksampler stages
     val ksampleStages = ksamplerStages(mainConfig, isFeatureEngineeringOnly)
@@ -105,14 +108,14 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(lastStages, dropColumns(Array(mainConfig.featuresCol), mainConfig))
     // Execute Vector Assembler Again
     if(mainConfig.oneHotEncodeFlag) {
-      getAndAddStage(
-        lastStages,
-        vectorAssemblerStage(
-          mainConfig, oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn)
-            ++ vectorizedColumns.filterNot(_.endsWith(PipelineEnums.SI_SUFFIX.value))))
+      //Exclude columns removed by variance, covariance and pearson
+      val allVectCols =  oheInputCols.map(SchemaUtils.generateOneHotEncodedColumn) ++ vectorizedColumns.filterNot(_.endsWith(PipelineEnums.SI_SUFFIX.value))
+      val vectorCols = allVectCols.filterNot(colsRemoved.contains(_))
+      getAndAddStage(lastStages, vectorAssemblerStage(mainConfig, vectorCols))
     } else {
+      //Exclude columns removed by variance, covariance and pearson
       getAndAddStage(
-        lastStages, vectorAssemblerStage(mainConfig, vectorizedColumns))
+        lastStages, vectorAssemblerStage(mainConfig, vectorizedColumns.filterNot(colsRemoved.contains(_))))
     }
 
     // Apply Scaler option
@@ -136,6 +139,35 @@ object FeatureEngineeringPipelineContext {
       dataSanitizerStage.getOrDefault(dataSanitizerStage.getParam("decideModel")).asInstanceOf[String],
       fourthTransformationDf
     )
+  }
+
+  private def getColumnsRemoved(thirdPipelineModel: PipelineModel): Array[String] = {
+    val removedCols = new ArrayBuffer[String]()
+    val removedByVariance = thirdPipelineModel
+      .stages
+      .filter(_.isInstanceOf[VarianceFilterTransformer])
+      .map(_.asInstanceOf[VarianceFilterTransformer])
+
+    val removedByCovariance = thirdPipelineModel
+      .stages
+      .filter(_.isInstanceOf[CovarianceFilterTransformer])
+      .map(_.asInstanceOf[CovarianceFilterTransformer])
+
+    val removedByPearson =  thirdPipelineModel
+      .stages
+      .filter(_.isInstanceOf[PearsonFilterTransformer])
+      .map(_.asInstanceOf[PearsonFilterTransformer])
+
+    if(removedByVariance != null && removedByVariance.nonEmpty) {
+      removedCols ++= removedByVariance.head.getRemovedColumns
+    }
+    if(removedByCovariance != null && removedByCovariance.nonEmpty) {
+      removedCols ++= removedByCovariance.head.getFieldsRemoved
+    }
+    if(removedByPearson != null && removedByPearson.nonEmpty) {
+      removedCols ++= removedByPearson.head.getFieldsRemoved
+    }
+    removedCols.toArray
   }
 
   def buildFullPredictPipeline(featureEngOutput: FeatureEngineeringOutput,
@@ -220,45 +252,45 @@ object FeatureEngineeringPipelineContext {
   }
 
   private def addLabelIndexToString(pipelineModel: PipelineModel,
-                        dataFrame: DataFrame,
-                        mainConfig: MainConfig): PipelineModel = {
-     if(SchemaUtils.isLabelRefactorNeeded(dataFrame.schema, mainConfig.labelCol)
-       ||
-       PipelineStateCache
-         .getFromPipelineByIdAndKey(
-             mainConfig.pipelineId,
-             PIPELINE_LABEL_REFACTOR_NEEDED_KEY.key)
-         .asInstanceOf[Boolean]
-       ) {
-       //Find the last string indexer by reversing the pipeline mode stages
-       val stringIndexerLabels =
-         pipelineModel
-         .stages
-         .find(_.uid.startsWith(PipelineEnums.LABEL_STRING_INDEXER_STAGE_NAME.value))
-         .get
-         .asInstanceOf[StringIndexerModel]
-         .labels
+                                    dataFrame: DataFrame,
+                                    mainConfig: MainConfig): PipelineModel = {
+    if(SchemaUtils.isLabelRefactorNeeded(dataFrame.schema, mainConfig.labelCol)
+      ||
+      PipelineStateCache
+        .getFromPipelineByIdAndKey(
+          mainConfig.pipelineId,
+          PIPELINE_LABEL_REFACTOR_NEEDED_KEY.key)
+        .asInstanceOf[Boolean]
+    ) {
+      //Find the last string indexer by reversing the pipeline mode stages
+      val stringIndexerLabels =
+        pipelineModel
+          .stages
+          .find(_.uid.startsWith(PipelineEnums.LABEL_STRING_INDEXER_STAGE_NAME.value))
+          .get
+          .asInstanceOf[StringIndexerModel]
+          .labels
 
-       val labelRefactorPipelineModel =  new Pipeline()
-         .setStages(Array(
-           new IndexToString()
-           .setInputCol("prediction")
-           .setOutputCol("prediction_stng")
-           .setLabels(stringIndexerLabels),
-           new DropColumnsTransformer()
-             .setInputCols(Array("prediction"))
-             .setPipelineId(mainConfig.pipelineId),
-           new ColumnNameTransformer()
-             .setInputColumns(Array("prediction_stng"))
-             .setOutputColumns(Array("prediction"))
-             .setPipelineId(mainConfig.pipelineId)
-         ))
-         .fit(dataFrame)
-       labelRefactorPipelineModel.transform(dataFrame)
+      val labelRefactorPipelineModel =  new Pipeline()
+        .setStages(Array(
+          new IndexToString()
+            .setInputCol("prediction")
+            .setOutputCol("prediction_stng")
+            .setLabels(stringIndexerLabels),
+          new DropColumnsTransformer()
+            .setInputCols(Array("prediction"))
+            .setPipelineId(mainConfig.pipelineId),
+          new ColumnNameTransformer()
+            .setInputColumns(Array("prediction_stng"))
+            .setOutputColumns(Array("prediction"))
+            .setPipelineId(mainConfig.pipelineId)
+        ))
+        .fit(dataFrame)
+      labelRefactorPipelineModel.transform(dataFrame)
 
-       return mergePipelineModels(ArrayBuffer(pipelineModel, labelRefactorPipelineModel))
-     }
-     pipelineModel
+      return mergePipelineModels(ArrayBuffer(pipelineModel, labelRefactorPipelineModel))
+    }
+    pipelineModel
   }
 
   private def getInputFeautureCols(inputDataFrame: DataFrame,
@@ -282,7 +314,7 @@ object FeatureEngineeringPipelineContext {
         .setLabelColumn(mainConfig.labelCol)
         .setFeatureColumns(inputFeatures)
         .setPipelineId(mainConfig.pipelineId)))
-    .fit(dataFrame)
+      .fit(dataFrame)
 
     userViewPipelineModel.transform(dataFrame)
 
@@ -298,8 +330,8 @@ object FeatureEngineeringPipelineContext {
     * @return
     */
   private def selectFeaturesConvertTypesAndApplyCardLimit(dataFrame: DataFrame,
-                                  mainConfig: MainConfig,
-                                  originalDfTempTableName: String): PipelineModel = {
+                                                          mainConfig: MainConfig,
+                                                          originalDfTempTableName: String): PipelineModel = {
     // Stage to select only those columns that are needed in the downstream stages
     // also creates a temp view of the original dataset which will then be used by the last stage
     // to return user table
@@ -335,11 +367,13 @@ object FeatureEngineeringPipelineContext {
       .setDebugEnabled(mainConfig.pipelineDebugFlag)
       .setPipelineId(mainConfig.pipelineId)
 
+    //TODO: Remove Date/time columns at this tage with drop transformer
+
     new Pipeline().setStages(Array(
-        zipRegisterTempTransformer,
-        mlFlowLoggingValidationStageTransformer,
-        cardinalityLimitColumnPrunerTransformer,
-        dateFieldTransformer)
+      zipRegisterTempTransformer,
+      mlFlowLoggingValidationStageTransformer,
+      cardinalityLimitColumnPrunerTransformer,
+      dateFieldTransformer)
     ).fit(dataFrame)
   }
 
@@ -360,7 +394,7 @@ object FeatureEngineeringPipelineContext {
     val dateFields = fields._3.toArray.filterNot(ignoreCols.contains)
     val timeFields = fields._4.toArray.filterNot(ignoreCols.contains)
 
-    //Validate date and time fields are empty at this point
+    //Validate date and time fields have been removed and already featurized at this point
     validateDateAndTimeFeatures(dateFields, timeFields)
 
     val stages = new ArrayBuffer[PipelineStage]
@@ -372,14 +406,14 @@ object FeatureEngineeringPipelineContext {
         Some(new StringIndexer(PipelineEnums.LABEL_STRING_INDEXER_STAGE_NAME.value + Identifiable.randomUID("strIdx"))
           .setInputCol(mainConfig.labelCol)
           .setOutputCol(mainConfig.labelCol+PipelineEnums.SI_SUFFIX.value)))
-      if(!verbose) {
-        getAndAddStage(stages, dropColumns(Array(mainConfig.labelCol), mainConfig))
-        getAndAddStage(stages,
-          renameTransformerStage(
-            mainConfig.labelCol + PipelineEnums.SI_SUFFIX.value,
-            mainConfig.labelCol,
-            mainConfig))
-      }
+      //      if(!verbose) {
+      getAndAddStage(stages, dropColumns(Array(mainConfig.labelCol), mainConfig))
+      getAndAddStage(stages,
+        renameTransformerStage(
+          mainConfig.labelCol + PipelineEnums.SI_SUFFIX.value,
+          mainConfig.labelCol,
+          mainConfig))
+      //      }
       // Register label refactor needed var for this pipeline context
       // LabelRefactor needed
       addToPipelineCacheInternal(mainConfig, refactorNeeded = true)
@@ -424,7 +458,7 @@ object FeatureEngineeringPipelineContext {
   }
 
   private def validateDateAndTimeFeatures(dateFields: Array[String],
-                             timeFields: Array[String]): Unit = {
+                                          timeFields: Array[String]): Unit = {
     throwFieldConversionException(dateFields, classOf[DateFeatureConversionException])
     throwFieldConversionException(timeFields, classOf[TimeFeatureConversionException])
   }
@@ -437,24 +471,24 @@ object FeatureEngineeringPipelineContext {
   }
 
   private def fillNaStage(mainConfig: MainConfig): Option[PipelineStage] = {
-     val dataSanitizerTransformer = new DataSanitizerTransformer()
-        .setLabelColumn(mainConfig.labelCol)
-        .setFeatureCol(mainConfig.featuresCol)
-        .setModelSelectionDistinctThreshold(
-          mainConfig.fillConfig.modelSelectionDistinctThreshold
-        )
-        .setNumericFillStat(mainConfig.fillConfig.numericFillStat)
-        .setCharacterFillStat(mainConfig.fillConfig.characterFillStat)
-        .setParallelism(mainConfig.geneticConfig.parallelism)
-       .setCategoricalNAFillMap(mainConfig.fillConfig.categoricalNAFillMap)
-       .setNumericNAFillMap(mainConfig.fillConfig.numericNAFillMap.asInstanceOf[Map[String, Double]])
-       .setFillMode(mainConfig.fillConfig.naFillMode)
-       .setFilterPrecision(mainConfig.fillConfig.filterPrecision)
-       .setNumericNABlanketFill(mainConfig.fillConfig.numericNABlanketFillValue)
-       .setCharacterNABlanketFill(mainConfig.fillConfig.characterNABlanketFillValue)
-       .setNaFillFlag(mainConfig.naFillFlag)
-       .setDebugEnabled(mainConfig.pipelineDebugFlag)
-       .setPipelineId(mainConfig.pipelineId)
+    val dataSanitizerTransformer = new DataSanitizerTransformer()
+      .setLabelColumn(mainConfig.labelCol)
+      .setFeatureCol(mainConfig.featuresCol)
+      .setModelSelectionDistinctThreshold(
+        mainConfig.fillConfig.modelSelectionDistinctThreshold
+      )
+      .setNumericFillStat(mainConfig.fillConfig.numericFillStat)
+      .setCharacterFillStat(mainConfig.fillConfig.characterFillStat)
+      .setParallelism(mainConfig.geneticConfig.parallelism)
+      .setCategoricalNAFillMap(mainConfig.fillConfig.categoricalNAFillMap)
+      .setNumericNAFillMap(mainConfig.fillConfig.numericNAFillMap.asInstanceOf[Map[String, Double]])
+      .setFillMode(mainConfig.fillConfig.naFillMode)
+      .setFilterPrecision(mainConfig.fillConfig.filterPrecision)
+      .setNumericNABlanketFill(mainConfig.fillConfig.numericNABlanketFillValue)
+      .setCharacterNABlanketFill(mainConfig.fillConfig.characterNABlanketFillValue)
+      .setNaFillFlag(mainConfig.naFillFlag)
+      .setDebugEnabled(mainConfig.pipelineDebugFlag)
+      .setPipelineId(mainConfig.pipelineId)
 
     Some(dataSanitizerTransformer)
   }
@@ -489,7 +523,7 @@ object FeatureEngineeringPipelineContext {
     None
   }
 
-  private def covarianceFilteringStage(mainConfig: MainConfig): Option[PipelineStage] = {
+  private def covarianceFilteringStage(mainConfig: MainConfig, featureCols: Array[String]): Option[PipelineStage] = {
     if(mainConfig.covarianceFilteringFlag) {
       val covarianceFilterTransformer = new CovarianceFilterTransformer()
         .setLabelColumn(mainConfig.labelCol)
@@ -497,12 +531,14 @@ object FeatureEngineeringPipelineContext {
         .setCorrelationCutoffHigh(mainConfig.covarianceConfig.correlationCutoffLow)
         .setDebugEnabled(mainConfig.pipelineDebugFlag)
         .setPipelineId(mainConfig.pipelineId)
+        .setFeatureColumns(featureCols)
+        .setFeatureCol(mainConfig.featuresCol)
       return Some(covarianceFilterTransformer)
     }
     None
   }
 
-  private def pearsonFilteringStage(mainConfig: MainConfig): Option[PipelineStage] = {
+  private def pearsonFilteringStage(mainConfig: MainConfig, featureCols: Array[String]): Option[PipelineStage] = {
     if(mainConfig.pearsonFilteringFlag) {
       val pearsonFilterTransformer = new PearsonFilterTransformer()
         .setLabelColumn(mainConfig.labelCol)
@@ -514,6 +550,7 @@ object FeatureEngineeringPipelineContext {
         .setFilterStatistic(mainConfig.pearsonConfig.filterStatistic)
         .setDebugEnabled(mainConfig.pipelineDebugFlag)
         .setPipelineId(mainConfig.pipelineId)
+        .setFeatureColumns(featureCols)
       return Some(pearsonFilterTransformer)
     }
     None
@@ -655,4 +692,3 @@ object FeatureEngineeringPipelineContext {
     }
   }
 }
-
