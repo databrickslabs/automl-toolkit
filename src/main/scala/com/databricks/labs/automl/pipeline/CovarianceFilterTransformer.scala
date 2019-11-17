@@ -54,7 +54,7 @@ class CovarianceFilterTransformer(override val uid: String)
           s"Covariance Filtering completed.\n  Removed fields: ${getFieldsRemoved.mkString(", ")}"
         logger.log(Level.INFO, covarianceFilterLog)
         println(covarianceFilterLog)
-        return covarianceFilteredData
+//        return covarianceFilteredData
       }
     }
     dataset.drop(getFieldsRemoved: _*)
