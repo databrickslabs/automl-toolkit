@@ -88,7 +88,8 @@ object FeatureEngineeringPipelineContext {
     val colsRemoved  = getColumnsRemoved(thirdPipelineModel)
 
     // Ksampler stages
-    val ksampleStages = ksamplerStages(mainConfig, isFeatureEngineeringOnly)
+    val ksampleStages = ksamplerStages(mainConfig, isFeatureEngineeringOnly, vectorizedColumns.filterNot(colsRemoved.contains(_)))
+
     var ksampledDf = thirdTransformationDf
     if(ksampleStages.isDefined) {
       val ksamplerPipelineModel = new Pipeline().setStages(ksampleStages.get).fit(thirdTransformationDf)
@@ -591,13 +592,17 @@ object FeatureEngineeringPipelineContext {
     None
   }
 
-  private def ksamplerStages(mainConfig: MainConfig, isFeatureEngineeringOnly: Boolean): Option[Array[_ <: PipelineStage]] = {
+  private def ksamplerStages(mainConfig: MainConfig, isFeatureEngineeringOnly: Boolean, vectorizedColumns: Array[String]): Option[Array[_ <: PipelineStage]] = {
     val ksampleConfigString = "kSample"
     if(isFeatureEngineeringOnly && mainConfig.geneticConfig.trainSplitMethod == ksampleConfigString) {
       throw new RuntimeException("Ksampler should be disabled when generating only a feature engineering pipeline.")
     }
     if (mainConfig.geneticConfig.trainSplitMethod == ksampleConfigString && !isFeatureEngineeringOnly) {
       val arrayBuffer = new ArrayBuffer[PipelineStage]()
+      // Apply Vector Assembler again
+      getAndAddStage(arrayBuffer, dropColumns(Array(mainConfig.featuresCol), mainConfig))
+      getAndAddStage(arrayBuffer, vectorAssemblerStage(mainConfig, vectorizedColumns))
+
       // Ksampler stage
       arrayBuffer += new SyntheticFeatureGenTransformer()
         .setFeatureCol(mainConfig.featuresCol)

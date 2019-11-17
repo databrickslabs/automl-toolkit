@@ -61,6 +61,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
     fieldListingPar.tasksupport = taskSupport
 
 
+    //TODO (Jas) Tech Debt: Need to fold this in either direction
     fieldListingPar.foreach{ x =>
       val leftFields = fieldListing.filterNot(_.contains(x)).filterNot(f => redundantRecursionEliminator.contains(f))
       leftFields.foreach{y =>
