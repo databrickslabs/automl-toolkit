@@ -27,6 +27,7 @@ class CovarianceFilterTransformer(override val uid: String)
     setCorrelationCutoffHigh(0.99)
     setFeatureColumns(Array.empty)
     setDebugEnabled(false)
+    setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
   }
   final val correlationCutoffLow: DoubleParam = new DoubleParam(this, "correlationCutoffLow", "correlationCutoffLow")
   final val correlationCutoffHigh: DoubleParam = new DoubleParam(this, "correlationCutoffHigh", "correlationCutoffHigh")
