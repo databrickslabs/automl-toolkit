@@ -528,8 +528,8 @@ object FeatureEngineeringPipelineContext {
     if(mainConfig.covarianceFilteringFlag) {
       val covarianceFilterTransformer = new CovarianceFilterTransformer()
         .setLabelColumn(mainConfig.labelCol)
-        .setCorrelationCutoffLow(mainConfig.covarianceConfig.correlationCutoffHigh)
-        .setCorrelationCutoffHigh(mainConfig.covarianceConfig.correlationCutoffLow)
+        .setCorrelationCutoffLow(mainConfig.covarianceConfig.correlationCutoffLow)
+        .setCorrelationCutoffHigh(mainConfig.covarianceConfig.correlationCutoffHigh)
         .setDebugEnabled(mainConfig.pipelineDebugFlag)
         .setPipelineId(mainConfig.pipelineId)
         .setFeatureColumns(featureCols)

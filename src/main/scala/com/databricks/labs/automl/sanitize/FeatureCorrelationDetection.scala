@@ -102,10 +102,10 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
   def filterFeatureCorrelation(): DataFrame = {
 
     assert(_dataFieldNames.contains(_labelCol), s"Label field ${_labelCol} is not in Dataframe")
-    val fieldsToFilter = generateFilterFields()
-    assert(fieldListing.distinct.length > fieldsToFilter.distinct.length,
+    val fieldsToKeep = generateFilterFields().distinct
+    val fieldsToDrop = fieldListing.filterNot(f => fieldsToKeep.contains(f))
+    assert(fieldListing.distinct.length > fieldsToDrop.length,
       s"All feature fields have been removed and modeling cannot continue.")
-    val fieldsToDrop = fieldListing.filterNot(f => fieldsToFilter.contains(f))
     data.drop(fieldsToDrop: _*)
   }
 
