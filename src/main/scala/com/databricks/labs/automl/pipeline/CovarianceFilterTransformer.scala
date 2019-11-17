@@ -29,12 +29,14 @@ class CovarianceFilterTransformer(override val uid: String)
     setDebugEnabled(false)
     setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
   }
+
   final val correlationCutoffLow: DoubleParam = new DoubleParam(this, "correlationCutoffLow", "correlationCutoffLow")
   final val correlationCutoffHigh: DoubleParam = new DoubleParam(this, "correlationCutoffHigh", "correlationCutoffHigh")
   def setCorrelationCutoffLow(value: Double): this.type = set(correlationCutoffLow, value)
   def getCorrelationCutoffLow: Double = $(correlationCutoffLow)
   def setCorrelationCutoffHigh(value: Double): this.type = set(correlationCutoffHigh, value)
   def getCorrelationCutoffHigh: Double = $(correlationCutoffHigh)
+
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     if(dataset.columns.contains(getLabelColumn)) {
       if (SchemaUtils.isNotEmpty(getFeatureColumns)) {

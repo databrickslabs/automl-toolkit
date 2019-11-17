@@ -41,6 +41,6 @@ class CovarianceFilterTransformerTest extends AbstractUnitSpec {
 
     transformedDf.show(10)
 
-    assert(transformedDf.columns.filter(Array("a", "c").contains(_)).length == 0, "Covariance filter should have removed columns 'a' and 'c'")
+    assert(!transformedDf.columns.exists(_.equals("b")), "Covariance filter should have removed column 'b'")
   }
 }

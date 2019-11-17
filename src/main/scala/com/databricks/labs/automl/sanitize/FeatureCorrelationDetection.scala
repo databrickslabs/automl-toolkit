@@ -86,7 +86,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
 
     val featureCorrelationData = computeFeatureCorrelation()
 
-    featureCorrelationData.filterNot(x => x.correlation > _correlationCutoffHigh || x.correlation < _correlationCutoffLow)
+    featureCorrelationData.filter(x => x.correlation < _correlationCutoffHigh && x.correlation > _correlationCutoffLow)
       .map(_.rightCol).toSeq
 
   }
@@ -105,8 +105,8 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
     val fieldsToFilter = generateFilterFields()
     assert(fieldListing.distinct.length > fieldsToFilter.distinct.length,
       s"All feature fields have been removed and modeling cannot continue.")
-    val fieldsToSelect = _dataFieldNames.filterNot(f => fieldsToFilter.contains(f))
-    data.select(fieldsToSelect.distinct map col:_*)
+    val fieldsToDrop = fieldListing.filterNot(f => fieldsToFilter.contains(f))
+    data.drop(fieldsToDrop: _*)
   }
 
 }
