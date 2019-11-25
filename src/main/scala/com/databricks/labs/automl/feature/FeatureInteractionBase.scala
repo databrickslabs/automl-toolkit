@@ -1,13 +1,16 @@
 package com.databricks.labs.automl.feature
 
 import com.databricks.labs.automl.exceptions.ModelingTypeException
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
+import com.databricks.labs.automl.feature.structures._
 
 trait FeatureInteractionBase {
-  import ModelingType._
-  import FieldEncodingType._
-  import InteractionRetentionMode._
+  import com.databricks.labs.automl.feature.structures.ModelingType._
+  import com.databricks.labs.automl.feature.structures.FieldEncodingType._
+  import com.databricks.labs.automl.feature.structures.InteractionRetentionMode._
 
   private final val allowableModelTypes = Array("classifier", "regressor")
   private final val allowableFieldTypes = Array("nominal", "continuous")
@@ -22,6 +25,7 @@ trait FeatureInteractionBase {
   final val QUANTILE_THRESHOLD: Double = 0.5
   final val QUANTILE_PRECISION: Double = 0.95
   final val VARIANCE_STATISTIC: String = "stddev"
+  final val INDEXED_SUFFIX: String = "_si"
 
   protected[feature] def getModelType(
     modelingType: String
@@ -63,14 +67,20 @@ trait FeatureInteractionBase {
     * @author Ben Wilson, Databricks
     */
   protected[feature] def generateInteractionCandidates(
-    featureColumns: Array[String]
+    featureColumns: Array[ColumnTypeData]
   ): Array[InteractionPayload] = {
     val colIdx = featureColumns.zipWithIndex
     colIdx.flatMap {
       case (x, i) =>
         val maxIdx = colIdx.length
         for (j <- Range(i + 1, maxIdx)) yield {
-          InteractionPayload(x, colIdx(j)._1, s"i_${x}_${colIdx(j)._1}")
+          InteractionPayload(
+            x.name,
+            x.dataType,
+            colIdx(j)._1.name,
+            colIdx(j)._1.dataType,
+            s"i_${x.name}_${colIdx(j)._1.name}"
+          )
         }
     }
   }
@@ -110,38 +120,64 @@ trait FeatureInteractionBase {
 
   }
 
-}
+  protected[feature] def generateNominalIndexesInteractionFields(
+    payload: FeatureInteractionCollection
+  ): NominalDataCollection = {
 
-case class VarianceData(labelValue: Double, variance: Double)
-case class EntropyData(labelValue: Double, entropy: Double)
-case class InteractionPayload(left: String, right: String, outputName: String)
-case class InteractionResult(left: String,
-                             right: String,
-                             interaction: String,
-                             score: Double)
-case class FeatureInteractionCollection(
-  data: DataFrame,
-  interactionPayload: Array[InteractionPayload]
-)
+    // Check for nominal data types on interactions
 
-object ModelingType extends Enumeration {
-  val Regressor = ModelType("regressor")
-  val Classifier = ModelType("classifier")
-  protected case class ModelType(modelType: String) extends super.Val()
-  implicit def convert(value: Value): ModelType = value.asInstanceOf[ModelType]
-}
+    val parsedNames = payload.interactionPayload
+      .map(
+        x =>
+          (x.rightDataType, x.leftDataType) match {
+            case ("nominal", "nominal") =>
+              NominalIndexCollection(x.outputName, indexCheck = true)
+            case _ => NominalIndexCollection(x.outputName, indexCheck = false)
+        }
+      )
 
-object FieldEncodingType extends Enumeration {
-  val Nominal = FieldType("nominal")
-  val Continuous = FieldType("continuous")
-  protected case class FieldType(fieldType: String) extends super.Val()
-  implicit def convert(value: Value): FieldType = value.asInstanceOf[FieldType]
-}
+    val nominalFields = parsedNames
+      .filter(x => x.indexCheck)
+      .map(x => x.name)
 
-object InteractionRetentionMode extends Enumeration {
-  val Optimistic = RetentionMode("optimistic")
-  val Strict = RetentionMode("strict")
-  protected case class RetentionMode(retentionMode: String) extends super.Val()
-  implicit def convert(value: Value): RetentionMode =
-    value.asInstanceOf[RetentionMode]
+    // String Index these fields
+
+    val indexers = nominalFields.map { x =>
+      new StringIndexer()
+        .setHandleInvalid("keep")
+        .setInputCol(x)
+        .setOutputCol(x + INDEXED_SUFFIX)
+    }
+
+    val pipeline = new Pipeline()
+      .setStages(indexers)
+      .fit(payload.data)
+
+    val adjustedFieldsToIncludeInVector = parsedNames.map { x =>
+      if (x.indexCheck) x.name + INDEXED_SUFFIX
+      else x.name
+    }
+
+    NominalDataCollection(
+      pipeline.transform(payload.data),
+      adjustedFieldsToIncludeInVector
+    )
+
+  }
+
+  protected[feature] def regenerateFeatureVector(
+    df: DataFrame,
+    preInteractedFields: Array[String],
+    interactedFields: Array[String],
+    featureCol: String
+  ): DataFrame = {
+
+    val assembler = new VectorAssembler()
+      .setInputCols(preInteractedFields ++ interactedFields)
+      .setOutputCol(featureCol)
+
+    assembler.transform(df)
+
+  }
+
 }

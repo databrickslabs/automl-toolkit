@@ -6,13 +6,14 @@ import org.apache.spark.sql.functions._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
+import com.databricks.labs.automl.feature.structures._
 
 class FeatureInteraction(modelingType: String, retentionMode: String)
     extends FeatureInteractionBase {
 
-  import ModelingType._
-  import FieldEncodingType._
-  import InteractionRetentionMode._
+  import com.databricks.labs.automl.feature.structures.FieldEncodingType._
+  import com.databricks.labs.automl.feature.structures.InteractionRetentionMode._
+  import com.databricks.labs.automl.feature.structures.ModelingType._
 
   private var _labelCol: String = "label"
 
@@ -24,7 +25,10 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
 
   private var _parallelism: Int = 4
 
-  private var _targetInteractionPercentage: Double = 25.0
+  private var _targetInteractionPercentage: Double = modelingType match {
+    case "regressor"  => -1.0
+    case "classifier" => 1.0
+  }
 
   def setLabelCol(value: String): this.type = {
     _labelCol = value
@@ -51,10 +55,6 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
   }
 
   def setTargetInteractionPercentage(value: Double): this.type = {
-    require(
-      value > 0,
-      s"Target Percentage allowance for inclusion must be a positive Double. $value is invalid."
-    )
     _targetInteractionPercentage = value
     this
   }
@@ -182,14 +182,23 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
 
     val interactedDf = interactProduct(evaluationDf, candidate)
 
+    val dataModelDecision =
+      (candidate.leftDataType, candidate.rightDataType) match {
+        case ("nominal", "nominal") => "nominal"
+        case _                      => "continuous"
+      }
+
     // Score the interaction
     val score = scoreColumn(
       interactedDf,
       getModelType(modelingType),
       candidate.outputName,
-      getFieldType("continuous"),
+      getFieldType(dataModelDecision),
       totalRecordCount
     )
+
+    // DEBUG
+    println(s"Score for ${candidate.outputName}: $score")
 
     InteractionResult(
       candidate.left,
@@ -211,31 +220,44 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     * @author Ben Wilson, Databricks
     */
   private def parentCompare(interactionResult: InteractionResult,
-                            leftScore: Double,
-                            rightScore: Double): Boolean = {
+                            leftScore: ColumnScoreData,
+                            rightScore: ColumnScoreData): Boolean = {
 
     val percentageChangeLeft =
-      calculatePercentageChange(leftScore, interactionResult.score)
+      calculatePercentageChange(leftScore.score, interactionResult.score)
 
     val percentageChangeRight =
-      calculatePercentageChange(rightScore, interactionResult.score)
+      calculatePercentageChange(rightScore.score, interactionResult.score)
 
-    getRetentionMode(retentionMode) match {
+    // DEBUG
+    println(
+      s"Percentage Change from ${interactionResult.left}: $percentageChangeLeft for ${interactionResult.interaction} with score: ${interactionResult.score} compared to $leftScore"
+    )
+    println(
+      s"Percentage Change from ${interactionResult.right}: $percentageChangeRight for ${interactionResult.interaction} with score: ${interactionResult.score} compared to $rightScore"
+    )
+
+    val keepCheck = getRetentionMode(retentionMode) match {
       case Optimistic =>
         getModelType(modelingType) match {
           case Regressor =>
-            percentageChangeLeft <= _targetInteractionPercentage | percentageChangeRight <= _targetInteractionPercentage
+            percentageChangeLeft <= _targetInteractionPercentage * -1 | percentageChangeRight <= _targetInteractionPercentage * -1
           case Classifier =>
-            percentageChangeLeft >= -1 * _targetInteractionPercentage | percentageChangeRight >= -1 * _targetInteractionPercentage
+            percentageChangeLeft >= _targetInteractionPercentage | percentageChangeRight >= _targetInteractionPercentage
         }
       case Strict =>
         getModelType(modelingType) match {
           case Regressor =>
-            percentageChangeLeft <= _targetInteractionPercentage & percentageChangeRight <= _targetInteractionPercentage
+            percentageChangeLeft <= _targetInteractionPercentage * -1 & percentageChangeRight <= _targetInteractionPercentage * -1
           case Classifier =>
-            percentageChangeLeft >= -1 * _targetInteractionPercentage & percentageChangeRight >= -1 * _targetInteractionPercentage
+            percentageChangeLeft >= _targetInteractionPercentage & percentageChangeRight >= _targetInteractionPercentage
         }
     }
+
+    // DEBUG
+    println(s"Decision to keep this interaction is: ${keepCheck.toString}")
+
+    keepCheck
 
   }
 
@@ -264,41 +286,54 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     }
 
     val nominalScores = nominalFields.map { x =>
-      x -> scoreColumn(
-        df,
-        modelType,
-        x,
-        getFieldType("nominal"),
-        totalRecordCount
+      x -> ColumnScoreData(
+        scoreColumn(
+          df,
+          modelType,
+          x,
+          getFieldType("nominal"),
+          totalRecordCount
+        ),
+        "nominal"
       )
 
     }.toMap
 
     val continuousScores = continuousFields.map { x =>
-      x -> scoreColumn(
-        df,
-        modelType,
-        x,
-        getFieldType("continuous"),
-        totalRecordCount
+      x -> ColumnScoreData(
+        scoreColumn(
+          df,
+          modelType,
+          x,
+          getFieldType("continuous"),
+          totalRecordCount
+        ),
+        "continuous"
       )
     }.toMap
 
     val mergedParentScores = nominalScores ++ continuousScores
 
+    val interactionCandidatePayload = nominalFields.map(
+      x => ColumnTypeData(x, "nominal")
+    ) ++ continuousFields.map(y => ColumnTypeData(y, "continuous"))
+
     val interactionCandidates = generateInteractionCandidates(
-      nominalFields ++ continuousFields
+      interactionCandidatePayload
     )
 
     val forkJoinTaskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_parallelism)
     )
+
+    val scoredCandidates = ArrayBuffer[InteractionResult]()
+
     val candidateChecks = interactionCandidates.par
     candidateChecks.tasksupport = forkJoinTaskSupport
 
-    val scoredCandidates = candidateChecks.map { x =>
-      evaluateInteraction(df, x, totalRecordCount)
-    }.toArray
+    candidateChecks.foreach { x =>
+      scoredCandidates += evaluateInteraction(df, x, totalRecordCount)
+    }
 
     var interactionBuffer = ArrayBuffer[InteractionPayload]()
 
@@ -311,7 +346,13 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
             mergedParentScores(x.left),
             mergedParentScores(x.right)
           ))
-        interactionBuffer += InteractionPayload(x.left, x.right, x.interaction)
+        interactionBuffer += InteractionPayload(
+          x.left,
+          mergedParentScores(x.left).dataType,
+          x.right,
+          mergedParentScores(x.right).dataType,
+          x.interaction
+        )
 
     }
 
@@ -345,6 +386,122 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     }
 
     FeatureInteractionCollection(data, fieldsToCreate)
+
+  }
+
+  /**
+    * Method for generating interaction candidates and re-building a feature vector
+    * @param df DataFrame to interact features with (that has a feature vector already built)
+    * @param nominalFields Array of column names for nominal (string indexed) values
+    * @param continuousFields Array of column names for continuous numeric values
+    * @param featureVectorColumn Name of the feature vector column
+    * @return DataFrame with a re-built feature vector that includes the interacted feature columns as part of it.
+    * @since 0.7.0
+    * @author Ben Wilson, Databricks
+    */
+  def createCandidatesAndAddToVector(df: DataFrame,
+                                     nominalFields: Array[String],
+                                     continuousFields: Array[String],
+                                     featureVectorColumn: String) = {
+
+    val currentFields = df.schema.names
+
+    require(
+      currentFields.contains(featureVectorColumn),
+      s"The feature vector column $featureVectorColumn does not " +
+        s"exist in the DataFrame supplied to FeatureInteraction.createCandidatesAndAddToVector.  Field listing is: " +
+        s"${currentFields.mkString(", ")} "
+    )
+
+    val strippedDf = df.drop(featureVectorColumn)
+
+    val candidatePayload =
+      createCandidates(strippedDf, nominalFields, continuousFields)
+
+    // Reset the nominal interaction fields
+    val indexedInteractions = generateNominalIndexesInteractionFields(
+      candidatePayload
+    )
+
+    // Build the Vector again
+    val vectorFields = nominalFields ++ continuousFields
+
+    FeatureInteractionOutputPayload(
+      regenerateFeatureVector(
+        indexedInteractions.data,
+        vectorFields,
+        indexedInteractions.adjustedFields,
+        featureVectorColumn
+      ),
+      vectorFields ++ indexedInteractions.adjustedFields
+    )
+
+  }
+
+}
+
+object FeatureInteraction {
+
+  def interactFeatures(
+    data: DataFrame,
+    nominalFields: Array[String],
+    continuousFields: Array[String],
+    modelingType: String,
+    retentionMode: String,
+    labelCol: String,
+    featureCol: String,
+    continuousDiscretizerBucketCount: Int,
+    parallelism: Int,
+    targetInteractionPercentage: Double
+  ): FeatureInteractionOutputPayload =
+    new FeatureInteraction(modelingType, retentionMode)
+      .setLabelCol(labelCol)
+      .setContinuousDiscretizerBucketCount(continuousDiscretizerBucketCount)
+      .setParallelism(parallelism)
+      .setTargetInteractionPercentage(targetInteractionPercentage)
+      .createCandidatesAndAddToVector(
+        data,
+        nominalFields,
+        continuousFields,
+        featureCol
+      )
+
+  def interactDataFrame(
+    data: DataFrame,
+    nominalFields: Array[String],
+    continuousFields: Array[String],
+    modelingType: String,
+    retentionMode: String,
+    labelCol: String,
+    continuousDiscretizerBucketCount: Int,
+    parallelism: Int,
+    targetInteractionPercentage: Double
+  ): FeatureInteractionCollection = {
+    new FeatureInteraction(modelingType, retentionMode)
+      .setLabelCol(labelCol)
+      .setContinuousDiscretizerBucketCount(continuousDiscretizerBucketCount)
+      .setParallelism(parallelism)
+      .setTargetInteractionPercentage(targetInteractionPercentage)
+      .createCandidates(data, nominalFields, continuousFields)
+  }
+
+  def interactionReport(
+    data: DataFrame,
+    nominalFields: Array[String],
+    continuousFields: Array[String],
+    modelingType: String,
+    retentionMode: String,
+    labelCol: String,
+    continuousDiscretizerBucketCount: Int,
+    parallelism: Int,
+    targetInteractionPercentage: Double
+  ): Array[InteractionPayload] = {
+    new FeatureInteraction(modelingType, retentionMode)
+      .setLabelCol(labelCol)
+      .setContinuousDiscretizerBucketCount(continuousDiscretizerBucketCount)
+      .setParallelism(parallelism)
+      .setTargetInteractionPercentage(targetInteractionPercentage)
+      .generateCandidates(data, nominalFields, continuousFields)
 
   }
 

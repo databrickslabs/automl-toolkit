@@ -3,6 +3,7 @@ package com.databricks.labs.automl.feature
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, lit, log2, sum, variance}
+import com.databricks.labs.automl.feature.structures._
 
 object FeatureEvaluator extends FeatureInteractionBase {
 
