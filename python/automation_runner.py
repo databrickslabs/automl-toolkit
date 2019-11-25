@@ -3,7 +3,7 @@ from pyspark.sql.functions import DataFrame
 from python.spark_singleton import SparkSingleton
 
 
-class automationRunner:
+class AutomationRunner:
 
     def __init__(self,
                  model_family: str,
@@ -39,12 +39,12 @@ class automationRunner:
             default_flag = "true"
             stringified_overrides = ""
 
-        self.spark._jvm.com.databricks.labs.automl.four.pyspark.AutomationRunnerUtil.runAutomationRunner(model_family,
-                                                                                                    prediction_type,
-                                                                                                    stringified_overrides,
-                                                                                                    df._jdf,
-                                                                                                    runner_type_lower,
-                                                                                                    default_flag)
+        self.spark._jvm.com.databricks.labs.automl.pyspark.AutomationRunnerUtil.runAutomationRunner(model_family,
+                                                                                                        prediction_type,
+                                                                                                        stringified_overrides,
+                                                                                                        df._jdf,
+                                                                                                        runner_type_lower,
+                                                                                                        default_flag)
 
     def _bring_in_returns(self,
                           runner_type: str):
@@ -64,8 +64,8 @@ class automationRunner:
         else:
             print("No returns were added - check your runner_type")
 
-    def _check_runner_types(self,
-                            runner_type: str):
+    @staticmethod
+    def _check_runner_types(runner_type: str):
         acceptable_strings = ["run", "confusion", "prediction"]
         if runner_type not in acceptable_strings:
             raise Exception("runner_type must be one of the following run, confusion, or prediction")

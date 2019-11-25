@@ -1,7 +1,8 @@
-from python.sql import SparkSession
-import os
+from pyspark.sql import SparkSession
+
 
 class SparkSingleton:
+
     @classmethod
     def get_instance(cls):
         return SparkSession.builder.getOrCreate()

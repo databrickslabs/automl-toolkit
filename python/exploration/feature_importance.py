@@ -3,7 +3,7 @@ from pyspark.sql.functions import DataFrame
 from python.spark_singleton import SparkSingleton
 
 
-class feature_importance:
+class FeatureImportance:
     def __init__(self,
                  model_family: str,
                  prediction_type: str,
@@ -40,7 +40,7 @@ class feature_importance:
             default_flag = "true"
 
         # Pass to JVM to run FI
-        self.spark._jvm.com.databricks.labs.automl.four.pyspark.FeatureImportanceUtil.runFeatureImportance(model_family,
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FeatureImportanceUtil.runFeatureImportance(model_family,
                                                                                                       prediction_type,
                                                                                                       stringified_overrides,
                                                                                                       df._jdf,
@@ -50,5 +50,6 @@ class feature_importance:
 
     def _bring_in_returns(self):
         self.importances = self.spark.sql("select * from importances")
-        ## TO DO add the top field array
+        self.top_fields = self.spark.sql("select feature from importances")
+
 

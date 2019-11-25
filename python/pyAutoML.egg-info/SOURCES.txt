@@ -1,0 +1,5 @@
+setup.py
+pyAutoML.egg-info/PKG-INFO
+pyAutoML.egg-info/SOURCES.txt
+pyAutoML.egg-info/dependency_links.txt
+pyAutoML.egg-info/top_level.txt

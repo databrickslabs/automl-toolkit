@@ -32,7 +32,6 @@ object FeatureImportanceUtil {
 
     //cache importances df and top fields to get them later in python
     FiImportances.importances.createOrReplaceTempView("importances")
-    //     Seq(FiImportances.topFields).toDF("testCol").cache()
 
   }
 
