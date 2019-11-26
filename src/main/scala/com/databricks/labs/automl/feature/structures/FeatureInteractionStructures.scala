@@ -21,7 +21,8 @@ case class FeatureInteractionCollection(
 )
 case class FeatureInteractionOutputPayload(
   data: DataFrame,
-  fullFeatureVectorColumns: Array[String]
+  fullFeatureVectorColumns: Array[String],
+  interactionReport: Array[InteractionPayload]
 )
 case class NominalIndexCollection(name: String, indexCheck: Boolean)
 case class NominalDataCollection(data: DataFrame, adjustedFields: Array[String])
@@ -43,6 +44,7 @@ object FieldEncodingType extends Enumeration {
 object InteractionRetentionMode extends Enumeration {
   val Optimistic = RetentionMode("optimistic")
   val Strict = RetentionMode("strict")
+  val All = RetentionMode("all")
   protected case class RetentionMode(retentionMode: String) extends super.Val()
   implicit def convert(value: Value): RetentionMode =
     value.asInstanceOf[RetentionMode]

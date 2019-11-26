@@ -62,7 +62,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
   /**
     * Helper method to set the class property for data-level entropy based on the values of a nominal label column
     * @param df The raw data frame
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   private def setFullDataEntropy(df: DataFrame): this.type = {
@@ -90,7 +90,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
   /**
     * Private method for setting the data set label's variance value
     * @param df The source DataFrame
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   private def setFullDataVariance(df: DataFrame): this.type = {
@@ -113,7 +113,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     * @param fieldType The type of the field: Either Nominal (String Indexed) or Continuous from Enum
     * @param totalRecordCount Total number of rows in the data set in order to calculate Entropy correctly
     * @return A Score as Double
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   private def scoreColumn(df: DataFrame,
@@ -169,7 +169,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     * @param candidate The InteractionPayload for the parents of left/right to make the interacted feature
     * @param totalRecordCount Total number of records in the DataFrame (calculated only once for the Object)
     * @return InteractionResult payload of interaction scores associated with the interacted features
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   private def evaluateInteraction(df: DataFrame,
@@ -197,9 +197,6 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
       totalRecordCount
     )
 
-    // DEBUG
-    println(s"Score for ${candidate.outputName}: $score")
-
     InteractionResult(
       candidate.left,
       candidate.right,
@@ -216,7 +213,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     * @param leftScore left parent of interaction's score
     * @param rightScore right parent of interaction's score
     * @return Boolean value of whether to keep the interacted field or not
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   private def parentCompare(interactionResult: InteractionResult,
@@ -228,14 +225,6 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
 
     val percentageChangeRight =
       calculatePercentageChange(rightScore.score, interactionResult.score)
-
-    // DEBUG
-    println(
-      s"Percentage Change from ${interactionResult.left}: $percentageChangeLeft for ${interactionResult.interaction} with score: ${interactionResult.score} compared to $leftScore"
-    )
-    println(
-      s"Percentage Change from ${interactionResult.right}: $percentageChangeRight for ${interactionResult.interaction} with score: ${interactionResult.score} compared to $rightScore"
-    )
 
     val keepCheck = getRetentionMode(retentionMode) match {
       case Optimistic =>
@@ -252,10 +241,8 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
           case Classifier =>
             percentageChangeLeft >= _targetInteractionPercentage & percentageChangeRight >= _targetInteractionPercentage
         }
+      case All => true
     }
-
-    // DEBUG
-    println(s"Decision to keep this interaction is: ${keepCheck.toString}")
 
     keepCheck
 
@@ -267,7 +254,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     * @param nominalFields The nominal fields (String Indexed) to be used for interaction
     * @param continuousFields The continuous fields (Original Numeric Types) to be used for interaction
     * @return Array[InteractionPayload] for candidate fields interactions that meet the acceptance criteria as set by configuration.
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   def generateCandidates(
@@ -368,7 +355,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     * @param continuousFields Fields from the DataFrame that were originally numeric, continuous types.
     * @return FeatureInteractionCollection -> the DataFrame with candidate feature interactions added in and the
     *         payload of interaction features and their constituent parents in order to recreate for a Pipeline.
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   def createCandidates(
@@ -396,13 +383,15 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     * @param continuousFields Array of column names for continuous numeric values
     * @param featureVectorColumn Name of the feature vector column
     * @return DataFrame with a re-built feature vector that includes the interacted feature columns as part of it.
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
-  def createCandidatesAndAddToVector(df: DataFrame,
-                                     nominalFields: Array[String],
-                                     continuousFields: Array[String],
-                                     featureVectorColumn: String) = {
+  def createCandidatesAndAddToVector(
+    df: DataFrame,
+    nominalFields: Array[String],
+    continuousFields: Array[String],
+    featureVectorColumn: String
+  ): FeatureInteractionOutputPayload = {
 
     val currentFields = df.schema.names
 
@@ -433,7 +422,8 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
         indexedInteractions.adjustedFields,
         featureVectorColumn
       ),
-      vectorFields ++ indexedInteractions.adjustedFields
+      vectorFields ++ indexedInteractions.adjustedFields,
+      candidatePayload.interactionPayload
     )
 
   }

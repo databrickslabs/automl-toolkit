@@ -209,7 +209,8 @@ trait AutomationTools extends SparkSessionWrapper {
       pearsonFilterFlag = config.pearsonFilteringFlag,
       covarianceFilterFlag = config.covarianceFilteringFlag,
       oneHotEncodeFlag = config.oneHotEncodeFlag,
-      scalingFlag = config.scalingFlag
+      scalingFlag = config.scalingFlag,
+      featureInteractionFlag = config.featureInteractionFlag
     )
   }
 

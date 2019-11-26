@@ -170,6 +170,9 @@ trait ConfigurationDefaults {
   final val allowableGeneticMBORegressorTypes: List[String] =
     List("XGBoost", "LinearRegression", "RandomForest")
 
+  final val allowableFeatureInteractionModes =
+    List("optimistic", "strict", "all")
+
   /**
     * Generic Helper Methods
     */
@@ -388,6 +391,7 @@ trait ConfigurationDefaults {
     val dataPrepCachingFlag = true
     val autoStoppingFlag = false
     val pipelineDebugFlag = false
+    val featureInteractionFlag = false
 
     SwitchConfig(
       naFillFlag,
@@ -397,6 +401,7 @@ trait ConfigurationDefaults {
       covarianceFilterFlag,
       oheFlag,
       scaleFlag,
+      featureInteractionFlag,
       dataPrepCachingFlag,
       autoStoppingFlag,
       pipelineDebugFlag
@@ -449,6 +454,10 @@ trait ConfigurationDefaults {
     val characterNABlanketFillValue = ""
     val numericNABlanketFillValue = 0.0
     val naFillMode = "auto"
+    val featureInteractionRetentionMode = "optimistic"
+    val featureInteractionContinuousDiscretizerBucketCount = 10
+    val featureInteractionParallelism = 12
+    val featureInteractionTargetInteractionPercentage = 10.0
 
     FeatureEngineeringConfig(
       dataPrepParallelism,
@@ -487,7 +496,11 @@ trait ConfigurationDefaults {
       numericNAFillMap,
       characterNABlanketFillValue,
       numericNABlanketFillValue,
-      naFillMode
+      naFillMode,
+      featureInteractionRetentionMode,
+      featureInteractionContinuousDiscretizerBucketCount,
+      featureInteractionParallelism,
+      featureInteractionTargetInteractionPercentage
     )
   }
 
@@ -678,6 +691,7 @@ trait ConfigurationDefaults {
       "covarianceFilterFlag" -> switchDef.covarianceFilterFlag,
       "oneHotEncodeFlag" -> switchDef.oneHotEncodeFlag,
       "scalingFlag" -> switchDef.scalingFlag,
+      "featureInteractionFlag" -> switchDef.featureInteractionFlag,
       "dataPrepCachingFlag" -> switchDef.dataPrepCachingFlag,
       "autoStoppingFlag" -> switchDef.autoStoppingFlag,
       "pipelineDebugFlag" -> switchDef.pipelineDebugFlag,
@@ -703,6 +717,10 @@ trait ConfigurationDefaults {
       "scalingStandardMeanFlag" -> featDef.scalingStandardMeanFlag,
       "scalingStdDevFlag" -> featDef.scalingStdDevFlag,
       "scalingPNorm" -> featDef.scalingPNorm,
+      "featureInteractionRetentionMode" -> featDef.featureInteractionRetentionMode,
+      "featureInteractionContinuousDiscretizerBucketCount" -> featDef.featureInteractionContinuousDiscretizerBucketCount,
+      "featureInteractionParallelism" -> featDef.featureInteractionParallelism,
+      "featureInteractionTargetInteractionPercentage" -> featDef.featureInteractionTargetInteractionPercentage,
       "featureImportanceCutoffType" -> featDef.featureImportanceCutoffType,
       "featureImportanceCutoffValue" -> featDef.featureImportanceCutoffValue,
       "dataReductionFactor" -> featDef.dataReductionFactor,

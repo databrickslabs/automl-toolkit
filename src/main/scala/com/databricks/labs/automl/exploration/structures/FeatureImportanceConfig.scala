@@ -43,5 +43,10 @@ case class FeatureImportanceConfig(
   modelSelectionDistinctThreshold: Int,
   dateTimeConversionType: String,
   modelType: String,
-  featureImportanceModelFamily: String
+  featureImportanceModelFamily: String,
+  featureInteractionFlag: Boolean,
+  featureInteractionRetentionMode: String,
+  featureInteractionContinuousDiscretizerBucketCount: Int,
+  featureInteractionParallelism: Int,
+  featureInteractionTargetInteractionPercentage: Double
 )

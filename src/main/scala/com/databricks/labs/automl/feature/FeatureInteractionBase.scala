@@ -14,7 +14,8 @@ trait FeatureInteractionBase {
 
   private final val allowableModelTypes = Array("classifier", "regressor")
   private final val allowableFieldTypes = Array("nominal", "continuous")
-  private final val allowableRetentionModes = Array("optimistic", "strict")
+  private final val allowableRetentionModes =
+    Array("optimistic", "strict", "all")
 
   final val AGGREGATE_COLUMN: String = "totalCount"
   final val COUNT_COLUMN: String = "count"
@@ -53,6 +54,7 @@ trait FeatureInteractionBase {
     retentionMode match {
       case "optimistic" => Optimistic
       case "strict"     => Strict
+      case "all"        => All
       case _ =>
         throw ModelingTypeException(retentionMode, allowableRetentionModes)
     }
@@ -63,7 +65,7 @@ trait FeatureInteractionBase {
     * if the tests for inclusion pass.
     * @param featureColumns List of the columns that make up the feature vector
     * @return Array of InteractionPayload values.
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   protected[feature] def generateInteractionCandidates(
@@ -90,7 +92,7 @@ trait FeatureInteractionBase {
     * @param before Score of a parent feature
     * @param after Score of an interaction feature
     * @return the percentage change
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   protected[feature] def calculatePercentageChange(before: Double,
@@ -105,7 +107,7 @@ trait FeatureInteractionBase {
     * @param df A DataFrame to add a field for an interaction between two columns
     * @param candidate InteractionPayload information about the two parent columns and the name of the new interaction column to be created.
     * @return A modified DataFrame with the new column.
-    * @since 0.7.0
+    * @since 0.6.2
     * @author Ben Wilson, Databricks
     */
   protected[feature] def interactProduct(
@@ -120,6 +122,15 @@ trait FeatureInteractionBase {
 
   }
 
+  /**
+    * Method for converting nominal interaction fields to a new StringIndexed value to preserve information type and
+    * eliminate the possibility of data distribution skew
+    * @param payload FeatureInteractionCollection of the source parents and their interacted children fields
+    * @return NominalDataCollecction payload containing a DataFrame that has new StringIndexed fields for nominal
+    *         interactions and the fields that need to be seen as included in the final feature vector
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
   protected[feature] def generateNominalIndexesInteractionFields(
     payload: FeatureInteractionCollection
   ): NominalDataCollection = {
@@ -165,6 +176,16 @@ trait FeatureInteractionBase {
 
   }
 
+  /**
+    * Helper method for recreating the feature vector after interactions have been completed on individual columns
+    * @param df DataFrame containing the interacted fields with the original feature vector dropped
+    * @param preInteractedFields Fields making up the original vector before interaction
+    * @param interactedFields Interaction candidate fields that have been selected to be included in the final feature vector
+    * @param featureCol Name of the feature vector field
+    * @return DataFrame with a new feature vector.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
   protected[feature] def regenerateFeatureVector(
     df: DataFrame,
     preInteractedFields: Array[String],
