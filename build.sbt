@@ -2,7 +2,7 @@ name := "AutomatedML"
 
 organization := "com.databricks"
 
-version := "0.6.1"
+version := "0.6.2"
 
 scalaVersion := "2.11.12"
 scalacOptions ++= Seq("-Xmax-classfile-name", "78")
@@ -15,14 +15,14 @@ libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
 libraryDependencies += "ml.dmlc" % "xgboost4j" % "0.90"
 libraryDependencies += "ml.dmlc" % "xgboost4j-spark" % "0.90"
 libraryDependencies += "junit" % "junit" % "4.8.1" % "test"
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.6" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.6"
 libraryDependencies += "com.databricks" % "dbutils-api_2.11" % "0.0.3"
 libraryDependencies += "ml.combust.mleap" %% "mleap-runtime" % "0.14.0"
 libraryDependencies += "ml.combust.mleap" %% "mleap-spark" % "0.14.0"
 libraryDependencies += "com.microsoft.ml.spark" %% "mmlspark" % "0.18.1"
 
 lazy val commonSettings = Seq(
-  version := "0.6.0",
+  version := "0.6.2",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )
