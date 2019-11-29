@@ -1,6 +1,6 @@
 import json
 from pyspark.sql.functions import DataFrame
-from python.spark_singleton import SparkSingleton
+from py_auto_ml.spark_singleton import SparkSingleton
 
 
 class FamilyRunner:
@@ -26,10 +26,11 @@ class FamilyRunner:
                           prediction_type: str,
                           df: DataFrame):
         stringified_family_configs = json.dumps(family_configs)
-        self.spark._jvm.com.databricks.labs.automl.pyspark(stringified_family_configs,
-                                                           prediction_type,
-                                                           df)
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runFamilyRunner(stringified_family_configs,
+                                                                                            prediction_type,
+                                                                                            df._jdf)
 
     def _bring_in_returns(self):
         self.model_report = self.spark.sql("SELECT * FROM modelReportDataFrame")
         self.generation_report = self.spark.sql("SELECT * FROM generationReportDataFrame")
+        self.best_mlflow_run_id = self.spark.sql("SELECT * FROM bestMlFlowRunId")

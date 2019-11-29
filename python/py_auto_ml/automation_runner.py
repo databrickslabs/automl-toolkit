@@ -1,6 +1,6 @@
 import json
 from pyspark.sql.functions import DataFrame
-from python.spark_singleton import SparkSingleton
+from py_auto_ml.spark_singleton import SparkSingleton
 
 
 class AutomationRunner:
@@ -11,6 +11,8 @@ class AutomationRunner:
                  df: DataFrame,
                  runner_type: str,
                  overrides=None):
+        # Setup Spark singleton Instance
+        self.spark = SparkSingleton.get_instance()
         # Run automation runner
         self.run_automation_runner(model_family,
                                    prediction_type,
@@ -19,7 +21,7 @@ class AutomationRunner:
                                    overrides)
         # Bring in the returns attributes of the class
         self._bring_in_returns(runner_type.lower())
-        self.spark = SparkSingleton.get_instance()
+
 
     def run_automation_runner(self, model_family: str,
                               prediction_type: str,
