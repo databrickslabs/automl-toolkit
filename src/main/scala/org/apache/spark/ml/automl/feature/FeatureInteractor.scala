@@ -1,27 +1,56 @@
 package org.apache.spark.ml.automl.feature
 
+import org.apache.spark.ml.param.shared.HasOutputCols
+import org.apache.spark.ml.param._
+import org.apache.spark.ml.util._
 import org.apache.spark.ml.{Estimator, Model}
-import org.apache.spark.ml.param.{ParamMap, Params, StringArrayParam}
-import org.apache.spark.ml.param.shared.{HasInputCols, HasOutputCols}
-import org.apache.spark.ml.util.{
-  DefaultParamsWritable,
-  Identifiable,
-  MLReadable,
-  MLReader,
-  MLWritable,
-  MLWriter
-}
-import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 trait FeatureInteractorBase
     extends Params
-    with HasInputCols
-    with HasOutputCols {
+    with HasNominalColumns
+    with HasContinuousColumns {
+
+  final val modelingType: Param[String] = new Param[String](
+    this,
+    "modelingType",
+    "Modeling type: either 'regressor' or 'classifier'",
+    ParamValidators.inArray(FeatureInteractor.supportedModelTypes)
+  )
+
+  def setModelingType(value: String): this.type = set(modelingType, value)
+  def getModelingType: String = $(modelingType)
+
+  final val retentionMode: Param[String] = new Param[String](
+    this,
+    "retentionMode",
+    "One of: 'all', 'optimistic', or 'strict' for interacted field inclusion", ParamValidators.inArray(FeatureInteractor.supportedRetentionModes)
+  )
+
+  def setRetentionMode(value: String): this.type = set(retentionMode, value)
+  def getRetentionMode: String = $(retentionMode)
+
+  final val continuousDiscretizerBucketCount: IntParam = new IntParam(this, "continuousDiscretizerBucketCount", )
 
   protected def validateAndTransformSchema(schema: StructType): StructType = {
     ???
   }
+
+}
+
+trait HasContinuousColumns extends Params {
+
+  final val continuousColumns: StringArrayParam = new StringArrayParam(
+    this,
+    "continuousColumns",
+    "Continuous Columns to be included in feature vector"
+  )
+
+  def setContinuousColumns(value: Array[String]): this.type =
+    set(continuousColumns, value)
+
+  def getContinuousColumns: Array[String] = $(continuousColumns)
 
 }
 
@@ -56,10 +85,27 @@ class FeatureInteractor(override val uid: String)
   override def transformSchema(schema: StructType): StructType = ???
 
 }
+
+object FeatureInteractor extends DefaultParamsReadable[FeatureInteractor] {
+
+  private[feature] val CLASSIFIER: String = "classifier"
+  private[feature] val REGRESSOR: String = "regressor"
+  private[feature] val supportedModelTypes: Array[String] =
+    Array(CLASSIFIER, REGRESSOR)
+
+  private[feature] val ALL: String = "all"
+  private[feature] val OPTIMISTIC: String = "optimistic"
+  private[feature] val STRICT: String = "strict"
+  private[feature] val supportedRetentionModes: Array[String] =
+    Array(ALL, OPTIMISTIC, STRICT)
+
+}
+
 class FeatureInteractorModel(override val uid: String)
     extends Model[FeatureInteractorModel]
     with FeatureInteractorBase
     with MLWritable {
+  // Setters and Getters
 
   override def copy(extra: ParamMap): FeatureInteractorModel = ???
 

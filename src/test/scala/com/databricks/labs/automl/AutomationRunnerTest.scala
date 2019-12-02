@@ -46,7 +46,7 @@ class AutomationRunnerTest extends AbstractUnitSpec {
     }
   }
 
-  it should "throw NullPointerException with empty input dataset with schema" in {
+  it should "throw IllegalArgumentException with empty input dataset with schema" in {
     a[IllegalArgumentException] should be thrownBy {
       val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
       new AutomationRunner(
@@ -58,8 +58,8 @@ class AutomationRunnerTest extends AbstractUnitSpec {
     }
   }
 
-  it should "throw AssertionError with empty input dataset with no schema" in {
-    a[org.apache.spark.sql.AnalysisException] should be thrownBy {
+  it should "throw IllegalArgumentException with empty input dataset with no schema" in {
+    a[IllegalArgumentException] should be thrownBy {
       new AutomationRunner(AutomationUnitTestsUtil.sparkSession.emptyDataFrame)
         .runWithConfusionReport()
     }
