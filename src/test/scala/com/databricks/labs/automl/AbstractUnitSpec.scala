@@ -4,7 +4,10 @@ import java.util.UUID
 
 import com.databricks.labs.automl.inference.InferencePayload
 import com.databricks.labs.automl.params.ConfusionOutput
-import com.databricks.labs.automl.pipeline.{DropColumnsTransformer, ZipRegisterTempTransformer}
+import com.databricks.labs.automl.pipeline.{
+  DropColumnsTransformer,
+  ZipRegisterTempTransformer
+}
 import com.databricks.labs.automl.utils.SchemaUtils
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.ml.util.Identifiable
@@ -18,7 +21,7 @@ import scala.collection.mutable.ArrayBuffer
 
 @RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 abstract class AbstractUnitSpec
-  extends FlatSpec
+    extends FlatSpec
     with Matchers
     with OptionValues
     with Inside
@@ -27,28 +30,32 @@ abstract class AbstractUnitSpec
 object AutomationUnitTestsUtil {
 
   lazy val sparkSession: SparkSession = SparkSession
-    .builder().
-    master("local[*]")
+    .builder()
+    .master("local[*]")
     .appName("providentiaml-unit-tests")
     .getOrCreate()
 
+  sparkSession.sparkContext.setLogLevel("ERROR")
+
   def convertCsvToDf(csvPath: String): DataFrame = {
-    sparkSession
-      .read
+    sparkSession.read
       .format("csv")
       .option("header", true)
       .option("inferSchema", true)
       .load(getClass.getResource(csvPath).getPath)
   }
 
-  def getAdultDf() :DataFrame = {
+  def getAdultDf(): DataFrame = {
     import sparkSession.implicits._
-   val adultDf = convertCsvToDf("/adult_data.csv")
+    val adultDf = convertCsvToDf("/adult_data.csv")
 
     var adultDfCleaned = adultDf
-    for ( colName <- adultDf.columns) {
+    for (colName <- adultDf.columns) {
       adultDfCleaned = adultDfCleaned
-        .withColumn(colName.split("\\s+").mkString+"_trimmed", trim(col(colName)))
+        .withColumn(
+          colName.split("\\s+").mkString + "_trimmed",
+          trim(col(colName))
+        )
         .drop(colName)
     }
     adultDfCleaned
@@ -56,22 +63,38 @@ object AutomationUnitTestsUtil {
       .drop("class_trimmed")
   }
 
-  def assertConfusionOutput(confusionOutput: ConfusionOutput) : Unit = {
-    assert(confusionOutput != null, "should have not returned null confusion output")
-    assert(confusionOutput.confusionData != null, "should not have returned null confusion output data")
-    assert(confusionOutput.predictionData != null, "should not have returned null prediction data")
-    assert(confusionOutput.confusionData.count() > 0, "should have more than 0 rows for confusion data")
-    assert(confusionOutput.predictionData.count() > 0, "should have more than 0 rows for prediction data")
+  def assertConfusionOutput(confusionOutput: ConfusionOutput): Unit = {
+    assert(
+      confusionOutput != null,
+      "should have not returned null confusion output"
+    )
+    assert(
+      confusionOutput.confusionData != null,
+      "should not have returned null confusion output data"
+    )
+    assert(
+      confusionOutput.predictionData != null,
+      "should not have returned null prediction data"
+    )
+    assert(
+      confusionOutput.confusionData.count() > 0,
+      "should have more than 0 rows for confusion data"
+    )
+    assert(
+      confusionOutput.predictionData.count() > 0,
+      "should have more than 0 rows for prediction data"
+    )
   }
 
-  def assertPredOutput(inputCount: Long, predictCount: Long) : Unit = {
+  def assertPredOutput(inputCount: Long, predictCount: Long): Unit = {
     assert(inputCount == predictCount, "count should have matched")
   }
 
-  def getSerializablesToTmpLocation() : String = {
-    System.getProperty("java.io.tmpdir") + "/" + UUID.randomUUID().toString + "/automl"
+  def getSerializablesToTmpLocation(): String = {
+    System.getProperty("java.io.tmpdir") + "/" + UUID
+      .randomUUID()
+      .toString + "/automl"
   }
-
 
   def getRandomForestConfig(inputDataset: DataFrame,
                             evolutionStrategy: String): AutomationRunner = {
@@ -113,13 +136,17 @@ object AutomationUnitTestsUtil {
       .setFeatureImportanceCutoffType("count")
       .setFeatureImportanceCutoffValue(12.0)
       .setEvolutionStrategy(evolutionStrategy)
-      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .setInferenceConfigSaveLocation(
+        AutomationUnitTestsUtil.getSerializablesToTmpLocation()
+      )
       .setNumericBoundaries(rfBoundaries)
   }
 
-  def getLogisticRegressionConfig(inputDataset: DataFrame,
-                                  evolutionStrategy: String): AutomationRunner = {
-   new AutomationRunner(inputDataset)
+  def getLogisticRegressionConfig(
+    inputDataset: DataFrame,
+    evolutionStrategy: String
+  ): AutomationRunner = {
+    new AutomationRunner(inputDataset)
       .setModelingFamily("LogisticRegression")
       .setLabelCol("label")
       .setFeaturesCol("features")
@@ -149,7 +176,9 @@ object AutomationUnitTestsUtil {
       .setFeatureImportanceCutoffType("count")
       .setFeatureImportanceCutoffValue(12.0)
       .setEvolutionStrategy(evolutionStrategy)
-      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .setInferenceConfigSaveLocation(
+        AutomationUnitTestsUtil.getSerializablesToTmpLocation()
+      )
       .setTrainSplitMethod("kSample")
   }
 
@@ -186,7 +215,9 @@ object AutomationUnitTestsUtil {
       .setFeatureImportanceCutoffType("count")
       .setFeatureImportanceCutoffValue(10.0)
       .setEvolutionStrategy(evolutionStrategy)
-      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .setInferenceConfigSaveLocation(
+        AutomationUnitTestsUtil.getSerializablesToTmpLocation()
+      )
   }
 
   def getMlpcConfig(inputDataset: DataFrame,
@@ -222,7 +253,9 @@ object AutomationUnitTestsUtil {
       .setFeatureImportanceCutoffType("count")
       .setFeatureImportanceCutoffValue(10.0)
       .setEvolutionStrategy(evolutionStrategy)
-      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .setInferenceConfigSaveLocation(
+        AutomationUnitTestsUtil.getSerializablesToTmpLocation()
+      )
   }
 
   def getProjectDir(): String = {
@@ -240,25 +273,35 @@ object PipelineTestUtils {
   def getTestVars(): TestVars = {
     TestVars(
       AutomationUnitTestsUtil.getAdultDf(),
-      Array("age_trimmed","workclass_trimmed","fnlwgt_trimmed"),
+      Array("age_trimmed", "workclass_trimmed", "fnlwgt_trimmed"),
       "zipRegisterTempTransformer_1",
       "label"
     )
   }
 
-  def addZipRegisterTmpTransformerStage(labelCol: String, featuresCol: Array[String]): PipelineStage = {
+  def addZipRegisterTmpTransformerStage(
+    labelCol: String,
+    featuresCol: Array[String]
+  ): PipelineStage = {
     new ZipRegisterTempTransformer()
       .setTempViewOriginalDatasetName(Identifiable.randomUID("zipWithId"))
       .setLabelColumn(labelCol)
       .setFeatureColumns(featuresCol)
   }
 
-  def buildFeaturesPipelineStages(df: DataFrame,
-                                  labelCol: String,
-                                  dropColumns: Boolean = true,
-                                  ignoreCols: Array[String] = Array.empty): Array[_ <: PipelineStage] = {
+  def buildFeaturesPipelineStages(
+    df: DataFrame,
+    labelCol: String,
+    dropColumns: Boolean = true,
+    ignoreCols: Array[String] = Array.empty
+  ): Array[_ <: PipelineStage] = {
 
-    val fields = SchemaUtils.extractTypes(df.select(df.columns.filterNot(item => ignoreCols.contains(item)).map(col):_*), labelCol)
+    val fields = SchemaUtils.extractTypes(
+      df.select(
+        df.columns.filterNot(item => ignoreCols.contains(item)).map(col): _*
+      ),
+      labelCol
+    )
     val stringFields = fields._2
     val vectorizableFields = fields._1.toArray
     val dateFields = fields._3.toArray
@@ -267,12 +310,11 @@ object PipelineTestUtils {
     val stages = new ArrayBuffer[PipelineStage]
 
     stringFields.foreach(columnName => {
-        stages += new StringIndexer()
-          .setInputCol(columnName)
-          .setOutputCol(SchemaUtils.generateStringIndexedColumn(columnName))
-          .setHandleInvalid("keep")
-      }
-    )
+      stages += new StringIndexer()
+        .setInputCol(columnName)
+        .setOutputCol(SchemaUtils.generateStringIndexedColumn(columnName))
+        .setHandleInvalid("keep")
+    })
 
     stages += new DropColumnsTransformer().setInputCols(stringFields.toArray)
 
@@ -284,8 +326,9 @@ object PipelineTestUtils {
       .setInputCols(featureAssemblerInputCols)
       .setOutputCol("features")
 
-    if(dropColumns) {
-      stages += new DropColumnsTransformer().setInputCols(featureAssemblerInputCols)
+    if (dropColumns) {
+      stages += new DropColumnsTransformer()
+        .setInputCols(featureAssemblerInputCols)
     }
 
     stages.toArray
@@ -294,7 +337,8 @@ object PipelineTestUtils {
   def saveAndLoadPipeline(stages: Array[_ <: PipelineStage],
                           dataFrame: DataFrame,
                           pipelineName: String): PipelineModel = {
-    val pipelineSavePath = AutomationUnitTestsUtil.getProjectDir() + "/target/pipeline-tests/" + pipelineName
+    val pipelineSavePath = AutomationUnitTestsUtil
+      .getProjectDir() + "/target/pipeline-tests/" + pipelineName
     val pipelineModel = new Pipeline().setStages(stages).fit(dataFrame)
     pipelineModel.transform(dataFrame)
     pipelineModel.write.overwrite().save(pipelineSavePath)
@@ -302,16 +346,24 @@ object PipelineTestUtils {
   }
 
   def saveAndLoadPipelineModel(pipelineModel: PipelineModel,
-                          dataFrame: DataFrame,
-                          pipelineName: String): PipelineModel = {
-    val pipelineSavePath = AutomationUnitTestsUtil.getProjectDir() + "/target/pipeline-tests/" + pipelineName
+                               dataFrame: DataFrame,
+                               pipelineName: String): PipelineModel = {
+    val pipelineSavePath = AutomationUnitTestsUtil
+      .getProjectDir() + "/target/pipeline-tests/" + pipelineName
     pipelineModel.transform(dataFrame)
     pipelineModel.write.overwrite().save(pipelineSavePath)
     PipelineModel.load(pipelineSavePath)
   }
 
-  def getVectorizedFeatures(df: DataFrame, labelCol: String, ignoreCols: Array[String]): Array[String] = {
-    val fields = SchemaUtils.extractTypes(df.select(df.columns.filterNot(item => ignoreCols.contains(item)) map col:_*), labelCol)
+  def getVectorizedFeatures(df: DataFrame,
+                            labelCol: String,
+                            ignoreCols: Array[String]): Array[String] = {
+    val fields = SchemaUtils.extractTypes(
+      df.select(
+        df.columns.filterNot(item => ignoreCols.contains(item)) map col: _*
+      ),
+      labelCol
+    )
     val stringFields = fields._2
     val vectorizableFields = fields._1.toArray
     val dateFields = fields._3.toArray
@@ -325,7 +377,7 @@ object PipelineTestUtils {
 }
 
 object InferenceUnitTestUtil {
-  def generateInferencePayload() : InferencePayload = {
+  def generateInferencePayload(): InferencePayload = {
     val adultDataset = AutomationUnitTestsUtil.getAdultDf()
     val adultDsColumns = adultDataset.columns;
     {
@@ -337,5 +389,3 @@ object InferenceUnitTestUtil {
     }
   }
 }
-
-

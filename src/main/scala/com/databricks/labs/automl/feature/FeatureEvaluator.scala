@@ -4,6 +4,7 @@ import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, lit, log2, sum, variance}
 import com.databricks.labs.automl.feature.structures._
+import org.apache.spark.sql.types.StructType
 
 object FeatureEvaluator extends FeatureInteractionBase {
 
@@ -166,6 +167,28 @@ object FeatureEvaluator extends FeatureInteractionBase {
       convertedContinuousData,
       labelColumn,
       fieldToTest
+    )
+
+  }
+
+  /**
+    * Helper method for extracting field names and ensuring that the feature vector is present
+    * @param schema Schema of the DataFrame undergoing feature interaction
+    * @param featureVector The name of the features column
+    * @return Array of column names of the DataFrame
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def extractAndValidateSchema(schema: StructType,
+                               featureVector: String): Unit = {
+
+    val schemaFields = schema.names
+
+    require(
+      schemaFields.contains(featureVector),
+      s"The feature vector column $featureVector does not " +
+        s"exist in the DataFrame supplied to FeatureInteraction.createCandidatesAndAddToVector.  Field listing is: " +
+        s"${schemaFields.mkString(", ")} "
     )
 
   }

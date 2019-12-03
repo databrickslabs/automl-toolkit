@@ -7,6 +7,11 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 import com.databricks.labs.automl.feature.structures._
+import com.databricks.labs.automl.pipeline.{
+  DropColumnsTransformer,
+  InteractionTransformer
+}
+import org.apache.spark.ml.Pipeline
 
 class FeatureInteraction(modelingType: String, retentionMode: String)
     extends FeatureInteractionBase {
@@ -393,14 +398,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     featureVectorColumn: String
   ): FeatureInteractionOutputPayload = {
 
-    val currentFields = df.schema.names
-
-    require(
-      currentFields.contains(featureVectorColumn),
-      s"The feature vector column $featureVectorColumn does not " +
-        s"exist in the DataFrame supplied to FeatureInteraction.createCandidatesAndAddToVector.  Field listing is: " +
-        s"${currentFields.mkString(", ")} "
-    )
+    FeatureEvaluator.extractAndValidateSchema(df.schema, featureVectorColumn)
 
     val strippedDf = df.drop(featureVectorColumn)
 
@@ -415,13 +413,83 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     // Build the Vector again
     val vectorFields = nominalFields ++ continuousFields
 
+    val assemblerOutput = regenerateFeatureVector(
+      indexedInteractions.data,
+      vectorFields,
+      indexedInteractions.adjustedFields,
+      featureVectorColumn
+    )
+
     FeatureInteractionOutputPayload(
-      regenerateFeatureVector(
-        indexedInteractions.data,
-        vectorFields,
-        indexedInteractions.adjustedFields,
-        featureVectorColumn
-      ),
+      assemblerOutput.data,
+      vectorFields ++ indexedInteractions.adjustedFields,
+      candidatePayload.interactionPayload
+    )
+
+  }
+
+  /**
+    * Method for generating a pipeline-friendly feature interaction to support serialization of the automl pipeline
+    * properly.  Utilizes the InteractionTransformer to generate the fields required for inference
+    * @param df DataFrame to be used for generating the interaction candidates and pipeline
+    * @param nominalFields Nominal type numeric fields that are part of the vector
+    * @param continuousFields Continuous type numeric fields that are part of the vector
+    * @param featureVectorColumn Name of the current feature vector column
+    * @return PipelineInteractionOutput which contains the pipeline to be applied to the automl pipeline flow.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def createPipeline(df: DataFrame,
+                     nominalFields: Array[String],
+                     continuousFields: Array[String],
+                     featureVectorColumn: String): PipelineInteractionOutput = {
+
+    FeatureEvaluator.extractAndValidateSchema(df.schema, featureVectorColumn)
+
+    // Create the pipeline stage for dropping the feature vector
+    val columnDropTransformer =
+      new DropColumnsTransformer().setInputCols(Array(featureVectorColumn))
+
+    // Remove the feature vector
+    val strippedDf = columnDropTransformer.transform(df)
+
+    // Get the fields that are needed for interaction, if any
+    val candidatePayload =
+      createCandidates(strippedDf, nominalFields, continuousFields)
+
+    // Create the fields through the Interaction Transformer
+    val leftColumns = candidatePayload.interactionPayload.map(_.left)
+    val rightColumns = candidatePayload.interactionPayload.map(_.right)
+
+    val interactor = new InteractionTransformer()
+      .setLeftColumns(leftColumns)
+      .setRightColumns(rightColumns)
+
+    // Create the string indexers
+    val indexedInteractions = generateNominalIndexesInteractionFields(
+      candidatePayload
+    )
+
+    // Create the vector
+    val vectorFields = nominalFields ++ continuousFields
+
+    val assemblerOutput = regenerateFeatureVector(
+      indexedInteractions.data,
+      vectorFields,
+      indexedInteractions.adjustedFields,
+      featureVectorColumn
+    )
+
+    // create the pipeline
+    val pipelineElement = new Pipeline().setStages(
+      Array(columnDropTransformer) ++ Array(interactor) ++ indexedInteractions.indexers ++ Array(
+        assemblerOutput.assembler
+      )
+    )
+
+    PipelineInteractionOutput(
+      pipelineElement,
+      assemblerOutput.data,
       vectorFields ++ indexedInteractions.adjustedFields,
       candidatePayload.interactionPayload
     )
@@ -492,6 +560,27 @@ object FeatureInteraction {
       .setParallelism(parallelism)
       .setTargetInteractionPercentage(targetInteractionPercentage)
       .generateCandidates(data, nominalFields, continuousFields)
+
+  }
+
+  def interactionPipeline(
+    data: DataFrame,
+    nominalFields: Array[String],
+    continuousFields: Array[String],
+    modelingType: String,
+    retentionMode: String,
+    labelCol: String,
+    featureCol: String,
+    continuousDiscretizerBucketCount: Int,
+    parallelism: Int,
+    targetInteractionPercentage: Double
+  ): PipelineInteractionOutput = {
+    new FeatureInteraction(modelingType, retentionMode)
+      .setLabelCol(labelCol)
+      .setContinuousDiscretizerBucketCount(continuousDiscretizerBucketCount)
+      .setParallelism(parallelism)
+      .setTargetInteractionPercentage(targetInteractionPercentage)
+      .createPipeline(data, nominalFields, continuousFields, featureCol)
 
   }
 

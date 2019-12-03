@@ -171,7 +171,8 @@ trait FeatureInteractionBase {
 
     NominalDataCollection(
       pipeline.transform(payload.data),
-      adjustedFieldsToIncludeInVector
+      adjustedFieldsToIncludeInVector,
+      indexers
     )
 
   }
@@ -191,13 +192,13 @@ trait FeatureInteractionBase {
     preInteractedFields: Array[String],
     interactedFields: Array[String],
     featureCol: String
-  ): DataFrame = {
+  ): VectorAssemblyOutput = {
 
     val assembler = new VectorAssembler()
       .setInputCols(preInteractedFields ++ interactedFields)
       .setOutputCol(featureCol)
 
-    assembler.transform(df)
+    VectorAssemblyOutput(assembler, assembler.transform(df))
 
   }
 

@@ -1,5 +1,7 @@
 package com.databricks.labs.automl.feature.structures
 
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
 
 case class ColumnTypeData(name: String, dataType: String)
@@ -25,7 +27,16 @@ case class FeatureInteractionOutputPayload(
   interactionReport: Array[InteractionPayload]
 )
 case class NominalIndexCollection(name: String, indexCheck: Boolean)
-case class NominalDataCollection(data: DataFrame, adjustedFields: Array[String])
+case class NominalDataCollection(data: DataFrame,
+                                 adjustedFields: Array[String],
+                                 indexers: Array[StringIndexer])
+case class PipelineInteractionOutput(
+  pipeline: Pipeline,
+  data: DataFrame,
+  fullFeatureVectorColumns: Array[String],
+  interactionReport: Array[InteractionPayload]
+)
+case class VectorAssemblyOutput(assembler: VectorAssembler, data: DataFrame)
 
 object ModelingType extends Enumeration {
   val Regressor = ModelType("regressor")
