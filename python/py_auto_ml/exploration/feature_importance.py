@@ -13,7 +13,7 @@ class FeatureImportance:
                  overrides=None):
         self.spark = SparkSingleton.get_instance()
         # Run feature importances
-        self.run_feature_importance(model_family,
+        self._run_feature_importance(model_family,
                                     prediction_type,
                                     df,
                                     cutoff_value,
@@ -22,14 +22,34 @@ class FeatureImportance:
         # Get Returns as attributes of the class
         self._bring_in_returns()
 
-    # class feature_importance
-    def run_feature_importance(self,
+    def _run_feature_importance(self,
                                model_family: str,
                                prediction_type: str,
                                df: DataFrame,
                                cutoff_value: float,
                                cutoff_type: str,
                                overrides=None):
+        """
+
+        :param model_family: str
+            One of the supported model types
+
+        :param prediction_type: str
+            Either "classifier" or "regressor"
+
+        :param df: DataFrame
+
+        :param cutoff_value: float
+            Threshold value for feature importance algorithm
+
+        :param cutoff_type: str
+            Cutoff for the number features
+
+        :param overrides: dict
+            Dictionary of configuration overrides
+
+        :return:
+        """
         ## Set flag for default configs
         if overrides is not None:
             default_flag = "false"
@@ -49,6 +69,11 @@ class FeatureImportance:
                                                                                                       default_flag)
 
     def _bring_in_returns(self):
+        """
+
+        :return: importances dataframe with top X fields and feature importance measure based on algorithm
+        :return: top_fields dataframe with the top X fields based on feature importance algorithm
+        """
         self.importances = self.spark.sql("select * from importances")
         self.top_fields = self.spark.sql("select feature from importances")
 

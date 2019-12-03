@@ -14,7 +14,7 @@ class AutomationRunner:
         # Setup Spark singleton Instance
         self.spark = SparkSingleton.get_instance()
         # Run automation runner
-        self.run_automation_runner(model_family,
+        self._run_automation_runner(model_family,
                                    prediction_type,
                                    df,
                                    runner_type,
@@ -22,12 +22,30 @@ class AutomationRunner:
         # Bring in the returns attributes of the class
         self._bring_in_returns(runner_type.lower())
 
+    def _run_automation_runner(self,
+                               model_family: str,
+                               prediction_type: str,
+                               df: DataFrame,
+                               runner_type: str,
+                               overrides=None):
+        """
 
-    def run_automation_runner(self, model_family: str,
-                              prediction_type: str,
-                              df: DataFrame,
-                              runner_type: str,
-                              overrides=None):
+        :param model_family: str
+            One of the supported model types
+
+        :param prediction_type: str
+            Either "classifier" or "regressor"
+
+        :param df: DataFrame
+
+        :param runner_type: str
+            One of the following calls to the automation runner: "run", "confusion", "prediction"
+
+        :param overrides: dict
+            Dictionary of configuration overrides
+
+        :return:
+        """
 
         runner_type_lower = runner_type.lower()
         self._check_runner_types(runner_type_lower)
@@ -50,6 +68,24 @@ class AutomationRunner:
 
     def _bring_in_returns(self,
                           runner_type: str):
+        """
+
+        :param runner_type:
+            One of the following calls to the automation runner: "run", "confusion", "prediction"
+        :return: Dataframe depending on `runner_type`
+            `run`
+                generation_report dataframe
+                model_report dataframe
+            `confusion`
+                confusion_data: dataframe
+                prediction_data: dataframe
+                generation_report: dataframe
+                model_report: dataframe
+            `prediction`
+                data_with_predictions: dataframe
+                generation_report: dataframe
+                model_report: dataframe
+        """
         # Cache the returns
         if runner_type == "run":
             self.generation_report = self.spark.sql("select * from generationReport")
@@ -68,6 +104,12 @@ class AutomationRunner:
 
     @staticmethod
     def _check_runner_types(runner_type: str):
+        """
+
+        :param runner_type: str
+            Checking that the runner_type is a supported runner_type
+        :return:
+        """
         acceptable_strings = ["run", "confusion", "prediction"]
         if runner_type not in acceptable_strings:
             raise Exception("runner_type must be one of the following run, confusion, or prediction")
