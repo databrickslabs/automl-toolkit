@@ -461,6 +461,10 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     val leftColumns = candidatePayload.interactionPayload.map(_.left)
     val rightColumns = candidatePayload.interactionPayload.map(_.right)
 
+    // DEBUG
+    println(s"Left Columns: ${leftColumns.mkString(", ")}")
+    println(s"Right Columns: ${rightColumns.mkString(", ")}")
+
     val interactor = new InteractionTransformer()
       .setLeftColumns(leftColumns)
       .setRightColumns(rightColumns)
@@ -486,6 +490,9 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
         assemblerOutput.assembler
       )
     )
+
+    // DEBUG
+    println(s"Interacted Schema: ${assemblerOutput.data.schema.mkString(", ")}")
 
     PipelineInteractionOutput(
       pipelineElement,

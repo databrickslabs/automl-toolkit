@@ -32,7 +32,9 @@ class InteractionTransformer(override val uid: String)
     var data = dataset
     if (SchemaUtils.isNotEmpty(getInteractionColumns)) {
       getInteractionColumns.foreach { x =>
-        data.withColumn(s"${x._1}_${x._2}", col(x._1) * col(x._2))
+        val suffix =
+          if (x._1.endsWith("_si") && x._2.endsWith("_si")) "_si" else ""
+        data.withColumn(s"i_${x._1}_${x._2}$suffix", col(x._1) * col(x._2))
       }
     }
     data.toDF()
@@ -42,7 +44,9 @@ class InteractionTransformer(override val uid: String)
 
     if (SchemaUtils.isNotEmpty(getInteractionColumns)) {
       val newFields = getInteractionColumns.map(x => {
-        StructField(s"i_${x._1}_${x._2}", DoubleType)
+        val suffix =
+          if (x._1.endsWith("_si") && x._2.endsWith("_si")) "_si" else ""
+        StructField(s"i_${x._1}_${x._2}$suffix", DoubleType)
       })
 
       return StructType(schema.fields ++ newFields)
