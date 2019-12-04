@@ -154,7 +154,7 @@ object FeatureEngineeringPipelineContext {
     } else thirdPipelineModel
 
     val featureInteractionDf =
-      featureInteractionPipeline.transform(thirdTransformationDf)
+      featureInteractionPipeline.transform(secondTransformationDf)
 
     // DEBUG
     println(
