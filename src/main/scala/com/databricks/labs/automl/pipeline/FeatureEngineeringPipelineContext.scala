@@ -72,8 +72,6 @@ object FeatureEngineeringPipelineContext {
       secondTransformationPipelineModel.transform(initialTransformationDf)
 
     val stages = new ArrayBuffer[PipelineStage]()
-    // Fill with Na
-    getAndAddStage(stages, fillNaStage(mainConfig))
 
     // Apply Outlier Filtering
     getAndAddStage(stages, outlierFilterStage(mainConfig))
@@ -102,6 +100,10 @@ object FeatureEngineeringPipelineContext {
           (mainConfig.labelCol + PipelineEnums.SI_SUFFIX.value).equals(item)
       )
 
+    val modelDecider = secondTransformationPipelineModel.stages
+      .find(item => item.isInstanceOf[DataSanitizerTransformer])
+      .get
+    val decidedModel = modelDecider.getOrDefault(modelDecider.getParam("decideModel")).asInstanceOf[String]
     // Feature Interaction stages
     thirdPipelineModel = if (mainConfig.featureInteractionFlag) {
 
@@ -119,17 +121,11 @@ object FeatureEngineeringPipelineContext {
           featureInteractionNominalFields
         )
 
-      val modelDecider = thirdPipelineModel.stages
-        .find(item => item.isInstanceOf[DataSanitizerTransformer])
-        .get
-
       val featureInteractionStage = FeatureInteraction.interactionPipeline(
         data = thirdTransformationDf,
         nominalFields = featureInteractionNominalFields,
         continuousFields = featureInteractionContinuousFields,
-        modelingType = modelDecider
-          .getOrDefault(modelDecider.getParam("decideModel"))
-          .asInstanceOf[String],
+        modelingType = decidedModel,
         retentionMode = mainConfig.featureInteractionConfig.retentionMode,
         labelCol = mainConfig.labelCol,
         featureCol = mainConfig.featuresCol,
@@ -241,9 +237,6 @@ object FeatureEngineeringPipelineContext {
     val fourthTransformationDf = fourthPipelineModel.transform(ksampledDf)
 
     //Extract Decided model from DataSanitizer stage
-    val dataSanitizerStage = thirdPipelineModel.stages
-      .find(item => item.isInstanceOf[DataSanitizerTransformer])
-      .get
 
     FeatureEngineeringOutput(
       mergePipelineModels(
@@ -255,9 +248,7 @@ object FeatureEngineeringPipelineContext {
         )
       ),
       originalDfTempTableName,
-      dataSanitizerStage
-        .getOrDefault(dataSanitizerStage.getParam("decideModel"))
-        .asInstanceOf[String],
+      decidedModel,
       fourthTransformationDf
     )
   }
@@ -545,6 +536,8 @@ object FeatureEngineeringPipelineContext {
     validateDateAndTimeFeatures(dateFields, timeFields)
 
     val stages = new ArrayBuffer[PipelineStage]
+    // Fill with Na
+    getAndAddStage(stages, fillNaStage(mainConfig))
 
     // Label refactor
     if (SchemaUtils.isLabelRefactorNeeded(

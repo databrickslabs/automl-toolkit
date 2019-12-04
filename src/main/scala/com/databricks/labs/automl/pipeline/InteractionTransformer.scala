@@ -48,7 +48,7 @@ class InteractionTransformer(override val uid: String)
       val newFields = getInteractionColumns.map(x => {
         StructField(s"i_${x._1}_${x._2}", DoubleType)
       })
-      return StructType(schema.fields ++ newFields)
+      StructType(schema.fields ++ newFields)
     } else schema
 
   }
