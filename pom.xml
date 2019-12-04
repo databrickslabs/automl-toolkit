@@ -4,7 +4,7 @@
     <groupId>com.databricks</groupId>
     <artifactId>automatedml</artifactId>
     <packaging>jar</packaging>
-    <version>2_11-0.6.1</version>
+    <version>2_11-0.6.2</version>
     <properties>
         <scala.version>2.11.12</scala.version>
         <spark.version>2.4.0</spark.version>
@@ -74,6 +74,12 @@
             <artifactId>mmlspark_2.11</artifactId>
             <version>${mmlspark.version}</version>
             <scope>${dependency.scope}</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>

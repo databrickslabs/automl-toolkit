@@ -1,5 +1,43 @@
 ## Auto ML Toolkit Release Notes
 
+### Version 0.6.2
+#### Features
+* Added FeatureInteraction module (configurable to interact either all features or only those that pass checks for 
+perceived gain of adding the interacted feature based on its parents)
+```text
+Configuration of feature interaction modes is through setting the configurations:
+
+- featureInteractionFlag -> true (turns the feature on.  Default: false)
+- featureInteractionRetentionMode -> one of: 'all', 'optimistic', or 'strict'
+    (all -> interacts all features and will include them in the feature vector
+     optimistic -> compares each interacted column to it's parents and if it is at least
+     it is at least 1 - featureInteractionTargetInteractionPercentage as good as EITHER parent
+     it will be retained as a feature.
+     strict -> it must be 1 - featureInteractionTargetInteractionPercentage as good as 
+     BOTH parents to be included.
+    )
+- featureInteractionContinuousDiscretizerBucketCount -> Default 10 (sets the number of quantization buckets to use when
+    handling continuous features in order to properly calculate InformationGain for Classification Models.  Increasing 
+    this value may provide greater accuracy at the cost of runtime performance)
+- featureInteractionParallelism -> Default 12 (the interacted features are created and scored 
+    asynchronously.  This parallelism setting is separated from the other two parallelism 
+    values due to the distinctly different level of CPU consumption that is required to perform this
+    stage.  Overriding the default is recommended and is intended to be set in accordance with 
+    the size of the cluster executing the run.)
+- featureInteractionTargetInteractionPercentage -> Default 10.0 (provides the threshold for the 
+    retention modes 'strict' and 'optimistic' for determining whether to keep an interacted column based on the 
+    relative percentage difference between the parents of the interacted column and the interacted column.
+    It is measured as a "must be at least 1 - x% as good at y" wherein x is the percentage to be included and  y is 
+    either Variance or Information Gain.  i.e. : with this value set to 10 for a classification problem, 
+    an interacted column would be included in the feature vector if it's Information Gain was greater than 
+    or equal to 80% of the Information Gain of its parents)
+```
+
+#### Bug Fixes
+* Adjusted Pipeline OneHotEncoder to ensure prevention of metadata loss from StringIndexers for inference .transforms()
+    through the use of additional StringIndexer stages immediately preceding the OneHotEncoder stages.
+
+
 ### Version 0.6.1
 * Upgraded MlFLow to 1.3.0
 * Pipeline now registers with Mlflow (including Inference Pipeline Model and feature engineered original df)
