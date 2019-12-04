@@ -65,7 +65,7 @@ object FeatureEngineeringPipelineContext {
       Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL),
       verbose
     )
-    val vectorizedColumns = secondTransformation.vectorizedCols
+    var vectorizedColumns = secondTransformation.vectorizedCols
     removeColumns ++= vectorizedColumns
     val secondTransformationPipelineModel = secondTransformation.pipelineModel
     val secondTransformationDf =
@@ -140,6 +140,8 @@ object FeatureEngineeringPipelineContext {
           mainConfig.featureInteractionConfig.targetInteractionPercentage
       )
 
+      vectorizedColumns = featureInteractionStage.fullFeatureVectorColumns
+
       removeColumns ++= featureInteractionStage.fullFeatureVectorColumns
 
       val featureInteractionPipelineModel =
@@ -153,6 +155,11 @@ object FeatureEngineeringPipelineContext {
 
     val featureInteractionDf =
       featureInteractionPipeline.transform(thirdTransformationDf)
+
+    // DEBUG
+    println(
+      s"FeatureInteractionDF Schema from pipeline: ${featureInteractionDf.schema.names.mkString(", ")}"
+    )
 
     val finalOheCols = featureInteractionDf.columns
       .filter(item => item.endsWith(PipelineEnums.SI_SUFFIX.value))

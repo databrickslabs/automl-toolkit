@@ -24,7 +24,7 @@ class FeatureInteractionPipelineTest extends AbstractUnitSpec {
         "subSamplingRate" -> Tuple2(0.5, 1.0)
       ),
       "tunerParallelism" -> 10,
-      "outlierFilterFlag" -> true,
+      "outlierFilterFlag" -> false,
       "outlierFilterPrecision" -> 0.05,
       "outlierLowerFilterNTile" -> 0.05,
       "outlierUpperFilterNTile" -> 0.95,

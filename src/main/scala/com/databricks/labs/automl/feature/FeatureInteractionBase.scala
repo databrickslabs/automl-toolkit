@@ -1,16 +1,16 @@
 package com.databricks.labs.automl.feature
 
 import com.databricks.labs.automl.exceptions.ModelingTypeException
+import com.databricks.labs.automl.feature.structures._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
-import com.databricks.labs.automl.feature.structures._
 
 trait FeatureInteractionBase {
-  import com.databricks.labs.automl.feature.structures.ModelingType._
   import com.databricks.labs.automl.feature.structures.FieldEncodingType._
   import com.databricks.labs.automl.feature.structures.InteractionRetentionMode._
+  import com.databricks.labs.automl.feature.structures.ModelingType._
 
   private final val allowableModelTypes = Array("classifier", "regressor")
   private final val allowableFieldTypes = Array("nominal", "continuous")
@@ -172,6 +172,7 @@ trait FeatureInteractionBase {
     NominalDataCollection(
       pipeline.transform(payload.data),
       adjustedFieldsToIncludeInVector,
+      nominalFields,
       indexers
     )
 

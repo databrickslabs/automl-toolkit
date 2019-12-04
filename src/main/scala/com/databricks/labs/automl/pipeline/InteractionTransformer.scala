@@ -7,9 +7,9 @@ import org.apache.spark.ml.util.{
   DefaultParamsWritable,
   Identifiable
 }
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{DoubleType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
-import org.apache.spark.sql.functions.col
 
 /**
   * Transformer for creating interacted feature fields based on FeatureInteraction module
@@ -28,13 +28,15 @@ class InteractionTransformer(override val uid: String)
     setDebugEnabled(false)
   }
 
+  def setLeftCols(value: Array[String]): this.type = set(leftColumns, value)
+  def setRightCols(value: Array[String]): this.type = set(rightColumns, value)
+
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     var data = dataset
+    transformSchemaInternal(dataset.schema)
     if (SchemaUtils.isNotEmpty(getInteractionColumns)) {
       getInteractionColumns.foreach { x =>
-        val suffix =
-          if (x._1.endsWith("_si") && x._2.endsWith("_si")) "_si" else ""
-        data.withColumn(s"i_${x._1}_${x._2}$suffix", col(x._1) * col(x._2))
+        data = data.withColumn(s"i_${x._1}_${x._2}", col(x._1) * col(x._2))
       }
     }
     data.toDF()
@@ -44,11 +46,8 @@ class InteractionTransformer(override val uid: String)
 
     if (SchemaUtils.isNotEmpty(getInteractionColumns)) {
       val newFields = getInteractionColumns.map(x => {
-        val suffix =
-          if (x._1.endsWith("_si") && x._2.endsWith("_si")) "_si" else ""
-        StructField(s"i_${x._1}_${x._2}$suffix", DoubleType)
+        StructField(s"i_${x._1}_${x._2}", DoubleType)
       })
-
       return StructType(schema.fields ++ newFields)
     } else schema
 

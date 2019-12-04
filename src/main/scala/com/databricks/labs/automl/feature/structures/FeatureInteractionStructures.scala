@@ -29,6 +29,7 @@ case class FeatureInteractionOutputPayload(
 case class NominalIndexCollection(name: String, indexCheck: Boolean)
 case class NominalDataCollection(data: DataFrame,
                                  adjustedFields: Array[String],
+                                 fieldsToRemove: Array[String],
                                  indexers: Array[StringIndexer])
 case class PipelineInteractionOutput(
   pipeline: Pipeline,

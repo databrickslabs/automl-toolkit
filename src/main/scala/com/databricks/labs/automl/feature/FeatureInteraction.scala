@@ -453,6 +453,9 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     // Remove the feature vector
     val strippedDf = columnDropTransformer.transform(df)
 
+    //DEBUG
+    println(s"StrippedDF schema: ${strippedDf.schema.names.mkString(", ")}")
+
     // Get the fields that are needed for interaction, if any
     val candidatePayload =
       createCandidates(strippedDf, nominalFields, continuousFields)
@@ -466,13 +469,28 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     println(s"Right Columns: ${rightColumns.mkString(", ")}")
 
     val interactor = new InteractionTransformer()
-      .setLeftColumns(leftColumns)
-      .setRightColumns(rightColumns)
+      .setLeftCols(leftColumns)
+      .setRightCols(rightColumns)
+
+    //DEBUG
+    println(
+      s"interactor schema: ${interactor.transform(strippedDf).schema.names.mkString(", ")}"
+    )
 
     // Create the string indexers
     val indexedInteractions = generateNominalIndexesInteractionFields(
       candidatePayload
     )
+
+    // DEBUG
+    println(
+      s"indexedInteractions.data schema: ${indexedInteractions.data.schema.names.mkString(", ")}"
+    )
+
+    val preIndexerFieldsToRemove = indexedInteractions.fieldsToRemove
+
+    val indexedColumnDropTransformer =
+      new DropColumnsTransformer().setInputCols(preIndexerFieldsToRemove)
 
     // Create the vector
     val vectorFields = nominalFields ++ continuousFields
@@ -487,16 +505,18 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     // create the pipeline
     val pipelineElement = new Pipeline().setStages(
       Array(columnDropTransformer) ++ Array(interactor) ++ indexedInteractions.indexers ++ Array(
-        assemblerOutput.assembler
-      )
+        indexedColumnDropTransformer
+      ) //++ Array(assemblerOutput.assembler)
     )
 
-    // DEBUG
-    println(s"Interacted Schema: ${assemblerOutput.data.schema.mkString(", ")}")
+    //DEBUG
+    println(
+      s"PIPELINE SCHEMA: ${pipelineElement.fit(df).transform(df).schema.names.mkString(", ")}"
+    )
 
     PipelineInteractionOutput(
       pipelineElement,
-      assemblerOutput.data,
+      pipelineElement.fit(df).transform(df),
       vectorFields ++ indexedInteractions.adjustedFields,
       candidatePayload.interactionPayload
     )
