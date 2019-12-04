@@ -28,7 +28,7 @@ class FeatureInteractionPipelineTest extends AbstractUnitSpec {
       "outlierFilterPrecision" -> 0.05,
       "outlierLowerFilterNTile" -> 0.05,
       "outlierUpperFilterNTile" -> 0.95,
-      "tunerTrainSplitMethod" -> "kSample",
+      "tunerTrainSplitMethod" -> "random",
       "tunerKFold" -> 1,
       "tunerTrainPortion" -> 0.70,
       "tunerFirstGenerationGenePool" -> 5,

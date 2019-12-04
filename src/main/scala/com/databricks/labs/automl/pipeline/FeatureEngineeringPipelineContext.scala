@@ -751,6 +751,7 @@ object FeatureEngineeringPipelineContext {
               .map(item => SchemaUtils.generateOneHotEncodedColumn(item))
           )
           .setHandleInvalid("keep")
+          .setDropLast(true)
       )
     }
     None
