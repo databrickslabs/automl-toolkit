@@ -91,7 +91,7 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(stages, pearsonFilteringStage(mainConfig))
 
     // Third Transformation
-    val thirdPipelineModel =
+    var thirdPipelineModel =
       new Pipeline().setStages(stages.toArray).fit(secondTransformationDf)
     val thirdTransformationDf =
       thirdPipelineModel.transform(secondTransformationDf)
@@ -103,7 +103,7 @@ object FeatureEngineeringPipelineContext {
       )
 
     // Feature Interaction stages
-    val featureInteractionPipeline = if (mainConfig.featureInteractionFlag) {
+    thirdPipelineModel = if (mainConfig.featureInteractionFlag) {
 
       val featureInteractionTotalVectorFields = thirdTransformationDf.columns
         .filterNot(
@@ -154,7 +154,7 @@ object FeatureEngineeringPipelineContext {
     } else thirdPipelineModel
 
     val featureInteractionDf =
-      featureInteractionPipeline.transform(secondTransformationDf)
+      thirdPipelineModel.transform(secondTransformationDf)
 
     // DEBUG
     println(
