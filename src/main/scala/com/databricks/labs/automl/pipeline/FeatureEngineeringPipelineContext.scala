@@ -91,7 +91,7 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(stages, pearsonFilteringStage(mainConfig))
 
     // Third Transformation
-    val thirdPipelineModel =
+    var thirdPipelineModel =
       new Pipeline().setStages(stages.toArray).fit(secondTransformationDf)
     val thirdTransformationDf =
       thirdPipelineModel.transform(secondTransformationDf)
@@ -103,7 +103,7 @@ object FeatureEngineeringPipelineContext {
       )
 
     // Feature Interaction stages
-    val featureInteractionPipeline = if (mainConfig.featureInteractionFlag) {
+    thirdPipelineModel = if (mainConfig.featureInteractionFlag) {
 
       val featureInteractionTotalVectorFields = thirdTransformationDf.columns
         .filterNot(
@@ -154,12 +154,7 @@ object FeatureEngineeringPipelineContext {
     } else thirdPipelineModel
 
     val featureInteractionDf =
-      featureInteractionPipeline.transform(secondTransformationDf)
-
-    // DEBUG
-    println(
-      s"FeatureInteractionDF Schema from pipeline: ${featureInteractionDf.schema.names.mkString(", ")}"
-    )
+      thirdPipelineModel.transform(secondTransformationDf)
 
     val finalOheCols = featureInteractionDf.columns
       .filter(item => item.endsWith(PipelineEnums.SI_SUFFIX.value))
@@ -190,8 +185,22 @@ object FeatureEngineeringPipelineContext {
       lastStages,
       Some(new RoundUpDoubleTransformer().setInputCols(finalOheCols))
     )
+
+    //TODO: When we figure out the metadata loss issue, remove this extra stage of StringIndexers.
+    val oheModdedCols = finalOheCols.map(
+      x =>
+        if (x.endsWith(PipelineEnums.SI_SUFFIX.value))
+          x + PipelineEnums.SI_SUFFIX.value
+        else x
+    )
+    val preOheCols =
+      finalOheCols.filter(_.endsWith(PipelineEnums.SI_SUFFIX.value))
+    getAndAddStages(lastStages, stringIndexerStage(mainConfig, preOheCols))
+
+    removeColumns ++= oheModdedCols
+
     // Apply OneHotEncoding Options
-    getAndAddStage(lastStages, oneHotEncodingStage(mainConfig, finalOheCols))
+    getAndAddStage(lastStages, oneHotEncodingStage(mainConfig, oheModdedCols))
     getAndAddStage(
       lastStages,
       dropColumns(Array(mainConfig.featuresCol), mainConfig)
@@ -202,7 +211,7 @@ object FeatureEngineeringPipelineContext {
         lastStages,
         vectorAssemblerStage(
           mainConfig,
-          finalOheCols.map(SchemaUtils.generateOneHotEncodedColumn)
+          oheModdedCols.map(SchemaUtils.generateOneHotEncodedColumn)
             ++ vectorizedColumns.filterNot(
               _.endsWith(PipelineEnums.SI_SUFFIX.value)
             )
@@ -219,7 +228,7 @@ object FeatureEngineeringPipelineContext {
     getAndAddStages(lastStages, scalerStage(mainConfig))
 
     // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
-    removeColumns ++= finalOheCols.map(SchemaUtils.generateOneHotEncodedColumn)
+    removeColumns ++= oheModdedCols.map(SchemaUtils.generateOneHotEncodedColumn)
     if (!verbose) {
       getAndAddStage(
         lastStages,
@@ -738,6 +747,24 @@ object FeatureEngineeringPipelineContext {
     None
   }
 
+  private def stringIndexerStage(
+    mainConfig: MainConfig,
+    stringIndexInputs: Array[String]
+  ): Option[Array[PipelineStage]] = {
+    if (mainConfig.oneHotEncodeFlag) {
+      val buffer = new ArrayBuffer[PipelineStage]()
+      val indexers = Some(stringIndexInputs.map { x =>
+        new StringIndexer()
+          .setInputCol(x)
+          .setOutputCol(x + PipelineEnums.SI_SUFFIX.value)
+      })
+      getAndAddStages(buffer, indexers)
+      getAndAddStage(buffer, dropColumns(stringIndexInputs, mainConfig))
+      return Some(buffer.toArray)
+    }
+    None
+  }
+
   private def oneHotEncodingStage(
     mainConfig: MainConfig,
     stngIndxCols: Array[String]
@@ -751,7 +778,6 @@ object FeatureEngineeringPipelineContext {
               .map(item => SchemaUtils.generateOneHotEncodedColumn(item))
           )
           .setHandleInvalid("keep")
-          .setDropLast(true)
       )
     }
     None

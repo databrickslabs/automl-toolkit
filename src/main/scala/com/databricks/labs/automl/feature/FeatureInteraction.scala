@@ -453,9 +453,6 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     // Remove the feature vector
     val strippedDf = columnDropTransformer.transform(df)
 
-    //DEBUG
-    println(s"StrippedDF schema: ${strippedDf.schema.names.mkString(", ")}")
-
     // Get the fields that are needed for interaction, if any
     val candidatePayload =
       createCandidates(strippedDf, nominalFields, continuousFields)
@@ -464,27 +461,13 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     val leftColumns = candidatePayload.interactionPayload.map(_.left)
     val rightColumns = candidatePayload.interactionPayload.map(_.right)
 
-    // DEBUG
-    println(s"Left Columns: ${leftColumns.mkString(", ")}")
-    println(s"Right Columns: ${rightColumns.mkString(", ")}")
-
     val interactor = new InteractionTransformer()
       .setLeftCols(leftColumns)
       .setRightCols(rightColumns)
 
-    //DEBUG
-    println(
-      s"interactor schema: ${interactor.transform(strippedDf).schema.names.mkString(", ")}"
-    )
-
     // Create the string indexers
     val indexedInteractions = generateNominalIndexesInteractionFields(
       candidatePayload
-    )
-
-    // DEBUG
-    println(
-      s"indexedInteractions.data schema: ${indexedInteractions.data.schema.names.mkString(", ")}"
     )
 
     val preIndexerFieldsToRemove = indexedInteractions.fieldsToRemove
@@ -507,11 +490,6 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
       Array(columnDropTransformer) ++ Array(interactor) ++ indexedInteractions.indexers ++ Array(
         indexedColumnDropTransformer
       ) //++ Array(assemblerOutput.assembler)
-    )
-
-    //DEBUG
-    println(
-      s"PIPELINE SCHEMA: ${pipelineElement.fit(df).transform(df).schema.names.mkString(", ")}"
     )
 
     PipelineInteractionOutput(
