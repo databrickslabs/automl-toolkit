@@ -61,6 +61,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
     fieldListingPar.tasksupport = taskSupport
 
 
+    //TODO (Jas) Tech Debt: Need to fold this in either direction
     fieldListingPar.foreach{ x =>
       val leftFields = fieldListing.filterNot(_.contains(x)).filterNot(f => redundantRecursionEliminator.contains(f))
       leftFields.foreach{y =>
@@ -85,7 +86,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
 
     val featureCorrelationData = computeFeatureCorrelation()
 
-    featureCorrelationData.filter(x => x.correlation > _correlationCutoffHigh || x.correlation < _correlationCutoffLow)
+    featureCorrelationData.filter(x => x.correlation < _correlationCutoffHigh && x.correlation > _correlationCutoffLow)
       .map(_.rightCol).toSeq
 
   }
@@ -101,11 +102,11 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String]) 
   def filterFeatureCorrelation(): DataFrame = {
 
     assert(_dataFieldNames.contains(_labelCol), s"Label field ${_labelCol} is not in Dataframe")
-    val fieldsToFilter = generateFilterFields()
-    assert(fieldListing.length > fieldsToFilter.length,
+    val fieldsToKeep = generateFilterFields().distinct
+    val fieldsToDrop = fieldListing.filterNot(f => fieldsToKeep.contains(f))
+    assert(fieldListing.distinct.length > fieldsToDrop.length,
       s"All feature fields have been removed and modeling cannot continue.")
-    val fieldsToSelect = _dataFieldNames.filterNot(f => fieldsToFilter.contains(f))
-    data.select(fieldsToSelect.distinct map col:_*)
+    data.drop(fieldsToDrop: _*)
   }
 
 }
