@@ -19,7 +19,6 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
       predictionType)
     //run the family runner
     val runner = FamilyRunner(df, familyRunnerConfigs).executeWithPipeline()
-//    runner.bestMlFlowRunId.toSeq.toDF("modelFamily", "bestMlFlowRunId").createOrReplaceTempView("bestMlFlowRunId")
     runner.familyFinalOutput.modelReportDataFrame.createOrReplaceTempView("modelReportDataFrame")
     runner.familyFinalOutput.generationReportDataFrame.createOrReplaceTempView("generationReportDataFrame")
     runner.bestMlFlowRunId.toSeq.toDF("model_family", "run_id").createOrReplaceTempView("bestMlFlowRunId")

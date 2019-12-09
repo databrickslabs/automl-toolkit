@@ -25,13 +25,12 @@ object FeatureImportanceUtil {
       configJson,
       modelFamily,
       predictionType)
-    //     val fiConfig = ConfigurationGenerator.generateConfigFromMap(modelFamily,predictionType,overrides)
 
     val mainConfig = ConfigurationGenerator.generateFeatureImportanceConfig(fiConfig)
-    val FiImportances = FeatureImportances(df, mainConfig, cutoffType, cutoffValue).generateFeatureImportances()
+    val fImportances = FeatureImportances(df, mainConfig, cutoffType, cutoffValue).generateFeatureImportances()
 
-    //cache importances df and top fields to get them later in python
-    FiImportances.importances.createOrReplaceTempView("importances")
+    //create temp importances df and top fields to get them later in python
+    fImportances.importances.createOrReplaceTempView("importances")
 
   }
 
