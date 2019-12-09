@@ -7,14 +7,14 @@ integration with MLFlow. It currently supports Supervised Learning algorithms th
 The python APIs are a means towards interfacing with the Scala library via pyspark. 
 
 ## Setup 
-Currently, this library exists as a `.whl` file in the `/dist` directory. You can also run the followingin terminal to 
-build the wheel locally:
+Currently, this library exists as a `.whl` file in the `/dist` directory. You can also run the following in a terminal 
+to build the wheel locally:
 ```
 python setup.py bdist_wheel
 ```
 
 ## General Overview 
-The python APIs currently support the three following calsses:
+The python APIs currently support the three following classes:
 1. `FeatureImportance`
 2. `AutomationRunner`
 3. `FamilyRunner`
