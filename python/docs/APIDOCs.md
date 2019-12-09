@@ -21,10 +21,10 @@ The python APIs currently support the three following classes:
 
 
 ### Feature Importance Class
-For more information about the underlying algorithms please see APIDOCSLINK
+For more information about the underlying algorithms please see [APIDOCS](https://github.com/databricks/providentia/blob/master/APIDOCS.md#automl-toolkit)
 This class takes six parameters for instantiation:
 
-`model_family` - one of the supported model families listed HERE
+`model_family` - one of the supported model families listed [HERE](https://github.com/databricks/providentia/blob/master/APIDOCS.md#automl-toolkit)
 
 
 `prediction_type` - either "regressor" or "classifier"
@@ -119,7 +119,7 @@ fi_importances.top_fields.show()
 
 ### AutomationRunner Class
 The `AutomationRunner` class invokes the `automationRunner` Scala library via the JVM. This class has a few different
-type of runs you can read more about HERE LINK. To call the class you can pass it a 
+type of runs you can read more about [HERE](https://github.com/databricks/providentia/blob/master/APIDOCS.md#full-automation). To call the class you can pass it a 
 
 `model_family` - one of the supported model families listed HERE
 
