@@ -13,7 +13,10 @@ class FeatureInteractionPipelineTest extends AbstractUnitSpec {
       "mlFlowLoggingFlag" -> false,
       "featuresCol" -> "features",
       "featureInteractionFlag" -> true,
-      "featureInteractionRetentionMode" -> "all",
+      "featureInteractionRetentionMode" -> "optimistic",
+      "featureInteractionContinuousDiscretizerBucketCount" -> 20,
+      "featureInteractionParallelism" -> 8,
+      "featureInteractionTargetInteractionPercentage" -> 25.0,
       "scalingFlag" -> true,
       "oneHotEncodeFlag" -> true,
       "numericBoundaries" -> Map(
