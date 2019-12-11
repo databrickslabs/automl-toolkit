@@ -2,7 +2,6 @@ package com.databricks.labs.automl.sanitize
 
 import com.databricks.labs.automl.inference.{NaFillConfig, NaFillPayload}
 import com.databricks.labs.automl.utils.DataValidation
-import org.apache.spark.ml.PipelineStage
 import org.apache.spark.ml.feature.StringIndexer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -234,7 +233,9 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
                                    statistics: String): DataFrame = {
 
     val dfParts = df.rdd.partitions.length.toDouble
-    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
+//    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
+    val summaryParts =
+      Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {
       val colBatches = getBatches(columnList)
@@ -568,15 +569,19 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     decision
   }
 
-  def generateCleanData(naFillConfig: NaFillConfig = null, refactorLabelFlag: Boolean = true, decidedModel: String = ""): (DataFrame, NaFillConfig, String) = {
+  def generateCleanData(
+    naFillConfig: NaFillConfig = null,
+    refactorLabelFlag: Boolean = true,
+    decidedModel: String = ""
+  ): (DataFrame, NaFillConfig, String) = {
 
-    val preFilter = if(refactorLabelFlag) {
+    val preFilter = if (refactorLabelFlag) {
       refactorLabel(data, _labelCol)
     } else {
       data
     }
 
-    val fillMap = if(naFillConfig==null){
+    val fillMap = if (naFillConfig == null) {
       fillNA(preFilter)
     } else {
       naFillConfig
@@ -586,7 +591,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
       .na
       .fill(fillMap.categoricalColumns)
 
-    if(decidedModel != null && decidedModel.nonEmpty) {
+    if (decidedModel != null && decidedModel.nonEmpty) {
       (filledData, fillMap, decidedModel)
     } else {
       (filledData, fillMap, decideModel())

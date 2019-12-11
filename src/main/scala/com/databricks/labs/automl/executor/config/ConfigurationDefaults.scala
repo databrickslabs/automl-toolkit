@@ -432,8 +432,8 @@ trait ConfigurationDefaults {
     val pearsonFilterManualValue = 0.0
     val pearsonFilterMode = "auto"
     val pearsonAutoFilterNTile = 0.75
-    val covarianceCorrelationCutoffLow = -0.99
-    val covarianceCorrelctionCutoffHigh = 0.99
+    val covarianceCorrelationCutoffLow = -0.8
+    val covarianceCorrelctionCutoffHigh = 0.8
     val scalingType = "minMax"
     val scalingMin = 0.0
     val scalingMax = 1.0

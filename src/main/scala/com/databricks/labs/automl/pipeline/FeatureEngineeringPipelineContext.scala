@@ -83,10 +83,13 @@ object FeatureEngineeringPipelineContext {
     getAndAddStage(stages, varianceFilterStage(mainConfig))
 
     // Apply Covariance Filtering
-    getAndAddStage(stages, covarianceFilteringStage(mainConfig))
+    getAndAddStage(
+      stages,
+      covarianceFilteringStage(mainConfig, vectorizedColumns)
+    )
 
     // Apply Pearson Filtering
-    getAndAddStage(stages, pearsonFilteringStage(mainConfig))
+    getAndAddStage(stages, pearsonFilteringStage(mainConfig, vectorizedColumns))
 
     // Third Transformation
     var thirdPipelineModel =
@@ -103,7 +106,9 @@ object FeatureEngineeringPipelineContext {
     val modelDecider = secondTransformationPipelineModel.stages
       .find(item => item.isInstanceOf[DataSanitizerTransformer])
       .get
-    val decidedModel = modelDecider.getOrDefault(modelDecider.getParam("decideModel")).asInstanceOf[String]
+    val decidedModel = modelDecider
+      .getOrDefault(modelDecider.getParam("decideModel"))
+      .asInstanceOf[String]
     // Feature Interaction stages
     thirdPipelineModel = if (mainConfig.featureInteractionFlag) {
 
@@ -159,13 +164,21 @@ object FeatureEngineeringPipelineContext {
           (mainConfig.labelCol + PipelineEnums.SI_SUFFIX.value).equals(item)
       )
 
+    //Get columns removed from above stages
+    val colsRemoved = getColumnsRemoved(thirdPipelineModel)
+
     // Ksampler stages
-    val ksampleStages = ksamplerStages(mainConfig, isFeatureEngineeringOnly)
+    val ksampleStages = ksamplerStages(
+      mainConfig,
+      isFeatureEngineeringOnly,
+      vectorizedColumns.filterNot(colsRemoved.contains(_))
+    )
     var ksampledDf = featureInteractionDf
     if (ksampleStages.isDefined) {
       val ksamplerPipelineModel =
         new Pipeline().setStages(ksampleStages.get).fit(featureInteractionDf)
       ksampledDf = ksamplerPipelineModel.transform(featureInteractionDf)
+
       // Save ksampler states in pipeline cache to be accessed later for logging to Mlflow
       PipelineStateCache
         .addToPipelineCache(
@@ -194,6 +207,8 @@ object FeatureEngineeringPipelineContext {
     getAndAddStages(lastStages, stringIndexerStage(mainConfig, preOheCols))
 
     removeColumns ++= oheModdedCols
+    removeColumns ++= preOheCols
+    removeColumns ++= finalOheCols
 
     // Apply OneHotEncoding Options
     getAndAddStage(lastStages, oneHotEncodingStage(mainConfig, oheModdedCols))
@@ -203,20 +218,26 @@ object FeatureEngineeringPipelineContext {
     )
     // Execute Vector Assembler Again
     if (mainConfig.oneHotEncodeFlag) {
+      //Exclude columns removed by variance, covariance and pearson
+      val allVectCols = oheModdedCols.map(
+        SchemaUtils.generateOneHotEncodedColumn
+      ) ++ vectorizedColumns.filterNot(
+        _.endsWith(PipelineEnums.SI_SUFFIX.value)
+      )
+
+      val vectorCols = allVectCols.filterNot(colsRemoved.contains(_))
+
+      removeColumns ++= vectorCols
+
+      getAndAddStage(lastStages, vectorAssemblerStage(mainConfig, vectorCols))
+    } else {
+      //Exclude columns removed by variance, covariance and pearson
       getAndAddStage(
         lastStages,
         vectorAssemblerStage(
           mainConfig,
-          oheModdedCols.map(SchemaUtils.generateOneHotEncodedColumn)
-            ++ vectorizedColumns.filterNot(
-              _.endsWith(PipelineEnums.SI_SUFFIX.value)
-            )
+          vectorizedColumns.filterNot(colsRemoved.contains(_))
         )
-      )
-    } else {
-      getAndAddStage(
-        lastStages,
-        vectorAssemblerStage(mainConfig, vectorizedColumns)
       )
     }
 
@@ -224,7 +245,9 @@ object FeatureEngineeringPipelineContext {
     getAndAddStages(lastStages, scalerStage(mainConfig))
 
     // Drop Unnecessary columns - output of feature engineering stage should only contain automl_internal_id, label, features and synthetic from ksampler
-    removeColumns ++= oheModdedCols.map(SchemaUtils.generateOneHotEncodedColumn)
+    removeColumns ++= finalOheCols.map(SchemaUtils.generateOneHotEncodedColumn) ++ oheModdedCols
+      .map(SchemaUtils.generateOneHotEncodedColumn)
+
     if (!verbose) {
       getAndAddStage(
         lastStages,
@@ -251,6 +274,34 @@ object FeatureEngineeringPipelineContext {
       decidedModel,
       fourthTransformationDf
     )
+  }
+
+  private def getColumnsRemoved(
+    thirdPipelineModel: PipelineModel
+  ): Array[String] = {
+    val removedCols = new ArrayBuffer[String]()
+    val removedByVariance = thirdPipelineModel.stages
+      .filter(_.isInstanceOf[VarianceFilterTransformer])
+      .map(_.asInstanceOf[VarianceFilterTransformer])
+
+    val removedByCovariance = thirdPipelineModel.stages
+      .filter(_.isInstanceOf[CovarianceFilterTransformer])
+      .map(_.asInstanceOf[CovarianceFilterTransformer])
+
+    val removedByPearson = thirdPipelineModel.stages
+      .filter(_.isInstanceOf[PearsonFilterTransformer])
+      .map(_.asInstanceOf[PearsonFilterTransformer])
+
+    if (removedByVariance != null && removedByVariance.nonEmpty) {
+      removedCols ++= removedByVariance.head.getRemovedColumns
+    }
+    if (removedByCovariance != null && removedByCovariance.nonEmpty) {
+      removedCols ++= removedByCovariance.head.getFieldsRemoved
+    }
+    if (removedByPearson != null && removedByPearson.nonEmpty) {
+      removedCols ++= removedByPearson.head.getFieldsRemoved
+    }
+    removedCols.toArray
   }
 
   def buildFullPredictPipeline(featureEngOutput: FeatureEngineeringOutput,
@@ -408,6 +459,7 @@ object FeatureEngineeringPipelineContext {
       return mergePipelineModels(
         ArrayBuffer(pipelineModel, labelRefactorPipelineModel)
       )
+
     }
     pipelineModel
   }
@@ -462,6 +514,7 @@ object FeatureEngineeringPipelineContext {
     mainConfig: MainConfig,
     originalDfTempTableName: String
   ): PipelineModel = {
+
     // Stage to select only those columns that are needed in the downstream stages
     // also creates a temp view of the original dataset which will then be used by the last stage
     // to return user table
@@ -499,6 +552,7 @@ object FeatureEngineeringPipelineContext {
       .setDebugEnabled(mainConfig.pipelineDebugFlag)
       .setPipelineId(mainConfig.pipelineId)
 
+    //TODO: Remove Date/time columns at this tage with drop transformer
     new Pipeline()
       .setStages(
         Array(
@@ -532,7 +586,7 @@ object FeatureEngineeringPipelineContext {
     val dateFields = fields._3.toArray.filterNot(ignoreCols.contains)
     val timeFields = fields._4.toArray.filterNot(ignoreCols.contains)
 
-    //Validate date and time fields are empty at this point
+    //Validate date and time fields have been removed and already featurized at this point
     validateDateAndTimeFeatures(dateFields, timeFields)
 
     val stages = new ArrayBuffer[PipelineStage]
@@ -568,6 +622,7 @@ object FeatureEngineeringPipelineContext {
           )
         )
       }
+
       // Register label refactor needed var for this pipeline context
       // LabelRefactor needed
       addToPipelineCacheInternal(mainConfig, refactorNeeded = true)
@@ -615,6 +670,7 @@ object FeatureEngineeringPipelineContext {
       new VectorAssembler()
         .setInputCols(featureAssemblerInputCols)
         .setOutputCol(mainConfig.featuresCol)
+        .setHandleInvalid("keep")
     )
   }
 
@@ -703,26 +759,30 @@ object FeatureEngineeringPipelineContext {
   }
 
   private def covarianceFilteringStage(
-    mainConfig: MainConfig
+    mainConfig: MainConfig,
+    featureCols: Array[String]
   ): Option[PipelineStage] = {
     if (mainConfig.covarianceFilteringFlag) {
       val covarianceFilterTransformer = new CovarianceFilterTransformer()
         .setLabelColumn(mainConfig.labelCol)
         .setCorrelationCutoffLow(
-          mainConfig.covarianceConfig.correlationCutoffHigh
+          mainConfig.covarianceConfig.correlationCutoffLow
         )
         .setCorrelationCutoffHigh(
-          mainConfig.covarianceConfig.correlationCutoffLow
+          mainConfig.covarianceConfig.correlationCutoffHigh
         )
         .setDebugEnabled(mainConfig.pipelineDebugFlag)
         .setPipelineId(mainConfig.pipelineId)
+        .setFeatureColumns(featureCols)
+        .setFeatureCol(mainConfig.featuresCol)
       return Some(covarianceFilterTransformer)
     }
     None
   }
 
   private def pearsonFilteringStage(
-    mainConfig: MainConfig
+    mainConfig: MainConfig,
+    featureCols: Array[String]
   ): Option[PipelineStage] = {
     if (mainConfig.pearsonFilteringFlag) {
       val pearsonFilterTransformer = new PearsonFilterTransformer()
@@ -735,6 +795,7 @@ object FeatureEngineeringPipelineContext {
         .setFilterStatistic(mainConfig.pearsonConfig.filterStatistic)
         .setDebugEnabled(mainConfig.pipelineDebugFlag)
         .setPipelineId(mainConfig.pipelineId)
+        .setFeatureColumns(featureCols)
       return Some(pearsonFilterTransformer)
     }
     None
@@ -817,7 +878,8 @@ object FeatureEngineeringPipelineContext {
 
   private def ksamplerStages(
     mainConfig: MainConfig,
-    isFeatureEngineeringOnly: Boolean
+    isFeatureEngineeringOnly: Boolean,
+    vectorizedColumns: Array[String]
   ): Option[Array[_ <: PipelineStage]] = {
     val ksampleConfigString = "kSample"
     if (isFeatureEngineeringOnly && mainConfig.geneticConfig.trainSplitMethod == ksampleConfigString) {
@@ -827,6 +889,16 @@ object FeatureEngineeringPipelineContext {
     }
     if (mainConfig.geneticConfig.trainSplitMethod == ksampleConfigString && !isFeatureEngineeringOnly) {
       val arrayBuffer = new ArrayBuffer[PipelineStage]()
+      // Apply Vector Assembler again
+      getAndAddStage(
+        arrayBuffer,
+        dropColumns(Array(mainConfig.featuresCol), mainConfig)
+      )
+      getAndAddStage(
+        arrayBuffer,
+        vectorAssemblerStage(mainConfig, vectorizedColumns)
+      )
+
       // Ksampler stage
       arrayBuffer += new SyntheticFeatureGenTransformer()
         .setFeatureCol(mainConfig.featuresCol)
