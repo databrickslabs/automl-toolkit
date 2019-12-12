@@ -579,12 +579,15 @@ object FeatureEngineeringPipelineContext {
     verbose: Boolean
   ): VectorizationOutput = {
     val fields = SchemaUtils.extractTypes(dataFrame, mainConfig.labelCol)
-    val stringFields = fields._2
+    val stringFields = fields.categoricalFields
       .filterNot(ignoreCols.contains)
       .filterNot(item => item.equals(mainConfig.labelCol))
-    val vectorizableFields = fields._1.toArray.filterNot(ignoreCols.contains)
-    val dateFields = fields._3.toArray.filterNot(ignoreCols.contains)
-    val timeFields = fields._4.toArray.filterNot(ignoreCols.contains)
+    val vectorizableFields =
+      fields.numericFields.toArray.filterNot(ignoreCols.contains)
+    val dateFields = fields.dateFields.toArray.filterNot(ignoreCols.contains)
+    val timeFields = fields.timeFields.toArray.filterNot(ignoreCols.contains)
+    val booleanFields =
+      fields.booleanFields.toArray.filterNot(ignoreCols.contains)
 
     //Validate date and time fields have been removed and already featurized at this point
     validateDateAndTimeFeatures(dateFields, timeFields)

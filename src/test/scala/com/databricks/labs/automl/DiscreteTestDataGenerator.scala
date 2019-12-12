@@ -42,7 +42,17 @@ object DiscreteTestDataGenerator {
     (0.0 to targetCount by 1.0).toArray.zipWithIndex
       .map {
         case (v, i) =>
-          if ((i + offset) % targetModulus != 0.0) v else Double.NaN
+          if ((i + offset) % targetModulus != 0.0) v else Double.MinValue
+      }
+  }
+
+  private def generateFloats(targetCount: Int,
+                             targetModulus: Int,
+                             offset: Int) = {
+    (0.0f to targetCount by 1.0f).toArray.zipWithIndex
+      .map {
+        case (v, i) =>
+          if ((i + offset) % targetModulus != 0.0) v else Float.MinValue
       }
   }
 
@@ -109,7 +119,7 @@ object DiscreteTestDataGenerator {
     val targetNaModulus = rows / naRate
 
     val doublesSpace = generateDoubles(rows, targetNaModulus, 0)
-    val floatSpace = generateDoubles(rows, targetNaModulus, 1).map(_.toFloat)
+    val floatSpace = generateFloats(rows, targetNaModulus, 1)
     val intSpace = generateInts(rows, targetNaModulus, 2)
     val ordinalIntSpace = generateOrdinalInts(rows, targetNaModulus, 4, 5)
     val stringSpace = generateStrings(rows, targetNaModulus, 3)
@@ -133,6 +143,14 @@ object DiscreteTestDataGenerator {
         )
     seqData.toSeq
       .toDF()
+      .withColumn(
+        "dblData",
+        when(col("dblData") === Double.MinValue, null).otherwise(col("dblData"))
+      )
+      .withColumn(
+        "fltData",
+        when(col("fltData") === Float.MinValue, null).otherwise(col("fltData"))
+      )
       .withColumn(
         "intData",
         when(col("intData") === Int.MinValue, null)

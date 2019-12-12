@@ -268,10 +268,12 @@ object InferenceConfig extends InferenceDefaults {
   }
 
   def setInferenceNaFillConfig(categoricalMap: Map[String, String],
-                               numericMap: Map[String, Double]): this.type = {
+                               numericMap: Map[String, Double],
+                               booleanMap: Map[String, Boolean]): this.type = {
     _inferenceNaFillConfig = NaFillConfig(
       categoricalColumns = categoricalMap,
-      numericColumns = numericMap
+      numericColumns = numericMap,
+      booleanColumns = booleanMap
     )
     setInferenceFeatureEngineeringConfig()
     this

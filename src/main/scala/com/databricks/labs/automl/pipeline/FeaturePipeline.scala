@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.utils.DataValidation
+import com.databricks.labs.automl.utils.{DataValidation, SchemaUtils}
 import com.databricks.labs.automl.utils.data.CategoricalHandler
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.Pipeline
@@ -122,19 +122,19 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false)
       )
 
     // Extract all of the field types
-    val (fieldsReady, fieldsToConvert, dateFields, timeFields) =
-      extractTypes(data, _labelCol, ignoreList)
+    val fields = SchemaUtils.extractTypes(data, _labelCol, ignoreList)
 
     val fieldsToConvertExclusionsSet =
-      fieldsToConvert.filterNot(x => ignoreList.contains(x))
+      fields.categoricalFields.filterNot(ignoreList.contains)
 
     val validatedStringFields =
       validateCardinality(data, fieldsToConvertExclusionsSet)
 
     // Support exclusions of fields
-    val excludedFieldsReady = fieldsReady.filterNot(x => ignoreList.contains(x))
+    val excludedFieldsReady =
+      fields.numericFields.filterNot(ignoreList.contains)
 
-    val excludedFieldsToConvert = fieldsToConvert
+    val excludedFieldsToConvert = fields.categoricalFields
       .filterNot(x => ignoreList.contains(x))
       .filterNot(x => validatedStringFields.invalidFields.contains(x))
 
@@ -153,9 +153,9 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false)
       } else excludedFieldsToConvert
     } else excludedFieldsToConvert
 
-    val excludedDateFields = dateFields.filterNot(x => ignoreList.contains(x))
+    val excludedDateFields = fields.dateFields.filterNot(ignoreList.contains)
 
-    val excludedTimeFields = timeFields.filterNot(x => ignoreList.contains(x))
+    val excludedTimeFields = fields.timeFields.filterNot(ignoreList.contains)
 
     // Modify the Dataframe for datetime / date types
     val (dateTimeModData, dateTimeFields) = convertDateAndTime(
@@ -195,7 +195,7 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false)
       .transform(dateTimeModData)
       .select(fieldsToInclude map col: _*)
 
-    val transformedExtract = if (fieldsToConvert.contains(_labelCol)) {
+    val transformedExtract = if (fields.categoricalFields.contains(_labelCol)) {
       transformedData
         .drop(_labelCol)
         .withColumnRenamed(s"${_labelCol}_si", _labelCol)
@@ -203,13 +203,15 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false)
       transformedData
     }
 
-    val assembledColumnsOutput = if (fieldsToConvert.contains(_labelCol)) {
-      assembledColumns.filterNot(x => x.contains(s"${_labelCol}_si"))
-    } else assembledColumns
+    val assembledColumnsOutput =
+      if (fields.categoricalFields.contains(_labelCol)) {
+        assembledColumns.filterNot(x => x.contains(s"${_labelCol}_si"))
+      } else assembledColumns
 
-    val fieldsToIncludeOutput = if (fieldsToConvert.contains(_labelCol)) {
-      fieldsToInclude.filterNot(x => x.contains(s"${_labelCol}_si"))
-    } else fieldsToInclude
+    val fieldsToIncludeOutput =
+      if (fields.categoricalFields.contains(_labelCol)) {
+        fieldsToInclude.filterNot(x => x.contains(s"${_labelCol}_si"))
+      } else fieldsToInclude
 
     (
       transformedExtract,

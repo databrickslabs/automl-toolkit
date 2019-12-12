@@ -36,7 +36,8 @@ trait InferenceDefaults extends Defaults {
 
   def _defaultNaFillConfig: NaFillConfig = NaFillConfig(
     categoricalColumns = Map("default" -> "default"),
-    numericColumns = Map("default_num" -> 0.0)
+    numericColumns = Map("default_num" -> 0.0),
+    booleanColumns = Map("default_bool" -> false)
   )
 
   def _defaultVarianceFilterConfig: VarianceFilterConfig = VarianceFilterConfig(

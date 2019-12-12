@@ -120,7 +120,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       } else {
         (
           data,
-          NaFillConfig(Map("" -> ""), Map("" -> 0.0)),
+          NaFillConfig(Map("" -> ""), Map("" -> 0.0), Map("" -> false)),
           naConfig.decideModel()
         )
       }
@@ -340,7 +340,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Record the Inference Settings for NaFillConfig mappings
     InferenceConfig.setInferenceNaFillConfig(
       fillMap.categoricalColumns,
-      fillMap.numericColumns
+      fillMap.numericColumns,
+      fillMap.booleanColumns
     )
 
     // uncache the main DataFrame, force the GC

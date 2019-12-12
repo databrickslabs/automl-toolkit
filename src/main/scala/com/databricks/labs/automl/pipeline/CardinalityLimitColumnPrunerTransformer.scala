@@ -2,8 +2,18 @@ package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.utils.data.CategoricalHandler
 import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
-import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, ParamMap, StringArrayParam}
-import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
+import org.apache.spark.ml.param.{
+  DoubleParam,
+  IntParam,
+  Param,
+  ParamMap,
+  StringArrayParam
+}
+import org.apache.spark.ml.util.{
+  DefaultParamsReadable,
+  DefaultParamsWritable,
+  Identifiable
+}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
@@ -14,7 +24,7 @@ import org.apache.spark.sql.{DataFrame, Dataset}
   * the cardinality higher than that of a pre-defined limit
   */
 class CardinalityLimitColumnPrunerTransformer(override val uid: String)
-  extends AbstractTransformer
+    extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasTransformCalculated {
@@ -28,25 +38,38 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
     setDebugEnabled(false)
   }
 
-  final val cardinalityLimit: IntParam = new IntParam(this, "cardinalityLimit", "Setting this to a limit will ignore columns with cardinality higher than this limit")
+  final val cardinalityLimit: IntParam = new IntParam(
+    this,
+    "cardinalityLimit",
+    "Setting this to a limit will ignore columns with cardinality higher than this limit"
+  )
 
-  final val cardinalityCheckMode: Param[String] = new Param[String](this, "cardinalityCheckMode", "cardinality chec mode")
+  final val cardinalityCheckMode: Param[String] =
+    new Param[String](this, "cardinalityCheckMode", "cardinality chec mode")
 
-  final val cardinalityType: Param[String] = new Param[String](this, "cardinalityType", "cardinality type")
+  final val cardinalityType: Param[String] =
+    new Param[String](this, "cardinalityType", "cardinality type")
 
-  final val cardinalityPrecision: DoubleParam = new DoubleParam(this, "cardinalityPrecision", "cardinality precision")
+  final val cardinalityPrecision: DoubleParam =
+    new DoubleParam(this, "cardinalityPrecision", "cardinality precision")
 
-  final val prunedColumns: StringArrayParam = new StringArrayParam(this, "prunedColumns", "Columns to ignore based on cardinality limit")
+  final val prunedColumns: StringArrayParam = new StringArrayParam(
+    this,
+    "prunedColumns",
+    "Columns to ignore based on cardinality limit"
+  )
 
   def setCardinalityLimit(value: Int): this.type = set(cardinalityLimit, value)
 
   def getCardinalityLimit: Int = $(cardinalityLimit)
 
-  def setPrunedColumns(value: Array[String]): this.type = set(prunedColumns, value)
+  def setPrunedColumns(value: Array[String]): this.type =
+    set(prunedColumns, value)
 
   def getPrunedColumns: Array[String] = $(prunedColumns)
 
-  def setCardinalityCheckMode(value: String): this.type = set(cardinalityCheckMode, value)
+  def setCardinalityCheckMode(value: String): this.type =
+    set(cardinalityCheckMode, value)
 
   def getCardinalityCheckMode: String = $(cardinalityCheckMode)
 
@@ -54,54 +77,65 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
 
   def getCardinalityType: String = $(cardinalityType)
 
-  def setCardinalityPrecision(value: Double): this.type = set(cardinalityPrecision, value)
+  def setCardinalityPrecision(value: Double): this.type =
+    set(cardinalityPrecision, value)
 
   def getCardinalityPrecision: Double = $(cardinalityPrecision)
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    if(!getTransformCalculated) {
+    if (!getTransformCalculated) {
       val columnTypes = SchemaUtils.extractTypes(dataset.toDF(), getLabelColumn)
-      if(SchemaUtils.isNotEmpty(columnTypes._2)) {
+      if (SchemaUtils.isNotEmpty(columnTypes.categoricalFields)) {
 
-        val colsValidated = new CategoricalHandler(dataset.toDF(), getCardinalityCheckMode)
-          .setCardinalityType(getCardinalityType)
-          .setPrecision(getCardinalityPrecision)
-          .validateCategoricalFields(
-            columnTypes._2.filterNot(item => getAutomlInternalId.equals(item)),
-            getCardinalityLimit)
+        val colsValidated =
+          new CategoricalHandler(dataset.toDF(), getCardinalityCheckMode)
+            .setCardinalityType(getCardinalityType)
+            .setPrecision(getCardinalityPrecision)
+            .validateCategoricalFields(
+              columnTypes.categoricalFields
+                .filterNot(item => getAutomlInternalId.equals(item)),
+              getCardinalityLimit
+            )
 
-       val columnsToDrop =  columnTypes._2
-         .filterNot(col => colsValidated.contains(col))
+        val columnsToDrop = columnTypes.categoricalFields
+          .filterNot(col => colsValidated.contains(col))
 
-        if(SchemaUtils.isEmpty(getPrunedColumns)) {
+        if (SchemaUtils.isEmpty(getPrunedColumns)) {
           setPrunedColumns(columnsToDrop.toArray[String])
         }
         setTransformCalculated(true)
-        return dataset.drop(columnsToDrop:_*).toDF()
+        return dataset.drop(columnsToDrop: _*).toDF()
       }
     }
-    if(SchemaUtils.isNotEmpty(getPrunedColumns)) {
-      return dataset.drop(getPrunedColumns:_*).toDF()
+    if (SchemaUtils.isNotEmpty(getPrunedColumns)) {
+      return dataset.drop(getPrunedColumns: _*).toDF()
     }
     dataset.toDF()
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    if(SchemaUtils.isNotEmpty(getPrunedColumns)) {
+    if (SchemaUtils.isNotEmpty(getPrunedColumns)) {
       val allCols = schema.fields.map(field => field.name)
-      val missingCols = getPrunedColumns.filterNot(colName => allCols.contains(colName))
-      if(missingCols.nonEmpty) {
-        throw new RuntimeException(s"""Following columns are missing: ${missingCols.mkString(", ")}""")
+      val missingCols =
+        getPrunedColumns.filterNot(colName => allCols.contains(colName))
+      if (missingCols.nonEmpty) {
+        throw new RuntimeException(
+          s"""Following columns are missing: ${missingCols.mkString(", ")}"""
+        )
       }
-      return StructType(schema.fields.filterNot(field => getPrunedColumns.contains(field.name)))
+      return StructType(
+        schema.fields.filterNot(field => getPrunedColumns.contains(field.name))
+      )
     }
     schema
   }
 
-  override def copy(extra: ParamMap): CardinalityLimitColumnPrunerTransformer = defaultCopy(extra)
+  override def copy(extra: ParamMap): CardinalityLimitColumnPrunerTransformer =
+    defaultCopy(extra)
 }
 
-object CardinalityLimitColumnPrunerTransformer extends DefaultParamsReadable[CardinalityLimitColumnPrunerTransformer] {
-  override def load(path: String): CardinalityLimitColumnPrunerTransformer = super.load(path)
+object CardinalityLimitColumnPrunerTransformer
+    extends DefaultParamsReadable[CardinalityLimitColumnPrunerTransformer] {
+  override def load(path: String): CardinalityLimitColumnPrunerTransformer =
+    super.load(path)
 }
-

@@ -4,7 +4,11 @@ import java.util.regex.Pattern
 
 import com.databricks.labs.automl.exceptions.ThreadPoolsBySize
 import com.databricks.labs.automl.params.{FilterData, ManualFilters}
-import com.databricks.labs.automl.utils.{DataValidation, SparkSessionWrapper}
+import com.databricks.labs.automl.utils.{
+  DataValidation,
+  SchemaUtils,
+  SparkSessionWrapper
+}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
 
@@ -111,12 +115,6 @@ class OutlierFiltering(df: DataFrame)
     df.stat.approxQuantile(field, Array(ntile), _filterPrecision)(0)
   }
 
-//  Removing this as I changed the logic here
-//  private def numericUniqueness(field: String): Long = {
-//    df.select(approx_count_distinct(field, rsd = _filterPrecision))
-//      .rdd.map(row => row.getLong(0)).take(1)(0)
-//  }
-
   private def getBatches(items: List[String]): Array[List[String]] = {
     val batches = ArrayBuffer[List[String]]()
     val batchSize = items.length / _parallelism
@@ -131,10 +129,9 @@ class OutlierFiltering(df: DataFrame)
   ): (List[FilterData], List[String]) = {
 
     val numericFieldReport = new ListBuffer[FilterData]
-    val (numericFields, characterFields, dateFields, timeFields) =
-      extractTypes(df, _labelCol, ignoreList)
+    val fields = SchemaUtils.extractTypes(df, _labelCol, ignoreList)
     val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(_parallelism))
-    val numericFieldBatches = getBatches(numericFields).par
+    val numericFieldBatches = getBatches(fields.numericFields).par
     numericFieldBatches.tasksupport = taskSupport
 
     numericFieldBatches.foreach { batch =>
@@ -154,7 +151,7 @@ class OutlierFiltering(df: DataFrame)
           countsByCol.head._2
         )
     }
-    val totalFields = numericFields ::: characterFields
+    val totalFields = fields.numericFields ::: fields.categoricalFields
     (numericFieldReport.result(), totalFields)
   }
 

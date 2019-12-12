@@ -27,10 +27,12 @@ case class InferenceModelConfig(modelFamily: String,
                                 modelPathLocation: String)
 
 case class NaFillConfig(categoricalColumns: Map[String, String],
-                        numericColumns: Map[String, Double])
+                        numericColumns: Map[String, Double],
+                        booleanColumns: Map[String, Boolean])
 
 case class NaFillPayload(categorical: Array[(String, Any)],
-                         numeric: Array[(String, Any)])
+                         numeric: Array[(String, Any)],
+                         boolean: Array[(String, Boolean)])
 
 case class VarianceFilterConfig(fieldsRemoved: Array[String])
 

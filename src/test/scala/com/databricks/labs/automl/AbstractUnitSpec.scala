@@ -302,10 +302,11 @@ object PipelineTestUtils {
       ),
       labelCol
     )
-    val stringFields = fields._2
-    val vectorizableFields = fields._1.toArray
-    val dateFields = fields._3.toArray
-    val timeFields = fields._4.toArray
+    val stringFields = fields.categoricalFields
+    val vectorizableFields = fields.numericFields.toArray
+    val dateFields = fields.dateFields.toArray
+    val timeFields = fields.timeFields.toArray
+    val booleanFields = fields.booleanFields.toArray
 
     val stages = new ArrayBuffer[PipelineStage]
 
@@ -364,10 +365,11 @@ object PipelineTestUtils {
       ),
       labelCol
     )
-    val stringFields = fields._2
-    val vectorizableFields = fields._1.toArray
-    val dateFields = fields._3.toArray
-    val timeFields = fields._4.toArray
+    val stringFields = fields.categoricalFields
+    val vectorizableFields = fields.numericFields.toArray
+    val dateFields = fields.dateFields.toArray
+    val timeFields = fields.timeFields.toArray
+    val booleanFields = fields.booleanFields.toArray
 
     stringFields
       .map(item => SchemaUtils.generateStringIndexedColumn(item))
