@@ -1,9 +1,8 @@
 package com.databricks.labs.automl.sanitize
 
 import com.databricks.labs.automl.params.ManualFilters
-import com.databricks.labs.automl.pipeline.Sample
 import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
-import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
+import com.databricks.labs.automl.{AbstractUnitSpec, DiscreteTestDataGenerator}
 
 class OutlierFilteringTest extends AbstractUnitSpec {
 
@@ -23,41 +22,9 @@ class OutlierFilteringTest extends AbstractUnitSpec {
   final private val EXCLUSION_COLS = Array("a", "c")
   final private val MANUAL_FILTERS = List(ManualFilters(MANUAL_FIELD, 900.0))
 
-  private def generateOutlierData = {
-
-    val spark = AutomationUnitTestsUtil.sparkSession
-
-    import spark.implicits._
-
-    Seq(
-      Sample(0.0, 9.0, 0.99, 2, 1L),
-      Sample(1.0, 8.0, 10.99, 2, 1L),
-      Sample(2.0, 7.0, 0.99, 2, 1L),
-      Sample(3.0, 6.0, 10.99, 2, 1L),
-      Sample(4.0, 5.0, 0.99, 3, 1L),
-      Sample(5.0, 4.0, 10.99, 3, 1L),
-      Sample(6.0, 3.0, 10.99, 3, 1L),
-      Sample(10.0, 2.0, 20.99, 3, 1L),
-      Sample(20.0, 1.0, 20.99, 4, 1L),
-      Sample(30.0, 2.0, 20.99, 5, 1L),
-      Sample(40.0, 3.0, 20.99, 4, 1L),
-      Sample(50.0, 4.0, 40.99, 4, 1L),
-      Sample(60.0, 5.0, 40.99, 5, 1L),
-      Sample(100.0, 6.0, 30.99, 1, 2L),
-      Sample(200.0, 7.0, 30.99, 1, 3L),
-      Sample(300.0, 8.0, 20.99, 1, 4L),
-      Sample(1000.0, 9.0, 10.99, 3, 5L),
-      Sample(10000.0, 10.0, 10.99, 4, 6L),
-      Sample(100000.0, 20.0, 10.99, 3, 7L),
-      Sample(1000000.0, 25.0, 1000.99, 10000, 8L),
-      Sample(5000000.0, 50.0, 1.0, 17, 10L)
-    ).toDF()
-
-  }
-
   it should "filter appropriate values from an exponential distribution in 'upper' mode at 95p" in {
 
-    val exponentialData = generateOutlierData
+    val exponentialData = DiscreteTestDataGenerator.generateOutlierData
 
     exponentialData.show(20)
 
@@ -96,7 +63,7 @@ class OutlierFilteringTest extends AbstractUnitSpec {
 
   it should "filter appropriate values from an exponential distribution in 'lower' mode at 5p" in {
 
-    val exponentialData = generateOutlierData
+    val exponentialData = DiscreteTestDataGenerator.generateOutlierData
 
     exponentialData.show(20)
 
@@ -135,7 +102,7 @@ class OutlierFilteringTest extends AbstractUnitSpec {
 
   it should "filter appropriate values from an exponential distribution in 'both' mode at 5p and 95p" in {
 
-    val exponentialData = generateOutlierData
+    val exponentialData = DiscreteTestDataGenerator.generateOutlierData
 
     exponentialData.show(20)
 
@@ -174,7 +141,7 @@ class OutlierFilteringTest extends AbstractUnitSpec {
 
   it should "filter appropriate values with column exclusion in 'both' mode." in {
 
-    val exponentialData = generateOutlierData
+    val exponentialData = DiscreteTestDataGenerator.generateOutlierData
 
     exponentialData.show(20)
 
@@ -215,7 +182,7 @@ class OutlierFilteringTest extends AbstractUnitSpec {
 
   it should "filter appropriate values manually in 'upper' mode." in {
 
-    val exponentialData = generateOutlierData
+    val exponentialData = DiscreteTestDataGenerator.generateOutlierData
 
     exponentialData.show(20)
 
