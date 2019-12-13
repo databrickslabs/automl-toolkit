@@ -1,51 +1,15 @@
 package com.databricks.labs.automl
 
+import com.databricks.labs.automl.utilities.DataGeneratorUtilities
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.joda.time.LocalDate
 
-case class OutlierTestSchema(a: Double,
-                             b: Double,
-                             c: Double,
-                             label: Int,
-                             automl_internal_id: Long)
+object DiscreteTestDataGenerator extends DataGeneratorUtilities {
 
-case class NaFillTestSchema(dblData: Double,
-                            fltData: Float,
-                            intData: Int,
-                            ordinalIntData: Int,
-                            strData: String,
-                            boolData: Boolean,
-                            dateData: String,
-                            label: Int,
-                            automl_internal_id: Long)
+  // TODO: create a constructor pattern here with a configuration to setup the needed by-column configuration for generating the universal data set for different tests
 
-object DiscreteTestDataGenerator {
-
-  private def generateStrings(targetCount: Int,
-                              targetModulus: Int,
-                              offset: Int) = {
-    val baseCollection = ('a' to 'e').toArray.map(_.toString)
-    Array
-      .fill(targetCount / (baseCollection.length - 1))(baseCollection)
-      .flatten
-      .take(targetCount)
-      .zipWithIndex
-      .map {
-        case (v, i) => if ((i + offset) % targetModulus != 0.0) v else null
-      }
-  }
-
-  private def generateDoubles(targetCount: Int,
-                              targetModulus: Int,
-                              offset: Int) = {
-    (0.0 to targetCount by 1.0).toArray.zipWithIndex
-      .map {
-        case (v, i) =>
-          if ((i + offset) % targetModulus != 0.0) v else Double.MinValue
-      }
-  }
-
+  //TODO: move the rest of these and improve them to be more generic for usages in other test modules.
   private def generateFloats(targetCount: Int,
                              targetModulus: Int,
                              offset: Int) = {
@@ -110,19 +74,39 @@ object DiscreteTestDataGenerator {
     }
   }
 
-  def generateNAFillData(rows: Int, naRate: Int): DataFrame = {
+  def generateNAFillData(rows: Int,
+                         naRate: Int,
+                         distinctStringCount: Int,
+                         distinctOrdinalCount: Int): DataFrame = {
 
     val spark = AutomationUnitTestsUtil.sparkSession
+
+    //TODO: move these!!!!
+    val DOUBLES_START = 1.0
+    val DOUBLES_STEP = 1.0
+    val DOUBLES_MODE = "ascending"
 
     import spark.implicits._
 
     val targetNaModulus = rows / naRate
 
-    val doublesSpace = generateDoubles(rows, targetNaModulus, 0)
+    val doublesSpace = generateDoublesArrayWithNulls(
+      rows,
+      DOUBLES_START,
+      DOUBLES_STEP,
+      DOUBLES_MODE,
+      targetNaModulus,
+      0
+    )
     val floatSpace = generateFloats(rows, targetNaModulus, 1)
     val intSpace = generateInts(rows, targetNaModulus, 2)
     val ordinalIntSpace = generateOrdinalInts(rows, targetNaModulus, 4, 5)
-    val stringSpace = generateStrings(rows, targetNaModulus, 3)
+    val stringSpace = generateStringArrayWithNulls(
+      rows,
+      distinctStringCount,
+      targetNaModulus,
+      3
+    )
     val booleanSpace = generateBooleans(rows, targetNaModulus, 4)
     val daysSpace = generateDates(rows, targetNaModulus, 2)
     val labelData = generateRepeatingInts(rows, 3)
@@ -170,6 +154,7 @@ object DiscreteTestDataGenerator {
 
     import spark.implicits._
 
+    // TODO: replace this with the standard data set methodology above!!!
     Seq(
       OutlierTestSchema(0.0, 9.0, 0.99, 2, 1L),
       OutlierTestSchema(1.0, 8.0, 10.99, 2, 1L),

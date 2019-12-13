@@ -23,3 +23,11 @@ object FeatureEngineeringAllowables extends Enumeration {
       extends Val
 
 }
+
+object ArrayGeneratorMode extends Enumeration {
+  val ASC = ArrayMode("ascending")
+  val DESC = ArrayMode("descending")
+  val RAND = ArrayMode("random")
+  protected case class ArrayMode(arrayMode: String) extends super.Val()
+  implicit def convert(value: Value): ArrayMode = value.asInstanceOf[ArrayMode]
+}
