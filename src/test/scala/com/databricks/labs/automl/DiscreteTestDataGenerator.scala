@@ -1,96 +1,46 @@
 package com.databricks.labs.automl
 
-import com.databricks.labs.automl.utilities.DataGeneratorUtilities
+import com.databricks.labs.automl.utilities.{
+  DataGeneratorUtilities,
+  NaFillTestSchema,
+  OutlierTestSchema
+}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
-import org.joda.time.LocalDate
 
 object DiscreteTestDataGenerator extends DataGeneratorUtilities {
 
-  // TODO: create a constructor pattern here with a configuration to setup the needed by-column configuration for generating the universal data set for different tests
-
-  //TODO: move the rest of these and improve them to be more generic for usages in other test modules.
-  private def generateFloats(targetCount: Int,
-                             targetModulus: Int,
-                             offset: Int) = {
-    (0.0f to targetCount by 1.0f).toArray.zipWithIndex
-      .map {
-        case (v, i) =>
-          if ((i + offset) % targetModulus != 0.0) v else Float.MinValue
-      }
-  }
-
-  private def generateInts(targetCount: Int,
-                           targetModulus: Int,
-                           offset: Int) = {
-    (0 to targetCount by 1).toArray.zipWithIndex
-      .map {
-        case (v, i) =>
-          if ((i + offset) % targetModulus != 0.0) v
-          else Int.MinValue
-      }
-  }
-
-  private def generateRepeatingInts(targetCount: Int, distinctValues: Int) = {
-    val baseCollection = (0 to distinctValues).toArray
-    Array
-      .fill(targetCount / (baseCollection.length - 1))(baseCollection)
-      .flatten
-      .take(targetCount)
-  }
-
-  private def generateOrdinalInts(targetCount: Int,
-                                  targetModulus: Int,
-                                  distinctValues: Int,
-                                  offset: Int) = {
-    generateRepeatingInts(targetCount, distinctValues).zipWithIndex.map {
-      case (v, i) =>
-        if ((i + offset) % targetModulus != 0.0) v else Int.MinValue
-    }
-  }
-
-  private def generateBooleans(targetCount: Int,
-                               targetModulus: Int,
-                               offset: Int) = {
-    Array
-      .fill(targetCount)(Array(true, false))
-      .flatten
-      .take(targetCount)
-      .zipWithIndex
-      .map {
-        case (v, i) =>
-          if ((i + offset) % targetModulus != 0.0) v else null
-      }
-      .map(_.asInstanceOf[Boolean])
-  }
-
-  private def generateDates(targetCount: Int,
-                            targetModulus: Int,
-                            offset: Int) = {
-    val start = new LocalDate(2019, 7, 25)
-    val dates = for (x <- 0 to targetCount) yield start.plusDays(x)
-    dates.map(_.toString).toArray.zipWithIndex.map {
-      case (v, i) => if ((i + offset) % targetModulus != 0.0) v else null
-    }
-  }
-
-  def generateNAFillData(rows: Int,
-                         naRate: Int,
-                         distinctStringCount: Int,
-                         distinctOrdinalCount: Int): DataFrame = {
+  def generateNAFillData(rows: Int, naRate: Int): DataFrame = {
 
     val spark = AutomationUnitTestsUtil.sparkSession
 
-    //TODO: move these!!!!
     val DOUBLES_START = 1.0
-    val DOUBLES_STEP = 1.0
+    val DOUBLES_STEP = 2.0
     val DOUBLES_MODE = "ascending"
+    val FLOAT_START = 0.0f
+    val FLOAT_STEP = 2.0f
+    val FLOAT_MODE = "descending"
+    val INT_START = 1
+    val INT_STEP = 2
+    val INT_MODE = "ascending"
+    val ORD_START = 5
+    val ORD_STEP = 4
+    val ORD_MODE = "descending"
+    val ORD_DISTINCT_COUNT = 6
+    val STRING_DISTINCT_COUNT = 5
+    val DATE_YEAR = 2019
+    val DATE_MONTH = 7
+    val DATE_DAY = 25
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "random"
+    val LABEL_DISTINCT_COUNT = 4
 
     import spark.implicits._
 
     val targetNaModulus = rows / naRate
 
-    val doublesSpace = generateDoublesArrayWithNulls(
+    val doublesSpace = generateDoublesDataWithNulls(
       rows,
       DOUBLES_START,
       DOUBLES_STEP,
@@ -98,19 +48,57 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       targetNaModulus,
       0
     )
-    val floatSpace = generateFloats(rows, targetNaModulus, 1)
-    val intSpace = generateInts(rows, targetNaModulus, 2)
-    val ordinalIntSpace = generateOrdinalInts(rows, targetNaModulus, 4, 5)
-    val stringSpace = generateStringArrayWithNulls(
+
+    val floatSpace = generateFloatsDataWithNulls(
       rows,
-      distinctStringCount,
+      FLOAT_START,
+      FLOAT_STEP,
+      FLOAT_MODE,
+      targetNaModulus,
+      1
+    )
+
+    val intSpace = generateIntDataWithNulls(
+      rows,
+      INT_START,
+      INT_STEP,
+      INT_MODE,
+      targetNaModulus,
+      2
+    )
+    val ordinalIntSpace = generateRepeatingIntDataWithNulls(
+      rows,
+      ORD_START,
+      ORD_STEP,
+      ORD_MODE,
+      ORD_DISTINCT_COUNT,
       targetNaModulus,
       3
     )
-    val booleanSpace = generateBooleans(rows, targetNaModulus, 4)
-    val daysSpace = generateDates(rows, targetNaModulus, 2)
-    val labelData = generateRepeatingInts(rows, 3)
-    val mlFlowIdData = generateRepeatingInts(rows, 8)
+    val stringSpace =
+      generateStringDataWithNulls(
+        rows,
+        STRING_DISTINCT_COUNT,
+        targetNaModulus,
+        4
+      )
+    val booleanSpace = generateBooleanDataWithNulls(rows, targetNaModulus, 5)
+    val daysSpace = generateDatesWithNulls(
+      rows,
+      DATE_YEAR,
+      DATE_MONTH,
+      DATE_DAY,
+      targetNaModulus,
+      6
+    )
+    val labelData = generateRepeatingIntData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT_COUNT
+    )
+    val mlFlowIdData = generateRepeatingIntData(rows, 1, 1, "ascending", rows)
 
     val seqData = for (i <- 0 until rows)
       yield
@@ -125,29 +113,15 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
           labelData(i),
           mlFlowIdData(i)
         )
-    seqData.toSeq
+    val dfConversion = seqData
       .toDF()
-      .withColumn(
-        "dblData",
-        when(col("dblData") === Double.MinValue, null).otherwise(col("dblData"))
-      )
-      .withColumn(
-        "fltData",
-        when(col("fltData") === Float.MinValue, null).otherwise(col("fltData"))
-      )
-      .withColumn(
-        "intData",
-        when(col("intData") === Int.MinValue, null)
-          .otherwise(col("intData"))
-      )
-      .withColumn(
-        "ordinalIntData",
-        when(col("ordinalIntData") === Int.MinValue, null)
-          .otherwise(col("ordinalIntData"))
-      )
       .withColumn("dateData", to_date(col("dateData"), "yyyy-MM-dd"))
 
+    reassignToNulls(dfConversion)
+
   }
+
+  def generateModelDetectionData: DataFrame = ???
 
   def generateOutlierData: DataFrame = {
     val spark = AutomationUnitTestsUtil.sparkSession

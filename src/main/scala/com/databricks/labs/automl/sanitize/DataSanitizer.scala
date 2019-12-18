@@ -236,10 +236,9 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     batches.toArray
   }
 
-  //private
-  def getFieldsAndFillable(df: DataFrame,
-                           columnList: List[String],
-                           statistics: String): DataFrame = {
+  private def getFieldsAndFillable(df: DataFrame,
+                                   columnList: List[String],
+                                   statistics: String): DataFrame = {
 
     val dfParts = df.rdd.partitions.length.toDouble
 //    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
@@ -267,10 +266,9 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     x
   }
 
-  //private
-  def assemblePayload(df: DataFrame,
-                      fieldList: List[String],
-                      filterCondition: String): Array[(String, Any)] = {
+  private def assemblePayload(df: DataFrame,
+                              fieldList: List[String],
+                              filterCondition: String): Array[(String, Any)] = {
 
     val summaryStats = getFieldsAndFillable(df, fieldList, filterCondition)
       .drop(col("Summary"))
@@ -299,16 +297,16 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     * @throws BooleanFieldFillException if the mode setting for selecting the fill value is not supported.
     */
   @throws(classOf[BooleanFieldFillException])
-  //private
-  def getBooleanFill(df: DataFrame,
-                     fieldList: List[String],
-                     filterCondition: String): Array[(String, Boolean)] = {
+  private def getBooleanFill(
+    df: DataFrame,
+    fieldList: List[String],
+    filterCondition: String
+  ): Array[(String, Boolean)] = {
 
     val filterSelection = getCategoricalFillType(filterCondition)
 
     fieldList
       .map(x => {
-
         val booleanFieldStats =
           df.select(x)
             .groupBy(x)
@@ -346,8 +344,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     * @since 0.1.0
     * @author Ben Wilson, Databricks
     */
-  //private
-  def payloadExtraction(df: DataFrame): NaFillPayload = {
+  private def payloadExtraction(df: DataFrame): NaFillPayload = {
 
     val typeExtract =
       SchemaUtils.extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
