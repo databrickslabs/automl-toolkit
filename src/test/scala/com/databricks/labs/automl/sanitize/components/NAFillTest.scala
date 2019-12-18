@@ -1,8 +1,10 @@
 package com.databricks.labs.automl.sanitize.components
 
+import com.databricks.labs.automl.inference.NaFillConfig
 import com.databricks.labs.automl.sanitize.DataSanitizer
 import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import com.databricks.labs.automl.{AbstractUnitSpec, DiscreteTestDataGenerator}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 
@@ -16,6 +18,59 @@ class NAFillTest extends AbstractUnitSpec {
   private final val EXPECTED_MODEL_TYPE = "classifier"
   private final val NA_FILL_ROW_COUNT = 100
   private final val NA_RATE = 10
+
+  private final val STRING_FILL_MAP = Map("strData" -> "zzzz")
+  private final val NUMERIC_FILL_MAP = Map(
+    "dblData" -> 99999.99,
+    "fltData" -> 99999.9f,
+    "intData" -> 9999,
+    "ordinalIntData" -> 9999
+  )
+  private final val CHAR_FILL_VALUE = "hodor"
+  private final val NUM_FILL_VALUE = -999.0
+
+  def setupNAFillTest(numFillStat: String,
+                      catFillStat: String,
+                      fillMode: String): DataSanitizer = {
+
+    val data =
+      DiscreteTestDataGenerator.generateNAFillData(NA_FILL_ROW_COUNT, NA_RATE)
+
+    new DataSanitizer(data)
+      .setLabelCol(LABEL_COL)
+      .setFeatureCol(FEATURE_COL)
+      .setModelSelectionDistinctThreshold(DISTINCT_THRESHOLD)
+      .setNumericFillStat(numFillStat)
+      .setCharacterFillStat(catFillStat)
+      .setParallelism(PARALLELISM)
+      .setCategoricalNAFillMap(STRING_FILL_MAP)
+      .setCharacterNABlanketFillValue(CHAR_FILL_VALUE)
+      .setNumericNABlanketFillValue(NUM_FILL_VALUE)
+      .setNumericNAFillMap(NUMERIC_FILL_MAP)
+      .setNAFillMode(fillMode)
+      .setFilterPrecision(FILTER_PRECISION)
+      .setFieldsToIgnoreInVector(
+        Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
+      )
+
+  }
+
+  def setupMapFillModes(mode: String): (DataFrame, NaFillConfig, String) = {
+
+    val sanitizer = setupNAFillTest("mean", "max", mode)
+
+    sanitizer.generateCleanData()
+
+  }
+
+  def checkForNulls(df: DataFrame, columnName: String): Unit = {
+
+    assert(
+      df.na.drop(Seq(columnName)).count() == df.count(),
+      "na values have been filled"
+    )
+
+  }
 
   def generateNAFillConfigTest(
     numFillStat: String,
@@ -57,22 +112,7 @@ class NAFillTest extends AbstractUnitSpec {
     val data =
       DiscreteTestDataGenerator.generateNAFillData(NA_FILL_ROW_COUNT, NA_RATE)
 
-    val sanitizer = new DataSanitizer(data)
-      .setLabelCol(LABEL_COL)
-      .setFeatureCol(FEATURE_COL)
-      .setModelSelectionDistinctThreshold(DISTINCT_THRESHOLD)
-      .setNumericFillStat(numFillStat)
-      .setCharacterFillStat(catFillStat)
-      .setParallelism(PARALLELISM)
-      .setCategoricalNAFillMap(Map.empty[String, String])
-      .setCharacterNABlanketFillValue("")
-      .setNumericNABlanketFillValue(Double.NaN)
-      .setNumericNAFillMap(Map.empty[String, Double])
-      .setNAFillMode(mode)
-      .setFilterPrecision(FILTER_PRECISION)
-      .setFieldsToIgnoreInVector(
-        Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
-      )
+    val sanitizer = setupNAFillTest(numFillStat, catFillStat, mode)
 
     val (naFilledDF, fillMap, modelType) = sanitizer.generateCleanData()
 
@@ -108,6 +148,11 @@ class NAFillTest extends AbstractUnitSpec {
 
     // Ensure the model type is correct
     assert(modelType == EXPECTED_MODEL_TYPE, "for model type detection")
+
+    val fullColumnCheck = fillMap.categoricalColumns.keys.toSeq ++ fillMap.numericColumns.keys.toSeq ++ fillMap.booleanColumns.keys.toSeq
+    fullColumnCheck.foreach { x =>
+      checkForNulls(naFilledDF, x)
+    }
 
   }
 
@@ -189,35 +234,8 @@ class NAFillTest extends AbstractUnitSpec {
   it should "correctly fill na's in mapFill mode" in {
 
     val FILL_MODE = "mapFill"
-    val STRING_FILL_MAP = Map("strData" -> "zzzz")
-    val NUMERIC_FILL_MAP = Map(
-      "dblData" -> 99999.99,
-      "fltData" -> 99999.9f,
-      "intData" -> 9999,
-      "ordinalIntData" -> 9999
-    )
 
-    val data =
-      DiscreteTestDataGenerator.generateNAFillData(NA_FILL_ROW_COUNT, NA_RATE)
-
-    val sanitizer = new DataSanitizer(data)
-      .setLabelCol(LABEL_COL)
-      .setFeatureCol(FEATURE_COL)
-      .setModelSelectionDistinctThreshold(DISTINCT_THRESHOLD)
-      .setNumericFillStat("mean")
-      .setCharacterFillStat("max")
-      .setParallelism(PARALLELISM)
-      .setCategoricalNAFillMap(STRING_FILL_MAP)
-      .setCharacterNABlanketFillValue("")
-      .setNumericNABlanketFillValue(Double.NaN)
-      .setNumericNAFillMap(NUMERIC_FILL_MAP)
-      .setNAFillMode(FILL_MODE)
-      .setFilterPrecision(FILTER_PRECISION)
-      .setFieldsToIgnoreInVector(
-        Array(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
-      )
-
-    val (naFilledDF, fillMap, modelType) = sanitizer.generateCleanData()
+    val (naFilledDF, fillMap, modelType) = setupMapFillModes(FILL_MODE)
 
     NUMERIC_FILL_MAP.keys.foreach { x =>
       assert(
@@ -227,9 +245,95 @@ class NAFillTest extends AbstractUnitSpec {
 
     }
 
+    STRING_FILL_MAP.keys.foreach { x =>
+      assert(
+        naFilledDF.filter(col(x) === STRING_FILL_MAP(x)).count() > 0,
+        "for categorical fill columns"
+      )
+    }
+
+    val fullColumnCheck = fillMap.categoricalColumns.keys.toSeq ++ fillMap.numericColumns.keys.toSeq ++ fillMap.booleanColumns.keys.toSeq
+
+    fullColumnCheck.foreach { x =>
+      checkForNulls(naFilledDF, x)
+    }
+
+  }
+
+  it should "correctly fill na's in blanketFillAll mode" in {
+    val FILL_MODE = "blanketFillAll"
+
+    val (naFilledDF, fillMap, modelType) = setupMapFillModes(FILL_MODE)
+
+    NUMERIC_FILL_MAP.keys.foreach { x =>
+      assert(
+        naFilledDF.filter(col(x) === NUM_FILL_VALUE).count() > 0,
+        "for numeric map fill"
+      )
+    }
+
+    STRING_FILL_MAP.keys.foreach { x =>
+      assert(
+        naFilledDF.filter(col(x) === CHAR_FILL_VALUE).count() > 0,
+        "for categorical map fill"
+      )
+    }
+
+    val fullColumnCheck = fillMap.categoricalColumns.keys.toSeq ++ fillMap.numericColumns.keys.toSeq ++ fillMap.booleanColumns.keys.toSeq
+    fullColumnCheck.foreach { x =>
+      checkForNulls(naFilledDF, x)
+    }
+  }
+
+  it should "correctly fill na's in blanketFillCharOnly mode" in {
+    val FILL_MODE = "blanketFillCharOnly"
+    val expectedContinuousFillMap = Map(
+      "dblData" -> 101.0,
+      "fltData" -> 100.0,
+      "intData" -> 99.22222222222223,
+      "ordinalIntData" -> 15.311111111111112
+    )
+
+    val (naFilledDF, fillMap, modelType) = setupMapFillModes(FILL_MODE)
+
+    assert(
+      fillMap.numericColumns == expectedContinuousFillMap,
+      "for numeric fill na values"
+    )
+    STRING_FILL_MAP.keys.foreach { x =>
+      assert(
+        naFilledDF.filter(col(x) === CHAR_FILL_VALUE).count() > 0,
+        "for categorical map fill"
+      )
+    }
+
+    val fullColumnCheck = fillMap.categoricalColumns.keys.toSeq ++ fillMap.numericColumns.keys.toSeq ++ fillMap.booleanColumns.keys.toSeq
+    fullColumnCheck.foreach { x =>
+      checkForNulls(naFilledDF, x)
+    }
+
+  }
+  it should "correctly fill na's in blanketFillNumOnly" in {
+    val FILL_MODE = "blanketFillNumOnly"
+    val expectedCategoricalFillMap = Map("strData" -> "e")
+    val (naFilledDF, fillMap, modelType) = setupMapFillModes(FILL_MODE)
+
+    assert(
+      fillMap.categoricalColumns == expectedCategoricalFillMap,
+      "for categorical fill na values"
+    )
+    NUMERIC_FILL_MAP.keys.foreach { x =>
+      assert(
+        naFilledDF.filter(col(x) === NUM_FILL_VALUE).count() > 0,
+        "for numeric map fill"
+      )
+    }
+
+    val fullColumnCheck = fillMap.categoricalColumns.keys.toSeq ++ fillMap.numericColumns.keys.toSeq ++ fillMap.booleanColumns.keys.toSeq
+    fullColumnCheck.foreach { x =>
+      checkForNulls(naFilledDF, x)
+    }
+
   }
 
 }
-//TODO: test -> "auto", "mapFill", "blanketFillAll", "blanketFillCharOnly", "blanketFillNumOnly"
-
-// TODO: add assertions for no nulls in the columns that should have data filled!!!

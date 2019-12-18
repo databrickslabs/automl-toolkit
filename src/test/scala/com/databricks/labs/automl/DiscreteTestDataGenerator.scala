@@ -2,6 +2,7 @@ package com.databricks.labs.automl
 
 import com.databricks.labs.automl.utilities.{
   DataGeneratorUtilities,
+  ModelDetectionSchema,
   NaFillTestSchema,
   OutlierTestSchema
 }
@@ -121,7 +122,50 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
 
   }
 
-  def generateModelDetectionData: DataFrame = ???
+  def generateModelDetectionData(rows: Int, uniqueLabels: Int): DataFrame = {
+
+    val FEATURE_START = 2.0
+    val FEATURE_STEP = 1.0
+    val FEATURE_MODE = "ascending"
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "random"
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    val featureData =
+      generateDoublesData(rows, FEATURE_START, FEATURE_STEP, FEATURE_MODE)
+    val labelData = generateRepeatingIntData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      uniqueLabels
+    ).map(_.toDouble)
+
+    val mlFlowIdData = generateRepeatingIntData(rows, 1, 1, "ascending", rows)
+
+    val seqData = for (i <- 0 until rows)
+      yield ModelDetectionSchema(featureData(i), labelData(i), mlFlowIdData(i))
+
+    import spark.implicits._
+
+    seqData.toDF()
+
+  }
+
+//  def generateOutlierData(rows: Int): DataFrame = {
+//
+//    val EXPONENTIAL_START =
+//
+//    val spark = AutomationUnitTestsUtil.sparkSession
+//
+//
+//
+//    import spark.implicits._
+//    val a = generateExponentialData(rows)
+//
+//  }
 
   def generateOutlierData: DataFrame = {
     val spark = AutomationUnitTestsUtil.sparkSession

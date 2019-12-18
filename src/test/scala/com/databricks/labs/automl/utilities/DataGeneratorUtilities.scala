@@ -171,7 +171,7 @@ trait DataGeneratorUtilities {
 
     val sortMode = getArrayMode(mode)
 
-    val stoppingPoint = (targetCount * step) + start - 1.0
+    val stoppingPoint = (targetCount * step) + start
 
     val doubleArray =
       Range.BigDecimal(start, stoppingPoint, step).toArray.map(_.toDouble)
@@ -225,7 +225,7 @@ trait DataGeneratorUtilities {
                          mode: String): Array[Float] = {
 
     val sortMode = getArrayMode(mode)
-    val stoppingPoint = (targetCount * step) + start - 1.0f
+    val stoppingPoint = (targetCount * step) + start
 
     val floatArray = (start to stoppingPoint by step).toArray
 
@@ -380,7 +380,7 @@ trait DataGeneratorUtilities {
                       mode: String): Array[Int] = {
 
     val sortMode = getArrayMode(mode)
-    val stoppingPoint = (targetCount * step) + start - 1
+    val stoppingPoint = (targetCount * step) + start
 
     val intArray = (start to stoppingPoint by step).toArray
 
@@ -433,7 +433,7 @@ trait DataGeneratorUtilities {
                        step: Long,
                        mode: String): Array[Long] = {
     val sortMode = getArrayMode(mode)
-    val stoppingPoint = (targetCount * step) + start - 1L
+    val stoppingPoint = (targetCount * step) + start
 
     val longArray = (start to stoppingPoint by step).toArray
 
@@ -486,7 +486,7 @@ trait DataGeneratorUtilities {
                                distinctValues: Int): Array[Int] = {
 
     val sortMode = getArrayMode(mode)
-    val subStopPoint = (distinctValues * step) + start - 1
+    val subStopPoint = (distinctValues * step) + start
     val distinctArray = (start to subStopPoint by step).toArray
     val sortedArray = sortMode match {
       case ASC  => distinctArray.sortWith(_ < _)

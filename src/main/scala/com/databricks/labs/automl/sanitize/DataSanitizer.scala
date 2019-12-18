@@ -618,7 +618,7 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     NaFillConfig(
       characterMapper(charBuffer.toArray),
       numericMapper(numBuffer.toArray),
-      payloads.booleanColumns.map(x => (x._1, false))
+      payloads.booleanColumns.map(x => x._1 -> false)
     )
 
   }

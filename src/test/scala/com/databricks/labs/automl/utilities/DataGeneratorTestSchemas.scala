@@ -2,6 +2,10 @@ package com.databricks.labs.automl.utilities
 
 case class SchemaNamesTypes(name: String, dataType: String)
 
+case class ModelDetectionSchema(a: Double,
+                                label: Double,
+                                automl_internal_id: Long)
+
 case class OutlierTestSchema(a: Double,
                              b: Double,
                              c: Double,
@@ -17,9 +21,3 @@ case class NaFillTestSchema(dblData: Double,
                             dateData: String,
                             label: Int,
                             automl_internal_id: Long)
-
-case class ModelDetectionSchema(a: String,
-                                b: Double,
-                                c: Double,
-                                d: Float,
-                                label: Int)
