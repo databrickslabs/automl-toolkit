@@ -163,7 +163,7 @@ class NAFillTest extends AbstractUnitSpec {
 
     val expectedContinuousFillMap = Map(
       "dblData" -> 101.0,
-      "fltData" -> 100.0,
+      "fltData" -> 102.0,
       "intData" -> 99.22222222222223,
       "ordinalIntData" -> 15.311111111111112
     )
@@ -187,7 +187,7 @@ class NAFillTest extends AbstractUnitSpec {
 
     val expectedContinuousFillMap = Map(
       "dblData" -> 199.0,
-      "fltData" -> 198.0,
+      "fltData" -> 200.0,
       "intData" -> 199.0,
       "ordinalIntData" -> 25.0
     )
@@ -211,7 +211,7 @@ class NAFillTest extends AbstractUnitSpec {
 
     val expectedContinuousFillMap = Map(
       "dblData" -> 99.0,
-      "fltData" -> 98.0,
+      "fltData" -> 100.0,
       "intData" -> 99.0,
       "ordinalIntData" -> 17.0
     )
@@ -289,7 +289,7 @@ class NAFillTest extends AbstractUnitSpec {
     val FILL_MODE = "blanketFillCharOnly"
     val expectedContinuousFillMap = Map(
       "dblData" -> 101.0,
-      "fltData" -> 100.0,
+      "fltData" -> 102.0,
       "intData" -> 99.22222222222223,
       "ordinalIntData" -> 15.311111111111112
     )

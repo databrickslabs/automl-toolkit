@@ -4,12 +4,17 @@ import com.databricks.labs.automl.utilities.{
   DataGeneratorUtilities,
   ModelDetectionSchema,
   NaFillTestSchema,
-  OutlierTestSchema
+  OutlierTestSchema,
+  VarianceTestSchema
 }
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
 object DiscreteTestDataGenerator extends DataGeneratorUtilities {
+
+  final private val MLFLOWID_START = 1
+  final private val MLFLOWID_STEP = 1
+  final private val MLFLOW_ID_MODE = "ascending"
 
   def generateNAFillData(rows: Int, naRate: Int): DataFrame = {
 
@@ -99,7 +104,13 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       LABEL_MODE,
       LABEL_DISTINCT_COUNT
     )
-    val mlFlowIdData = generateRepeatingIntData(rows, 1, 1, "ascending", rows)
+    val mlFlowIdData = generateRepeatingIntData(
+      rows,
+      MLFLOWID_START,
+      MLFLOWID_STEP,
+      MLFLOW_ID_MODE,
+      rows
+    )
 
     val seqData = for (i <- 0 until rows)
       yield
@@ -143,7 +154,13 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       uniqueLabels
     ).map(_.toDouble)
 
-    val mlFlowIdData = generateRepeatingIntData(rows, 1, 1, "ascending", rows)
+    val mlFlowIdData = generateRepeatingIntData(
+      rows,
+      MLFLOWID_START,
+      MLFLOWID_STEP,
+      MLFLOW_ID_MODE,
+      rows
+    )
 
     val seqData = for (i <- 0 until rows)
       yield ModelDetectionSchema(featureData(i), labelData(i), mlFlowIdData(i))
@@ -154,48 +171,109 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
 
   }
 
-//  def generateOutlierData(rows: Int): DataFrame = {
-//
-//    val EXPONENTIAL_START =
-//
-//    val spark = AutomationUnitTestsUtil.sparkSession
-//
-//
-//
-//    import spark.implicits._
-//    val a = generateExponentialData(rows)
-//
-//  }
+  def generateOutlierData(rows: Int, uniqueLabels: Int): DataFrame = {
 
-  def generateOutlierData: DataFrame = {
+    val EXPONENTIAL_START = 0.0
+    val EXPONENTIAL_STEP = 2.0
+    val EXPONENTIAL_MODE = "ascending"
+    val EXPONENTIAL_POWER = 3
+    val LINEAR_START = 0.0
+    val LINEAR_STEP = 1.0
+    val LINEAR_MODE = "descending"
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "random"
+    val LABEL_DISTINCT = 5
+    val EXPONENTIAL_TAIL_START = 1.0
+    val EXPONENTIAL_TAIL_STEP = 5.0
+    val EXPONENTIAL_TAIL_MODE = "ascending"
+    val EXPONENTIAL_TAIL_POWER = 2
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+    val a = generateExponentialData(
+      rows,
+      EXPONENTIAL_START,
+      EXPONENTIAL_STEP,
+      EXPONENTIAL_MODE,
+      EXPONENTIAL_POWER
+    )
+    val b = generateDoublesData(rows, LINEAR_START, LINEAR_STEP, LINEAR_MODE)
+    val c = generateTailedExponentialData(
+      rows,
+      EXPONENTIAL_TAIL_START,
+      EXPONENTIAL_TAIL_STEP,
+      EXPONENTIAL_TAIL_MODE,
+      EXPONENTIAL_TAIL_POWER
+    )
+    val label = generateRepeatingIntData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT
+    )
+    val mlFlowIdData = generateRepeatingIntData(
+      rows,
+      MLFLOWID_START,
+      MLFLOWID_STEP,
+      MLFLOW_ID_MODE,
+      rows
+    )
+
+    val seqData = for (i <- 0 until rows)
+      yield OutlierTestSchema(a(i), b(i), c(i), label(i), mlFlowIdData(i))
+
+    seqData.toDF()
+
+  }
+
+  def generateVarianceFilteringData(rows: Int): DataFrame = {
+
     val spark = AutomationUnitTestsUtil.sparkSession
 
     import spark.implicits._
 
-    // TODO: replace this with the standard data set methodology above!!!
-    Seq(
-      OutlierTestSchema(0.0, 9.0, 0.99, 2, 1L),
-      OutlierTestSchema(1.0, 8.0, 10.99, 2, 1L),
-      OutlierTestSchema(2.0, 7.0, 0.99, 2, 1L),
-      OutlierTestSchema(3.0, 6.0, 10.99, 2, 1L),
-      OutlierTestSchema(4.0, 5.0, 0.99, 3, 1L),
-      OutlierTestSchema(5.0, 4.0, 10.99, 3, 1L),
-      OutlierTestSchema(6.0, 3.0, 10.99, 3, 1L),
-      OutlierTestSchema(10.0, 2.0, 20.99, 3, 1L),
-      OutlierTestSchema(20.0, 1.0, 20.99, 4, 1L),
-      OutlierTestSchema(30.0, 2.0, 20.99, 5, 1L),
-      OutlierTestSchema(40.0, 3.0, 20.99, 4, 1L),
-      OutlierTestSchema(50.0, 4.0, 40.99, 4, 1L),
-      OutlierTestSchema(60.0, 5.0, 40.99, 5, 1L),
-      OutlierTestSchema(100.0, 6.0, 30.99, 1, 2L),
-      OutlierTestSchema(200.0, 7.0, 30.99, 1, 3L),
-      OutlierTestSchema(300.0, 8.0, 20.99, 1, 4L),
-      OutlierTestSchema(1000.0, 9.0, 10.99, 3, 5L),
-      OutlierTestSchema(10000.0, 10.0, 10.99, 4, 6L),
-      OutlierTestSchema(100000.0, 20.0, 10.99, 3, 7L),
-      OutlierTestSchema(1000000.0, 25.0, 1000.99, 10000, 8L),
-      OutlierTestSchema(5000000.0, 50.0, 1.0, 17, 10L)
-    ).toDF()
+    val DOUBLE_SERIES_START = 1.0
+    val DOUBLE_SERIES_STEP = 1.0
+    val DOUBLE_SERIES_MODE = "ascending"
+    val REPEATING_DOUBLE_VALUE = 42.42
+    val REPEATING_INT_VALUE = 9
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "random"
+    val LABEL_DISTINCT_COUNT = 7
+
+    val a = generateDoublesData(
+      rows,
+      DOUBLE_SERIES_START,
+      DOUBLE_SERIES_STEP,
+      DOUBLE_SERIES_MODE
+    )
+    val b = generateFibonacciData(rows)
+    val c = generateStaticDoubleSeries(rows, REPEATING_DOUBLE_VALUE)
+    val d = generateStaticIntSeries(rows, REPEATING_INT_VALUE)
+    val label = generateRepeatingIntData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT_COUNT
+    )
+    val mlflowIdData = generateRepeatingIntData(
+      rows,
+      MLFLOWID_START,
+      MLFLOWID_STEP,
+      MLFLOW_ID_MODE,
+      rows
+    )
+
+    val seqData = for (i <- 0 until rows)
+      yield
+        VarianceTestSchema(a(i), b(i), c(i), d(i), label(i), mlflowIdData(i))
+
+    seqData.toDF()
   }
 
 }

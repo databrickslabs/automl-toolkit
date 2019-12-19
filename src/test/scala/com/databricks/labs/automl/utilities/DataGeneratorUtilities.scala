@@ -486,7 +486,7 @@ trait DataGeneratorUtilities {
                                distinctValues: Int): Array[Int] = {
 
     val sortMode = getArrayMode(mode)
-    val subStopPoint = (distinctValues * step) + start
+    val subStopPoint = (distinctValues * step) + start - 1
     val distinctArray = (start to subStopPoint by step).toArray
     val sortedArray = sortMode match {
       case ASC  => distinctArray.sortWith(_ < _)
@@ -608,6 +608,74 @@ trait DataGeneratorUtilities {
   }
 
   /**
+    * Method for generating a two-tailed distribution of data in a series of data
+    * @param targetCount Number of elements to generate
+    * @param start Starting point for the median of the series
+    * @param step numeric distance between elements on a linear scale
+    * @param mode sorting mode
+    * @return Array of tailed Linear data
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def generateTailedData(targetCount: Int,
+                         start: Double,
+                         step: Double,
+                         mode: String): Array[Double] = {
+
+    val splitCount = math.ceil(targetCount / 2).toInt
+
+    val mergedData = generateDoublesData(splitCount, start, step, mode).map(
+      x => x * -1.0
+    ) ++ generateDoublesData(splitCount, start, step, mode)
+    val limitedData = mergedData.take(targetCount)
+    getArrayMode(mode) match {
+      case ASC  => limitedData.sortWith(_ < _)
+      case DESC => limitedData.sortWith(_ > _)
+      case RAND => Random.shuffle(limitedData.toList).toArray
+    }
+
+  }
+
+  /**
+    * Method for generating a two-tailed distribution of exponential data
+    * @param targetCount Number of elements to generate
+    * @param start starting point for the median of the series
+    * @param step linear series distance between data points (which is then raised to the power provided)
+    * @param mode sorting mode for the final series
+    * @param power power to raise each element of the series by
+    * @return Array of tailed exponential data
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def generateTailedExponentialData(targetCount: Int,
+                                    start: Double,
+                                    step: Double,
+                                    mode: String,
+                                    power: Int): Array[Double] = {
+    val splitCount = math.ceil(targetCount / 2).toInt
+
+    val mergedData = generateExponentialData(
+      splitCount,
+      start,
+      step,
+      mode,
+      power
+    ).map(x => x * -1) ++ generateExponentialData(
+      splitCount,
+      start,
+      step,
+      mode,
+      power
+    )
+    val limitedData = mergedData.take(targetCount)
+    getArrayMode(mode) match {
+      case ASC  => limitedData.sortWith(_ < _)
+      case DESC => limitedData.sortWith(_ > _)
+      case RAND => Random.shuffle(limitedData.toList).toArray
+    }
+  }
+
+  /**
     * Method for converting the temporary holders of 'null' values to actual nulls in a DataFrame
     * @param df DataFrame with temporary placeholder values
     * @return DataFrame with Nulls inserted
@@ -637,6 +705,15 @@ trait DataGeneratorUtilities {
         )
       }
     }
+  }
+
+  def generateStaticIntSeries(targetCount: Int, value: Int): Array[Int] = {
+    Array.fill(targetCount)(value)
+  }
+
+  def generateStaticDoubleSeries(targetCount: Int,
+                                 value: Double): Array[Double] = {
+    Array.fill(targetCount)(value)
   }
 
 }

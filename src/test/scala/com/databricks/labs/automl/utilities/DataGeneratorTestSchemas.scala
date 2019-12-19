@@ -21,3 +21,10 @@ case class NaFillTestSchema(dblData: Double,
                             dateData: String,
                             label: Int,
                             automl_internal_id: Long)
+
+case class VarianceTestSchema(a: Double,
+                              b: Double,
+                              c: Double,
+                              d: Int,
+                              label: Int,
+                              automl_internal_id: Long)
