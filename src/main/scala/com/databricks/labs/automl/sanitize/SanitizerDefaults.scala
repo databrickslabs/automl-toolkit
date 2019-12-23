@@ -7,29 +7,28 @@ trait SanitizerDefaults {
   /**
     * Global Defaults
     */
-
   def defaultLabelCol = "label"
   def defaultFeaturesCol = "features"
 
   /**
     * Pearson Defaults
     */
-
-  final val _allowedStats: Array[String] = Array("pvalue", "degreesFreedom", "pearsonStat")
+  final val _allowedStats: Array[String] =
+    Array("pvalue", "degreesFreedom", "pearsonStat")
   final val _allowedFilterDirections: Array[String] = Array("greater", "lesser")
   final val _allowedFilterModes: Array[String] = Array("auto", "manual")
 
-  def defaultPearsonFilterStatistic = "pearsonStat"
+  def defaultPearsonFilterStatistic = "pvalue"
   def defaultPearsonFilterDirection = "greater"
   def defaultPearsonFilterManualValue = 0.0
   def defaultPearsonFilterMode = "auto"
-  def defaultPearsonAutoFilterNTile = 0.75
+  def defaultPearsonAutoFilterNTile = 0.99
 
   /**
     * Scaler Defaults
     */
-
-  final val allowableScalers: Array[String] = Array("minMax", "standard", "normalize", "maxAbs")
+  final val allowableScalers: Array[String] =
+    Array("minMax", "standard", "normalize", "maxAbs")
 
   def defaultRenamedFeaturesCol = "features_r"
   def defaultScalerType = "minMax"
@@ -38,6 +37,5 @@ trait SanitizerDefaults {
   def defaultStandardScalerMeanFlag = false
   def defaultStandardScalerStdDevFlag = true
   def defaultPNorm = 2.0
-
 
 }

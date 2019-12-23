@@ -5,8 +5,11 @@ import com.databricks.labs.automl.utilities.{
   ModelDetectionSchema,
   NaFillTestSchema,
   OutlierTestSchema,
+  PearsonRegressionTestSchema,
+  PearsonTestSchema,
   VarianceTestSchema
 }
+import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
@@ -15,6 +18,16 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
   final private val MLFLOWID_START = 1
   final private val MLFLOWID_STEP = 1
   final private val MLFLOW_ID_MODE = "ascending"
+
+  private def generateMlFlowID(rows: Int): Array[Int] = {
+    generateRepeatingIntData(
+      rows,
+      MLFLOWID_START,
+      MLFLOWID_STEP,
+      MLFLOW_ID_MODE,
+      rows
+    )
+  }
 
   def generateNAFillData(rows: Int, naRate: Int): DataFrame = {
 
@@ -104,13 +117,7 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       LABEL_MODE,
       LABEL_DISTINCT_COUNT
     )
-    val mlFlowIdData = generateRepeatingIntData(
-      rows,
-      MLFLOWID_START,
-      MLFLOWID_STEP,
-      MLFLOW_ID_MODE,
-      rows
-    )
+    val mlFlowIdData = generateMlFlowID(rows)
 
     val seqData = for (i <- 0 until rows)
       yield
@@ -154,13 +161,7 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       uniqueLabels
     ).map(_.toDouble)
 
-    val mlFlowIdData = generateRepeatingIntData(
-      rows,
-      MLFLOWID_START,
-      MLFLOWID_STEP,
-      MLFLOW_ID_MODE,
-      rows
-    )
+    val mlFlowIdData = generateMlFlowID(rows)
 
     val seqData = for (i <- 0 until rows)
       yield ModelDetectionSchema(featureData(i), labelData(i), mlFlowIdData(i))
@@ -214,13 +215,7 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       LABEL_MODE,
       LABEL_DISTINCT
     )
-    val mlFlowIdData = generateRepeatingIntData(
-      rows,
-      MLFLOWID_START,
-      MLFLOWID_STEP,
-      MLFLOW_ID_MODE,
-      rows
-    )
+    val mlFlowIdData = generateMlFlowID(rows)
 
     val seqData = for (i <- 0 until rows)
       yield OutlierTestSchema(a(i), b(i), c(i), label(i), mlFlowIdData(i))
@@ -261,19 +256,197 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       LABEL_MODE,
       LABEL_DISTINCT_COUNT
     )
-    val mlflowIdData = generateRepeatingIntData(
-      rows,
-      MLFLOWID_START,
-      MLFLOWID_STEP,
-      MLFLOW_ID_MODE,
-      rows
-    )
+
+    val mlFlowIdData = generateMlFlowID(rows)
 
     val seqData = for (i <- 0 until rows)
       yield
-        VarianceTestSchema(a(i), b(i), c(i), d(i), label(i), mlflowIdData(i))
+        VarianceTestSchema(a(i), b(i), c(i), d(i), label(i), mlFlowIdData(i))
 
     seqData.toDF()
+  }
+
+  def generatePearsonFilteringData(rows: Int): (DataFrame, Array[String]) = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+
+    val POSITIVE_CORR_1_START = 1
+    val POSITIVE_CORR_1_STEP = 1
+    val POSITIVE_CORR_1_MODE = "ascending"
+    val POSITIVE_CORR_1_DISTINCT_COUNT = 4
+
+    val POSITIVE_CORR_2_START = 1
+    val POSITIVE_CORR_2_STEP = 1
+    val POSITIVE_CORR_2_MODE = "descending"
+    val POSITIVE_CORR_2_DISTINCT_COUNT = 4
+
+    val NOFILTER_1_START = 1.0
+    val NOFILTER_1_STEP = 1.0
+    val NOFILTER_1_MODE = "random"
+
+    val NOFILTER_2_START = 1
+    val NOFILTER_2_STEP = 1
+    val NOFILTER_2_MODE = "random"
+    val NOFILTER_2_DISTINCT_COUNT = 7
+
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "ascending"
+    val LABEL_DISTINCT_COUNT = 4
+
+    val positiveCorr1 = generateRepeatingIntData(
+      rows,
+      POSITIVE_CORR_1_START,
+      POSITIVE_CORR_1_STEP,
+      POSITIVE_CORR_1_MODE,
+      POSITIVE_CORR_1_DISTINCT_COUNT
+    )
+    val positiveCorr2 = generateRepeatingIntData(
+      rows,
+      POSITIVE_CORR_2_START,
+      POSITIVE_CORR_2_STEP,
+      POSITIVE_CORR_2_MODE,
+      POSITIVE_CORR_2_DISTINCT_COUNT
+    )
+    val noFilter1 = generateDoublesData(
+      rows,
+      NOFILTER_1_START,
+      NOFILTER_1_STEP,
+      NOFILTER_1_MODE
+    )
+    val noFilter2 = generateRepeatingIntData(
+      rows,
+      NOFILTER_2_START,
+      NOFILTER_2_STEP,
+      NOFILTER_2_MODE,
+      NOFILTER_2_DISTINCT_COUNT
+    )
+    val label = generateRepeatingIntData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT_COUNT
+    )
+    val mlFlowIdData = generateMlFlowID(rows)
+
+    val seqData = for (i <- 0 until rows)
+      yield
+        PearsonTestSchema(
+          positiveCorr1(i),
+          positiveCorr2(i),
+          noFilter1(i),
+          noFilter2(i),
+          label(i),
+          mlFlowIdData(i)
+        )
+
+    val rawData = seqData.toDF()
+
+    val featureCols =
+      rawData.schema.names
+        .filterNot(x => x.contains("label") || x.contains("automl_internal_id"))
+
+    val assembler =
+      new VectorAssembler().setInputCols(featureCols).setOutputCol("features")
+
+    (assembler.transform(rawData), featureCols)
+
+  }
+
+  def generatePearsonRegressionFilteringData(
+    rows: Int
+  ): (DataFrame, Array[String]) = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+
+    val POSITIVE_CORR_1_START = 1
+    val POSITIVE_CORR_1_STEP = 1
+    val POSITIVE_CORR_1_MODE = "ascending"
+
+    val POSITIVE_CORR_2_START = 1
+    val POSITIVE_CORR_2_STEP = 1
+    val POSITIVE_CORR_2_MODE = "descending"
+
+    val POSITIVE_CORR_3_START = 1
+    val POSITIVE_CORR_3_STEP = 2
+    val POSITIVE_CORR_3_MODE = "ascending"
+
+    val NOFILTER_1_START = 1.0
+    val NOFILTER_1_STEP = 1.0
+    val NOFILTER_1_MODE = "random"
+
+    val NOFILTER_2_START = 1
+    val NOFILTER_2_STEP = 1
+    val NOFILTER_2_MODE = "random"
+    val NOFILTER_2_DISTINCT_COUNT = 7
+
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "ascending"
+    val LABEL_DISTINCT_COUNT = 4
+
+    val positiveCorr1 = generateDoublesData(
+      rows,
+      POSITIVE_CORR_1_START,
+      POSITIVE_CORR_1_STEP,
+      POSITIVE_CORR_1_MODE
+    )
+    val positiveCorr2 = generateDoublesData(
+      rows,
+      POSITIVE_CORR_2_START,
+      POSITIVE_CORR_2_STEP,
+      POSITIVE_CORR_2_MODE
+    ).map(x => x * -1.0)
+    val positiveCorr3 = generateIntData(
+      rows,
+      POSITIVE_CORR_3_START,
+      POSITIVE_CORR_3_STEP,
+      POSITIVE_CORR_3_MODE
+    )
+    val noFilter1 = generateDoublesData(
+      rows,
+      NOFILTER_1_START,
+      NOFILTER_1_STEP,
+      NOFILTER_1_MODE
+    )
+    val noFilter2 = generateRepeatingIntData(
+      rows,
+      NOFILTER_2_START,
+      NOFILTER_2_STEP,
+      NOFILTER_2_MODE,
+      NOFILTER_2_DISTINCT_COUNT
+    )
+    val label = generateDoublesData(rows, LABEL_START, LABEL_STEP, LABEL_MODE)
+    val mlFlowIdData = generateMlFlowID(rows)
+
+    val seqData = for (i <- 0 until rows)
+      yield
+        PearsonRegressionTestSchema(
+          positiveCorr1(i),
+          positiveCorr2(i),
+          positiveCorr3(i),
+          noFilter1(i),
+          noFilter2(i),
+          label(i),
+          mlFlowIdData(i)
+        )
+
+    val rawData = seqData.toDF()
+
+    val featureCols =
+      rawData.schema.names
+        .filterNot(x => x.contains("label") || x.contains("automl_internal_id"))
+
+    val assembler =
+      new VectorAssembler().setInputCols(featureCols).setOutputCol("features")
+
+    (assembler.transform(rawData), featureCols)
+
   }
 
 }

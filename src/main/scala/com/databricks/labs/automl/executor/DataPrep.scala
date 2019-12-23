@@ -223,11 +223,12 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
   }
 
   private def pearsonFilter(data: DataFrame,
-                            fields: Array[String]): DataPrepReturn = {
+                            fields: Array[String],
+                            modelType: String): DataPrepReturn = {
 
     // Requires a Dataframe that has a feature vector field.  Output has no feature vector.
 
-    val pearsonFiltering = new PearsonFiltering(data, fields)
+    val pearsonFiltering = new PearsonFiltering(data, fields, modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFilterStatistic(_mainConfig.pearsonConfig.filterStatistic)
@@ -501,7 +502,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val (dataStage6, stage6Fields, stage6FullFields) =
       if (_mainConfig.pearsonFilteringFlag) {
 
-        val pearsonReturn = pearsonFilter(persistDataStage5, stage5Fields)
+        val pearsonReturn =
+          pearsonFilter(persistDataStage5, stage5Fields, detectedModelType)
 
         // Record the Inference Settings for Pearson Filtering
         InferenceConfig.setInferencePearsonFilteringConfig(

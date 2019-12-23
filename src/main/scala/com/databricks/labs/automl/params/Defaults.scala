@@ -222,9 +222,9 @@ trait Defaults {
   def _pearsonConfigDefaults = PearsonConfig(
     filterStatistic = "pearsonStat",
     filterDirection = "greater",
-    filterManualValue = 0.0,
+    filterManualValue = 1.0,
     filterMode = "auto",
-    autoFilterNTile = 0.75
+    autoFilterNTile = 0.99
   )
 
   def _covarianceConfigDefaults =

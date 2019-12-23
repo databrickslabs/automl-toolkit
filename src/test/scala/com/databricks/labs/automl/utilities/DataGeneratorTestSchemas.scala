@@ -28,3 +28,18 @@ case class VarianceTestSchema(a: Double,
                               d: Int,
                               label: Int,
                               automl_internal_id: Long)
+
+case class PearsonTestSchema(positiveCorr1: Int,
+                             positiveCorr2: Int,
+                             noFilter1: Double,
+                             noFilter2: Int,
+                             label: Int,
+                             automl_internal_id: Long)
+
+case class PearsonRegressionTestSchema(positiveCorr1: Double,
+                                       positiveCorr2: Double,
+                                       positiveCorr3: Int,
+                                       noFilter1: Double,
+                                       noFilter2: Int,
+                                       label: Double,
+                                       automl_internal_id: Long)

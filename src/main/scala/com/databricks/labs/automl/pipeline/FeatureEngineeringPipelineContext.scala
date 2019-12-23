@@ -71,6 +71,13 @@ object FeatureEngineeringPipelineContext {
     val secondTransformationDf =
       secondTransformationPipelineModel.transform(initialTransformationDf)
 
+    val modelDecider = secondTransformationPipelineModel.stages
+      .find(item => item.isInstanceOf[DataSanitizerTransformer])
+      .get
+    val decidedModel = modelDecider
+      .getOrDefault(modelDecider.getParam("decideModel"))
+      .asInstanceOf[String]
+
     val stages = new ArrayBuffer[PipelineStage]()
 
     // Apply Outlier Filtering
@@ -89,7 +96,10 @@ object FeatureEngineeringPipelineContext {
     )
 
     // Apply Pearson Filtering
-    getAndAddStage(stages, pearsonFilteringStage(mainConfig, vectorizedColumns))
+    getAndAddStage(
+      stages,
+      pearsonFilteringStage(mainConfig, vectorizedColumns, decidedModel)
+    )
 
     // Third Transformation
     var thirdPipelineModel =
@@ -103,12 +113,6 @@ object FeatureEngineeringPipelineContext {
           (mainConfig.labelCol + PipelineEnums.SI_SUFFIX.value).equals(item)
       )
 
-    val modelDecider = secondTransformationPipelineModel.stages
-      .find(item => item.isInstanceOf[DataSanitizerTransformer])
-      .get
-    val decidedModel = modelDecider
-      .getOrDefault(modelDecider.getParam("decideModel"))
-      .asInstanceOf[String]
     // Feature Interaction stages
     thirdPipelineModel = if (mainConfig.featureInteractionFlag) {
 
@@ -785,10 +789,12 @@ object FeatureEngineeringPipelineContext {
 
   private def pearsonFilteringStage(
     mainConfig: MainConfig,
-    featureCols: Array[String]
+    featureCols: Array[String],
+    modelType: String
   ): Option[PipelineStage] = {
     if (mainConfig.pearsonFilteringFlag) {
       val pearsonFilterTransformer = new PearsonFilterTransformer()
+        .setModelType(modelType)
         .setLabelColumn(mainConfig.labelCol)
         .setFeatureCol(mainConfig.featuresCol)
         .setAutoFilterNTile(mainConfig.pearsonConfig.autoFilterNTile)
