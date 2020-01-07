@@ -2,6 +2,7 @@ package com.databricks.labs.automl
 
 import com.databricks.labs.automl.utilities.{
   DataGeneratorUtilities,
+  FeatureCorrelationTestSchema,
   ModelDetectionSchema,
   NaFillTestSchema,
   OutlierTestSchema,
@@ -446,6 +447,115 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       new VectorAssembler().setInputCols(featureCols).setOutputCol("features")
 
     (assembler.transform(rawData), featureCols)
+
+  }
+
+  def generateFeatureCorrelationData(rows: Int): (DataFrame, Array[String]) = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+
+    /**
+      * A - 100% correlation in linear series
+      * B - 100% correlation in reverse ordering
+      * C - 2 of 3 correlated
+      * D - repeated categorical no correlation
+      */
+    val A1_START = 1.0
+    val A1_STEP = 1.0
+    val A1_MODE = "ascending"
+    val A2_START = 1.0
+    val A2_STEP = 1.0
+    val A2_MODE = "ascending"
+    val B1_START = 0
+    val B1_STEP = 5
+    val B1_MODE = "ascending"
+    val B2_START = 0
+    val B2_STEP = 5
+    val B2_MODE = "ascending"
+    val C1_START = 1.0
+    val C1_STEP = 3.0
+    val C1_MODE = "descending"
+    val C2_START = 1.0
+    val C2_STEP = 3.0
+    val C2_MODE = "ascending"
+    val C2_DISTINCT_COUNT = 5
+    val C3_START = 1.0
+    val C3_STEP = 3.0
+    val C3_MODE = "descending"
+    val C3_DISTINCT_COUNT = 5
+    val D1_START = 100L
+    val D1_STEP = 50L
+    val D1_MODE = "random"
+    val D2_START = 10L
+    val D2_STEP = 1L
+    val D2_MODE = "random"
+    val D2_DISTINCT_COUNT = 10
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "ascending"
+    val LABEL_DISTINCT_COUNT = 4
+
+    val a1 = generateDoublesData(rows, A1_START, A1_STEP, A1_MODE)
+    val a2 = generateDoublesData(rows, A2_START, A2_STEP, A2_MODE)
+    val b1 = generateIntData(rows, B1_START, B1_STEP, B1_MODE)
+    val b2 = generateIntData(rows, B2_START, B2_STEP, B2_MODE).map(x => x * -1)
+    val c1 = generateDoublesData(rows, C1_START, C1_STEP, C1_MODE)
+    val c2 = generateRepeatingDoublesData(
+      rows,
+      C2_START,
+      C2_STEP,
+      C2_MODE,
+      C2_DISTINCT_COUNT
+    )
+    val c3 = generateRepeatingDoublesData(
+      rows,
+      C3_START,
+      C3_STEP,
+      C3_MODE,
+      C3_DISTINCT_COUNT
+    )
+    val d1 = generateLongData(rows, D1_START, D1_STEP, D1_MODE)
+    val d2 = generateRepeatingLongData(
+      rows,
+      D2_START,
+      D2_STEP,
+      D2_MODE,
+      D2_DISTINCT_COUNT
+    )
+    val label = generateRepeatingIntData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT_COUNT
+    )
+    val mlFlowIdData = generateMlFlowID(rows)
+
+    val seqData = for (i <- 0 until rows)
+      yield
+        FeatureCorrelationTestSchema(
+          a1(i),
+          a2(i),
+          b1(i),
+          b2(i),
+          c1(i),
+          c2(i),
+          c3(i),
+          d1(i),
+          d2(i),
+          label(i),
+          mlFlowIdData(i)
+        )
+
+    val rawData = seqData.toDF()
+
+    val featureCols =
+      rawData.schema.names
+        .filterNot(x => x.contains("label") || x.contains("automl_internal_id"))
+
+    (rawData, featureCols)
 
   }
 

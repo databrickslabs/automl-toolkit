@@ -210,6 +210,41 @@ trait DataGeneratorUtilities {
   }
 
   /**
+    * Method for generating ordinal Double Data (repeating values)
+    * @param targetCount Total number of Doubles to generate in the series
+    * @param start Starting point for the repeating series
+    * @param step Distance between the repeating series values
+    * @param mode sorting mode for the repeating arrays
+    * @param distinctValues number of elements in the repeating series
+    * @return Array[Double] of Repeating Ordinal Doubles
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def generateRepeatingDoublesData(targetCount: Int,
+                                   start: Double,
+                                   step: Double,
+                                   mode: String,
+                                   distinctValues: Int): Array[Double] = {
+
+    val sortMode = getArrayMode(mode)
+    val subStopPoint = (distinctValues * step) + start - 1.0
+    val distinctArray = (start to subStopPoint by step).toArray
+    val sortedArray = sortMode match {
+      case ASC  => distinctArray.sortWith(_ < _)
+      case DESC => distinctArray.sortWith(_ > _)
+      case RAND => distinctArray
+    }
+    val outputArray = Array
+      .fill(targetCount / (sortedArray.length - 1))(sortedArray)
+      .flatten
+      .take(targetCount)
+
+    if (sortMode == RAND) Random.shuffle(outputArray.toList).toArray
+    else outputArray
+
+  }
+
+  /**
     * Method for generating synthetic float series data
     * @param targetCount Number of floats to generate
     * @param start Starting offset position
@@ -466,6 +501,41 @@ trait DataGeneratorUtilities {
       case (v, i) =>
         if ((i + nullOffset) % targetNullRate != 0.0) v else LONG_FILL
     }
+  }
+
+  /**
+    * Method for generating ordinal Long Data (repeating values)
+    * @param targetCount Total number of Longs to generate in the series
+    * @param start Starting point for the repeating series
+    * @param step Distance between the repeating series values
+    * @param mode sorting mode for the repeating arrays
+    * @param distinctValues number of elements in the repeating series
+    * @return Array[Long] of Repeating Ordinal Longs
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def generateRepeatingLongData(targetCount: Int,
+                                start: Long,
+                                step: Long,
+                                mode: String,
+                                distinctValues: Int): Array[Long] = {
+
+    val sortMode = getArrayMode(mode)
+    val subStopPoint = (distinctValues * step) + start - 1L
+    val distinctArray = (start to subStopPoint by step).toArray
+    val sortedArray = sortMode match {
+      case ASC  => distinctArray.sortWith(_ < _)
+      case DESC => distinctArray.sortWith(_ > _)
+      case RAND => distinctArray
+    }
+    val outputArray = Array
+      .fill(targetCount / (sortedArray.length - 1))(sortedArray)
+      .flatten
+      .take(targetCount)
+
+    if (sortMode == RAND) Random.shuffle(outputArray.toList).toArray
+    else outputArray
+
   }
 
   /**

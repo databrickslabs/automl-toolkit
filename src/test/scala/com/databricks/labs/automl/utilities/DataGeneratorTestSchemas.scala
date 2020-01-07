@@ -43,3 +43,15 @@ case class PearsonRegressionTestSchema(positiveCorr1: Double,
                                        noFilter2: Int,
                                        label: Double,
                                        automl_internal_id: Long)
+
+case class FeatureCorrelationTestSchema(a1: Double,
+                                        a2: Double,
+                                        b1: Int,
+                                        b2: Int,
+                                        c1: Double,
+                                        c2: Double,
+                                        c3: Double,
+                                        d1: Long,
+                                        d2: Long,
+                                        label: Double,
+                                        automl_internal_id: Long)
