@@ -1,6 +1,7 @@
 package com.databricks.labs.automl
 
 import com.databricks.labs.automl.utilities.{
+  CardinalityFilteringTestSchema,
   DataGeneratorUtilities,
   FeatureCorrelationTestSchema,
   ModelDetectionSchema,
@@ -389,7 +390,6 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
     val LABEL_START = 1
     val LABEL_STEP = 1
     val LABEL_MODE = "ascending"
-    val LABEL_DISTINCT_COUNT = 4
 
     val positiveCorr1 = generateDoublesData(
       rows,
@@ -556,6 +556,44 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
         .filterNot(x => x.contains("label") || x.contains("automl_internal_id"))
 
     (rawData, featureCols)
+
+  }
+
+  def generateCardinalityFilteringData(
+    rows: Int
+  ): (DataFrame, Array[String]) = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    val CATEGORICAL_FIELDS = Array("b", "c", "d")
+
+    import spark.implicits._
+
+    val A_START = 1.0
+    val A_STEP = 5.0
+    val A_MODE = "ascending"
+    val B_START = 1
+    val B_STEP = 1
+    val B_MODE = "ascending"
+    val B_DISTINCT_COUNT = 3
+    val C_START = 10L
+    val C_STEP = 10L
+    val C_MODE = "descending"
+    val C_DISTINCT_COUNT = 10
+    val D_DISTINCT_COUNT = 55
+
+    val a = generateDoublesData(rows, A_START, A_STEP, A_MODE)
+    val b =
+      generateRepeatingIntData(rows, B_START, B_STEP, B_MODE, B_DISTINCT_COUNT)
+    val c =
+      generateRepeatingLongData(rows, C_START, C_STEP, C_MODE, C_DISTINCT_COUNT)
+    val d = generateStringData(rows, D_DISTINCT_COUNT)
+
+    val seqData = for (i <- 0 until rows)
+      yield CardinalityFilteringTestSchema(a(i), b(i), c(i), d(i))
+    val data = seqData.toDF()
+
+    (data, CATEGORICAL_FIELDS)
 
   }
 

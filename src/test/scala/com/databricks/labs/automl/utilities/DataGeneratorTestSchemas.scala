@@ -55,3 +55,5 @@ case class FeatureCorrelationTestSchema(a1: Double,
                                         d2: Long,
                                         label: Double,
                                         automl_internal_id: Long)
+
+case class CardinalityFilteringTestSchema(a: Double, b: Int, c: Long, d: String)

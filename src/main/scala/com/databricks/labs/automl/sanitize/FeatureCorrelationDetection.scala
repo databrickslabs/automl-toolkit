@@ -170,7 +170,7 @@ class FeatureCorrelationDetection(data: DataFrame, fieldListing: Array[String])
     correlationResult.foreach(x => {
 
       if (!removeBuffer
-            .contains(x.primaryColumn) & groupData(x.primaryColumn) < 1.0) {
+            .contains(x.primaryColumn) && groupData(x.primaryColumn) < 1.0) {
         if (x.correlation >= _correlationCutoffHigh) {
           retainBuffer += x.primaryColumn
           removeBuffer += x.pairs.right
