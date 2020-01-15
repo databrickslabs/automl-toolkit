@@ -137,9 +137,10 @@ class SyntheticFeatureGenerator(data: DataFrame)
         if (targetCounts > 0) {
 
           RowGenerationConfig(x.labelValue, targetCounts)
-        }
+        } else RowGenerationConfig(x.labelValue, 0)
       }
-      .asInstanceOf[Array[RowGenerationConfig]]
+      .filter(x => x.targetCount > 0)
+
   }
 
   /**

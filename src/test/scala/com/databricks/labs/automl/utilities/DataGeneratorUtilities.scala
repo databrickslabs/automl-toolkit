@@ -786,4 +786,135 @@ trait DataGeneratorUtilities {
     Array.fill(targetCount)(value)
   }
 
+  /**
+    * Method for generating a classifier data set that has blocks of labels that will ensure significant separation
+    * wihtin the feature vectors created. (Useful for testing items such as KSampling)
+    * @param targetCount Number of elements to generate in each Array
+    * @param start Starting value of the distinct values
+    * @param step Distance between each of the distinct values
+    * @param mode How to handle the associations of the blocks (ascending, descending, or random)
+    * @param distinctValues Number of distinct elements to create within the Array
+    * @return Array[Int] of data (in blocks or random)
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def generateIntegerBlocks(targetCount: Int,
+                            start: Int,
+                            step: Int,
+                            mode: String,
+                            distinctValues: Int): Array[Int] = {
+
+    val sortMode = getArrayMode(mode)
+    val blockGenSize =
+      math.ceil(targetCount.toDouble / distinctValues.toDouble).toInt
+
+    val calculatedStop = start + (distinctValues * step)
+
+    sortMode match {
+      case ASC =>
+        (start to calculatedStop by step).toArray
+          .flatMap(x => Array.fill(blockGenSize)(x))
+      case DESC =>
+        (start to calculatedStop by step).toArray.reverse
+          .flatMap(x => Array.fill(blockGenSize)(x))
+      case RAND =>
+        Random
+          .shuffle(
+            (start to calculatedStop by step).toArray
+              .flatMap(x => Array.fill(blockGenSize)(x))
+              .toList
+          )
+          .toArray
+    }
+
+  }
+
+  /**
+    * Method for generating a skewed classification value for the label field to test out features such as KSampling and
+    * stratified split
+    * @param targetCount number of elements to generate in the Array
+    * @param start Starting value
+    * @param step distance between each block grouped value in the unique array
+    * @param mode whether to sort of the blocks, ascending or descending, or to randomize them after generation
+    * @param distinctValues number of unique values in the array
+    * @return Array[Int] for classification label column values
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def generateIntegerBlocksSkewed(targetCount: Int,
+                                  start: Int,
+                                  step: Int,
+                                  mode: String,
+                                  distinctValues: Int): Array[Int] = {
+
+    val sortMode = getArrayMode(mode)
+    val blockGenSize =
+      math.ceil(targetCount.toDouble / distinctValues.toDouble).toInt
+
+    val calculatedStop = start + (distinctValues * step)
+
+    var extractCount = targetCount
+
+    val data = (0 until distinctValues).toArray.flatMap(x => {
+      extractCount = extractCount / 2
+      Array.fill(extractCount)(start + (x * step))
+    })
+
+    val remainder = targetCount - data.length
+
+    sortMode match {
+      case ASC =>
+        Array.fill(remainder)(start) ++ data
+      case DESC =>
+        (Array.fill(remainder)(start) ++ data).reverse
+      case RAND =>
+        Random
+          .shuffle(Array.fill(remainder)(start).toList ++ data.toList)
+          .toArray
+    }
+
+  }
+
+  /**
+    * Method for generating a field of data with repeating blocks of Doubles
+    * @param targetCount Number of elements to generate in each Array
+    * @param start Starting value of the distinct values
+    * @param step Distance between each of the distinct values
+    * @param mode How to handle the associations of the blocks (ascending, descending, or random)
+    * @param distinctValues Number of distinct elements to create within the Array
+    * @return Array[Double] of data (in blocks or random)
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def generateDoublesBlocks(targetCount: Int,
+                            start: Double,
+                            step: Double,
+                            mode: String,
+                            distinctValues: Int): Array[Double] = {
+
+    val sortMode = getArrayMode(mode)
+    val blockGenSize =
+      math.ceil(targetCount.toDouble / distinctValues.toDouble).toInt
+
+    val calculatedStop = start + (distinctValues * step)
+
+    sortMode match {
+      case ASC =>
+        (start to calculatedStop by step).toArray
+          .flatMap(x => Array.fill(blockGenSize)(x))
+      case DESC =>
+        (start to calculatedStop by step).toArray.reverse
+          .flatMap(x => Array.fill(blockGenSize)(x))
+      case RAND =>
+        Random
+          .shuffle(
+            (start to calculatedStop by step).toArray
+              .flatMap(x => Array.fill(blockGenSize)(x))
+              .toList
+          )
+          .toArray
+    }
+
+  }
+
 }

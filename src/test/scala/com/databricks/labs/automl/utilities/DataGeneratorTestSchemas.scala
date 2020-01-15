@@ -57,3 +57,34 @@ case class FeatureCorrelationTestSchema(a1: Double,
                                         automl_internal_id: Long)
 
 case class CardinalityFilteringTestSchema(a: Double, b: Int, c: Long, d: String)
+
+case class SanitizerSchema(a: Double,
+                           b: Int,
+                           c: Long,
+                           d: String,
+                           e: Int,
+                           f: Boolean,
+                           label: String,
+                           automl_internal_id: Long)
+
+case class SanitizerSchemaRegressor(a: Double,
+                                    b: Int,
+                                    c: Long,
+                                    d: String,
+                                    e: Int,
+                                    f: Boolean,
+                                    label: Double,
+                                    automl_internal_id: Long)
+
+case class KSampleSchema(a: Double,
+                         b: Int,
+                         c: Double,
+                         label: Int,
+                         automl_internal_id: Long)
+
+case class FeatureInteractionSchema(a: Double,
+                                    b: Double,
+                                    c: Int,
+                                    d: String,
+                                    label: Double,
+                                    automl_internal_id: Long)

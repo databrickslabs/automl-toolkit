@@ -2,6 +2,7 @@ package com.databricks.labs.automl.feature.tools
 
 import com.databricks.labs.automl.feature.SyntheticFeatureBase
 import com.databricks.labs.automl.feature.structures.CardinalityPayload
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
 
@@ -34,9 +35,12 @@ class LabelValidation(data: DataFrame) extends SyntheticFeatureBase {
   @throws(classOf[RuntimeException])
   private def validateCardinalityCounts(grouped: DataFrame): Unit = {
 
+    val logger: Logger = Logger.getLogger(this.getClass)
+
     grouped.count() match {
       case x if x <= _cardinalityThreshold =>
-        println(
+        logger.log(
+          Level.INFO,
           s"Unique counts of label " +
             s"column ${_labelCol} : ${x.toString}"
         )

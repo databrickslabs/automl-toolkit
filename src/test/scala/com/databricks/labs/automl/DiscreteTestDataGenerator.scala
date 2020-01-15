@@ -4,11 +4,15 @@ import com.databricks.labs.automl.utilities.{
   CardinalityFilteringTestSchema,
   DataGeneratorUtilities,
   FeatureCorrelationTestSchema,
+  FeatureInteractionSchema,
+  KSampleSchema,
   ModelDetectionSchema,
   NaFillTestSchema,
   OutlierTestSchema,
   PearsonRegressionTestSchema,
   PearsonTestSchema,
+  SanitizerSchema,
+  SanitizerSchemaRegressor,
   VarianceTestSchema
 }
 import org.apache.spark.ml.feature.VectorAssembler
@@ -594,6 +598,164 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
     val data = seqData.toDF()
 
     (data, CATEGORICAL_FIELDS)
+
+  }
+
+  def generateSanitizerData(rows: Int, modelType: String): DataFrame = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+
+    val A_START = 1.0
+    val A_STEP = 2.0
+    val A_MODE = "descending"
+    val B_START = 1
+    val B_STEP = 1
+    val B_MODE = "ascending"
+    val B_DISTINCT_COUNT = 3
+    val C_START = 100L
+    val C_STEP = 100L
+    val C_MODE = "random"
+    val C_DISTINCT_COUNT = 500
+    val D_DISTINCT_COUNT = 12
+    val E_START = 1000
+    val E_STEP = 10
+    val E_MODE = "ascending"
+    val LABEL_DISTINCT_COUNT = 4
+    val LABEL_REGRESSION_START = 1.0
+    val LABEL_REGRESSION_STEP = 3.0
+    val LABEL_REGRESSION_MODE = "ascending"
+
+    val a = generateDoublesData(rows, A_START, A_STEP, A_MODE)
+    val b =
+      generateRepeatingIntData(rows, B_START, B_STEP, B_MODE, B_DISTINCT_COUNT)
+    val c =
+      generateRepeatingLongData(rows, C_START, C_STEP, C_MODE, C_DISTINCT_COUNT)
+    val d = generateStringData(rows, D_DISTINCT_COUNT)
+    val e = generateIntData(rows, E_START, E_STEP, E_MODE)
+    val f = generateBooleanData(rows)
+    val mlflow = generateMlFlowID(rows)
+
+    val label = generateStringData(rows, LABEL_DISTINCT_COUNT)
+    val labelRegression = generateDoublesData(
+      rows,
+      LABEL_REGRESSION_START,
+      LABEL_REGRESSION_STEP,
+      LABEL_REGRESSION_MODE
+    )
+
+    val output = modelType match {
+      case "classifier" =>
+        val seqData = for (i <- 0 until rows)
+          yield
+            SanitizerSchema(
+              a(i),
+              b(i),
+              c(i),
+              d(i),
+              e(i),
+              f(i),
+              label(i),
+              mlflow(i)
+            )
+        seqData.toDF()
+      case "regressor" =>
+        val seqData = for (i <- 0 until rows)
+          yield
+            SanitizerSchemaRegressor(
+              a(i),
+              b(i),
+              c(i),
+              d(i),
+              e(i),
+              f(i),
+              labelRegression(i),
+              mlflow(i)
+            )
+        seqData.toDF()
+    }
+
+    output
+  }
+
+  def generateKSampleData(rows: Int): DataFrame = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+
+    val A_START = 1.0
+    val A_STEP = 1.0
+    val A_MODE = "ascending"
+    val B_START = 1
+    val B_STEP = 1
+    val B_MODE = "descending"
+    val B_DISTINCT_COUNT = 4
+    val C_START = 10.0
+    val C_STEP = 10.0
+    val C_MODE = "ascending"
+    val C_DISTINCT_COUNT = 6
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "ascending"
+    val LABEL_DISTINCT_COUNT = 3
+    val mlflow = generateMlFlowID(rows)
+
+    val a = generateDoublesData(rows, A_START, A_STEP, A_MODE)
+    val b =
+      generateRepeatingIntData(rows, B_START, B_STEP, B_MODE, B_DISTINCT_COUNT)
+    val c =
+      generateDoublesBlocks(rows, C_START, C_STEP, C_MODE, C_DISTINCT_COUNT)
+    val label = generateIntegerBlocksSkewed(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT_COUNT
+    )
+
+    val seqData = for (i <- 0 until rows)
+      yield KSampleSchema(a(i), b(i), c(i), label(i), mlflow(i))
+
+    seqData.toDF()
+
+  }
+
+  def generateFeatureInteractionData(rows: Int): DataFrame = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+
+    val A_START = 10.0
+    val A_STEP = 10.0
+    val A_MODE = "descending"
+    val B_START = 1.0
+    val B_STEP = 0.1
+    val B_MODE = "ascending"
+    val C_START = 1
+    val C_STEP = 2
+    val C_MODE = "ascending"
+    val C_DISTINCT_COUNT = 5
+    val D_DISTINCT_COUNT = 42
+    val LABEL_START = 500.0
+    val LABEL_STEP = 1.0
+    val LABEL_MODE = "random"
+    val mlflow = generateMlFlowID(rows)
+
+    val a = generateDoublesData(rows, A_START, A_STEP, A_MODE)
+    val b = generateDoublesData(rows, B_START, B_STEP, B_MODE)
+    val c =
+      generateRepeatingIntData(rows, C_START, C_STEP, C_MODE, C_DISTINCT_COUNT)
+    val d = generateStringData(rows, D_DISTINCT_COUNT)
+    val label = generateDoublesData(rows, LABEL_START, LABEL_STEP, LABEL_MODE)
+
+    val seqData = for (i <- 0 until rows)
+      yield
+        FeatureInteractionSchema(a(i), b(i), c(i), d(i), label(i), mlflow(i))
+
+    seqData.toDF()
 
   }
 

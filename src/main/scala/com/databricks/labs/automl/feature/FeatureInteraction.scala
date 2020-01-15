@@ -103,8 +103,9 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     _fullDataVariance = scala.math.pow(
       df.select(_labelCol)
         .summary(VARIANCE_STATISTIC)
-        .collect()(0)
-        .getDouble(0),
+        .first()
+        .getAs[String](_labelCol)
+        .toDouble,
       2
     )
     this

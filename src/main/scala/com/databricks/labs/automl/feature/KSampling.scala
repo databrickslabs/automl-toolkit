@@ -2,9 +2,21 @@ package com.databricks.labs.automl.feature
 
 import java.util.{Calendar, Date}
 
-import com.databricks.labs.automl.feature.structures.{CentroidVectors, RowGenerationConfig, RowMapping, SchemaDefinitions, SchemaMapping, StructMapping}
+import com.databricks.labs.automl.feature.structures.{
+  CentroidVectors,
+  RowGenerationConfig,
+  RowMapping,
+  SchemaDefinitions,
+  SchemaMapping,
+  StructMapping
+}
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
-import org.apache.spark.ml.feature.{MaxAbsScaler, MinHashLSH, MinHashLSHModel, VectorAssembler}
+import org.apache.spark.ml.feature.{
+  MaxAbsScaler,
+  MinHashLSH,
+  MinHashLSHModel,
+  VectorAssembler
+}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
@@ -597,14 +609,15 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     val featureFieldsPayload = schemaPayload.features
       .map(x => x.fieldName)
       .flatMap(
-        y => schemaPayload.fullSchema.filter(z => z.fieldName.contains(y))
+        y => schemaPayload.fullSchema.filter(z => y.contains(z.fieldName))
       )
 
     // Perform casting by applying the original DataTypes to the feature vector fields.
-    featureFieldsPayload.foldLeft(dataFrame) {
-      case (accum, x) =>
-        accum.withColumn(x.fieldName, dataFrame(x.fieldName).cast(x.dfType))
-    }
+    featureFieldsPayload
+      .foldLeft(dataFrame) {
+        case (accum, x) =>
+          accum.withColumn(x.fieldName, dataFrame(x.fieldName).cast(x.dfType))
+      }
 
   }
 
@@ -664,32 +677,38 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
   case class MapTypeVal(colName: String, colValue: Column)
 
-  private def addDummyDataForIgnoredColumns(dataframe: DataFrame,
-                                            fieldsToIgnore: Array[StructField]): DataFrame = {
+  private def addDummyDataForIgnoredColumns(
+    dataframe: DataFrame,
+    fieldsToIgnore: Array[StructField]
+  ): DataFrame = {
     var newDataFrame: DataFrame = dataframe
 
     val dummyDate = new Date()
     val dummyTime = Calendar.getInstance().getTime
 
-    fieldsToIgnore.map(item => item.dataType match {
-        case StringType => MapTypeVal(item.name, lit("DUMMY"))
-        case IntegerType => MapTypeVal(item.name, lit(0))
-        case DoubleType => MapTypeVal(item.name, lit(0.0))
-        case FloatType => MapTypeVal(item.name, lit(0.0f))
-        case LongType => MapTypeVal(item.name, lit(0L))
-        case ByteType => MapTypeVal(item.name, lit("DUMMY".getBytes))
-        case BooleanType => MapTypeVal(item.name, lit(false))
-        case BinaryType => MapTypeVal(item.name, lit(0))
-        case DateType => MapTypeVal(item.name, lit(dummyDate))
-        case TimestampType => MapTypeVal(item.name, lit(dummyTime))
-        case _ =>
-          throw new UnsupportedOperationException(
-            s"Field '${item.name}' is of type ${item.dataType}, which is not supported."
-          )
+    fieldsToIgnore
+      .map(
+        item =>
+          item.dataType match {
+            case StringType    => MapTypeVal(item.name, lit("DUMMY"))
+            case IntegerType   => MapTypeVal(item.name, lit(0))
+            case DoubleType    => MapTypeVal(item.name, lit(0.0))
+            case FloatType     => MapTypeVal(item.name, lit(0.0f))
+            case LongType      => MapTypeVal(item.name, lit(0L))
+            case ByteType      => MapTypeVal(item.name, lit("DUMMY".getBytes))
+            case BooleanType   => MapTypeVal(item.name, lit(false))
+            case BinaryType    => MapTypeVal(item.name, lit(0))
+            case DateType      => MapTypeVal(item.name, lit(dummyDate))
+            case TimestampType => MapTypeVal(item.name, lit(dummyTime))
+            case _ =>
+              throw new UnsupportedOperationException(
+                s"Field '${item.name}' is of type ${item.dataType}, which is not supported."
+              )
+        }
+      )
+      .foreach { m: MapTypeVal =>
+        newDataFrame = newDataFrame.withColumn(m.colName, m.colValue)
       }
-    ).foreach{
-      m: MapTypeVal => newDataFrame = newDataFrame.withColumn(m.colName, m.colValue)
-    }
 
     newDataFrame
   }
@@ -708,12 +727,20 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     )
 
     // Get the schema information
-    val ignoredFieldsTypes = df.schema.fields.filter(field => conf.fieldsToIgnore.contains(field.name))
+    val ignoredFieldsTypes =
+      df.schema.fields.filter(field => conf.fieldsToIgnore.contains(field.name))
     val origSchema = df.schema.names
     val schemaMappings =
       generateSchemaInformationPayload(df.schema, collectedFieldsToIgnore)
 
-    val doublesSchema = generateDoublesSchema(df, collectedFieldsToIgnore.toList)
+    val labelColumnType =
+      schemaMappings.fullSchema
+        .filter(x => x.fieldName == _labelCol)
+        .head
+        .dfType
+
+    val doublesSchema =
+      generateDoublesSchema(df, collectedFieldsToIgnore.toList)
 
     // Scale the feature vector
     val scaled = scaleFeatureVector(df)
@@ -763,7 +790,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     addDummyDataForIgnoredColumns(returnfinalDf, ignoredFieldsTypes)
       .select(origSchema map col: _*)
       .withColumn(conf.syntheticCol, lit(true))
-
+      .withColumn(_labelCol, col(_labelCol).cast(labelColumnType))
 
   }
 
