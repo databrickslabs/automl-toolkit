@@ -7,6 +7,12 @@ import org.apache.spark.sql.DataFrame
 case class ColumnTypeData(name: String, dataType: String)
 case class VarianceData(labelValue: Double, variance: Double)
 case class EntropyData(labelValue: Double, entropy: Double)
+case class InteractionPayloadExtract(left: String,
+                                     leftDataType: String,
+                                     right: String,
+                                     rightDataType: String,
+                                     outputName: String,
+                                     score: Double)
 case class InteractionPayload(left: String,
                               leftDataType: String,
                               right: String,
@@ -19,12 +25,12 @@ case class InteractionResult(left: String,
                              score: Double)
 case class FeatureInteractionCollection(
   data: DataFrame,
-  interactionPayload: Array[InteractionPayload]
+  interactionPayload: Array[InteractionPayloadExtract]
 )
 case class FeatureInteractionOutputPayload(
   data: DataFrame,
   fullFeatureVectorColumns: Array[String],
-  interactionReport: Array[InteractionPayload]
+  interactionReport: Array[InteractionPayloadExtract]
 )
 case class NominalIndexCollection(name: String, indexCheck: Boolean)
 case class NominalDataCollection(data: DataFrame,
@@ -35,7 +41,7 @@ case class PipelineInteractionOutput(
   pipeline: Pipeline,
   data: DataFrame,
   fullFeatureVectorColumns: Array[String],
-  interactionReport: Array[InteractionPayload]
+  interactionReport: Array[InteractionPayloadExtract]
 )
 case class VectorAssemblyOutput(assembler: VectorAssembler, data: DataFrame)
 

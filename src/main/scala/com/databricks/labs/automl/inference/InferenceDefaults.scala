@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.inference
 
-import com.databricks.labs.automl.feature.structures.InteractionPayload
+import com.databricks.labs.automl.feature.structures.InteractionPayloadExtract
 import com.databricks.labs.automl.params.Defaults
 
 trait InferenceDefaults extends Defaults {
@@ -56,7 +56,7 @@ trait InferenceDefaults extends Defaults {
     PearsonFilteringConfig(fieldsRemoved = Array.empty[String])
 
   def _defaultInferenceFeatureInteractionConfig: FeatureInteractionConfig =
-    FeatureInteractionConfig(interactions = Array[InteractionPayload]())
+    FeatureInteractionConfig(interactions = Array[InteractionPayloadExtract]())
 
   def _defaultFeatureEngineeringConfig: FeatureEngineeringConfig =
     FeatureEngineeringConfig(

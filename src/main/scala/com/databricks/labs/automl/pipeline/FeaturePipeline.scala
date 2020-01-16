@@ -193,7 +193,7 @@ class FeaturePipeline(data: DataFrame, isInferenceRun: Boolean = false)
     val transformedData = createPipe
       .fit(dateTimeModData)
       .transform(dateTimeModData)
-      .select(fieldsToInclude map col: _*)
+      .select(fieldsToInclude ++ ignoreList map col: _*)
 
     val transformedExtract = if (fields.categoricalFields.contains(_labelCol)) {
       transformedData

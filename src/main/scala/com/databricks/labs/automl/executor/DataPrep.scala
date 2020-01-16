@@ -1,11 +1,13 @@
 package com.databricks.labs.automl.executor
 
-import com.databricks.labs.automl.feature.SyntheticFeatureGenerator
+import com.databricks.labs.automl.feature.{
+  FeatureInteraction,
+  SyntheticFeatureGenerator
+}
 import com.databricks.labs.automl.feature.structures.{
   FeatureInteractionOutputPayload,
-  InteractionPayload
+  InteractionPayloadExtract
 }
-import com.databricks.labs.automl.feature.FeatureInteraction
 import com.databricks.labs.automl.inference.{
   FeatureInteractionConfig,
   InferenceConfig,
@@ -555,7 +557,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       FeatureInteractionOutputPayload(
         persistDataStage6,
         stage6Fields,
-        Array[InteractionPayload]()
+        Array[InteractionPayloadExtract]()
       )
     }
 

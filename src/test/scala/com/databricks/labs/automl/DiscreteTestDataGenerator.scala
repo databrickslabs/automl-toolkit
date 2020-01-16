@@ -728,20 +728,26 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
 
     import spark.implicits._
 
-    val A_START = 10.0
-    val A_STEP = 10.0
-    val A_MODE = "descending"
+    val A_START = 0.0
+    val A_STEP = 0.1
+    val A_MODE = "ascending"
     val B_START = 1.0
-    val B_STEP = 0.1
+    val B_STEP = 1.0
     val B_MODE = "ascending"
     val C_START = 1
     val C_STEP = 2
     val C_MODE = "ascending"
-    val C_DISTINCT_COUNT = 5
-    val D_DISTINCT_COUNT = 42
-    val LABEL_START = 500.0
-    val LABEL_STEP = 1.0
-    val LABEL_MODE = "random"
+    val C_DISTINCT_COUNT = 3
+    val D_DISTINCT_COUNT = 9
+    val E_START = 1
+    val E_STEP = 1
+    val E_MODE = "descending"
+    val E_DISTINCT_COUNT = 5
+    val F_DISTINCT_COUNT = 7
+    val LABEL_START = 1
+    val LABEL_STEP = 1
+    val LABEL_MODE = "ascending"
+    val LABEL_DISTINCT_COUNT = 4
     val mlflow = generateMlFlowID(rows)
 
     val a = generateDoublesData(rows, A_START, A_STEP, A_MODE)
@@ -749,11 +755,29 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
     val c =
       generateRepeatingIntData(rows, C_START, C_STEP, C_MODE, C_DISTINCT_COUNT)
     val d = generateStringData(rows, D_DISTINCT_COUNT)
-    val label = generateDoublesData(rows, LABEL_START, LABEL_STEP, LABEL_MODE)
+    val e =
+      generateRepeatingIntData(rows, E_START, E_STEP, E_MODE, E_DISTINCT_COUNT)
+    val f = generateStringData(rows, F_DISTINCT_COUNT)
+    val label = generateRepeatingIntData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT_COUNT
+    )
 
     val seqData = for (i <- 0 until rows)
       yield
-        FeatureInteractionSchema(a(i), b(i), c(i), d(i), label(i), mlflow(i))
+        FeatureInteractionSchema(
+          a(i),
+          b(i),
+          c(i),
+          d(i),
+          e(i),
+          f(i),
+          label(i),
+          mlflow(i)
+        )
 
     seqData.toDF()
 

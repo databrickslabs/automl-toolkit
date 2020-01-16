@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.inference
 
-import com.databricks.labs.automl.feature.structures.InteractionPayload
+import com.databricks.labs.automl.feature.structures.InteractionPayloadExtract
 import com.databricks.labs.automl.params.{MLFlowConfig, ScalingConfig}
 import org.apache.spark.sql.DataFrame
 
@@ -44,7 +44,9 @@ case class CovarianceFilteringConfig(fieldsRemoved: Array[String])
 
 case class PearsonFilteringConfig(fieldsRemoved: Array[String])
 
-case class FeatureInteractionConfig(interactions: Array[InteractionPayload])
+case class FeatureInteractionConfig(
+  interactions: Array[InteractionPayloadExtract]
+)
 
 case class FeatureEngineeringConfig(
   naFillConfig: NaFillConfig,

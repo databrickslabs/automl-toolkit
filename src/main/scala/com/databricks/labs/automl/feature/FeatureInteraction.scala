@@ -236,16 +236,16 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
       case Optimistic =>
         getModelType(modelingType) match {
           case Regressor =>
-            percentageChangeLeft <= _targetInteractionPercentage * -1 | percentageChangeRight <= _targetInteractionPercentage * -1
+            percentageChangeLeft <= _targetInteractionPercentage * -100 | percentageChangeRight <= _targetInteractionPercentage * -100
           case Classifier =>
-            percentageChangeLeft >= _targetInteractionPercentage | percentageChangeRight >= _targetInteractionPercentage
+            percentageChangeLeft >= _targetInteractionPercentage * -100 | percentageChangeRight >= _targetInteractionPercentage * -100
         }
       case Strict =>
         getModelType(modelingType) match {
           case Regressor =>
-            percentageChangeLeft <= _targetInteractionPercentage * -1 & percentageChangeRight <= _targetInteractionPercentage * -1
+            percentageChangeLeft <= _targetInteractionPercentage * -100 & percentageChangeRight <= _targetInteractionPercentage * -100
           case Classifier =>
-            percentageChangeLeft >= _targetInteractionPercentage & percentageChangeRight >= _targetInteractionPercentage
+            percentageChangeLeft >= _targetInteractionPercentage * -100 & percentageChangeRight >= _targetInteractionPercentage * -100
         }
       case All => true
     }
@@ -267,7 +267,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     df: DataFrame,
     nominalFields: Array[String],
     continuousFields: Array[String]
-  ): Array[InteractionPayload] = {
+  ): Array[InteractionPayloadExtract] = {
 
     val modelType = getModelType(modelingType)
 
@@ -325,10 +325,11 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     candidateChecks.tasksupport = forkJoinTaskSupport
 
     candidateChecks.foreach { x =>
-      scoredCandidates += evaluateInteraction(df, x, totalRecordCount)
+      val interaction = evaluateInteraction(df, x, totalRecordCount)
+      scoredCandidates += interaction
     }
 
-    var interactionBuffer = ArrayBuffer[InteractionPayload]()
+    var interactionBuffer = ArrayBuffer[InteractionPayloadExtract]()
 
     // Iterate over the evaluations and determine whether to keep them
 
@@ -339,12 +340,13 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
             mergedParentScores(x.left),
             mergedParentScores(x.right)
           ))
-        interactionBuffer += InteractionPayload(
+        interactionBuffer += InteractionPayloadExtract(
           x.left,
           mergedParentScores(x.left).dataType,
           x.right,
           mergedParentScores(x.right).dataType,
-          x.interaction
+          x.interaction,
+          x.score
         )
 
     }
@@ -370,7 +372,17 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
     continuousFields: Array[String]
   ): FeatureInteractionCollection = {
 
-    val fieldsToCreate = generateCandidates(df, nominalFields, continuousFields)
+    val fieldsToCreatePrime =
+      generateCandidates(df, nominalFields, continuousFields)
+    val fieldsToCreate = fieldsToCreatePrime.map(x => {
+      InteractionPayload(
+        x.left,
+        x.leftDataType,
+        x.right,
+        x.rightDataType,
+        x.outputName
+      )
+    })
 
     var data = df
 
@@ -378,7 +390,7 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
       data = interactProduct(data, c)
     }
 
-    FeatureInteractionCollection(data, fieldsToCreate)
+    FeatureInteractionCollection(data, fieldsToCreatePrime)
 
   }
 
@@ -421,8 +433,17 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
       featureVectorColumn
     )
 
-    FeatureInteractionOutputPayload(
+    val outputData = restructureSchema(
       assemblerOutput.data,
+      df.schema.names,
+      vectorFields,
+      indexedInteractions.adjustedFields,
+      featureVectorColumn,
+      _labelCol
+    )
+
+    FeatureInteractionOutputPayload(
+      outputData,
       vectorFields ++ indexedInteractions.adjustedFields,
       candidatePayload.interactionPayload
     )
@@ -502,6 +523,43 @@ class FeatureInteraction(modelingType: String, retentionMode: String)
 
   }
 
+  /**
+    * Private method for enforcing re-ordering of the Dataframe that is returned to preserve the structure of the
+    * original dataframe before being passed to this module and to create appropriate placement of interacted features
+    * @param data DataFrame that has been interacted
+    * @param originalSchemaNames Names within the original schema
+    * @param originalFeatureNames Features that were originally contained in the vector prior to interaction
+    * @param interactedFields Fields that have been retained as interaction candidates
+    * @param featureCol feature column name
+    * @param labelCol label column name
+    * @return DataFrame in correct order
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def restructureSchema(data: DataFrame,
+                                originalSchemaNames: Array[String],
+                                originalFeatureNames: Array[String],
+                                interactedFields: Array[String],
+                                featureCol: String,
+                                labelCol: String): DataFrame = {
+
+    val startingFields = originalFeatureNames
+      .filterNot(x => x.contains(featureCol))
+      .filterNot(x => x.contains(labelCol))
+
+    val ignoredFields = originalSchemaNames
+      .filterNot(originalFeatureNames.contains)
+      .filterNot(x => x.contains(labelCol))
+      .filterNot(x => x.contains(featureCol))
+    val featureOrdered = startingFields.filterNot(ignoredFields.contains) ++ interactedFields
+    val orderedFields = featureOrdered ++ ignoredFields ++ Array(
+      featureCol,
+      labelCol
+    )
+    data.select(orderedFields map col: _*)
+
+  }
+
 }
 
 object FeatureInteraction {
@@ -559,7 +617,7 @@ object FeatureInteraction {
     continuousDiscretizerBucketCount: Int,
     parallelism: Int,
     targetInteractionPercentage: Double
-  ): Array[InteractionPayload] = {
+  ): Array[InteractionPayloadExtract] = {
     new FeatureInteraction(modelingType, retentionMode)
       .setLabelCol(labelCol)
       .setContinuousDiscretizerBucketCount(continuousDiscretizerBucketCount)

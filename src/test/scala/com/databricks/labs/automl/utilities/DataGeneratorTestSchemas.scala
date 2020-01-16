@@ -86,5 +86,7 @@ case class FeatureInteractionSchema(a: Double,
                                     b: Double,
                                     c: Int,
                                     d: String,
-                                    label: Double,
+                                    e: Int,
+                                    f: String,
+                                    label: Int,
                                     automl_internal_id: Long)

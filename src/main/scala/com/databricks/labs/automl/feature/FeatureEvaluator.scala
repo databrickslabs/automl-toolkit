@@ -59,7 +59,7 @@ object FeatureEvaluator extends FeatureInteractionBase {
       .collect()
       .map(r => EntropyData(r.get(0).toString.toDouble, r.getDouble(1)))
 
-    joinedEntropy.map(_.entropy).sum
+    joinedEntropy.map(_.entropy).sum / joinedEntropy.length.toDouble
 
   }
 
