@@ -63,6 +63,8 @@ object InferenceConfig extends InferenceDefaults {
   var _inferenceStandardScalerStdDevFlag: Boolean =
     _scalingConfigDefaults.standardScalerStdDevFlag
   var _inferenceScalerPNorm: Double = _scalingConfigDefaults.pNorm
+  var _inferenceFeatureInteractionConfig: FeatureInteractionConfig =
+    _defaultInferenceFeatureInteractionConfig
 
   def setInferenceConfigStorageLocation(value: String): this.type = {
     _inferenceConfigStorageLocation = value
@@ -258,17 +260,20 @@ object InferenceConfig extends InferenceDefaults {
       outlierFilteringConfig = _inferenceOutlierFilteringConfig,
       covarianceFilteringConfig = _inferenceCovarianceFilteringConfig,
       pearsonFilteringConfig = _inferencePearsonFilteringConfig,
-      scalingConfig = _inferenceScalingConfig
+      scalingConfig = _inferenceScalingConfig,
+      featureInteractionConfig = _inferenceFeatureInteractionConfig
     )
     setInferenceConfig()
     this
   }
 
   def setInferenceNaFillConfig(categoricalMap: Map[String, String],
-                               numericMap: Map[String, Double]): this.type = {
+                               numericMap: Map[String, Double],
+                               booleanMap: Map[String, Boolean]): this.type = {
     _inferenceNaFillConfig = NaFillConfig(
       categoricalColumns = categoricalMap,
-      numericColumns = numericMap
+      numericColumns = numericMap,
+      booleanColumns = booleanMap
     )
     setInferenceFeatureEngineeringConfig()
     this
@@ -316,6 +321,14 @@ object InferenceConfig extends InferenceDefaults {
       pNorm = _inferenceScalerPNorm
     )
     setInferenceConfig()
+    this
+  }
+
+  def setFeatureInteractionConfig(
+    value: FeatureInteractionConfig
+  ): this.type = {
+    _inferenceFeatureInteractionConfig = value
+    setInferenceFeatureEngineeringConfig()
     this
   }
 
@@ -452,6 +465,9 @@ object InferenceConfig extends InferenceDefaults {
     _inferenceStandardScalerStdDevFlag
 
   def getInferenceScalerPNorm: Double = _inferenceScalerPNorm
+
+  def getInferenceFeatureInteractionConfig: FeatureInteractionConfig =
+    _inferenceFeatureInteractionConfig
 
 }
 //object InferenceConfig extends InferenceConfig{

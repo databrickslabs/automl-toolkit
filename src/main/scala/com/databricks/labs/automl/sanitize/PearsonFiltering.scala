@@ -7,6 +7,7 @@ import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.ml.stat.ChiSquareTest
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.DoubleType
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -28,9 +29,16 @@ import scala.concurrent.forkjoin.ForkJoinPool
   *                             .setAutoFilterNTile(0.5)
   *                             .filterFields
   */
-class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String])
+class PearsonFiltering(df: DataFrame,
+                       featureColumnListing: Array[String],
+                       modelType: String)
     extends DataValidation
     with SanitizerDefaults {
+
+  private final val PRODUCT = "product"
+  private final val COV_VALUE = "cov_calculation"
+  private final val DEVIATION = "_deviation"
+  private final val SQUARED = "_squared"
 
   private var _labelCol: String = defaultLabelCol
   private var _featuresCol: String = defaultFeaturesCol
@@ -211,7 +219,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String])
     val determineCardinality = featuresCardinality()
 
     determineCardinality.foreach { x =>
-      if (x._2 < 10000) pearsonVectorBuffer += x._1
+      if (x._2 < 50) pearsonVectorBuffer += x._1
       else pearsonNonCategoricalBuffer += x._1
     }
 
@@ -322,12 +330,7 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String])
 
   }
 
-  /**
-    * Main entry point for Pearson Filtering
-    * @param ignoreFields Fields that will be ignored from running a Pearson filter against.
-    * @return
-    */
-  def filterFields(
+  private def filterClassifier(
     ignoreFields: Array[String] = Array.empty[String]
   ): DataFrame = {
 
@@ -346,6 +349,193 @@ class PearsonFiltering(df: DataFrame, featureColumnListing: Array[String])
     )
     val fieldListing = featureFields ::: List(_labelCol) ::: ignoreFields.toList ::: _pearsonNonCategoricalFields.toList
     df.select(fieldListing.map(col): _*)
+
+  }
+
+  /**
+    * Main entry point for Pearson Filtering
+    * @param ignoreFields Fields that will be ignored from running a Pearson filter against.
+    * @return
+    */
+  def filterFields(
+    ignoreFields: Array[String] = Array.empty[String]
+  ): DataFrame = {
+
+    // Perform check of regression vs classification
+    val uniqueLabelCounts = df
+      .select(_labelCol)
+      .agg(count(_labelCol).alias("uniques"))
+      .first()
+      .getAs[Long]("uniques")
+
+    modelType match {
+      case "classifier" => filterClassifier(ignoreFields)
+      case _            => filterRegressor(ignoreFields)
+    }
+
+  }
+
+  /**
+    * Method for manually filtering out values whose linear correlation coefficient is greater than the _filterManualValue setting.
+    * @param correlationData The mapping of each feature field's correlation and linear correlation coefficient valuest to the label
+    * @return Field names that have not been filtered out
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def regressorManualFilter(
+    correlationData: Map[String, (Double, Double)]
+  ): Array[String] = {
+
+    val fieldBuffer = new ArrayBuffer[String]
+    correlationData.keys.foreach { x =>
+      if (correlationData(x)._2 < _filterManualValue) fieldBuffer += x
+    }
+    fieldBuffer.toArray
+  }
+
+  /**
+    * Method for doing quantile filtering (using the autoFilterNTile in automatic mode to filter out features that
+    * show a linear correaltion coefficient that is greater than the autoFilterNTile value. (1.0 == perfect correlation)
+    * @param correlationData The mapping of each feature field's correlation and linear correlation coefficient values to the label
+    * @return Field names that have not been filtered out
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def regressionAutoFilter(
+    correlationData: Map[String, (Double, Double)]
+  ): Array[String] = {
+
+    val fieldBuffer = new ArrayBuffer[String]
+    correlationData.keys.foreach { x =>
+      if (correlationData(x)._2 < _autoFilterNTile) fieldBuffer += x
+    }
+    fieldBuffer.toArray
+  }
+
+  /**
+    * Method for filtering out a regression data set (detect extremely high collinearity in features compared to the label values
+    * @param ignoreFields Fields to ignore from the test
+    * @return Dataframe that has the highly correlated feature fields removed
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def filterRegressor(
+    ignoreFields: Array[String] = Array.empty[String]
+  ): DataFrame = {
+
+    val featureFields = _filterMode match {
+      case "manual" =>
+        regressorManualFilter(calculateRegressionCovariance(ignoreFields))
+      case _ =>
+        regressionAutoFilter(calculateRegressionCovariance(ignoreFields))
+    }
+
+    require(
+      featureFields.nonEmpty,
+      "All feature fields have been filtered out.  Adjust parameters."
+    )
+    val fieldListing = featureFields.toList ::: List(_labelCol) ::: ignoreFields.toList
+    df.select(fieldListing.map(col): _*)
+
+  }
+
+  /**
+    * Private method for calculating the covariance and linear correlation coefficient for each feature field to the label
+    * @param ignoreFields Fields to ignore in the analysis
+    * @return Map of [FieldName, (Covariance value, Linear Correlation Coefficient)
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def calculateRegressionCovariance(
+    ignoreFields: Array[String] = Array.empty[String]
+  ) = {
+
+    val summaryData = df
+      .select(featureColumnListing ++ Array(_labelCol) map col: _*)
+      .summary("mean")
+
+    val rowCount = df
+      .select(col(_labelCol))
+      .agg(count(_labelCol).alias(_labelCol))
+      .withColumn(_labelCol, col(_labelCol).cast(DoubleType))
+      .first()
+      .getAs[Double](_labelCol)
+
+    val meanValues =
+      summaryData.filter(col("summary") === "mean").drop("summary")
+    val meanData =
+      meanValues.first().getValuesMap[Double](meanValues.schema.fieldNames)
+
+    val buffer = new ArrayBuffer[Map[String, (Double, Double)]]
+
+    meanData.keys.foreach { x =>
+      if (x != _labelCol)
+        buffer += covarianceCalculation(x, meanData, rowCount)
+    }
+
+    buffer.result.flatten.toMap
+
+  }
+
+  /**
+    * Private method for calculating the coveriance and linear correlation coefficient between a field and the label
+    * @param field Field to compare
+    * @param avgMap Mapping of the average values of each field and the label (calculated only once)
+    * @param rowCount Double of the row count of the Dataframe (calculated only once)
+    * @return Map of FieldName -> (covariance, linear correlation coefficient)
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def covarianceCalculation(
+    field: String,
+    avgMap: Map[String, Double],
+    rowCount: Double
+  ): Map[String, (Double, Double)] = {
+
+    val tempDF = df
+      .withColumn(field, col(field).cast(DoubleType))
+      .select(field, _labelCol)
+      .withColumn(field + DEVIATION, col(field) - avgMap(field))
+      .withColumn(field + SQUARED, col(field) * col(field))
+      .withColumn(_labelCol + DEVIATION, col(_labelCol) - avgMap(_labelCol))
+      .withColumn(_labelCol + SQUARED, col(_labelCol) * col(_labelCol))
+      .withColumn(
+        COV_VALUE,
+        col(field + DEVIATION) * col(_labelCol + DEVIATION)
+      )
+      .withColumn(PRODUCT, col(field) * col(_labelCol))
+
+    val summed = tempDF
+      .agg(
+        sum(field).alias(field),
+        sum(_labelCol).alias(_labelCol),
+        sum(PRODUCT).alias(PRODUCT),
+        sum(COV_VALUE).alias(COV_VALUE),
+        sum(field + SQUARED).alias(field + SQUARED),
+        sum(_labelCol + SQUARED).alias(_labelCol + SQUARED)
+      )
+      .first()
+      .getValuesMap[Double](
+        Seq(
+          COV_VALUE,
+          field,
+          _labelCol,
+          PRODUCT,
+          _labelCol + SQUARED,
+          field + SQUARED
+        )
+      )
+
+    val linearCorrelationCoefficient = (summed(PRODUCT) - (summed(field) * summed(
+      _labelCol
+    ) / rowCount)) / math.sqrt(
+      (summed(field + SQUARED) - math
+        .pow(summed(field), 2.0) / rowCount) * (summed(_labelCol + SQUARED) - math
+        .pow(summed(_labelCol), 2.0) / rowCount)
+    )
+
+    Map(field -> (summed(COV_VALUE) / rowCount, linearCorrelationCoefficient))
+
   }
 
 }

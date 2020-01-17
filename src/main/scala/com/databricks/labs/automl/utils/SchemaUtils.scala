@@ -1,9 +1,13 @@
 package com.databricks.labs.automl.utils
 
 import com.databricks.labs.automl.pipeline.PipelineEnums
+import com.databricks.labs.automl.utils.structures.{
+  FieldDefinitions,
+  FieldTypes
+}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.{DataType, StructType}
+import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -14,62 +18,85 @@ object SchemaUtils {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
-  private def extractSchema(schema: StructType): List[(DataType, String)] = {
+//  private def extractSchema(schema: StructType): List[(DataType, String)] = {
+//
+//    var preParsedFields = new ListBuffer[(DataType, String)]
+//
+//    schema.map(x => preParsedFields += ((x.dataType, x.name)))
+//
+//    preParsedFields.result
+//  }
 
-    var preParsedFields = new ListBuffer[(DataType, String)]
-
-    schema.map(x => preParsedFields += ((x.dataType, x.name)))
-
-    preParsedFields.result
+  /**
+    * Method for extracting the data type and field name from the StructType of a DataFrame schema
+    * @param schema Schema of the DataFrame
+    * @return Array[FieldDefinitions] with the payload of (dataType: DataType, fieldName: String)
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def extractSchema(schema: StructType): Array[FieldDefinitions] = {
+    schema.map(x => FieldDefinitions(x.dataType, x.name)).toArray
   }
 
+  /**
+    * Standardized Type Extraction and assignment to different collections for handling of the various primitive types
+    * @param data DataFrame that is in need of analysis
+    * @param labelColumn Label Column of the DataFrame
+    * @return FieldTypes which contains the Lists of the column names based on their collective handling types
+    * @since 0.1.0
+    * @author Ben Wilson, DataBricks
+    * @throws UnsupportedOperationException if the data type seen in the DataFrame is not currently supported.
+    */
+  @throws(classOf[UnsupportedOperationException])
   def extractTypes(
-                    data: DataFrame,
-                    labelColumn: String
-                  ): (List[String], List[String], List[String], List[String]) = {
+    data: DataFrame,
+    labelColumn: String,
+    fieldsToIgnore: Array[String] = Array.empty[String]
+  ): FieldTypes = {
 
     val fieldExtraction = extractSchema(data.schema)
+      .filterNot(x => fieldsToIgnore.contains(x.fieldName))
 
-    //DEBUG
-    //println(s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}")
     logger.log(
       Level.DEBUG,
-      s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}"
+      s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x.fieldName).mkString(", ")}"
     )
 
-    var conversionFields = new ListBuffer[String]
+    var categoricalFields = new ListBuffer[String]
     var dateFields = new ListBuffer[String]
     var timeFields = new ListBuffer[String]
-    var vectorizableFields = new ListBuffer[String]
+    var numericFields = new ListBuffer[String]
+    var booleanFields = new ListBuffer[String]
 
     fieldExtraction.map(
       x =>
-        x._1.typeName match {
-          case "string"                    => conversionFields += x._2
-          case "integer"                   => vectorizableFields += x._2
-          case "double"                    => vectorizableFields += x._2
-          case "float"                     => vectorizableFields += x._2
-          case "long"                      => vectorizableFields += x._2
-          case "byte"                      => conversionFields += x._2
-          case "boolean"                   => vectorizableFields += x._2
-          case "binary"                    => vectorizableFields += x._2
-          case "date"                      => dateFields += x._2
-          case "timestamp"                 => timeFields += x._2
-          case z if z.take(7) == "decimal" => vectorizableFields += x._2
+        x.dataType.typeName match {
+          case "string"                    => categoricalFields += x.fieldName
+          case "integer"                   => numericFields += x.fieldName
+          case "double"                    => numericFields += x.fieldName
+          case "float"                     => numericFields += x.fieldName
+          case "long"                      => numericFields += x.fieldName
+          case "byte"                      => categoricalFields += x.fieldName
+          case "boolean"                   => booleanFields += x.fieldName
+          case "binary"                    => booleanFields += x.fieldName
+          case "date"                      => dateFields += x.fieldName
+          case "timestamp"                 => timeFields += x.fieldName
+          case z if z.take(7) == "decimal" => numericFields += x.fieldName
           case _ =>
             throw new UnsupportedOperationException(
-              s"Field '${x._2}' is of type ${x._1} which is not supported."
+              s"Field '${x.fieldName}' is of type ${x.dataType} (${x.dataType.typeName}) which is not supported."
             )
-        }
+      }
     )
 
-    vectorizableFields -= labelColumn
+    numericFields -= labelColumn
 
-    (
-      vectorizableFields.result,
-      conversionFields.result,
+    FieldTypes(
+      numericFields.result,
+      categoricalFields.result,
       dateFields.result,
-      timeFields.result
+      timeFields.result,
+      booleanFields.result
     )
   }
 
@@ -130,7 +157,6 @@ object SchemaUtils {
     list != null && list.nonEmpty
   }
 
-
   def isEmpty[A](list: Array[A]): Boolean = {
     list == null || list.isEmpty
   }
@@ -149,10 +175,13 @@ object SchemaUtils {
   }
 
   def generateMapFromKeysValues[T](keys: Array[String],
-                                values: Array[T]): Map[String, T] = {
-    assert(keys.length == values.length, "Keys and Values lists cannot be different in size")
-    var map = mutable.Map[String, T] ()
-    for((key, i) <- keys.view.zipWithIndex) {
+                                   values: Array[T]): Map[String, T] = {
+    assert(
+      keys.length == values.length,
+      "Keys and Values lists cannot be different in size"
+    )
+    var map = mutable.Map[String, T]()
+    for ((key, i) <- keys.view.zipWithIndex) {
       map += (key -> values(i))
     }
     map.toMap

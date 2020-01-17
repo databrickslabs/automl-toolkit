@@ -25,6 +25,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _scalingFlag: Boolean = _defaultScalingFlag
 
+  var _featureInteractionFlag: Boolean = _defaultFeatureInteractionFlag
+
   var _dataPrepCachingFlag: Boolean = _defaultDataPrepCachingFlag
 
   var _dataPrepParallelism: Int = _defaultDataPrepParallelism
@@ -127,6 +129,9 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   var _pNorm: Double = defaultPNorm
 
   var _scalingConfig: ScalingConfig = _scalingConfigDefaults
+
+  var _featureInteractionConfig: FeatureInteractionConfig =
+    _defaultFeatureInteractionConfig
 
   var _parallelism: Int = _geneticTunerDefaults.parallelism
 
@@ -317,6 +322,15 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _pipelineDebugFlag: Boolean = _defaultPipelineDebugFlag
 
+  var _featureInteractionRetentionMode: String =
+    _defaultFeatureInteractionConfig.retentionMode
+  var _featureInteractionContinuousDiscretizerBucketCount: Int =
+    _defaultFeatureInteractionConfig.continuousDiscretizerBucketCount
+  var _featureInteractionParallelism: Int =
+    _defaultFeatureInteractionConfig.parallelism
+  var _featureInteractionTargetInteractionPercentage: Double =
+    _defaultFeatureInteractionConfig.targetInteractionPercentage
+
   private def setConfigs(): this.type = {
     setMainConfig()
   }
@@ -467,6 +481,18 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def dataPrepCachingOff(): this.type = {
     _dataPrepCachingFlag = false
+    setConfigs()
+    this
+  }
+
+  def featureInteractionOn(): this.type = {
+    _featureInteractionFlag = true
+    setConfigs()
+    this
+  }
+
+  def featureInteractionOff(): this.type = {
+    _featureInteractionFlag = false
     setConfigs()
     this
   }
@@ -954,6 +980,113 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  /**
+    * Setter for determining the mode of operation for inclusion of interacted features.
+    * Modes are:
+    *   - all -> Includes all interactions between all features (after string indexing of categorical values)
+    *   - optimistic -> If the Information Gain / Variance, as compared to at least ONE of the parents of the interaction
+    *       is above the threshold set by featureInteractionTargetInteractionPercentage
+    *         (e.g. if IG of left parent is 0.5 and right parent is 0.9, with threshold set at 10, if the interaction
+    *         between these two parents has an IG of 0.42, it would be rejected, but if it was 0.46, it would be kept)
+    *   - strict -> the threshold percentage must be met for BOTH parents.
+    *         (in the above example, the IG for the interaction would have to be > 0.81 in order to be included in
+    *         the feature vector).
+    * @param value String -> one of: 'all', 'optimistic', or 'strict'
+    * @throws IllegalArgumentException if the specified value submitted is not permitted
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFeatureInteractionRetentionMode(value: String): this.type = {
+    require(
+      allowableFeatureInteractionModes.contains(value),
+      s"FeatureInteractionRetentionMode is invalid.  Must be one of: ${allowableFeatureInteractionModes
+        .mkString(", ")}"
+    )
+    _featureInteractionRetentionMode = value
+    setFeatureInteractionConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for determining the behavior of continuous feature columns.  In order to calculate Entropy for a continuous
+    * variable, the distribution must be converted to nominal values for estimation of per-split information gain.
+    * This setting defines how many nominal categorical values to create out of a continuously distributed feature
+    * in order to calculate Entropy.
+    * @param value Int -> must be greater than 1
+    * @throws IllegalArgumentException if the value specified is <= 1
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFeatureInteractionContinuousDiscretizerBucketCount(
+    value: Int
+  ): this.type = {
+    require(
+      value > 1,
+      s"FeatureInteractionContinuousDiscretizerBucketCount must be greater than 1."
+    )
+    _featureInteractionContinuousDiscretizerBucketCount = value
+    setFeatureInteractionConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for configuring the concurrent count for scoring of feature interaction candidates.
+    * Due to the nature of these operations, the configuration here may need to be set differently to that of
+    * the modeling and general feature engineering phases of the toolkit.  This is highly dependent on the row
+    * count of the data set being submitted.
+    * @param value Int -> must be greater than 0
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    * @throws IllegalArgumentException if the value is < 1
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFeatureInteractionParallelism(value: Int): this.type = {
+    require(
+      value >= 1,
+      s"FeatureInteractionParallelism must be set to a value >= 1."
+    )
+    _featureInteractionParallelism = value
+    setFeatureInteractionConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for establishing the minimum acceptable InformationGain or Variance allowed for an interaction
+    * candidate based on comparison to the scores of its parents.
+    * @param value Double in range of -inf -> inf
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFeatureInteractionTargetInteractionPercentage(
+    value: Double
+  ): this.type = {
+    _featureInteractionTargetInteractionPercentage = value
+    setFeatureInteractionConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Private setter for establishing the feature interaction configuration
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def setFeatureInteractionConfig(): this.type = {
+    _featureInteractionConfig = FeatureInteractionConfig(
+      retentionMode = _featureInteractionRetentionMode,
+      continuousDiscretizerBucketCount =
+        _featureInteractionContinuousDiscretizerBucketCount,
+      parallelism = _featureInteractionParallelism,
+      targetInteractionPercentage =
+        _featureInteractionTargetInteractionPercentage
+    )
+    this
+  }
+
   def setParallelism(value: Integer): this.type = {
     //TODO: FIND OUT WHAT THIS RESTRICTION NEEDS TO BE FOR PARALLELISM.
     require(
@@ -996,7 +1129,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setKSampleConfig: this.type = {
+  def setKSampleConfig(): this.type = {
 
     _kSampleConfig = KSampleConfig(
       syntheticCol = _syntheticCol,
@@ -1032,7 +1165,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setSyntheticCol(value: String): this.type = {
     _syntheticCol = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1046,7 +1179,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setKGroups(value: Int): this.type = {
     _kGroups = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1060,7 +1193,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setKMeansMaxIter(value: Int): this.type = {
     _kMeansMaxIter = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1082,7 +1215,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       s"KMeans tolerance value ${value.toString} is out of range.  Must be > 0."
     )
     _kMeansTolerance = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1103,7 +1236,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
         s"a valid mode of operation.  Must be one of: ${allowableKMeansDistanceMeasurements.mkString(", ")}"
     )
     _kMeansDistanceMeasurement = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1117,7 +1250,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setKMeansSeed(value: Long): this.type = {
     _kMeansSeed = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1131,7 +1264,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setKMeansPredictionCol(value: String): this.type = {
     _kMeansPredictionCol = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1147,7 +1280,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setLSHHashTables(value: Int): this.type = {
     _lshHashTables = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1162,7 +1295,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setLSHSeed(value: Long): this.type = {
     _lshSeed = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1176,7 +1309,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setLSHOutputCol(value: String): this.type = {
     _lshOutputCol = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1191,7 +1324,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setQuorumCount(value: Int): this.type = {
     _quorumCount = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1208,7 +1341,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setMinimumVectorCountToMutate(value: Int): this.type = {
     _minimumVectorCountToMutate = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1233,7 +1366,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
         s"Must be one of: ${allowableVectorMutationMethods.mkString(", ")} "
     )
     _vectorMutationMethod = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1258,7 +1391,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
         s"Must be one of: ${allowableMutationModes.mkString(", ")}"
     )
     _mutationMode = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1279,7 +1412,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       s"Mutation Value must be between 0 and 1. Value $value is not permitted."
     )
     _mutationValue = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1306,7 +1439,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
         s"Must be one of: ${allowableLabelBalanceModes.mkString(", ")}"
     )
     _labelBalanceMode = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1324,7 +1457,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setCardinalityThreshold(value: Int): this.type = {
     _cardinalityThreshold = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1348,7 +1481,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
         s"${value.toString} is not valid."
     )
     _numericRatio = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1364,7 +1497,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setNumericTarget(value: Int): this.type = {
     _numericTarget = value
-    setKSampleConfig
+    setKSampleConfig()
     setGeneticConfig()
     setConfigs()
     this
@@ -1372,7 +1505,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   def setTrainSplitChronologicalColumn(value: String): this.type = {
     _trainSplitChronologicalColumn = value
-    val ignoredFields: Array[String] = _fieldsToIgnoreInVector ++: Array(value)
+    val ignoredFields: Array[String] = _fieldsToIgnoreInVector ++ Array(value)
     setFieldsToIgnoreInVector(ignoredFields)
     _trainSplitColumnSet = true
     setGeneticConfig()
@@ -1922,6 +2055,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      featureInteractionFlag = _featureInteractionFlag,
       dataPrepCachingFlag = _dataPrepCachingFlag,
       dataPrepParallelism = _dataPrepParallelism,
       autoStoppingFlag = _autoStoppingFlag,
@@ -1939,6 +2073,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonConfig = _pearsonConfig,
       covarianceConfig = _covarianceConfig,
       scalingConfig = _scalingConfig,
+      featureInteractionConfig = _featureInteractionConfig,
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
@@ -2013,6 +2148,21 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _standardScalerMeanFlag = config.standardScalerMeanFlag
     _standardScalerStdDevFlag = config.standardScalerStdDevFlag
     _pNorm = config.pNorm
+
+    this
+  }
+
+  private def setFeatureInteractionConfig(
+    config: FeatureInteractionConfig
+  ): this.type = {
+
+    _featureInteractionConfig = config
+    _featureInteractionRetentionMode = config.retentionMode
+    _featureInteractionContinuousDiscretizerBucketCount =
+      config.continuousDiscretizerBucketCount
+    _featureInteractionParallelism = config.parallelism
+    _featureInteractionTargetInteractionPercentage =
+      config.targetInteractionPercentage
 
     this
   }
@@ -2130,6 +2280,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _covarianceFilterFlag = value.covarianceFilteringFlag
     _oneHotEncodeFlag = value.oneHotEncodeFlag
     _scalingFlag = value.scalingFlag
+    _featureInteractionFlag = value.featureInteractionFlag
     _dataPrepCachingFlag = value.dataPrepCachingFlag
     _dataPrepParallelism = value.dataPrepParallelism
     _autoStoppingFlag = value.autoStoppingFlag
@@ -2147,6 +2298,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     setPearsonConfig(value.pearsonConfig)
     setCovarianceConfig(value.covarianceConfig)
     setScalerConfig(value.scalingConfig)
+    setFeatureInteractionConfig(value.featureInteractionConfig)
     setGeneticConfig(value.geneticConfig)
     _mlFlowLoggingFlag = value.mlFlowLoggingFlag
     _mlFlowArtifactsFlag = value.mlFlowLogArtifactsFlag
@@ -2170,6 +2322,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      featureInteractionFlag = _featureInteractionFlag,
       dataPrepCachingFlag = _dataPrepCachingFlag,
       dataPrepParallelism = _dataPrepParallelism,
       autoStoppingFlag = _autoStoppingFlag,
@@ -2187,6 +2340,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonConfig = _pearsonConfig,
       covarianceConfig = _covarianceConfig,
       scalingConfig = _scalingConfig,
+      featureInteractionConfig = _featureInteractionConfig,
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
@@ -2220,6 +2374,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       covarianceFilteringFlag = _covarianceFilterFlag,
       oneHotEncodeFlag = _oneHotEncodeFlag,
       scalingFlag = _scalingFlag,
+      featureInteractionFlag = _featureInteractionFlag,
       dataPrepCachingFlag = _dataPrepCachingFlag,
       dataPrepParallelism = _dataPrepParallelism,
       autoStoppingFlag = _autoStoppingFlag,
@@ -2237,6 +2392,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       pearsonConfig = _pearsonConfig,
       covarianceConfig = _covarianceConfig,
       scalingConfig = _scalingConfig,
+      featureInteractionConfig = _featureInteractionConfig,
       geneticConfig = _geneticConfig,
       mlFlowLoggingFlag = _mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = _mlFlowArtifactsFlag,
@@ -2277,6 +2433,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getOneHotEncodingStatus: Boolean = _oneHotEncodeFlag
 
   def getScalingStatus: Boolean = _scalingFlag
+
+  def getFeatureInteractionStatus: Boolean = _featureInteractionFlag
 
   def getDataPrepCachingStatus: Boolean = _dataPrepCachingFlag
 
@@ -2369,6 +2527,20 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getPNorm: Double = _pNorm
 
   def getScalingConfig: ScalingConfig = _scalingConfig
+
+  def getFeatureInteractionConfig: FeatureInteractionConfig =
+    _featureInteractionConfig
+
+  def getFeatureInteractionRetentionMode: String =
+    _featureInteractionRetentionMode
+
+  def getFeatureInteractionContinuousDiscretizerBucketCount: Int =
+    _featureInteractionContinuousDiscretizerBucketCount
+
+  def getFeatureInteractionParallelism: Int = _featureInteractionParallelism
+
+  def getFeatureInteractionTargetInteractionPercentage: Double =
+    _featureInteractionTargetInteractionPercentage
 
   def getParallelism: Int = _parallelism
 

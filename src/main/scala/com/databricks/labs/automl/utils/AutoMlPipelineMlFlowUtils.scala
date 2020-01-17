@@ -25,7 +25,8 @@ object AutoMlPipelineMlFlowUtils {
   case class ConfigByPipelineIdOutput(mainConfig: MainConfig,
                                       mlFlowRunId: String)
 
-  def extractTopLevelColNames(schema: StructType) = schema.fields.map(field => field.name)
+  def extractTopLevelColNames(schema: StructType): Array[String] =
+    schema.fields.map(field => field.name)
 
   def getMainConfigByPipelineId(
     pipelineId: String

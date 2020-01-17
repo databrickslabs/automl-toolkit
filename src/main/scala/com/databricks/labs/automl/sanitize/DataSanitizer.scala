@@ -1,8 +1,13 @@
 package com.databricks.labs.automl.sanitize
 
+import com.databricks.labs.automl.exceptions.BooleanFieldFillException
 import com.databricks.labs.automl.inference.{NaFillConfig, NaFillPayload}
-import com.databricks.labs.automl.utils.DataValidation
-import org.apache.spark.ml.PipelineStage
+import com.databricks.labs.automl.utils.structures.FeatureEngineeringEnums.FeatureEngineeringEnums
+import com.databricks.labs.automl.utils.structures.{
+  FeatureEngineeringAllowables,
+  FeatureEngineeringEnums
+}
+import com.databricks.labs.automl.utils.{DataValidation, SchemaUtils}
 import org.apache.spark.ml.feature.StringIndexer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -185,19 +190,21 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
   private def refactorLabel(df: DataFrame, labelColumn: String): DataFrame = {
 
-    extractSchema(df.schema).foreach(
-      x =>
-        x._2 match {
-          case `labelColumn` =>
-            x._1 match {
-              case StringType  => labelValidationOn()
-              case BooleanType => labelValidationOn()
-              case BinaryType  => labelValidationOn()
-              case _           => None
-            }
-          case _ => None
-      }
-    )
+    SchemaUtils
+      .extractSchema(df.schema)
+      .foreach(
+        x =>
+          x.fieldName match {
+            case `labelColumn` =>
+              x.dataType match {
+                case StringType  => labelValidationOn()
+                case BooleanType => labelValidationOn()
+                case BinaryType  => labelValidationOn()
+                case _           => None
+              }
+            case _ => None
+        }
+      )
     if (_labelValidation) convertLabel(df) else df
   }
 
@@ -235,7 +242,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     val dfParts = df.rdd.partitions.length.toDouble
 //    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
-    val summaryParts = Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
+    val summaryParts =
+      Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {
       val colBatches = getBatches(columnList)
@@ -269,6 +277,64 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     summaryColumns.zip(summaryValues)
   }
 
+  private def getCategoricalFillType(value: String): FeatureEngineeringEnums = {
+
+    value match {
+      case "min" => FeatureEngineeringEnums.MIN
+      case "max" => FeatureEngineeringEnums.MAX
+    }
+
+  }
+
+  /**
+    * Boolean filling based on the filterCondition for categorical data (min or max)
+    * @param df DataFrame containing BooleanType fields that may have null values
+    * @param fieldList List of the Boolean Fields
+    * @param filterCondition The setting of whether to use min or max values based on the data to fill na's
+    * @return The fill config data for the Boolean type columns consisting of ColumnName, Boolean fill value
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    * @throws BooleanFieldFillException if the mode setting for selecting the fill value is not supported.
+    */
+  @throws(classOf[BooleanFieldFillException])
+  private def getBooleanFill(
+    df: DataFrame,
+    fieldList: List[String],
+    filterCondition: String
+  ): Array[(String, Boolean)] = {
+
+    val filterSelection = getCategoricalFillType(filterCondition)
+
+    fieldList
+      .map(x => {
+        val booleanFieldStats =
+          df.select(x)
+            .groupBy(x)
+            .agg(count(col(x)).alias(FeatureEngineeringEnums.COUNT_COL.value))
+
+        val sortedStats = filterSelection match {
+          case FeatureEngineeringEnums.MIN =>
+            booleanFieldStats
+              .orderBy(col(FeatureEngineeringEnums.COUNT_COL.value).asc)
+              .head(1)
+          case FeatureEngineeringEnums.MAX =>
+            booleanFieldStats
+              .orderBy(col(FeatureEngineeringEnums.COUNT_COL.value).desc)
+              .head(1)
+          case _ =>
+            throw BooleanFieldFillException(
+              x,
+              filterCondition,
+              FeatureEngineeringAllowables.ALLOWED_CATEGORICAL_FILL_MODES.values
+            )
+        }
+        (x, sortedStats.head.getBoolean(0))
+
+      })
+      .toArray
+
+  }
+
   /**
     * Helper method for extraction the fields types based on the schema and calculating the statistics to be used to
     * determine fill values for the columns.
@@ -280,15 +346,28 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     */
   private def payloadExtraction(df: DataFrame): NaFillPayload = {
 
-    val (numericFields, characterFields, dateFields, timeFields) =
-      extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
+    val typeExtract =
+      SchemaUtils.extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
 
     val numericPayload =
-      assemblePayload(df, numericFields, metricConversion(_numericFillStat))
+      assemblePayload(
+        df,
+        typeExtract.numericFields,
+        metricConversion(_numericFillStat)
+      )
     val characterPayload =
-      assemblePayload(df, characterFields, metricConversion(_characterFillStat))
+      assemblePayload(
+        df,
+        typeExtract.categoricalFields,
+        metricConversion(_characterFillStat)
+      )
+    val booleanPayload = getBooleanFill(
+      df,
+      typeExtract.booleanFields,
+      metricConversion(_characterFillStat)
+    )
 
-    NaFillPayload(characterPayload, numericPayload)
+    NaFillPayload(characterPayload, numericPayload, booleanPayload)
 
   }
 
@@ -371,7 +450,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     NaFillConfig(
       numericColumns = numericMapping,
-      categoricalColumns = characterMapping
+      categoricalColumns = characterMapping,
+      booleanColumns = payloads.boolean.toMap
     )
 
   }
@@ -386,20 +466,24 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     */
   private def blanketNAFill(df: DataFrame): NaFillConfig = {
 
-    val (numericFields, characterFields, dateFields, timeFields) =
-      extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
+    val payloadTypes =
+      SchemaUtils.extractTypes(df, _labelCol, _fieldsToIgnoreInVector)
 
     val characterBuffer = new ArrayBuffer[(String, Any)]
     val numericBuffer = new ArrayBuffer[(String, Any)]
 
-    numericFields.foreach(x => numericBuffer += ((x, _numericNABlanketFill)))
-    characterFields.foreach(
+    payloadTypes.numericFields.foreach(
+      x => numericBuffer += ((x, _numericNABlanketFill))
+    )
+    payloadTypes.categoricalFields.foreach(
       x => characterBuffer += ((x, _characterNABlanketFill))
     )
 
+    //TODO: update Boolean overrides.
     NaFillConfig(
       characterMapper(characterBuffer.toArray),
-      numericMapper(numericBuffer.toArray)
+      numericMapper(numericBuffer.toArray),
+      payloadTypes.booleanFields.map(x => (x, false)).toMap
     )
 
   }
@@ -423,7 +507,11 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
       x => buffer += ((x._1, _characterNABlanketFill))
     )
 
-    NaFillConfig(characterMapper(buffer.toArray), payloads.numericColumns)
+    NaFillConfig(
+      characterMapper(buffer.toArray),
+      payloads.numericColumns,
+      payloads.booleanColumns
+    )
 
   }
 
@@ -444,7 +532,11 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     payloads.numericColumns.map(x => buffer += ((x._1, _numericNABlanketFill)))
 
-    NaFillConfig(payloads.categoricalColumns, numericMapper(buffer.toArray))
+    NaFillConfig(
+      payloads.categoricalColumns,
+      numericMapper(buffer.toArray),
+      payloads.booleanColumns
+    )
 
   }
 
@@ -525,7 +617,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
 
     NaFillConfig(
       characterMapper(charBuffer.toArray),
-      numericMapper(numBuffer.toArray)
+      numericMapper(numBuffer.toArray),
+      payloads.booleanColumns.map(x => x._1 -> false)
     )
 
   }
@@ -569,15 +662,19 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
     decision
   }
 
-  def generateCleanData(naFillConfig: NaFillConfig = null, refactorLabelFlag: Boolean = true, decidedModel: String = ""): (DataFrame, NaFillConfig, String) = {
+  def generateCleanData(
+    naFillConfig: NaFillConfig = null,
+    refactorLabelFlag: Boolean = true,
+    decidedModel: String = ""
+  ): (DataFrame, NaFillConfig, String) = {
 
-    val preFilter = if(refactorLabelFlag) {
+    val preFilter = if (refactorLabelFlag) {
       refactorLabel(data, _labelCol)
     } else {
       data
     }
 
-    val fillMap = if(naFillConfig==null){
+    val fillMap = if (naFillConfig == null) {
       fillNA(preFilter)
     } else {
       naFillConfig
@@ -586,8 +683,10 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
       .fill(fillMap.numericColumns)
       .na
       .fill(fillMap.categoricalColumns)
+      .na
+      .fill(fillMap.booleanColumns)
 
-    if(decidedModel != null && decidedModel.nonEmpty) {
+    if (decidedModel != null && decidedModel.nonEmpty) {
       (filledData, fillMap, decidedModel)
     } else {
       (filledData, fillMap, decideModel())

@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.inference
 
 import com.databricks.labs.automl.executor.AutomationConfig
+import com.databricks.labs.automl.feature.structures.NominalIndexCollection
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize.Scaler
 import com.databricks.labs.automl.utils.{AutomationTools, DataValidation}
@@ -9,11 +10,12 @@ import ml.dmlc.xgboost4j.scala.spark.{
   XGBoostRegressionModel
 }
 import org.apache.spark.ml.classification._
-import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
 import org.apache.spark.ml.regression._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import com.databricks.labs.automl.inference.InferenceConfig._
+import org.apache.spark.ml.Pipeline
 
 class InferencePipeline(df: DataFrame)
     extends AutomationConfig
@@ -121,6 +123,61 @@ class InferencePipeline(df: DataFrame)
   }
 
   /**
+    * Private helper functionn for recreating the feature interaction fields that were specified during model creation
+    * @param payload Previous step payload of data, columns in feature vector, and all columns
+    * @return a new InferencePayload object that has the added feature interaction fields.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def createFeatureInteractions(
+    payload: InferencePayload
+  ): InferencePayload = {
+
+    // Interact the columns
+    val interactions =
+      _inferenceConfig.featureEngineeringConfig.featureInteractionConfig.interactions
+
+    var mutatingDataFrame = payload.data
+
+    for (c <- interactions) {
+      mutatingDataFrame =
+        mutatingDataFrame.withColumn(c.outputName, col(c.left) * col(c.right))
+    }
+
+    val parsedNames = interactions.map { x =>
+      (x.leftDataType, x.rightDataType) match {
+        case ("nominal", "nominal") =>
+          NominalIndexCollection(x.outputName, indexCheck = true)
+        case _ => NominalIndexCollection(x.outputName, indexCheck = false)
+      }
+    }
+
+    val nominalFields = parsedNames
+      .filter(x => x.indexCheck)
+      .map(x => x.name)
+
+    val indexers = nominalFields.map { x =>
+      new StringIndexer()
+        .setHandleInvalid("keep")
+        .setInputCol(x)
+        .setOutputCol(x + "_si")
+    }
+
+    val pipeline = new Pipeline().setStages(indexers).fit(mutatingDataFrame)
+
+    val adjustedFields = parsedNames.map { x =>
+      if (x.indexCheck) x.name + "_si" else x.name
+    }
+
+    createInferencePayload(
+      pipeline.transform(mutatingDataFrame),
+      payload.modelingColumns ++ adjustedFields,
+      payload.allColumns ++ adjustedFields
+    )
+
+  }
+
+  /**
     * Method for performing all configured FeatureEngineering tasks as set in the InferenceMainConfig
     * @param payload InferencePayload object
     * @return new InferencePayload object with all actions applied to the Dataframe and associated field listings
@@ -191,8 +248,14 @@ class InferencePipeline(df: DataFrame)
 
       } else covariancePayload
 
+    // Build the Interacted Features
+    val featureInteractionPayload =
+      if (_inferenceConfig.inferenceSwitchSettings.featureInteractionFlag) {
+        createFeatureInteractions(pearsonPayload)
+      } else pearsonPayload
+
     // Build the Feature Vector
-    val featureVectorPayload = createFeatureVector(pearsonPayload)
+    val featureVectorPayload = createFeatureVector(featureInteractionPayload)
 
     // OneHotEncoding
     val oneHotEncodedPayload =

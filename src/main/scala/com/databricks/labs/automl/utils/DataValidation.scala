@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.utils
 
-import org.apache.log4j.{Level, Logger}
+import org.apache.log4j.Logger
 import org.apache.spark.ml.feature.{
   OneHotEncoderEstimator,
   StringIndexer,
@@ -8,7 +8,6 @@ import org.apache.spark.ml.feature.{
 }
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{DataType, StructType}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -24,66 +23,6 @@ trait DataValidation {
 
   def invalidateSelection(value: String, allowances: Seq[String]): String = {
     s"${allowances.foldLeft("")((a, b) => a + " " + b)}"
-  }
-
-  def extractSchema(schema: StructType): List[(DataType, String)] = {
-
-    var preParsedFields = new ListBuffer[(DataType, String)]
-
-    schema.map(x => preParsedFields += ((x.dataType, x.name)))
-
-    preParsedFields.result
-  }
-
-  def extractTypes(
-    data: DataFrame,
-    labelColumn: String,
-    ignoreFields: Array[String]
-  ): (List[String], List[String], List[String], List[String]) = {
-
-    val fieldExtraction =
-      extractSchema(data.schema).filterNot(x => ignoreFields.contains(x._2))
-
-    logger.log(
-      Level.DEBUG,
-      s"EXTRACT TYPES field listing: ${fieldExtraction.map(x => x._2).mkString(", ")}"
-    )
-
-    var conversionFields = new ListBuffer[String]
-    var dateFields = new ListBuffer[String]
-    var timeFields = new ListBuffer[String]
-    var vectorizableFields = new ListBuffer[String]
-
-    fieldExtraction.map(
-      x =>
-        x._1.typeName match {
-          case "string"                    => conversionFields += x._2
-          case "integer"                   => vectorizableFields += x._2
-          case "double"                    => vectorizableFields += x._2
-          case "float"                     => vectorizableFields += x._2
-          case "long"                      => vectorizableFields += x._2
-          case "byte"                      => conversionFields += x._2
-          case "boolean"                   => vectorizableFields += x._2
-          case "binary"                    => vectorizableFields += x._2
-          case "date"                      => dateFields += x._2
-          case "timestamp"                 => timeFields += x._2
-          case z if z.take(7) == "decimal" => vectorizableFields += x._2
-          case _ =>
-            throw new UnsupportedOperationException(
-              s"Field '${x._2}' is of type ${x._1} which is not supported."
-            )
-      }
-    )
-
-    vectorizableFields -= labelColumn
-
-    (
-      vectorizableFields.result,
-      conversionFields.result,
-      dateFields.result,
-      timeFields.result
-    )
-
   }
 
   def oneHotEncodeStrings(

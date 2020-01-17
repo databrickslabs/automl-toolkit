@@ -88,7 +88,11 @@ case class FeatureEngineeringConfig(
   var numericNAFillMap: Map[String, AnyVal],
   var characterNABlanketFillValue: String,
   var numericNABlanketFillValue: Double,
-  var naFillMode: String
+  var naFillMode: String,
+  var featureInteractionRetentionMode: String,
+  var featureInteractionContinuousDiscretizerBucketCount: Int,
+  var featureInteractionParallelism: Int,
+  var featureInteractionTargetInteractionPercentage: Double
 )
 
 case class SwitchConfig(var naFillFlag: Boolean,
@@ -98,6 +102,7 @@ case class SwitchConfig(var naFillFlag: Boolean,
                         var covarianceFilterFlag: Boolean,
                         var oneHotEncodeFlag: Boolean,
                         var scalingFlag: Boolean,
+                        var featureInteractionFlag: Boolean,
                         var dataPrepCachingFlag: Boolean,
                         var autoStoppingFlag: Boolean,
                         var pipelineDebugFlag: Boolean)

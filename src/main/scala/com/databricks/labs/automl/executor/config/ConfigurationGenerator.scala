@@ -501,6 +501,42 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   /**
+    * Boolean switch for setting featureInteraction on.
+    * This setting will, in conjunction with the settings for featureInteraction elements in the config,
+    * perform pair-wise product interactions of all elements of the feature vector, retaining either all or some
+    * of those interactions for inclusion to the feature vector.
+    * For classification tasks, InformationGain is used as the metric to compare inclusion (for modes other than 'all')
+    * For regression tasks, Variance is used as the metric.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def featureInteractionOn(): this.type = {
+    _instanceConfig.switchConfig.featureInteractionFlag = true
+    this
+  }
+
+  /**
+    * Boolean switch for turning featureInteraction off
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def featureInteractionOff(): this.type = {
+    _instanceConfig.switchConfig.featureInteractionFlag = false
+    this
+  }
+
+  /**
+    * Setter for defining the state of the featureInteractionFlag
+    * @param value Boolean on/off
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFeatureInteractionFlag(value: Boolean): this.type = {
+    _instanceConfig.switchConfig.featureInteractionFlag = value
+    this
+  }
+
+  /**
     * Boolean switch for setting the Data Prep Caching On
     *
     * @note Default: On
@@ -980,6 +1016,92 @@ class ConfigurationGenerator(modelFamily: String,
       s"pNorm value: $value is invalid. Value must be greater than or equal to 1.0."
     )
     _instanceConfig.featureEngineeringConfig.scalingPNorm = value
+    this
+  }
+
+  /**
+    * Setter for determining the mode of operation for inclusion of interacted features.
+    * Modes are:
+    *   - all -> Includes all interactions between all features (after string indexing of categorical values)
+    *   - optimistic -> If the Information Gain / Variance, as compared to at least ONE of the parents of the interaction
+    *       is above the threshold set by featureInteractionTargetInteractionPercentage
+    *         (e.g. if IG of left parent is 0.5 and right parent is 0.9, with threshold set at 10, if the interaction
+    *         between these two parents has an IG of 0.42, it would be rejected, but if it was 0.46, it would be kept)
+    *   - strict -> the threshold percentage must be met for BOTH parents.
+    *         (in the above example, the IG for the interaction would have to be > 0.81 in order to be included in
+    *         the feature vector).
+    * @param value String -> one of: 'all', 'optimistic', or 'strict'
+    * @throws IllegalArgumentException if the specified value submitted is not permitted
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFeatureInteractionRetentionMode(value: String): this.type = {
+    validateMembership(
+      value,
+      allowableFeatureInteractionModes,
+      "featureInteractionRetentionMode"
+    )
+    _instanceConfig.featureEngineeringConfig.featureInteractionRetentionMode =
+      value
+    this
+  }
+
+  /**
+    * Setter for determining the behavior of continuous feature columns.  In order to calculate Entropy for a continuous
+    * variable, the distribution must be converted to nominal values for estimation of per-split information gain.
+    * This setting defines how many nominal categorical values to create out of a continuously distributed feature
+    * in order to calculate Entropy.
+    * @param value Int -> must be greater than 1
+    * @throws IllegalArgumentException if the value specified is <= 1
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFeatureInteractionContinuousDiscretizerBucketCount(
+    value: Int
+  ): this.type = {
+    require(
+      value > 1,
+      s"FeatureInteractionContinuousDiscretizerBucketCount must be greater than 1."
+    )
+    _instanceConfig.featureEngineeringConfig.featureInteractionContinuousDiscretizerBucketCount =
+      value
+    this
+  }
+
+  /**
+    * Setter for configuring the concurrent count for scoring of feature interaction candidates.
+    * Due to the nature of these operations, the configuration here may need to be set differently to that of
+    * the modeling and general feature engineering phases of the toolkit.  This is highly dependent on the row
+    * count of the data set being submitted.
+    * @param value Int -> must be greater than 0
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    * @throws IllegalArgumentException if the value is < 1
+    */
+  @throws(classOf[IllegalArgumentException])
+  def setFeatureInteractionParallelism(value: Int): this.type = {
+    require(
+      value >= 1,
+      s"FeatureInteractionParallelism must be set to a value >= 1."
+    )
+    _instanceConfig.featureEngineeringConfig.featureInteractionParallelism =
+      value
+    this
+  }
+
+  /**
+    * Setter for establishing the minimum acceptable InformationGain or Variance allowed for an interaction
+    * candidate based on comparison to the scores of its parents.
+    * @param value Double in range of -inf -> inf
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  def setFeatureInteractionTargetInteractionPercentage(
+    value: Double
+  ): this.type = {
+    _instanceConfig.featureEngineeringConfig.featureInteractionTargetInteractionPercentage =
+      value
     this
   }
 
@@ -1579,7 +1701,7 @@ class ConfigurationGenerator(modelFamily: String,
   def setTunerTrainSplitChronologicalColumn(value: String): this.type = {
     _instanceConfig.tunerConfig.tunerTrainSplitChronologicalColumn = value
     if (value.length > 0) {
-      val updatedFieldsToIgnore = genericConfig.fieldsToIgnoreInVector ++: Array(
+      val updatedFieldsToIgnore = genericConfig.fieldsToIgnoreInVector ++ Array(
         value
       )
       genericConfig.fieldsToIgnoreInVector = updatedFieldsToIgnore
@@ -2083,6 +2205,7 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       covarianceFilteringFlag = config.switchConfig.covarianceFilterFlag,
       oneHotEncodeFlag = config.switchConfig.oneHotEncodeFlag,
       scalingFlag = config.switchConfig.scalingFlag,
+      featureInteractionFlag = config.switchConfig.featureInteractionFlag,
       dataPrepCachingFlag = config.switchConfig.dataPrepCachingFlag,
       dataPrepParallelism = config.featureEngineeringConfig.dataPrepParallelism,
       autoStoppingFlag = config.switchConfig.autoStoppingFlag,
@@ -2144,6 +2267,16 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           config.featureEngineeringConfig.covarianceCorrelationCutoffLow,
         correlationCutoffHigh =
           config.featureEngineeringConfig.covarianceCorrelationCutoffHigh
+      ),
+      featureInteractionConfig = FeatureInteractionConfig(
+        retentionMode =
+          config.featureEngineeringConfig.featureInteractionRetentionMode,
+        continuousDiscretizerBucketCount =
+          config.featureEngineeringConfig.featureInteractionContinuousDiscretizerBucketCount,
+        parallelism =
+          config.featureEngineeringConfig.featureInteractionParallelism,
+        targetInteractionPercentage =
+          config.featureEngineeringConfig.featureInteractionTargetInteractionPercentage
       ),
       scalingConfig = ScalingConfig(
         scalerType = config.featureEngineeringConfig.scalingType,
@@ -2326,16 +2459,27 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         config.featureEngineeringConfig.modelSelectionDistinctThreshold,
       dateTimeConversionType = config.genericConfig.dateTimeConversionType,
       modelType = config.predictionType,
-      featureImportanceModelFamily = config.modelFamily
+      featureImportanceModelFamily = config.modelFamily,
+      featureInteractionFlag = config.switchConfig.featureInteractionFlag,
+      featureInteractionRetentionMode =
+        config.featureEngineeringConfig.featureInteractionRetentionMode,
+      featureInteractionContinuousDiscretizerBucketCount =
+        config.featureEngineeringConfig.featureInteractionContinuousDiscretizerBucketCount,
+      featureInteractionParallelism =
+        config.featureEngineeringConfig.featureInteractionParallelism,
+      featureInteractionTargetInteractionPercentage =
+        config.featureEngineeringConfig.featureInteractionTargetInteractionPercentage
     )
 
   }
 
   /**
-    *
-    * @param modelFamily
-    * @param predictionType
-    * @return
+    * Method for generating a default configuration if no overrides are specified
+    * @param modelFamily The model family (i.e. RandomForest) to generate a tuned model for
+    * @param predictionType The type of prediction being made (either classifier or regressor)
+    * @return MainConfig instance
+    * @since 0.4.0
+    * @author Ben Wilson, Databricks
     */
   def generateDefaultMainConfig(modelFamily: String,
                                 predictionType: String): MainConfig = {
@@ -2522,6 +2666,15 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       .setScalingFlag(
         config
           .getOrElse("scalingFlag", defaultMap("scalingFlag"))
+          .toString
+          .toBoolean
+      )
+      .setFeatureInteractionFlag(
+        config
+          .getOrElse(
+            "featureInteractionFlag",
+            defaultMap("featureInteractionFlag")
+          )
           .toString
           .toBoolean
       )
@@ -2791,6 +2944,41 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       .setScalingPNorm(
         config
           .getOrElse("scalingPNorm", defaultMap("scalingPNorm"))
+          .toString
+          .toDouble
+      )
+      .setFeatureInteractionRetentionMode(
+        config
+          .getOrElse(
+            "featureInteractionRetentionMode",
+            defaultMap("featureInteractionRetentionMode")
+          )
+          .toString
+      )
+      .setFeatureInteractionContinuousDiscretizerBucketCount(
+        config
+          .getOrElse(
+            "featureInteractionContinuousDiscretizerBucketCount",
+            defaultMap("featureInteractionContinuousDiscretizerBucketCount")
+          )
+          .toString
+          .toInt
+      )
+      .setFeatureInteractionParallelism(
+        config
+          .getOrElse(
+            "featureInteractionParallelism",
+            defaultMap("featureInteractionParallelism")
+          )
+          .toString
+          .toInt
+      )
+      .setFeatureInteractionTargetInteractionPercentage(
+        config
+          .getOrElse(
+            "featureInteractionTargetInteractionPercentage",
+            defaultMap("featureInteractionTargetInteractionPercentage")
+          )
           .toString
           .toDouble
       )

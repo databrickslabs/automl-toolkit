@@ -1,7 +1,18 @@
 package com.databricks.labs.automl.executor
 
-import com.databricks.labs.automl.feature.SyntheticFeatureGenerator
-import com.databricks.labs.automl.inference.{InferenceConfig, NaFillConfig}
+import com.databricks.labs.automl.feature.{
+  FeatureInteraction,
+  SyntheticFeatureGenerator
+}
+import com.databricks.labs.automl.feature.structures.{
+  FeatureInteractionOutputPayload,
+  InteractionPayloadExtract
+}
+import com.databricks.labs.automl.inference.{
+  FeatureInteractionConfig,
+  InferenceConfig,
+  NaFillConfig
+}
 import com.databricks.labs.automl.params.{
   DataGeneration,
   DataPrepReturn,
@@ -32,6 +43,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       s"\n Pearson Filter Flag: ${_mainConfig.pearsonFilteringFlag.toString}" +
       s"\n OneHotEncoding Flag: ${_mainConfig.oneHotEncodeFlag.toString}" +
       s"\n Scaling Flag: ${_mainConfig.scalingFlag.toString}" +
+      s"\n Feature Interaction Flag: ${_mainConfig.featureInteractionFlag.toString}" +
       s"\n Hyperspace Inference Flag: ${_mainConfig.geneticConfig.hyperSpaceInference.toString}" +
       s"\n First Generation Seed Mode: ${_mainConfig.geneticConfig.initialGenerationMode}" +
       s"\n MlFlow Logging Flag: ${_mainConfig.mlFlowLoggingFlag.toString}" +
@@ -110,7 +122,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
       } else {
         (
           data,
-          NaFillConfig(Map("" -> ""), Map("" -> 0.0)),
+          NaFillConfig(Map("" -> ""), Map("" -> 0.0), Map("" -> false)),
           naConfig.decideModel()
         )
       }
@@ -213,11 +225,12 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
   }
 
   private def pearsonFilter(data: DataFrame,
-                            fields: Array[String]): DataPrepReturn = {
+                            fields: Array[String],
+                            modelType: String): DataPrepReturn = {
 
     // Requires a Dataframe that has a feature vector field.  Output has no feature vector.
 
-    val pearsonFiltering = new PearsonFiltering(data, fields)
+    val pearsonFiltering = new PearsonFiltering(data, fields, modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFilterStatistic(_mainConfig.pearsonConfig.filterStatistic)
@@ -330,7 +343,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     // Record the Inference Settings for NaFillConfig mappings
     InferenceConfig.setInferenceNaFillConfig(
       fillMap.categoricalColumns,
-      fillMap.numericColumns
+      fillMap.numericColumns,
+      fillMap.booleanColumns
     )
 
     // uncache the main DataFrame, force the GC
@@ -490,7 +504,8 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     val (dataStage6, stage6Fields, stage6FullFields) =
       if (_mainConfig.pearsonFilteringFlag) {
 
-        val pearsonReturn = pearsonFilter(persistDataStage5, stage5Fields)
+        val pearsonReturn =
+          pearsonFilter(persistDataStage5, stage5Fields, detectedModelType)
 
         // Record the Inference Settings for Pearson Filtering
         InferenceConfig.setInferencePearsonFilteringConfig(
@@ -514,15 +529,87 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
     //DEBUG
     logger.log(Level.DEBUG, printSchema(persistDataStage6, "stage6").toString)
 
+    // Feature Interaction Stage
+    val featureInteractionResult = if (_mainConfig.featureInteractionFlag) {
+
+      val nominalFields = stage6Fields
+        .filter(x => x.takeRight(3) == "_si")
+        .filterNot(x => x.contains(_labelCol))
+
+      val continuousFields = stage6Fields
+        .diff(nominalFields)
+        .filterNot(_.contains(_labelCol))
+        .filterNot(_.contains(_featuresCol))
+
+      FeatureInteraction.interactFeatures(
+        persistDataStage6,
+        nominalFields,
+        continuousFields,
+        detectedModelType,
+        _mainConfig.featureInteractionConfig.retentionMode,
+        _labelCol,
+        _featuresCol,
+        _mainConfig.featureInteractionConfig.continuousDiscretizerBucketCount,
+        _mainConfig.featureInteractionConfig.parallelism,
+        _mainConfig.featureInteractionConfig.targetInteractionPercentage
+      )
+    } else {
+      FeatureInteractionOutputPayload(
+        persistDataStage6,
+        stage6Fields,
+        Array[InteractionPayloadExtract]()
+      )
+    }
+
+    // Log the Inference config elements for Feature Interactions
+    InferenceConfig.setFeatureInteractionConfig(
+      FeatureInteractionConfig(featureInteractionResult.interactionReport)
+    )
+
+    val (persistFeatureInteractionData, persistFeatureInteractionCount) =
+      if (_mainConfig.dataPrepCachingFlag && _mainConfig.featureInteractionFlag) {
+        dataPersist(
+          persistDataStage6,
+          featureInteractionResult.data,
+          cacheLevel,
+          unpersistBlock
+        )
+      } else {
+        (
+          featureInteractionResult.data,
+          "no count when data prep caching is disabled"
+        )
+      }
+
+    //DEBUG
+    logger.log(
+      Level.DEBUG,
+      printSchema(persistFeatureInteractionData, "featureInteractionStage").toString
+    )
+
     // OneHotEncoding Option
     val (dataStage65, stage65Fields, stage65FullFields) =
       if (_mainConfig.oneHotEncodeFlag) {
-        oneHotEncodeVector(persistDataStage6, stage6Fields, stage6FullFields)
-      } else (persistDataStage6, stage6Fields, stage6FullFields)
+        oneHotEncodeVector(
+          persistFeatureInteractionData,
+          featureInteractionResult.fullFeatureVectorColumns,
+          persistFeatureInteractionData.schema.names
+        )
+      } else
+        (
+          persistFeatureInteractionData,
+          featureInteractionResult.fullFeatureVectorColumns,
+          persistFeatureInteractionData.schema.names
+        )
 
     val (persistDataStage65, dataStage65RowCount) =
       if (_mainConfig.dataPrepCachingFlag && _mainConfig.oneHotEncodeFlag) {
-        dataPersist(persistDataStage6, dataStage65, cacheLevel, unpersistBlock)
+        dataPersist(
+          persistFeatureInteractionData,
+          dataStage65,
+          cacheLevel,
+          unpersistBlock
+        )
       } else {
         (dataStage65, "no count when data prep caching is disabled")
       }

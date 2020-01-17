@@ -74,6 +74,9 @@ trait Defaults {
   final val allowableMBORegressorTypes =
     List("XGBoost", "LinearRegression", "RandomForest")
 
+  final val allowableFeatureInteractionModes =
+    List("optimistic", "strict", "all")
+
   def _defaultModelingFamily: String = "RandomForest"
 
   def _defaultLabelCol: String = "label"
@@ -93,6 +96,8 @@ trait Defaults {
   def _defaultOneHotEncodeFlag: Boolean = false
 
   def _defaultScalingFlag: Boolean = false
+
+  def _defaultFeatureInteractionFlag: Boolean = false
 
   def _defaultDataPrepCachingFlag: Boolean = true
 
@@ -120,6 +125,13 @@ trait Defaults {
     permutationCount = 10,
     indexMixingMode = "linear",
     arraySeed = 42L
+  )
+
+  def _defaultFeatureInteractionConfig = FeatureInteractionConfig(
+    retentionMode = "optimistic",
+    continuousDiscretizerBucketCount = 10,
+    parallelism = 12,
+    targetInteractionPercentage = 10
   )
 
   def _defaultKSampleConfig: KSampleConfig = KSampleConfig(
@@ -210,9 +222,9 @@ trait Defaults {
   def _pearsonConfigDefaults = PearsonConfig(
     filterStatistic = "pearsonStat",
     filterDirection = "greater",
-    filterManualValue = 0.0,
+    filterManualValue = 1.0,
     filterMode = "auto",
-    autoFilterNTile = 0.75
+    autoFilterNTile = 0.99
   )
 
   def _covarianceConfigDefaults =
@@ -360,7 +372,8 @@ trait Defaults {
   def _modelTypeDefault = "RandomForest"
 
   def _mlFlowConfigDefaults: MLFlowConfig = {
-    val mlfloWLoggingConfig = InitDbUtils.getMlFlowLoggingConfig(_defaultMlFlowLoggingFlag)
+    val mlfloWLoggingConfig =
+      InitDbUtils.getMlFlowLoggingConfig(_defaultMlFlowLoggingFlag)
     MLFlowConfig(
       mlFlowTrackingURI = mlfloWLoggingConfig.mlFlowTrackingURI,
       mlFlowExperimentName = mlfloWLoggingConfig.mlFlowExperimentName,
@@ -397,6 +410,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    featureInteractionFlag = false,
     dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     dataPrepParallelism = _defaultDataPrepParallelism,
@@ -413,6 +427,7 @@ trait Defaults {
     outlierConfig = _outlierConfigDefaults,
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
+    featureInteractionConfig = _defaultFeatureInteractionConfig,
     scalingConfig = _scalingConfigDefaults,
     geneticConfig = _geneticTunerDefaults,
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
@@ -434,6 +449,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    featureInteractionFlag = false,
     dataPrepCachingFlag = true,
     autoStoppingFlag = _defaultAutoStoppingFlag,
     dataPrepParallelism = _defaultDataPrepParallelism,
@@ -451,6 +467,7 @@ trait Defaults {
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
     scalingConfig = _scalingConfigDefaults,
+    featureInteractionConfig = _defaultFeatureInteractionConfig,
     geneticConfig = GeneticConfig(
       parallelism = 20,
       kFold = 1,
@@ -505,6 +522,7 @@ trait Defaults {
     covarianceFilteringFlag = false,
     oneHotEncodeFlag = false,
     scalingFlag = false,
+    featureInteractionFlag = false,
     dataPrepCachingFlag = true,
     dateTimeConversionType = "split",
     autoStoppingFlag = _defaultAutoStoppingFlag,
@@ -522,6 +540,7 @@ trait Defaults {
     pearsonConfig = _pearsonConfigDefaults,
     covarianceConfig = _covarianceConfigDefaults,
     scalingConfig = _scalingConfigDefaults,
+    featureInteractionConfig = _defaultFeatureInteractionConfig,
     geneticConfig = GeneticConfig(
       parallelism = 20,
       kFold = 1,

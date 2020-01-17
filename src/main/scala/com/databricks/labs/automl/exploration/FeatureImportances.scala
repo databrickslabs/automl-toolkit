@@ -6,6 +6,7 @@ import com.databricks.labs.automl.exploration.structures.{
   FeatureImportanceReturn,
   FeatureImportanceTools
 }
+import com.databricks.labs.automl.feature.FeatureInteraction
 import com.databricks.labs.automl.model.{RandomForestTuner, XGBoostTuner}
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize.DataSanitizer
@@ -97,6 +98,51 @@ class FeatureImportances(data: DataFrame,
       override def fieldsInVector: Array[String] = vectorFields
 
       override def allFields: Array[String] = totalFields
+    }
+
+  }
+
+  /**
+    * Private method for interacting features to determine if they'll be useful in a model
+    * @param vectorPayload DataFrame payload with feature vector already created
+    * @return FeatureImportanceOutput with the DataFrame supporting potential additions to the feature vector
+    */
+  private def interactFeatures(
+    vectorPayload: FeatureImportanceOutput
+  ): FeatureImportanceOutput = {
+
+    val nominalFeatures = vectorPayload.fieldsInVector
+      .filter(x => x.takeRight(3) == "_si")
+      .filterNot(x => x.contains(config.labelCol))
+
+    val continuousFeatures = vectorPayload.fieldsInVector
+      .diff(nominalFeatures)
+      .filterNot(_.contains(config.labelCol))
+      .filterNot(_.contains(config.featuresCol))
+
+    val interaction = FeatureInteraction.interactFeatures(
+      vectorPayload.data,
+      nominalFeatures,
+      continuousFeatures,
+      config.modelType,
+      config.featureInteractionRetentionMode,
+      config.labelCol,
+      config.featuresCol,
+      config.featureInteractionContinuousDiscretizerBucketCount,
+      config.featureInteractionParallelism,
+      config.featureInteractionTargetInteractionPercentage
+    )
+
+    new FeatureImportanceOutput {
+      override def data: DataFrame = interaction.data
+
+      override def fieldsInVector: Array[String] =
+        interaction.fullFeatureVectorColumns
+
+      override def allFields: Array[String] =
+        interaction.data.schema.names
+          .filterNot(_.contains(config.labelCol))
+          .filterNot(_.contains(config.featuresCol))
     }
 
   }
@@ -304,8 +350,13 @@ class FeatureImportances(data: DataFrame,
     val cleanedData = fillNaValues()
 
     val vectorOutput = createFeatureVector(cleanedData)
+
+    val interactionSwitch = if (config.featureInteractionFlag) {
+      interactFeatures(vectorOutput)
+    } else vectorOutput
+
     val importances =
-      getImportances(vectorOutput.data, vectorOutput.fieldsInVector)
+      getImportances(interactionSwitch.data, interactionSwitch.fieldsInVector)
 
     val importancesDF = importances.toSeq
       .toDF(featureCol, importanceCol)
