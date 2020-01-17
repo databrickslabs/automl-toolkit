@@ -59,10 +59,11 @@ class FeatureCorrelationTest extends AbstractUnitSpec {
 
   it should "filter appropriate fields with removing positive correlation" in {
 
-    val INTENDED_FIELDS = Array("a1", "c3", "label", "automl_internal_id")
+    val INTENDED_FIELDS =
+      Array("a1", "c2", "d1", "d2", "label", "automl_internal_id")
 
     val filteredData =
-      generateFeatureCorrelation(0.0, -1.0).filterFeatureCorrelation()
+      generateFeatureCorrelation(0.1, -1.0).filterFeatureCorrelation()
 
     val schemaNames = filteredData.schema.names
     assert(
