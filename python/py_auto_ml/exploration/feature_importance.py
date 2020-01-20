@@ -1,28 +1,29 @@
 import json
 from pyspark.sql.functions import DataFrame
-from py_auto_ml.spark_singleton import SparkSingleton
+from py_auto_ml.local_spark_singleton import SparkSingleton
 
 
 class FeatureImportance:
     def __init__(self,
-                 model_family: str,
-                 prediction_type: str,
-                 df: DataFrame,
-                 cutoff_value: float,
-                 cutoff_type: str,
-                 overrides=None):
+                 # model_family: str,
+                 # prediction_type: str,
+                 # df: DataFrame,
+                 # cutoff_value: float,
+                 # cutoff_type: str,
+                 # overrides=None
+                 ):
         self.spark = SparkSingleton.get_instance()
         # Run feature importances
-        self._run_feature_importance(model_family,
-                                    prediction_type,
-                                    df,
-                                    cutoff_value,
-                                    cutoff_type,
-                                    overrides)
+        # self.run_feature_importance(model_family,
+        #                             prediction_type,
+        #                             df,
+        #                             cutoff_value,
+        #                             cutoff_type,
+        #                             overrides)
         # Get Returns as attributes of the class
-        self._bring_in_returns()
+        # self.bring_in_returns()
 
-    def _run_feature_importance(self,
+    def run_feature_importance(self,
                                model_family: str,
                                prediction_type: str,
                                df: DataFrame,
@@ -67,14 +68,18 @@ class FeatureImportance:
                                                                                                       cutoff_type,
                                                                                                       cutoff_value,
                                                                                                       default_flag)
+        self.feature_importance = True
 
-    def _bring_in_returns(self):
+    def bring_in_returns(self):
         """
 
         :return: importances dataframe with top X fields and feature importance measure based on algorithm
         :return: top_fields dataframe with the top X fields based on feature importance algorithm
         """
-        self.importances = self.spark.sql("select * from importances")
-        self.top_fields = self.spark.sql("select feature from importances")
+        if self.feature_importance != True:
+            raise Exception ("Please first generate feature importnaces by running `run_feature_importance`")
+        else:
+            self.importances = self.spark.sql("select * from importances")
+            self.top_fields = self.spark.sql("select feature from importances")
 
 

@@ -1,6 +1,6 @@
 import json
 from pyspark.sql.functions import DataFrame
-from py_auto_ml.spark_singleton import SparkSingleton
+from py_auto_ml.local_spark_singleton import SparkSingleton
 
 
 class AutomationRunner:
