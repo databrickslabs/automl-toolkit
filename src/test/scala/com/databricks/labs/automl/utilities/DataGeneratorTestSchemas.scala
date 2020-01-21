@@ -90,3 +90,17 @@ case class FeatureInteractionSchema(a: Double,
                                     f: String,
                                     label: Int,
                                     automl_internal_id: Long)
+
+case class ClassifierSchema(a: Double,
+                            b: Double,
+                            c: Int,
+                            d: String,
+                            e: Double,
+                            label: Int)
+
+case class RegressorSchema(a: Double,
+                           b: Double,
+                           c: Int,
+                           d: String,
+                           e: Double,
+                           label: Double)

@@ -44,7 +44,7 @@ trait Evolution
   var _seed: Long = _defaultSeed
   var _kFoldIteratorRange: scala.collection.parallel.immutable.ParRange =
     Range(0, _kFold).par
-
+  var _fieldsToIgnore = _defaultFieldsToIgnoreInVector
   var _optimizationStrategy: String = _defaultOptimizationStrategy
   var _firstGenerationGenePool: Int = _defaultFirstGenerationGenePool
   var _numberOfMutationGenerations: Int = _defaultNumberOfMutationGenerations
@@ -121,6 +121,11 @@ trait Evolution
 
   def setFeaturesCol(value: String): this.type = {
     _featureCol = value
+    this
+  }
+
+  def setFieldsToIgnore(value: Array[String]): this.type = {
+    _fieldsToIgnore = value
     this
   }
 
@@ -728,6 +733,8 @@ trait Evolution
   def getLabelCol: String = _labelCol
 
   def getFeaturesCol: String = _featureCol
+
+  def getFieldsToIgnore: Array[String] = _fieldsToIgnore
 
   def getTrainPortion: Double = _trainPortion
 

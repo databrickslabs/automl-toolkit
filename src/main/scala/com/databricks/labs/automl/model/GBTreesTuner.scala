@@ -3,7 +3,8 @@ package com.databricks.labs.automl.model
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
-  ModelReporting
+  ModelReporting,
+  ModelUtils
 }
 import com.databricks.labs.automl.params.{
   Defaults,
@@ -87,6 +88,26 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   def getClassificationMetrics: List[String] = classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  /**
+    * Private method for updating the maxBins setting for the tree algorithm to ensure that cardinality validation
+    * occurs for each nominal field in the feature vector to ensure that entnopy / information gain / gini calculations
+    * can be conducted correctly.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def resetNumericBoundaries: this.type = {
+
+    _gbtNumericBoundaries = ModelUtils.resetTreeBinsSearchSpace(
+      df,
+      _gbtNumericBoundaries,
+      _fieldsToIgnore,
+      _labelCol,
+      _featureCol
+    )
+    this
+
+  }
 
   private def resetClassificationMetrics: List[String] = modelSelection match {
     case "classifier" =>
@@ -445,6 +466,10 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   private def continuousEvolution(): Array[GBTModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    resetNumericBoundaries
+
+    if (modelSelection == "classifier")
+      ModelUtils.validateGBTClassifier(df, _labelCol)
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -602,6 +627,9 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   def evolveParameters(): Array[GBTModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    resetNumericBoundaries
+    if (modelSelection == "classifier")
+      ModelUtils.validateGBTClassifier(df, _labelCol)
 
     var generation = 1
     // Record of all generations results

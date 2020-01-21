@@ -179,7 +179,7 @@ trait ConfigurationDefaults {
   private def familyScoringCheck(predictionType: PredictionType): String = {
     predictionType match {
       case Regressor => "rmse"
-      case _         => "areaUnderROC"
+      case _         => "f1"
     }
   }
 
