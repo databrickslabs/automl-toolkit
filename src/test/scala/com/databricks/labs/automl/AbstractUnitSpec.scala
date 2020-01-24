@@ -155,7 +155,7 @@ object AutomationUnitTestsUtil {
       .outlierFilterOff()
       .pearsonFilterOff()
       .covarianceFilterOff()
-      .oneHotEncodingOn()
+      .oneHotEncodingOff()
       .scalingOn()
       .setStandardScalerMeanFlagOn()
       .setStandardScalerStdDevFlagOff()
@@ -163,10 +163,9 @@ object AutomationUnitTestsUtil {
       .mlFlowLogArtifactsOff()
       .autoStoppingOff()
       .setFilterPrecision(0.9)
-      .setParallelism(20)
+      .setParallelism(8)
       .setKFold(2)
       .setTrainPortion(0.70)
-      .setTrainSplitMethod("random")
       .setFirstGenerationGenePool(5)
       .setNumberOfGenerations(2)
       .setNumberOfParentsToRetain(2)
@@ -180,6 +179,8 @@ object AutomationUnitTestsUtil {
         AutomationUnitTestsUtil.getSerializablesToTmpLocation()
       )
       .setTrainSplitMethod("kSample")
+      .setLabelBalanceMode("match")
+
   }
 
   def getXgBoostConfig(inputDataset: DataFrame,

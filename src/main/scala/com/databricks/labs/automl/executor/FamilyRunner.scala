@@ -2,11 +2,21 @@ package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.exceptions.PipelineExecutionException
-import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
+import com.databricks.labs.automl.executor.config.{
+  ConfigurationGenerator,
+  InstanceConfig
+}
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline._
-import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowTracker}
-import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, SparkSessionWrapper}
+import com.databricks.labs.automl.tracking.{
+  MLFlowReportStructure,
+  MLFlowTracker
+}
+import com.databricks.labs.automl.utils.{
+  AutoMlPipelineMlFlowUtils,
+  PipelineMlFlowTagKeys,
+  SparkSessionWrapper
+}
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -67,7 +77,9 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     * @param outputArray output array of each modeling family's run
     * @return condensed report structure for all of the runs in a similar API return format.
     */
-  private def unifyFamilyOutput(outputArray: Array[FamilyOutput]): FamilyFinalOutput = {
+  private def unifyFamilyOutput(
+    outputArray: Array[FamilyOutput]
+  ): FamilyFinalOutput = {
 
     import spark.implicits._
 
@@ -80,7 +92,6 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
     outputArray.map { x =>
       x.modelReport.map { y =>
-
         val model = y.model
 
         modelReport += GroupedModelReturn(
@@ -158,25 +169,31 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     PipelineStateCache
       .addToPipelineCache(
         mainConfig.pipelineId,
-        PipelineVars.MAIN_CONFIG.key, mainConfig)
+        PipelineVars.MAIN_CONFIG.key,
+        mainConfig
+      )
   }
-
 
   private def addMlFlowConfigForPipelineUse(mainConfig: MainConfig) = {
     addMainConfigToPipelineCache(mainConfig)
-    if(mainConfig.mlFlowLoggingFlag) {
-      val mlFlowRunId = MLFlowTracker(mainConfig.mlFlowConfig).generateMlFlowRunId()
+    if (mainConfig.mlFlowLoggingFlag) {
+      val mlFlowRunId =
+        MLFlowTracker(mainConfig.mlFlowConfig).generateMlFlowRunId()
       PipelineStateCache
         .addToPipelineCache(
           mainConfig.pipelineId,
-          PipelineVars.MLFLOW_RUN_ID.key, mlFlowRunId)
+          PipelineVars.MLFLOW_RUN_ID.key,
+          mlFlowRunId
+        )
       AutoMlPipelineMlFlowUtils
         .logTagsToMlFlow(
           mainConfig.pipelineId,
-          Map(s"${PipelineMlFlowTagKeys.PIPELINE_ID}"
-            ->
-            mainConfig.pipelineId
-          ))
+          Map(
+            s"${PipelineMlFlowTagKeys.PIPELINE_ID}"
+              ->
+                mainConfig.pipelineId
+          )
+        )
       PipelineMlFlowProgressReporter.starting(mainConfig.pipelineId)
     }
   }
@@ -191,7 +208,8 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
     val outputBuffer = ArrayBuffer[FamilyOutput]()
 
-    val pipelineConfigMap = scala.collection.mutable.Map[String, (FeatureEngineeringOutput, MainConfig)]()
+    val pipelineConfigMap = scala.collection.mutable
+      .Map[String, (FeatureEngineeringOutput, MainConfig)]()
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
       val runner = new AutomationRunner(data).setMainConfig(mainConfiguration)
@@ -199,7 +217,8 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
       addMlFlowConfigForPipelineUse(mainConfiguration)
       try {
         //Get feature engineering pipeline and transform it to get feature engineered dataset
-        val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration)
+        val featureEngOutput = FeatureEngineeringPipelineContext
+          .generatePipelineModel(data, mainConfiguration)
         val featureEngineeredDf = featureEngOutput.transformedForTrainingDf
 
         val preppedDataOverride = DataGeneration(
@@ -208,13 +227,18 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
           featureEngOutput.decidedModel
         ).copy(modelType = x.predictionType)
 
-        val output = runner.executeTuning(preppedDataOverride, isPipeline = true)
+        val output =
+          runner.executeTuning(preppedDataOverride, isPipeline = true)
 
         outputBuffer += getNewFamilyOutPut(output, x)
         pipelineConfigMap += x.modelFamily -> (featureEngOutput, mainConfiguration)
       } catch {
         case ex: Exception => {
-          PipelineMlFlowProgressReporter.failed(mainConfiguration.pipelineId, ex.getMessage)
+          println(ex.printStackTrace())
+          PipelineMlFlowProgressReporter.failed(
+            mainConfiguration.pipelineId,
+            ex.getMessage
+          )
           throw PipelineExecutionException(mainConfiguration.pipelineId, ex)
         }
       }
@@ -232,40 +256,62 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     * @return Generates feature engineering pipeline for a given configuration under a given Model Family
     *         Note: It does not trigger any Model training.
     */
-  def generateFeatureEngineeredPipeline(verbose: Boolean = false): Map[String, PipelineModel] = {
-    val featureEngineeredMap = scala.collection.mutable.Map[String, PipelineModel]()
+  def generateFeatureEngineeredPipeline(
+    verbose: Boolean = false
+  ): Map[String, PipelineModel] = {
+    val featureEngineeredMap =
+      scala.collection.mutable.Map[String, PipelineModel]()
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
       addMainConfigToPipelineCache(mainConfiguration)
-      val featureEngOutput = FeatureEngineeringPipelineContext.generatePipelineModel(data, mainConfiguration, verbose, isFeatureEngineeringOnly = true)
-      val finalPipelineModel = FeatureEngineeringPipelineContext.addUserReturnViewStage(
-        featureEngOutput.pipelineModel,
-        mainConfiguration,
-        featureEngOutput.pipelineModel.transform(data),
-        featureEngOutput.originalDfViewName)
+      val featureEngOutput =
+        FeatureEngineeringPipelineContext.generatePipelineModel(
+          data,
+          mainConfiguration,
+          verbose,
+          isFeatureEngineeringOnly = true
+        )
+      val finalPipelineModel =
+        FeatureEngineeringPipelineContext.addUserReturnViewStage(
+          featureEngOutput.pipelineModel,
+          mainConfiguration,
+          featureEngOutput.pipelineModel.transform(data),
+          featureEngOutput.originalDfViewName
+        )
       featureEngineeredMap += x.modelFamily -> finalPipelineModel
     }
     featureEngineeredMap.toMap
   }
 
-  def withPipelineInferenceModel(familyFinalOutput: FamilyFinalOutput,
-                                 configs: Array[InstanceConfig],
-                                 pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)]):
-
-  FamilyFinalOutputWithPipeline = {
+  def withPipelineInferenceModel(
+    familyFinalOutput: FamilyFinalOutput,
+    configs: Array[InstanceConfig],
+    pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)]
+  ): FamilyFinalOutputWithPipeline = {
     val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
     val bestMlFlowRunIds = scala.collection.mutable.Map[String, String]()
     configs.foreach(config => {
-      val modelReport = familyFinalOutput.modelReport.filter(item => item.modelFamily.equals(config.modelFamily))
+      val modelReport = familyFinalOutput.modelReport.filter(
+        item => item.modelFamily.equals(config.modelFamily)
+      )
       pipelineModels += config.modelFamily -> FeatureEngineeringPipelineContext
         .buildFullPredictPipeline(
           pipelineConfigs(config.modelFamily)._1,
           modelReport,
           pipelineConfigs(config.modelFamily)._2,
-          data)
-      bestMlFlowRunIds += config.modelFamily -> familyFinalOutput.mlFlowReport(0).bestLog.runIdPayload(0)._1
+          data
+        )
+      bestMlFlowRunIds += config.modelFamily -> familyFinalOutput
+        .mlFlowReport(0)
+        .bestLog
+        .runIdPayload(0)
+        ._1
     })
-    FamilyFinalOutputWithPipeline(familyFinalOutput, pipelineModels.toMap, bestMlFlowRunIds.toMap)
+    FamilyFinalOutputWithPipeline(
+      familyFinalOutput,
+      pipelineModels.toMap,
+      bestMlFlowRunIds.toMap
+    )
   }
 }
 

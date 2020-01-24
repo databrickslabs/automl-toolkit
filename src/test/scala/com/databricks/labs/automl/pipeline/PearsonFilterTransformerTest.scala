@@ -40,6 +40,7 @@ class PearsonFilterTransformerTest extends AbstractUnitSpec {
       .setFilterManualValue(0)
       .setFilterMode("auto")
       .setFilterStatistic("pearsonStat")
+      .setModelType("classifier")
     val pearsonDf = PipelineTestUtils
       .saveAndLoadPipeline(
         stages.toArray,
@@ -47,9 +48,10 @@ class PearsonFilterTransformerTest extends AbstractUnitSpec {
         "pearson-filter-pipeline"
       )
       .transform(testVars.df)
+
     assert(
-      pearsonDf.columns.length == 6,
-      "PearsonFilterTransformer should have retained only 6 columns"
+      pearsonDf.columns.length == 8,
+      "PearsonFilterTransformer should have retained only 8 columns"
     )
   }
 }

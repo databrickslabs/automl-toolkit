@@ -2070,7 +2070,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
       logger.log(Level.INFO, pretty)
       mlFlowResult
-    } else if (isPipeline) {
+    } else if (isPipeline && _mainConfig.mlFlowLoggingFlag) {
       logPipelineResultsToMlFlow(
         genericResultData,
         _mainConfig.modelFamily,
@@ -2318,9 +2318,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
 
+    val cleanedData = _mainConfig.geneticConfig.trainSplitMethod match {
+      case "kSample" =>
+        runResults.rawData
+          .filter(
+            col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+          )
+          .drop(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      case _ => runResults.rawData
+    }
+
     val predictedData = predictFromBestModel(
       runResults.modelReport,
-      runResults.rawData,
+      cleanedData,
       runResults.modelSelection
     )
 
@@ -2375,9 +2385,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val tunerResult = executeTuning(prepData())
 
+    val cleanedData = _mainConfig.geneticConfig.trainSplitMethod match {
+      case "kSample" =>
+        tunerResult.rawData
+          .filter(
+            col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+          )
+          .drop(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      case _ => tunerResult.rawData
+    }
+
     val predictedData = predictFromBestModel(
       tunerResult.modelReport,
-      tunerResult.rawData,
+      cleanedData,
       tunerResult.modelSelection
     )
 

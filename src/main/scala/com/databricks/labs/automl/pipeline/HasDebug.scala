@@ -1,9 +1,10 @@
 package com.databricks.labs.automl.pipeline
 
-import com.databricks.labs.automl.params.{MLFlowConfig, MainConfig}
-import com.databricks.labs.automl.pipeline.PipelineVars.PIPELINE_LABEL_REFACTOR_NEEDED_KEY
-import com.databricks.labs.automl.tracking.MLFlowTracker
-import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, PipelineStatus}
+import com.databricks.labs.automl.params.MainConfig
+import com.databricks.labs.automl.utils.{
+  AutoMlPipelineMlFlowUtils,
+  PipelineStatus
+}
 import org.apache.log4j.Logger
 import org.apache.spark.ml.param.{BooleanParam, Param, Params}
 import org.apache.spark.sql.Dataset
@@ -17,7 +18,8 @@ trait HasDebug extends Params {
 
   @transient private val logger: Logger = Logger.getLogger(this.getClass)
 
-  final val isDebugEnabled: BooleanParam = new BooleanParam(this, "isDebugEnabled", "Debug option flag")
+  final val isDebugEnabled: BooleanParam =
+    new BooleanParam(this, "isDebugEnabled", "Debug option flag")
 
   def setDebugEnabled(value: Boolean): this.type = set(isDebugEnabled, value)
 
@@ -26,23 +28,25 @@ trait HasDebug extends Params {
   def logTransformation(inputDataset: Dataset[_],
                         outputDataset: Dataset[_],
                         stageExecutionTime: Long): Unit = {
-    if(getDebugEnabled) {
-      val stageExecTime = if(stageExecutionTime < 1000) {
+    if (getDebugEnabled) {
+      val stageExecTime = if (stageExecutionTime < 1000) {
         s"$stageExecutionTime ms"
       } else {
-        s"${stageExecutionTime.toDouble/1000} seconds"
+        s"${stageExecutionTime.toDouble / 1000} seconds"
       }
-      val pipelineId = paramValueAsString(this.extractParamMap().get(this.getParam("pipelineId")).get)
-        .asInstanceOf[String]
-      val mainCOnfig = PipelineStateCache
-        .getFromPipelineByIdAndKey(
-          pipelineId,
-          PipelineVars.MAIN_CONFIG.key)
+      val pipelineId = paramValueAsString(
+        this
+          .extractParamMap()
+          .get(this.getParam("pipelineId"))
+          .get
+      ).asInstanceOf[String]
+      val mainConfig = PipelineStateCache
+        .getFromPipelineByIdAndKey(pipelineId, PipelineVars.MAIN_CONFIG.key)
         .asInstanceOf[MainConfig]
       //Log Dfs counts
-      val countLog = if(mainCOnfig.dataPrepCachingFlag) {
+      val countLog = if (mainConfig.dataPrepCachingFlag) {
         s"Input dataset count: ${inputDataset.count()} \n " +
-        s"Output dataset count: ${outputDataset.count()} \n "
+          s"Output dataset count: ${outputDataset.count()} \n "
       } else {
         ""
       }
@@ -64,25 +68,36 @@ trait HasDebug extends Params {
         PipelineStateCache
           .getFromPipelineByIdAndKey(
             pipelineId,
-            PipelineVars.PIPELINE_STATUS.key)
+            PipelineVars.PIPELINE_STATUS.key
+          )
           .asInstanceOf[String]
       } catch {
         case ex: Exception => PipelineStatus.PIPELINE_FAILED.key
       }
-      val isTrain = !pipelineStatus.equals(PipelineStatus.PIPELINE_COMPLETED.key) &&
-                    !pipelineStatus.equals(PipelineStatus.PIPELINE_FAILED.key)
-      if(!inputDataset.sparkSession.sparkContext.isLocal && isTrain) {
+      val isTrain = !pipelineStatus.equals(
+        PipelineStatus.PIPELINE_COMPLETED.key
+      ) &&
+        !pipelineStatus.equals(PipelineStatus.PIPELINE_FAILED.key)
+      if (!inputDataset.sparkSession.sparkContext.isLocal && isTrain) {
         AutoMlPipelineMlFlowUtils
-          .logTagsToMlFlow(pipelineId, Map(s"pipeline_stage_${this.getClass.getName}" -> logStrng))
-        PipelineMlFlowProgressReporter.runningStage(pipelineId, this.getClass.getName)
+          .logTagsToMlFlow(
+            pipelineId,
+            Map(s"pipeline_stage_${this.getClass.getName}" -> logStrng)
+          )
+        PipelineMlFlowProgressReporter.runningStage(
+          pipelineId,
+          this.getClass.getName
+        )
       }
     }
   }
 
   private def paramsAsString(params: Array[Param[_]]): String = {
-    params.map { param =>
-      s"\t${param.name}: ${paramValueAsString(this.extractParamMap().get(param).get)}"
-    }.mkString("{\n", ",\n", "\n}")
+    params
+      .map { param =>
+        s"\t${param.name}: ${paramValueAsString(this.extractParamMap().get(param).get)}"
+      }
+      .mkString("{\n", ",\n", "\n}")
   }
 
   private def paramValueAsString(value: Any): Any = {

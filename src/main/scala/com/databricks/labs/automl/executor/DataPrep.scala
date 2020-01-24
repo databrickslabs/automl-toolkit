@@ -685,7 +685,7 @@ class DataPrep(df: DataFrame) extends AutomationConfig with AutomationTools {
         val syntheticData = finalOutputDataFrame1.filter(
           col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
         )
-        scaler(syntheticData).union(
+        scaler(syntheticData).unionByName(
           finalOutputDataFrame1.filter(
             col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
           )

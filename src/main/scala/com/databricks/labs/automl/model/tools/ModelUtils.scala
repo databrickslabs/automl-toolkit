@@ -94,7 +94,11 @@ object ModelUtils {
 
     val maxBinsTuple = numericMap("maxBins")
 
-    numericMap + ("maxBins" -> (maxBinsFloor, maxBinsTuple._2))
+    val upperBound =
+      if (maxBinsFloor >= maxBinsTuple._2) maxBinsFloor + 50
+      else maxBinsTuple._2
+
+    numericMap + ("maxBins" -> (maxBinsFloor, upperBound))
 
   }
 

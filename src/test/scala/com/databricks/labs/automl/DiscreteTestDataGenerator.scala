@@ -802,7 +802,7 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
     val C_START = 1
     val C_STEP = 1
     val C_MODE = "ascending"
-    val C_DISTINCT_COUNT = 5
+    val C_DISTINCT_COUNT = 4
     val D_DISTINCT_COUNT = 51
     val E_START = 10.0
     val E_STEP = 10.0
@@ -934,7 +934,7 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
     val E_DISTINCT_COUNT = 7
     val LABEL_START = 0.0
     val LABEL_STEP = 0.1
-    val LABEL_MODE = "ascending"
+    val LABEL_MODE = "random"
 
     val a = generateDoublesData(rows, A_START, A_STEP, A_MODE)
     val b = generateDoublesDataWithNulls(
@@ -956,6 +956,68 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
       E_DISTINCT_COUNT
     )
     val label = generateDoublesData(rows, LABEL_START, LABEL_STEP, LABEL_MODE)
+
+    val seqData = for (i <- 0 until rows)
+      yield RegressorSchema(a(i), b(i), c(i), d(i), e(i), label(i))
+
+    seqData.toDF()
+
+  }
+
+  def generateRegressionDataRepeating(rows: Int): DataFrame = {
+
+    val spark = AutomationUnitTestsUtil.sparkSession
+
+    import spark.implicits._
+
+    val A_START = 1.0
+    val A_STEP = 1.0
+    val A_MODE = "ascending"
+    val B_START = 0.0
+    val B_STEP = 5.0
+    val B_MODE = "descending"
+    val B_NULL_RATE = 13
+    val B_NULL_OFFSET = 3
+    val C_START = 1
+    val C_STEP = 1
+    val C_MODE = "ascending"
+    val C_DISTINCT_COUNT = 5
+    val D_DISTINCT_COUNT = 4
+    val E_START = 10.0
+    val E_STEP = 10.0
+    val E_MODE = "ascending"
+    val E_DISTINCT_COUNT = 7
+    val LABEL_START = 0.0
+    val LABEL_STEP = 0.1
+    val LABEL_MODE = "ascending"
+    val LABEL_DISTINCT_COUNT = rows / 50
+
+    val a = generateDoublesData(rows, A_START, A_STEP, A_MODE)
+    val b = generateDoublesDataWithNulls(
+      rows,
+      B_START,
+      B_STEP,
+      B_MODE,
+      B_NULL_RATE,
+      B_NULL_OFFSET
+    )
+    val c =
+      generateRepeatingIntData(rows, C_START, C_STEP, C_MODE, C_DISTINCT_COUNT)
+    val d = generateStringData(rows, D_DISTINCT_COUNT)
+    val e = generateRepeatingDoublesData(
+      rows,
+      E_START,
+      E_STEP,
+      E_MODE,
+      E_DISTINCT_COUNT
+    )
+    val label = generateRepeatingDoublesData(
+      rows,
+      LABEL_START,
+      LABEL_STEP,
+      LABEL_MODE,
+      LABEL_DISTINCT_COUNT
+    )
 
     val seqData = for (i <- 0 until rows)
       yield RegressorSchema(a(i), b(i), c(i), d(i), e(i), label(i))

@@ -6,7 +6,7 @@ import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
 
 class XgboostLoanRiskTest extends AbstractUnitSpec {
 
-  "it" should "do this" in {
+  ignore should "run successfully" in {
     val loanRiskDf = AutomationUnitTestsUtil.convertCsvToDf("/loan_risk.csv")
     val genericMapOverrides = Map(
       "labelCol" -> "label",
@@ -30,15 +30,20 @@ class XgboostLoanRiskTest extends AbstractUnitSpec {
       "tunerGenerationalMutationStrategy" -> "fixed",
       "tunerEvolutionStrategy" -> "batch",
       "tunerHyperSpaceInferenceFlag" -> true,
-      "tunerHyperSpaceInferenceCount" -> 400000,
+      "tunerHyperSpaceInferenceCount" -> 20000,
       "tunerHyperSpaceModelType" -> "XGBoost",
       "tunerHyperSpaceModelCount" -> 8,
       "mlFlowLoggingFlag" -> false,
       "mlFlowLogArtifactsFlag" -> false,
       "pipelineDebugFlag" -> true
     )
-    val xgBoostConfig = ConfigurationGenerator.generateConfigFromMap("XGBoost", "classifier", genericMapOverrides)
-    val familyRunner = FamilyRunner(loanRiskDf, Array(xgBoostConfig)).executeWithPipeline()
+    val xgBoostConfig = ConfigurationGenerator.generateConfigFromMap(
+      "XGBoost",
+      "classifier",
+      genericMapOverrides
+    )
+    val familyRunner =
+      FamilyRunner(loanRiskDf, Array(xgBoostConfig)).executeWithPipeline()
     familyRunner.bestPipelineModel(("XGBoost")).transform(loanRiskDf).show(10)
   }
 
