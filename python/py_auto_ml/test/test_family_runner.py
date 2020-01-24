@@ -1,7 +1,5 @@
 import unittest
-from unittest import mock
-from pyspark.sql.session import SparkSession
-from test.local_spark_singleton import SparkSingleton
+from py_auto_ml.test.local_spark_singleton import SparkSingleton
 from py_auto_ml.executor.family_runner import FamilyRunner
 
 
@@ -10,24 +8,25 @@ class TestFamilyRunner(unittest.TestCase):
     def setup(self):
         self.spark = SparkSingleton.get_instance()
 
-    def test_bring_in_returns(self):
+    def test_get_returns(self):
         self.setup()
+        family_runner = FamilyRunner()
+
         model_report_data_frame = self.spark.createDataFrame([(1,2,3)],["col1", "col2", "col3"])
         model_report_data_frame.createOrReplaceTempView("modelReportDataFrame")
 
-        generation_report_data_frame = self.spark.createDataFrame([(4, 5, 6)], ["col1", "col2", "col3"])
+        generation_report_data_frame = self.spark.createDataFrame([(4, 5, 6, 7)], ["col1", "col2", "col3", "col4"])
         generation_report_data_frame.createOrReplaceTempView("generationReportDataFrame")
 
-        best_mlflow_run_id = self.spark.createDataFrame([(7, 8, 9)], ["col1", "col2", "col3"])
+        best_mlflow_run_id = self.spark.createDataFrame([(7, 8)], ["col1", "col2"])
         best_mlflow_run_id.createOrReplaceTempView("bestMlFlowRunId")
 
-        # print(m.model_report)
+        family_runner._family_runner = True
+        family_runner.get_returns()
 
-        self.assertIsNotNone(m.model_report)
-        self.assertIsNotNone(m.genereation_report)
-        self.assertIsNotNone(m.best_mlflow_run_id)
-
-
+        assert len(family_runner.model_report.columns) == 3
+        assert len(family_runner.best_mlflow_run_id.columns) == 2
+        assert len(family_runner.generation_report.columns) == 4
 
         self.tear_down()
 
