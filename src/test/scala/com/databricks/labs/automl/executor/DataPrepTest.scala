@@ -30,7 +30,6 @@ class DataPrepTest extends AbstractUnitSpec {
     val EXPECTED_FIELDS = Array(
       "age_trimmed_si",
       "workclass_trimmed_si",
-      "fnlwgt_trimmed_si",
       "education_trimmed_si",
       "education-num_trimmed_si",
       "marital-status_trimmed_si",
@@ -71,7 +70,7 @@ class DataPrepTest extends AbstractUnitSpec {
       "DataPrep should not have returned different rows for input Dataset"
     )
     assert(
-      dataGeneration.fields.length == adultDataset.columns.length + 1,
+      dataGeneration.fields.length == adultDataset.columns.length,
       "DataPrep should not have changed number of columns"
     )
 
