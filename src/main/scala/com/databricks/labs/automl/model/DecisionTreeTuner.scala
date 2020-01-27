@@ -3,7 +3,8 @@ package com.databricks.labs.automl.model
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
-  ModelReporting
+  ModelReporting,
+  ModelUtils
 }
 import com.databricks.labs.automl.params
 import com.databricks.labs.automl.params.{
@@ -15,8 +16,8 @@ import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.regression.DecisionTreeRegressor
-import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.{DataFrame, Row}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -89,6 +90,26 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
   def getClassificationMetrics: List[String] = classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  /**
+    * Private method for updating the maxBins setting for the tree algorithm to ensure that cardinality validation
+    * occurs for each nominal field in the feature vector to ensure that entnopy / information gain / gini calculations
+    * can be conducted correctly.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def resetNumericBoundaries: this.type = {
+
+    _treesNumericBoundaries = ModelUtils.resetTreeBinsSearchSpace(
+      df,
+      _treesNumericBoundaries,
+      _fieldsToIgnore,
+      _labelCol,
+      _featureCol
+    )
+    this
+
+  }
 
   private def resetClassificationMetrics: List[String] = modelSelection match {
     case "classifier" =>
@@ -246,7 +267,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
           scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
         }
     }
-
+    println(s" Scoring metric = ${_scoringMetric}")
     TreesModelsWithResults(
       modelConfig,
       builtModel,
@@ -411,6 +432,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
   private def continuousEvolution(): Array[TreesModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    resetNumericBoundaries
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -569,6 +591,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
   def evolveParameters(): Array[TreesModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    resetNumericBoundaries
 
     var generation = 1
     // Record of all generations results

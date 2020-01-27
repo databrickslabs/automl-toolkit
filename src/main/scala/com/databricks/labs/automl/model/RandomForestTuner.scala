@@ -3,7 +3,8 @@ package com.databricks.labs.automl.model
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
-  ModelReporting
+  ModelReporting,
+  ModelUtils
 }
 import com.databricks.labs.automl.params.{
   Defaults,
@@ -91,6 +92,26 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
   def getClassificationMetrics: List[String] = _classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  /**
+    * Private method for updating the maxBins setting for the tree algorithm to ensure that cardinality validation
+    * occurs for each nominal field in the feature vector to ensure that entnopy / information gain / gini calculations
+    * can be conducted correctly.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def resetNumericBoundaries: this.type = {
+
+    _randomForestNumericBoundaries = ModelUtils.resetTreeBinsSearchSpace(
+      df,
+      _randomForestNumericBoundaries,
+      _fieldsToIgnore,
+      _labelCol,
+      _featureCol
+    )
+    this
+
+  }
 
   private def resetClassificationMetrics: List[String] = modelSelection match {
     case "classifier" =>
@@ -448,6 +469,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
   private def continuousEvolution(): Array[RandomForestModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    resetNumericBoundaries
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -605,6 +627,7 @@ class RandomForestTuner(df: DataFrame, modelSelection: String)
   def evolveParameters(): Array[RandomForestModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    resetNumericBoundaries
 
     var generation = 1
     // Record of all generations results

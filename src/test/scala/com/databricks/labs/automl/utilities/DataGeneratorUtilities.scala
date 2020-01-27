@@ -236,7 +236,7 @@ trait DataGeneratorUtilities {
     }
     val outputArray = Array
       .fill(targetCount / (sortedArray.length - 1))(sortedArray)
-      .flatten
+      .flatten ++ sortedArray
       .take(targetCount)
 
     if (sortMode == RAND) Random.shuffle(outputArray.toList).toArray

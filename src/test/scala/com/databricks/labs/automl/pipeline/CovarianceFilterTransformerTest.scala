@@ -2,7 +2,7 @@ package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.{
   AbstractUnitSpec,
-  AutomationUnitTestsUtil,
+  DiscreteTestDataGenerator,
   PipelineTestUtils
 }
 import org.apache.spark.ml.PipelineStage
@@ -19,43 +19,32 @@ class CovarianceFilterTransformerTest extends AbstractUnitSpec {
 
   "CovarianceFilterTransformerTest" should "apply the filter with right settings" in {
 
-    val spark = AutomationUnitTestsUtil.sparkSession
+    val EXPECTED_REMAINING_COLS =
+      Array("a1", "c2", "d1", "d2", "label", "automl_internal_id")
 
-    import spark.implicits._
-
-    val sampleDatadf = Seq(
-      Sample(1.0, 3.0, 0, 0, 1),
-      Sample(1.0, 3.0, 2, 0, 2),
-      Sample(2.0, 1.0, 2, 0, 3),
-      Sample(1.0, 2.0, 4, 0, 1),
-      Sample(2.0, 1.0, 6, 0, 2),
-      Sample(1.0, 2.0, 8, 0, 3),
-      Sample(2.0, 1.0, 9, 0, 4)
-    ).toDF()
-
-    sampleDatadf.show(10)
+    val data = DiscreteTestDataGenerator.generateFeatureCorrelationData(1000)
 
     val stages = new ArrayBuffer[PipelineStage]
     stages += new CovarianceFilterTransformer()
       .setFeatureColumns(Array("a", "b", "c"))
       .setLabelColumn("label")
       .setFeatureCol("features")
-      .setCorrelationCutoffHigh(0.90)
-      .setCorrelationCutoffLow(-0.50)
+      .setCorrelationCutoffHigh(1.0)
+      .setCorrelationCutoffLow(-1.0)
 
     val transformedDf = PipelineTestUtils
-      .saveAndLoadPipeline(
-        stages.toArray,
-        sampleDatadf,
-        "covar-filter-pipeline"
-      )
-      .transform(sampleDatadf)
+      .saveAndLoadPipeline(stages.toArray, data._1, "covar-filter-pipeline")
+      .transform(data._1)
 
     transformedDf.show(10)
 
     assert(
-      !transformedDf.columns.exists(_.equals("b")),
-      "Covariance filter should have removed column 'b'"
+      EXPECTED_REMAINING_COLS.forall(transformedDf.schema.names.contains),
+      "kept correct columns"
+    )
+    assert(
+      transformedDf.schema.names.forall(EXPECTED_REMAINING_COLS.contains),
+      "removed correct columns"
     )
   }
 }

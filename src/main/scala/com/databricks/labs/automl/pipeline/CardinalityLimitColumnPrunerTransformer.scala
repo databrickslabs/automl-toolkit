@@ -45,7 +45,7 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
   )
 
   final val cardinalityCheckMode: Param[String] =
-    new Param[String](this, "cardinalityCheckMode", "cardinality chec mode")
+    new Param[String](this, "cardinalityCheckMode", "cardinality check mode")
 
   final val cardinalityType: Param[String] =
     new Param[String](this, "cardinalityType", "cardinality type")

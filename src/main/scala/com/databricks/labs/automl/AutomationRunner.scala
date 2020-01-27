@@ -65,6 +65,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val initialize = new RandomForestTuner(cachedData, payload.modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
       .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -258,6 +259,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       lightGBMType
     ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setLGBMNumericBoundaries(_mainConfig.numericBoundaries)
       .setLGBMStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -447,6 +449,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val initialize = new XGBoostTuner(cachedData, payload.modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setXGBoostNumericBoundaries(_mainConfig.numericBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
@@ -637,6 +640,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         val initialize = new MLPCTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
           .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
@@ -848,6 +852,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val initialize = new GBTreesTuner(cachedData, payload.modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
       .setGBTStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -1042,6 +1047,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         val initialize = new LinearRegressionTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setLinearRegressionNumericBoundaries(_mainConfig.numericBoundaries)
           .setLinearRegressionStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
@@ -1257,6 +1263,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         val initialize = new LogisticRegressionTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setLogisticRegressionNumericBoundaries(_mainConfig.numericBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
@@ -1468,6 +1475,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         val initialize = new SVMTuner(cachedData)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setSvmNumericBoundaries(_mainConfig.numericBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
@@ -1676,6 +1684,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val initialize = new DecisionTreeTuner(payload.data, payload.modelType)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
       .setTreesStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -2061,7 +2070,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
       logger.log(Level.INFO, pretty)
       mlFlowResult
-    } else if (isPipeline) {
+    } else if (isPipeline && _mainConfig.mlFlowLoggingFlag) {
       logPipelineResultsToMlFlow(
         genericResultData,
         _mainConfig.modelFamily,
@@ -2309,9 +2318,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
 
+    val cleanedData = _mainConfig.geneticConfig.trainSplitMethod match {
+      case "kSample" =>
+        runResults.rawData
+          .filter(
+            col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+          )
+          .drop(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      case _ => runResults.rawData
+    }
+
     val predictedData = predictFromBestModel(
       runResults.modelReport,
-      runResults.rawData,
+      cleanedData,
       runResults.modelSelection
     )
 
@@ -2366,9 +2385,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val tunerResult = executeTuning(prepData())
 
+    val cleanedData = _mainConfig.geneticConfig.trainSplitMethod match {
+      case "kSample" =>
+        tunerResult.rawData
+          .filter(
+            col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+          )
+          .drop(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      case _ => tunerResult.rawData
+    }
+
     val predictedData = predictFromBestModel(
       tunerResult.modelReport,
-      tunerResult.rawData,
+      cleanedData,
       tunerResult.modelSelection
     )
 

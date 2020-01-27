@@ -2,6 +2,7 @@
 
 ### Version 0.6.2
 #### Features
+* Added support for PySpark!  There is now a Python API for Databricks labs automl!
 * Added FeatureInteraction module (configurable to interact either all features or only those that pass checks for 
 perceived gain of adding the interacted feature based on its parents)
 ```text
@@ -32,11 +33,20 @@ Configuration of feature interaction modes is through setting the configurations
     an interacted column would be included in the feature vector if it's Information Gain was greater than 
     or equal to 80% of the Information Gain of its parents)
 ```
-
+* Added the ability to calculate Differential Entropy for Regression Tasks (supported in both FeatureInteraction and 
+in the new Pearson Filtering algorithm)
+* Full refactor of Pearson Filtering and Feature Correlation to utilize DataFrames for column-wise comparisons 
+ Adjusted core looping algorithm to support exactly 1:1 checking of n x m column validation.  Speed improvements are 
+ dramatic for data sets utilizing higher numbers of features.
+ * Improved cardinality detection for data types and inspection of correlation detection based on approrpriate 
+ methodology (Information Gain / Entropy for Classifiers, Differential Entropy for Regressors) and handling of 
+ nominal vs continuous numeric types correctly for such validators.
+ 
 #### Bug Fixes
 * Adjusted Pipeline OneHotEncoder to ensure prevention of metadata loss from StringIndexers for inference .transforms()
     through the use of additional StringIndexer stages immediately preceding the OneHotEncoder stages.
-
+* Stability improvements - creation of ~63 new unit tests to validate core functionality
+* Over 200 issues solved due to new unit testing test suite (not going to mention them all here)
 
 ### Version 0.6.1
 * Upgraded MlFLow to 1.3.0

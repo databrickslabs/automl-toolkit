@@ -784,7 +784,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
         rebuildFeatureVector(finalDF, schemaMappings.features)
           .withColumn(conf.labelCol, lit(x.labelValue))
       }
-      .reduce(_.union(_))
+      .reduce(_.unionByName(_))
       .toDF()
 
     addDummyDataForIgnoredColumns(returnfinalDf, ignoredFieldsTypes)

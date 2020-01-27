@@ -2,6 +2,7 @@ package com.databricks.labs.automl.feature
 
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize.DataSanitizer
+import com.databricks.labs.automl.utilities.ValidationUtilities
 import com.databricks.labs.automl.{AbstractUnitSpec, DiscreteTestDataGenerator}
 import org.apache.spark.sql.DataFrame
 
@@ -37,20 +38,6 @@ class FeatureInteractionTest extends AbstractUnitSpec {
       .filterNot(_.contains(FEATURE_COL))
 
     (cleanData, nominalFields, continuousFields, modelType)
-  }
-
-  private def fieldCreationAssertion(expectedFields: Array[String],
-                                     generatedFieldNames: Array[String]) = {
-
-    assert(
-      generatedFieldNames.forall(expectedFields.contains),
-      "did not create any unexpected columns"
-    )
-    assert(
-      expectedFields.forall(generatedFieldNames.contains),
-      "creating the correct columns and retaining appropriate fields"
-    )
-
   }
 
   it should "create correct interacted columns in 'all' mode" in {
@@ -99,7 +86,10 @@ class FeatureInteractionTest extends AbstractUnitSpec {
       TARGET_INTERACTION_PERCENTAGE
     )
 
-    fieldCreationAssertion(EXPECTED_FIELDS, interacted.data.schema.names)
+    ValidationUtilities.fieldCreationAssertion(
+      EXPECTED_FIELDS,
+      interacted.data.schema.names
+    )
   }
 
   it should "create correct interacted columns in 'strict' mode" in {
@@ -145,7 +135,10 @@ class FeatureInteractionTest extends AbstractUnitSpec {
       TARGET_INTERACTION_PERCENTAGE
     )
 
-    fieldCreationAssertion(EXPECTED_FIELDS, interacted.data.schema.names)
+    ValidationUtilities.fieldCreationAssertion(
+      EXPECTED_FIELDS,
+      interacted.data.schema.names
+    )
 
   }
 
@@ -188,7 +181,10 @@ class FeatureInteractionTest extends AbstractUnitSpec {
       TARGET_INTERACTION_PERCENTAGE
     )
 
-    fieldCreationAssertion(EXPECTED_FIELDS, interacted.data.schema.names)
+    ValidationUtilities.fieldCreationAssertion(
+      EXPECTED_FIELDS,
+      interacted.data.schema.names
+    )
 
   }
 
