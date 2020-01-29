@@ -13,7 +13,7 @@ class FamilyRunner:
         # self.run_family_runner(family_configs,
         #                        prediction_type,
         #                        df)
-        # self._bring_in_returns()
+        # self._get_returns()
 
     def run_family_runner(self,
                           family_configs: dict,
@@ -32,16 +32,16 @@ class FamilyRunner:
         self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runFamilyRunner(stringified_family_configs,
                                                                                             prediction_type,
                                                                                             df._jdf)
-        self.family_runner = True
+        self._family_runner = True
 
-    def bring_in_returns(self):
+    def get_returns(self):
         """
 
         :return: model_report: dataframe
             generation_report: dataframe
             best_mlflow_run_id: dataframe
         """
-        if self.family_runner != True:
+        if self._family_runner != True:
             raise Exception("You must first run the family runnere to generate the proper return dataframes")
         else:
             self.model_report = self.spark.sql("SELECT * FROM modelReportDataFrame")

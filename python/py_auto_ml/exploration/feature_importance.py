@@ -61,13 +61,7 @@ class FeatureImportance:
             default_flag = "true"
 
         # Pass to JVM to run FI
-        self.spark._jvm.com.databricks.labs.automl.pyspark.FeatureImportanceUtil.runFeatureImportance(model_family,
-                                                                                                      prediction_type,
-                                                                                                      stringified_overrides,
-                                                                                                      df._jdf,
-                                                                                                      cutoff_type,
-                                                                                                      cutoff_value,
-                                                                                                      default_flag)
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FeatureImportanceUtil.runFeatureImportance()
         self.feature_importance = True
 
     def bring_in_returns(self):
@@ -77,7 +71,7 @@ class FeatureImportance:
         :return: top_fields dataframe with the top X fields based on feature importance algorithm
         """
         if self.feature_importance != True:
-            raise Exception ("Please first generate feature importnaces by running `run_feature_importance`")
+            raise Exception ("Please first generate feature importances by running `run_feature_importance`")
         else:
             self.importances = self.spark.sql("select * from importances")
             self.top_fields = self.spark.sql("select feature from importances")

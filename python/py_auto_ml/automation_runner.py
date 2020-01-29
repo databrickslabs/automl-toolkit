@@ -6,28 +6,29 @@ from py_auto_ml.local_spark_singleton import SparkSingleton
 class AutomationRunner:
 
     def __init__(self,
-                 model_family: str,
-                 prediction_type: str,
-                 df: DataFrame,
-                 runner_type: str,
-                 overrides=None):
+                 # model_family: str,
+                 # prediction_type: str,
+                 # df: DataFrame,
+                 # runner_type: str,
+                 # overrides=None
+                 ):
         # Setup Spark singleton Instance
         self.spark = SparkSingleton.get_instance()
         # Run automation runner
-        self._run_automation_runner(model_family,
-                                   prediction_type,
-                                   df,
-                                   runner_type,
-                                   overrides)
-        # Bring in the returns attributes of the class
-        self._bring_in_returns(runner_type.lower())
+        # self._run_automation_runner(model_family,
+        #                            prediction_type,
+        #                            df,
+        #                            runner_type,
+        #                            overrides)
+        # # Bring in the returns attributes of the class
+        # self.get_returns(runner_type.lower())
 
-    def _run_automation_runner(self,
-                               model_family: str,
-                               prediction_type: str,
-                               df: DataFrame,
-                               runner_type: str,
-                               overrides=None):
+    def run_automation_runner(self,
+                              model_family: str,
+                              prediction_type: str,
+                              df: DataFrame,
+                              runner_type: str,
+                              overrides=None):
         """
 
         :param model_family: str
@@ -60,13 +61,14 @@ class AutomationRunner:
             stringified_overrides = ""
 
         self.spark._jvm.com.databricks.labs.automl.pyspark.AutomationRunnerUtil.runAutomationRunner(model_family,
-                                                                                                        prediction_type,
-                                                                                                        stringified_overrides,
-                                                                                                        df._jdf,
-                                                                                                        runner_type_lower,
-                                                                                                        default_flag)
+                                                                                                    prediction_type,
+                                                                                                    stringified_overrides,
+                                                                                                    df._jdf,
+                                                                                                    runner_type_lower,
+                                                                                                    default_flag)
+        self._automation_runner = True
 
-    def _bring_in_returns(self,
+    def get_returns(self,
                           runner_type: str):
         """
 
@@ -87,20 +89,24 @@ class AutomationRunner:
                 model_report: dataframe
         """
         # Cache the returns
-        if runner_type == "run":
-            self.generation_report = self.spark.sql("select * from generationReport")
-            self.model_report = self.spark.sql("select * from modelReport")
-        elif runner_type == "confusion":
-            self.confusion_data = self.spark.sql("select * from confusionData")
-            self.prediction_data = self.spark.sql("select * from predictionData")
-            self.generation_report = self.spark.sql("select * from generationReport")
-            self.model_report = self.spark.sql("select * from modelReport")
-        elif runner_type == "prediction":
-            self.data_with_predictions = self.spark.sql("select * from dataWithPredictions")
-            self.generation_report = self.spark.sql("select * from generationReport")
-            self.model_report = self.spark.sql("select * from modelReportData")
+        if self._automation_runner != True:
+            raise Exception ("In order to generate the proper returns for the automation runner, please first run the "
+                             "automation runner with the `run_automation_runner`")
         else:
-            print("No returns were added - check your runner_type")
+            if runner_type == "run":
+                self.generation_report = self.spark.sql("select * from generationReport")
+                self.model_report = self.spark.sql("select * from modelReport")
+            elif runner_type == "confusion":
+                self.confusion_data = self.spark.sql("select * from confusionData")
+                self.prediction_data = self.spark.sql("select * from predictionData")
+                self.generation_report = self.spark.sql("select * from generationReport")
+                self.model_report = self.spark.sql("select * from modelReport")
+            elif runner_type == "prediction":
+                self.data_with_predictions = self.spark.sql("select * from dataWithPredictions")
+                self.generation_report = self.spark.sql("select * from generationReport")
+                self.model_report = self.spark.sql("select * from modelReportData")
+            else:
+                print("No returns were added - check your runner_type")
 
     @staticmethod
     def _check_runner_types(runner_type: str):
@@ -113,5 +119,3 @@ class AutomationRunner:
         acceptable_strings = ["run", "confusion", "prediction"]
         if runner_type not in acceptable_strings:
             raise Exception("runner_type must be one of the following run, confusion, or prediction")
-        else:
-            None
