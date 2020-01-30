@@ -1,24 +1,25 @@
 package com.databricks.labs.automl.exploration.tools
 
-//TODO:
-// Notes -> 1. Repartition to ensure that at max there are 5000 rows per partition
-// 2. Then execute a mapPartitions through the Shapiro-Wilk test
-// 3. take the highest value from the W test
-// 4. calculate the Z statistic?
-
-// TODO: Java code for shapiro-Wilk
-
 /**
   * Shapiro-Wilk test for normality.
-  *
+  * @note the algorithm below is restricted to a maximum of 5000 elements.
   */
 object ShapiroWilk extends ShapiroBase {
 
   /**
-    * Calculates P-value for ShapiroWilk Test
+    * Calculates P-value for ShapiroWilk Test and return:
+    * W score
+    * Z score
+    * probability p-value
+    * Boolean decision on whether or not to reject the null hypothesis that the data is normally distributed
+    * String value describing whether the data is normally distributed or not
     *
-    * @param x
-    * @return
+    * This equation and the modeled source code is ported from the Javascript implementation
+    * which is originally based on the FORTRAN code used to execute this test.
+    * https://github.com/rniwa/js-shapiro-wilk/blob/master/shapiro-wilk.js
+    *
+    * @param x Array[Double] The data to be tested
+    * @return Test results from the ShapiroWilk algorithm
     * @throws IllegalArgumentException
     */
   @throws[IllegalArgumentException]
@@ -122,7 +123,9 @@ object ShapiroWilk extends ShapiroBase {
     }
     range = x(n - 1) - x(0)
     if (range < small) {
-      throw new IllegalArgumentException
+      throw new IllegalArgumentException(
+        s"Total Range of data is too small to calculate ShapiroWilk test (${range}) which is less than minimum of ($small)"
+      )
     }
     /* Check for correct sort order on range - scaled X */
     xx = x(0) / range
@@ -135,7 +138,9 @@ object ShapiroWilk extends ShapiroBase {
     }) {
       xi = x(i) / range
       if (xx - xi > small) {
-        throw new IllegalArgumentException
+        throw new IllegalArgumentException(
+          s"Scaled range is too small to calculate ShapiroWilk properly (${xx - xi}) is less than minimum of ($small)"
+        )
       }
       sx += xi
       i += 1
@@ -202,11 +207,15 @@ object ShapiroWilk extends ShapiroBase {
   /**
     * Tests the rejection of null Hypothesis for a particular confidence level
     *
-    * @param data
-    * @param aLevel
-    * @return
+    * @param data the Array of data to perform a test against
+    * @param aLevel the alpha for calculating the probability of normalcy resulting in a test pass or failure.
+    *               Defaulted to 5%
+    * @return ShapiroInternalData payload consisting of the W value, Z score, probability result, normalcy boolean,
+    *         and String value of "Normally Distributed y/n"
+    * @since 0.7.0
+    * @author Ben Wilson, Databricks
     */
-  def test(data: Array[Double], aLevel: Double): ShapiroInternalData = {
+  def test(data: Array[Double], aLevel: Double = 0.05): ShapiroInternalData = {
     var normalcyTest = false
     val swTest = ShapiroWilkW(data)
     val a = aLevel
@@ -222,6 +231,4 @@ object ShapiroWilk extends ShapiroBase {
       normalcy
     )
   }
-
 }
-// TODO: Stddev, Kurtosis, Variance, Sample Count, Mean
