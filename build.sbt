@@ -20,6 +20,7 @@ libraryDependencies += "com.databricks" % "dbutils-api_2.11" % "0.0.3"
 libraryDependencies += "ml.combust.mleap" %% "mleap-runtime" % "0.14.0"
 libraryDependencies += "ml.combust.mleap" %% "mleap-spark" % "0.14.0"
 libraryDependencies += "com.microsoft.ml.spark" %% "mmlspark" % "0.18.1"
+libraryDependencies += "org.vegas-viz" %% "vegas" % "0.3.11"
 
 lazy val commonSettings = Seq(
   version := "0.6.2",
