@@ -1,6 +1,7 @@
 import json
 from pyspark.sql.functions import DataFrame
 from py_auto_ml.local_spark_singleton import SparkSingleton
+import mlflow
 
 
 class FamilyRunner:
@@ -42,8 +43,13 @@ class FamilyRunner:
             best_mlflow_run_id: dataframe
         """
         if self._family_runner != True:
-            raise Exception("You must first run the family runnere to generate the proper return dataframes")
+            raise Exception("You must first run the family runner to generate the proper return dataframes")
         else:
             self.model_report = self.spark.sql("SELECT * FROM modelReportDataFrame")
             self.generation_report = self.spark.sql("SELECT * FROM generationReportDataFrame")
             self.best_mlflow_run_id = self.spark.sql("SELECT * FROM bestMlFlowRunId")
+
+
+    ## TO DO add mlflow returns from mlflow client
+    # def _get_pipeline_model(self):
+
