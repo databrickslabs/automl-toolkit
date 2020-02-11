@@ -90,12 +90,12 @@ object ModelUtils {
 
       case (a, x) =>
         math.max(a, getExactFieldCardinality(df, x))
-    }
+    } + 1
 
     val maxBinsTuple = numericMap("maxBins")
 
     val upperBound =
-      if (maxBinsFloor >= maxBinsTuple._2) maxBinsFloor + 50
+      if (maxBinsFloor > maxBinsTuple._2 - 25) maxBinsFloor + 100
       else maxBinsTuple._2
 
     numericMap + ("maxBins" -> (maxBinsFloor, upperBound))
