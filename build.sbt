@@ -2,7 +2,7 @@ name := "AutomatedML"
 
 organization := "com.databricks"
 
-version := "0.6.2"
+version := "0.7.0"
 
 scalaVersion := "2.11.12"
 scalacOptions ++= Seq("-Xmax-classfile-name", "78")
@@ -23,7 +23,7 @@ libraryDependencies += "com.microsoft.ml.spark" %% "mmlspark" % "0.18.1"
 libraryDependencies += "org.vegas-viz" %% "vegas" % "0.3.11"
 
 lazy val commonSettings = Seq(
-  version := "0.6.2",
+  version := "0.7.0",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )

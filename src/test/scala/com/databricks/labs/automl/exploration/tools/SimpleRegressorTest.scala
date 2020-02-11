@@ -11,8 +11,6 @@ class SimpleRegressorTest extends AbstractUnitSpec {
     val data2 = Seq(2.0, 45.0, 6.0, 8.0, 17.0, 120.0, 104.0, 19.0, 18.0, 20.0,
       0.1, 99.9, 14.2, 63.2)
 
-    println(data1.sum)
-    println(data2.sum)
     val dat = IndexedSeq(data1, data2)
 
     var sum = 0.0
