@@ -211,8 +211,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getRandomForestNumericBoundaries)
+        .setStringBoundaries(initialize.getRandomForestStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .randomForestPrediction(
@@ -405,8 +405,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getLightGBMNumericBoundaries)
+        .setStringBoundaries(initialize.getLightGBMStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .lightGBMPrediction(
@@ -594,7 +594,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
+        .setNumericBoundaries(initialize.getXGBoostNumericBoundaries)
         .setStringBoundaries(_mainConfig.stringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -801,8 +801,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
-            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setNumericBoundaries(initialize.getMlpcNumericBoundaries)
+            .setStringBoundaries(initialize.getMlpcStringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .mlpcPrediction(
@@ -1001,8 +1001,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getGBTNumericBoundaries)
+        .setStringBoundaries(initialize.getGBTStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .gbtPrediction(
@@ -1208,8 +1208,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
-            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setNumericBoundaries(
+              initialize.getLinearRegressionNumericBoundaries
+            )
+            .setStringBoundaries(initialize.getLinearRegressionStringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .linearRegressionPrediction(
@@ -1423,7 +1425,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setNumericBoundaries(
+              initialize.getLogisticRegressionNumericBoundaries
+            )
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -1635,7 +1639,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setNumericBoundaries(initialize.getSvmNumericBoundaries)
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -1830,8 +1834,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getTreesNumericBoundaries)
+        .setStringBoundaries(initialize.getTreesStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .treesPrediction(
