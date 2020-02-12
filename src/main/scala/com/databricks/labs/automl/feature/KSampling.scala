@@ -751,6 +751,9 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     // Transform the scaled data with the KMeans model
     val kModelData = kModel.transform(scaled)
 
+    // Get the original partition count
+    val sourcePartitions = df.rdd.partitions.length
+
     val returnfinalDf = labelValues
       .map { x =>
         val vecs = acquireNearestVectorToCentroids(
@@ -783,6 +786,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
       }
       .reduce(_.unionByName(_))
       .toDF()
+      .repartition(sourcePartitions)
 
     addDummyDataForIgnoredColumns(returnfinalDf, ignoredFieldsTypes)
       .select(origSchema map col: _*)
