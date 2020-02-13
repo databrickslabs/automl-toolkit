@@ -17,7 +17,10 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class LightGBMTuner(df: DataFrame, modelSelection: String, lightGBMType: String)
+class LightGBMTuner(df: DataFrame,
+                    modelSelection: String,
+                    lightGBMType: String,
+                    isPipeline: Boolean = false)
     extends LightGBMBase
     with SparkSessionWrapper
     with Defaults

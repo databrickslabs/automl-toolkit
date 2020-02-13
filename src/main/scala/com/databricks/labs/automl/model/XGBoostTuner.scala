@@ -21,7 +21,9 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class XGBoostTuner(df: DataFrame, modelSelection: String)
+class XGBoostTuner(df: DataFrame,
+                   modelSelection: String,
+                   isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults

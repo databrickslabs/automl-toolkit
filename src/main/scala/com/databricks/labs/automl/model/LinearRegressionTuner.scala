@@ -21,7 +21,7 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class LinearRegressionTuner(df: DataFrame)
+class LinearRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Defaults
     with Evolution {

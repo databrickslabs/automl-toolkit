@@ -21,7 +21,7 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class LogisticRegressionTuner(df: DataFrame)
+class LogisticRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Defaults
     with Evolution {
