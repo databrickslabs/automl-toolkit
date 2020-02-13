@@ -229,6 +229,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
           )
           runner.setNumericBoundaries(updatedNumBoundaries)
         }
+        case _ => Unit
       }
 
       // Setup MLflow Run

@@ -331,6 +331,13 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   var _featureInteractionTargetInteractionPercentage: Double =
     _defaultFeatureInteractionConfig.targetInteractionPercentage
 
+  var _pipelineId: String = _defaultPipelineId
+
+  def setPipelineId(value: String): this.type = {
+    _pipelineId = value
+    this
+  }
+
   private def setConfigs(): this.type = {
     setMainConfig()
   }
@@ -2080,7 +2087,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowConfig = _mlFlowConfig,
       inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
       dataReductionFactor = _dataReductionFactor,
-      pipelineDebugFlag = _pipelineDebugFlag
+      pipelineDebugFlag = _pipelineDebugFlag,
+      pipelineId = _pipelineId
     )
     this
   }
@@ -2306,7 +2314,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _inferenceConfigSaveLocation = value.inferenceConfigSaveLocation
     _dataReductionFactor = value.dataReductionFactor
     _pipelineDebugFlag = value.pipelineDebugFlag
-
+    _pipelineId = value.pipelineId
     this
   }
 
@@ -2347,7 +2355,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowConfig = _mlFlowConfig,
       inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
       dataReductionFactor = _dataReductionFactor,
-      pipelineDebugFlag = _pipelineDebugFlag
+      pipelineDebugFlag = _pipelineDebugFlag,
+      pipelineId = _pipelineId
     )
     this
   }
@@ -2399,7 +2408,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       mlFlowConfig = _mlFlowConfig,
       inferenceConfigSaveLocation = _inferenceConfigSaveLocation,
       dataReductionFactor = _dataReductionFactor,
-      pipelineDebugFlag = _pipelineDebugFlag
+      pipelineDebugFlag = _pipelineDebugFlag,
+      pipelineId = _pipelineId
     )
     this
   }
@@ -2413,6 +2423,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     setConfigs()
     this
   }
+
+  def getPipelineId: String = _mainConfig.pipelineId
 
   def getModelingFamily: String = _modelingFamily
 
