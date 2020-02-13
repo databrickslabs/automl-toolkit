@@ -22,7 +22,7 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class MLPCTuner(df: DataFrame)
+class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults {

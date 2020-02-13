@@ -51,7 +51,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   private val logger: Logger = Logger.getLogger(this.getClass)
 
   private def runRandomForest(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[RandomForestModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -62,8 +63,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    val initialize = new RandomForestTuner(cachedData, payload.modelType)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new RandomForestTuner(
+      cachedData,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
@@ -242,7 +246,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   private def runLightGBM(
     lightGBMType: String,
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[LightGBMModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -256,7 +261,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val initialize = new LightGBMTuner(
       cachedData,
       payload.modelType,
-      lightGBMType
+      lightGBMType,
+      isPipeline
     ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -435,7 +441,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runXGBoost(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[XGBoostModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -446,7 +453,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    val initialize = new XGBoostTuner(cachedData, payload.modelType)
+    val initialize = new XGBoostTuner(cachedData, payload.modelType, isPipeline)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -624,7 +631,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runMLPC(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[MLPCModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -637,7 +645,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new MLPCTuner(cachedData)
+        val initialize = new MLPCTuner(cachedData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -838,7 +846,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runGBT(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[GBTModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -849,7 +858,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    val initialize = new GBTreesTuner(cachedData, payload.modelType)
+    val initialize = new GBTreesTuner(cachedData, payload.modelType, isPipeline)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -1031,7 +1040,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runLinearRegression(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[LinearRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -1044,7 +1054,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     payload.modelType match {
       case "regressor" =>
-        val initialize = new LinearRegressionTuner(cachedData)
+        val initialize = new LinearRegressionTuner(cachedData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -1245,12 +1255,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  private def runLogisticRegression(payload: DataGeneration): (Array[
-                                                                 LogisticRegressionModelsWithResults
-                                                               ],
-                                                               DataFrame,
-                                                               String,
-                                                               DataFrame) = {
+  private def runLogisticRegression(
+    payload: DataGeneration,
+    isPipeline: Boolean = false
+  ): (Array[LogisticRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
       payload.data.persist(StorageLevel.MEMORY_AND_DISK)
@@ -1262,7 +1270,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new LogisticRegressionTuner(cachedData)
+        val initialize = new LogisticRegressionTuner(cachedData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -1463,7 +1471,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runSVM(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[SVMModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -1476,7 +1485,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new SVMTuner(cachedData)
+        val initialize = new SVMTuner(cachedData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -1674,7 +1683,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runTrees(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[TreesModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
@@ -1685,8 +1695,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) payload.data.count()
 
-    val initialize = new DecisionTreeTuner(payload.data, payload.modelType)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new DecisionTreeTuner(
+      payload.data,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
@@ -1908,7 +1921,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val (resultArray, modelStats, modelSelection, dataframe) =
       _mainConfig.modelFamily match {
         case "RandomForest" =>
-          val (results, stats, selection, data) = runRandomForest(payload)
+          val (results, stats, selection, data) =
+            runRandomForest(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1920,7 +1934,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "XGBoost" =>
-          val (results, stats, selection, data) = runXGBoost(payload)
+          val (results, stats, selection, data) =
+            runXGBoost(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1935,7 +1950,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             "gbmLasso" | "gbmRidge" | "gbmPoisson" | "gbmQuantile" | "gbmMape" |
             "gbmTweedie" | "gbmGamma" =>
           val (results, stats, selection, data) =
-            runLightGBM(_mainConfig.modelFamily, payload)
+            runLightGBM(_mainConfig.modelFamily, payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1947,7 +1962,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "GBT" =>
-          val (results, stats, selection, data) = runGBT(payload)
+          val (results, stats, selection, data) = runGBT(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1959,7 +1974,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "MLPC" =>
-          val (results, stats, selection, data) = runMLPC(payload)
+          val (results, stats, selection, data) = runMLPC(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractMLPCPayload(x.modelHyperParams),
@@ -1971,7 +1986,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "LinearRegression" =>
-          val (results, stats, selection, data) = runLinearRegression(payload)
+          val (results, stats, selection, data) =
+            runLinearRegression(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1983,7 +1999,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "LogisticRegression" =>
-          val (results, stats, selection, data) = runLogisticRegression(payload)
+          val (results, stats, selection, data) =
+            runLogisticRegression(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1995,7 +2012,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "SVM" =>
-          val (results, stats, selection, data) = runSVM(payload)
+          val (results, stats, selection, data) = runSVM(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -2007,7 +2024,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "Trees" =>
-          val (results, stats, selection, data) = runTrees(payload)
+          val (results, stats, selection, data) = runTrees(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),

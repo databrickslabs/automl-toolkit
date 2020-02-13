@@ -24,7 +24,9 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class DecisionTreeTuner(df: DataFrame, modelSelection: String)
+class DecisionTreeTuner(df: DataFrame,
+                        modelSelection: String,
+                        isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults {
@@ -432,7 +434,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
   private def continuousEvolution(): Array[TreesModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
-    resetNumericBoundaries
+    if (!isPipeline) resetNumericBoundaries
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -591,7 +593,7 @@ class DecisionTreeTuner(df: DataFrame, modelSelection: String)
   def evolveParameters(): Array[TreesModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
-    resetNumericBoundaries
+    if (!isPipeline) resetNumericBoundaries
 
     var generation = 1
     // Record of all generations results

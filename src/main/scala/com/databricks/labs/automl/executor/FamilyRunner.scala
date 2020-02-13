@@ -6,6 +6,7 @@ import com.databricks.labs.automl.executor.config.{
   ConfigurationGenerator,
   InstanceConfig
 }
+import com.databricks.labs.automl.model.tools.ModelUtils
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline._
 import com.databricks.labs.automl.tracking.{
@@ -213,6 +214,23 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
       val runner = new AutomationRunner(data).setMainConfig(mainConfiguration)
+
+      // Perform cardinality check if the model type is a tree-based family and update the
+      // numeric mappings to handle the maxBins issue for nominal and categorical data.
+
+      x.modelFamily.toLowerCase.replaceAll("\\s", "") match {
+        case "randomforest" | "trees" | "gbt" | "xgboost" => {
+          val updatedNumBoundaries = ModelUtils.resetTreeBinsSearchSpace(
+            data,
+            x.algorithmConfig.numericBoundaries,
+            x.genericConfig.fieldsToIgnoreInVector,
+            x.genericConfig.labelCol,
+            x.genericConfig.featuresCol
+          )
+          runner.setNumericBoundaries(updatedNumBoundaries)
+        }
+      }
+
       // Setup MLflow Run
       addMlFlowConfigForPipelineUse(mainConfiguration)
       try {
@@ -220,7 +238,6 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
         val featureEngOutput = FeatureEngineeringPipelineContext
           .generatePipelineModel(data, mainConfiguration)
         val featureEngineeredDf = featureEngOutput.transformedForTrainingDf
-
         val preppedDataOverride = DataGeneration(
           featureEngineeredDf,
           featureEngineeredDf.columns,

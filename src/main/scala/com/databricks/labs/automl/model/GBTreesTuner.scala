@@ -23,7 +23,9 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class GBTreesTuner(df: DataFrame, modelSelection: String)
+class GBTreesTuner(df: DataFrame,
+                   modelSelection: String,
+                   isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults {
@@ -466,7 +468,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   private def continuousEvolution(): Array[GBTModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
-    resetNumericBoundaries
+    if (!isPipeline) resetNumericBoundaries
 
     if (modelSelection == "classifier")
       ModelUtils.validateGBTClassifier(df, _labelCol)
@@ -627,7 +629,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   def evolveParameters(): Array[GBTModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
-    resetNumericBoundaries
+    if (!isPipeline) resetNumericBoundaries
     if (modelSelection == "classifier")
       ModelUtils.validateGBTClassifier(df, _labelCol)
 

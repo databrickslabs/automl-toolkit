@@ -21,7 +21,7 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class SVMTuner(df: DataFrame)
+class SVMTuner(df: DataFrame, isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults {
