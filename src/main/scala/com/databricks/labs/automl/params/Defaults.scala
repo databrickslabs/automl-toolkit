@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.params
 
+import com.databricks.labs.automl.pipeline.PipelineStateCache
 import com.databricks.labs.automl.utils.InitDbUtils
 
 trait Defaults {
@@ -120,6 +121,8 @@ trait Defaults {
   def _defaultInitialGenerationMode: String = "random"
 
   def _defaultDataPrepParallelism: Int = 20
+
+  def _defaultPipelineId: String = PipelineStateCache.generatePipelineId()
 
   def _defaultFirstGenerationConfig = FirstGenerationConfig(
     permutationCount = 10,
@@ -435,7 +438,8 @@ trait Defaults {
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
     dataReductionFactor = _defaultDataReductionFactor,
-    pipelineDebugFlag = _defaultPipelineDebugFlag
+    pipelineDebugFlag = _defaultPipelineDebugFlag,
+    pipelineId = _defaultPipelineId
   )
 
   def _featureImportancesDefaults = MainConfig(
@@ -508,7 +512,8 @@ trait Defaults {
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
     dataReductionFactor = _defaultDataReductionFactor,
-    pipelineDebugFlag = false
+    pipelineDebugFlag = false,
+    pipelineId = _defaultPipelineId
   )
 
   def _treeSplitDefaults = MainConfig(
@@ -581,6 +586,7 @@ trait Defaults {
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
     dataReductionFactor = _defaultDataReductionFactor,
-    pipelineDebugFlag = false
+    pipelineDebugFlag = false,
+    pipelineId = _defaultPipelineId
   )
 }

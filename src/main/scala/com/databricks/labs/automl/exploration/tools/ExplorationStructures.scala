@@ -35,6 +35,16 @@ case class RegressionResidualData(ssr: Double, rss: Double)
 
 case class SimpleRegressorResult(slope: Double,
                                  slopeStdErr: Double,
+                                 slopeConfidenceInterval: Double,
                                  intercept: Double,
                                  interceptStdErr: Double,
-                                 rSquared: Double)
+                                 rSquared: Double,
+                                 significance: Double,
+                                 mse: Double,
+                                 rmse: Double,
+                                 sumSquares: Double,
+                                 totalSumSquares: Double,
+                                 sumSquareError: Double,
+                                 pairLength: Long,
+                                 pearsonR: Double,
+                                 crossProductSum: Double)
