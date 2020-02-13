@@ -1026,4 +1026,14 @@ object DiscreteTestDataGenerator extends DataGeneratorUtilities {
 
   }
 
+  def generateDecayArray(targetCount: Int): Array[Double] = {
+    generatePeriodicData(targetCount, 0.5, "decay")
+  }
+  def generateBiModalArray(targetCount: Int): Array[Double] = {
+    generatePeriodicData(targetCount, 0.5, "bimodal")
+  }
+  def generateChaoticArray(targetCount: Int): Array[Double] = {
+    generatePeriodicData(targetCount, 0.5, "chaotic")
+  }
+
 }
