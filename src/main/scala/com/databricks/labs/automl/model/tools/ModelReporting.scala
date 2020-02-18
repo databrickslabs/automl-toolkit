@@ -179,7 +179,7 @@ class ModelReporting(modelType: String, metrics: List[String]) {
     val scoreText = getRunScores(scoreBattery)
 
     val outputText = {
-      s"\tFinished run $runId with optimaztion target [$targetMetric] value: ${scoreBattery(targetMetric)} " +
+      s"\tFinished run $runId with optimiztion target [$targetMetric] value: ${scoreBattery(targetMetric)} " +
         s"\n\tWith full scoring breakdown of: $scoreText" +
         s"\n\tWith hyper-parameters: ${getParams(config, "\n\t\t\t\t")}" +
         s"\n${getRunProgress(progress)}" +
