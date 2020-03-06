@@ -103,6 +103,11 @@
             <artifactId>mleap-spark_2.11</artifactId>
             <version>0.14.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.vegas-viz</groupId>
+            <artifactId>vegas_2.11</artifactId>
+            <version>0.3.11</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
