@@ -272,27 +272,32 @@ class GBTreesTuner(df: DataFrame,
     val builtModel = gbtModel.fit(train)
 
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     modelSelection match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
+          scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, optimizedPredictions)
         }
     }
 
-    GBTModelsWithResults(
+    val gbtModelsWithResults = GBTModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
       scoringMap.toMap,
       generation
     )
+
+    optimizedPredictions.unpersist()
+    gbtModelsWithResults
   }
 
   private def runBattery(battery: Array[GBTConfig],
@@ -335,7 +340,10 @@ class GBTreesTuner(df: DataFrame,
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        kFoldBuffer += generateAndScoreGBTModel(train, test, x)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        kFoldBuffer += generateAndScoreGBTModel(optimizedTrain, optimizedTest, x)
+        optimizedTrain.unpersist()
+        optimizedTest.unpersist()
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {

@@ -181,19 +181,24 @@ class LinearRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
     val builtModel = regressionModel.fit(train)
 
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     for (i <- regressionMetrics) {
-      scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
+      scoringMap(i) = regressionScoring(i, _labelCol, optimizedPredictions)
     }
-    LinearRegressionModelsWithResults(
+    val lrModelsWithResults = LinearRegressionModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
       scoringMap.toMap,
       generation
     )
+
+    optimizedPredictions.unpersist()
+    lrModelsWithResults
   }
 
   private def runBattery(
@@ -233,7 +238,10 @@ class LinearRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        kFoldBuffer += generateAndScoreLinearRegression(train, test, x)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        kFoldBuffer += generateAndScoreLinearRegression(optimizedTrain, optimizedTest, x)
+        optimizedTrain.unpersist()
+        optimizedTest.unpersist()
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {

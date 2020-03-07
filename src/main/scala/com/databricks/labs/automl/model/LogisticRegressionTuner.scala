@@ -173,19 +173,24 @@ class LogisticRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
     val builtModel = regressionModel.fit(train)
 
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     for (i <- _classificationMetrics) {
-      scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
+      scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
     }
-    LogisticRegressionModelsWithResults(
+    val logRModelsWithResults = LogisticRegressionModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
       scoringMap.toMap,
       generation
     )
+
+    optimizedPredictions.unpersist()
+    logRModelsWithResults
   }
 
   private def runBattery(
@@ -226,7 +231,10 @@ class LogisticRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        kFoldBuffer += generateAndScoreLogisticRegression(train, test, x)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        kFoldBuffer += generateAndScoreLogisticRegression(optimizedTrain, optimizedTest, x)
+        optimizedTrain.unpersist()
+        optimizedTest.unpersist()
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {

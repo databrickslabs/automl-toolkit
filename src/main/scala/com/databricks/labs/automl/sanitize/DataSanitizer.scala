@@ -3,11 +3,8 @@ package com.databricks.labs.automl.sanitize
 import com.databricks.labs.automl.exceptions.BooleanFieldFillException
 import com.databricks.labs.automl.inference.{NaFillConfig, NaFillPayload}
 import com.databricks.labs.automl.utils.structures.FeatureEngineeringEnums.FeatureEngineeringEnums
-import com.databricks.labs.automl.utils.structures.{
-  FeatureEngineeringAllowables,
-  FeatureEngineeringEnums
-}
-import com.databricks.labs.automl.utils.{DataValidation, SchemaUtils}
+import com.databricks.labs.automl.utils.structures.{FeatureEngineeringAllowables, FeatureEngineeringEnums}
+import com.databricks.labs.automl.utils.{DataValidation, SchemaUtils, SparkSessionWrapper}
 import org.apache.spark.ml.feature.StringIndexer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -15,7 +12,7 @@ import org.apache.spark.sql.types._
 
 import scala.collection.mutable.ArrayBuffer
 
-class DataSanitizer(data: DataFrame) extends DataValidation {
+class DataSanitizer(data: DataFrame) extends DataValidation with SparkSessionWrapper {
 
   private var _labelCol = "label"
   private var _featureCol = "features"
@@ -240,17 +237,18 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
                                    columnList: List[String],
                                    statistics: String): DataFrame = {
 
-    val dfParts = df.rdd.partitions.length.toDouble
+//    val dfParts = df.rdd.partitions.length.toDouble
 //    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
-    val summaryParts =
-      Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
+//    val summaryParts =
+//      Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
+    val readyDF = df.repartition(parTasks).cache
+    readyDF.foreach(_ => ())
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {
       val colBatches = getBatches(columnList)
       colBatches
         .map { batch =>
-          df.coalesce(summaryParts)
-            .select(batch map col: _*)
+          readyDF.select(batch map col: _*)
             .summary()
             .select("Summary" +: batch map col: _*)
         }
@@ -259,10 +257,10 @@ class DataSanitizer(data: DataFrame) extends DataValidation {
         .reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
 
     } else {
-      df.coalesce(summaryParts)
-        .summary(statistics.replaceAll(" ", "").split(","): _*)
+      readyDF.summary(statistics.replaceAll(" ", "").split(","): _*)
         .select(selectionColumns map col: _*)
     }
+    readyDF.unpersist()
     x
   }
 

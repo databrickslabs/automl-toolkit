@@ -110,6 +110,9 @@ trait Evolution
   var _cardinalityThreshold: Int = _defaultKSampleConfig.cardinalityThreshold
   var _numericRatio: Double = _defaultKSampleConfig.numericRatio
   var _numericTarget: Int = _defaultKSampleConfig.numericTarget
+  lazy final val xgbWorkers: Int = try { environmentVars("num_workers").toString.toInt }
+  catch { case e: java.util.NoSuchElementException =>  scala.math.floor(totalCores / coresPerTask / _parallelism).toInt }
+  lazy final val optimalJVMModelPartitions: Int = scala.math.floor(parTasks / _parallelism).toInt
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
@@ -1181,6 +1184,30 @@ trait Evolution
           s"Cannot conduct train test split in mode: '${_trainSplitMethod}'"
         )
     }
+
+  }
+
+  def optimizeTestTrain(train: DataFrame,
+                        test: DataFrame,
+                        optimalParts: Int,
+                        shuffle: Boolean = false
+                       ): (DataFrame, DataFrame) = {
+    val optimizedTrain = if (shuffle) {
+      train.repartition(optimalParts).cache()
+    } else {
+      train.coalesce(optimalParts).cache()
+    }
+
+    val optimizedTest = if (shuffle) {
+      test.repartition(optimalParts).cache()
+    } else {
+      test.coalesce(optimalParts).cache()
+    }
+
+    optimizedTrain.foreach(_ => ())
+    optimizedTest.foreach(_ => ())
+
+    (optimizedTrain, optimizedTest)
 
   }
 
