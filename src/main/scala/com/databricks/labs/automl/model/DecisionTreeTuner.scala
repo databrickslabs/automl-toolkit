@@ -14,6 +14,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.regression.DecisionTreeRegressor
 import org.apache.spark.sql.functions.col
@@ -256,7 +257,7 @@ class DecisionTreeTuner(df: DataFrame,
     val builtModel = treesModel.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).persist(StorageLevel.DISK_ONLY)
     optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()

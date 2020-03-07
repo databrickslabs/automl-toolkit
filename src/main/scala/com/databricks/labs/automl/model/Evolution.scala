@@ -16,6 +16,7 @@ import org.apache.spark.ml.evaluation.{
   MulticlassClassificationEvaluator,
   RegressionEvaluator
 }
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.{count, _}
 import org.apache.spark.sql.{DataFrame, Row}
@@ -1193,15 +1194,15 @@ trait Evolution
                         shuffle: Boolean = false
                        ): (DataFrame, DataFrame) = {
     val optimizedTrain = if (shuffle) {
-      train.repartition(optimalParts).cache()
+      train.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
     } else {
-      train.coalesce(optimalParts).cache()
+      train.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
     }
 
     val optimizedTest = if (shuffle) {
-      test.repartition(optimalParts).cache()
+      test.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
     } else {
-      test.coalesce(optimalParts).cache()
+      test.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
     }
 
     optimizedTrain.foreach(_ => ())

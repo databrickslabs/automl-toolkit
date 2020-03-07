@@ -95,9 +95,11 @@ class OutlierFilterTransformer(override val uid: String)
   private def validateMutatedf(originalDf: DataFrame,
                                mutatedDf: DataFrame,
                                outlierDf: DataFrame): Unit = {
+
     assert(
       originalDf.count() == mutatedDf.count() + outlierDf.count(),
       "Original Df count doesn't match the sum of outlier filter output data and removed data")
+
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {

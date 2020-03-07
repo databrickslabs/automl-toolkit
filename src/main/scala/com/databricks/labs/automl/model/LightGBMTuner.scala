@@ -9,6 +9,7 @@ import com.databricks.labs.automl.params.{
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import com.microsoft.ml.spark.lightgbm.{LightGBMClassifier, LightGBMRegressor}
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Row}
 
@@ -394,7 +395,7 @@ class LightGBMTuner(df: DataFrame,
     val builtModel = model.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).persist(StorageLevel.DISK_ONLY)
     optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()

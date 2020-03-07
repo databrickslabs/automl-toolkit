@@ -12,6 +12,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
@@ -181,7 +182,7 @@ class LinearRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
     val builtModel = regressionModel.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).persist(StorageLevel.DISK_ONLY)
     optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
