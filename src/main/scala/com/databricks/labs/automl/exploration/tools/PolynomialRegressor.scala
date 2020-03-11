@@ -1,5 +1,8 @@
 package com.databricks.labs.automl.exploration.tools
 
+import org.apache.commons.math3.analysis.polynomials
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
+import org.apache.commons.math3.analysis.solvers.LaguerreSolver
 import org.apache.commons.math3.fitting
 import org.apache.commons.math3.fitting.{
   PolynomialCurveFitter,
@@ -13,7 +16,8 @@ object PolynomialRegressor {
 
     val data = x.zip(y)
     val payload = new fitting.WeightedObservedPoints()
-    data.foreach(x => payload.add(x._1, x._2))
+
+    data.foreach { case (x, y) => payload.add(x, y) }
 
     payload
   }
@@ -21,42 +25,81 @@ object PolynomialRegressor {
   private def fitParameters(order: Int,
                             data: WeightedObservedPoints): Array[Double] = {
 
-    //TODO: restrict the level here? order < 4? 5?
-
     val parameterFitter = PolynomialCurveFitter.create(order)
 
     parameterFitter.fit(data.toList)
 
   }
 
-  private def linearEq(x: Double, m: Double, b: Double): Double = (m * x) + b
+  def getRoot(params: Array[Double]): Double = {
 
-  private def secondOrderEq(x: Double,
-                            a0: Double,
-                            a1: Double,
-                            a2: Double): Double = {
-    (a2 * x * x) + (a1 * x) + a0
+    val polynomial = new polynomials.PolynomialFunction(params)
+    val solver = new LaguerreSolver()
+    solver.solve(100, polynomial, -1000, 1000)
   }
 
-  def fitSecondOrder(x: Seq[Double], y: Seq[Double]): Double = {
+  private def calculateFit(x: Double, poly: PolynomialFunction): Double = {
+    poly.value(x)
+  }
+
+  private def calculateSSR(data: Seq[(Double, Double)],
+                           predictions: Seq[Double]): Double = {
+
+    data.map(_._2).zip(predictions).foldLeft(0.0) {
+      case (acc, i) =>
+        acc + math.pow(i._1 - i._2, 2)
+    }
+  }
+
+  private def calculateSSE(predictions: Seq[Double],
+                           meanActual: Double): Double = {
+    predictions.foldLeft(0.0) {
+      case (acc, i) => acc + math.pow(i - meanActual, 2)
+    }
+  }
+
+  private def calculateSST(data: Seq[(Double, Double)],
+                           meanActual: Double): Double = {
+    data.map(_._2).foldLeft(0.0) {
+      case (acc, i) => acc + math.pow(i - meanActual, 2)
+    }
+  }
+
+  private def calculateR2(ssr: Double, sst: Double): Double = {
+    1.0 - (ssr / sst)
+  }
+
+  def fit(x: Seq[Double],
+          y: Seq[Double],
+          order: Int): PolynomialRegressorResult = {
 
     val points = createObservations(x, y)
-    val params = fitParameters(2, points)
+    val params = fitParameters(order, points)
+    val polynomial = new PolynomialFunction(params)
 
     val zippedData = x.zip(y)
 
-    val squaredError = zippedData.map(
-      x =>
-        math.pow(x._2 - secondOrderEq(x._1, params(0), params(1), params(2)), 2)
-    )
-    val sumSquareError = squaredError.sum
-    val mse = sumSquareError / x.size
+    val predictions = x.map(a => calculateFit(a, polynomial))
+
+    val ssr = calculateSSR(zippedData, predictions)
+    val sse = calculateSSE(predictions, y.sum / y.length)
+    val sst = calculateSST(zippedData, y.sum / y.length)
+    val mse = ssr / (x.size - order)
     val rmse = math.sqrt(mse)
+    val r2 = calculateR2(ssr, sst)
 
-    //TODO: regression slope error equation...SE of regression slope = sb1 = sqrt [ Σ(yi – ŷi)2 / (n – 2) ] / sqrt [ Σ(xi – x)2 ].
+    PolynomialRegressorResult(order, polynomial, ssr, sse, sst, mse, rmse, r2)
 
-    //TODO: finish this to return the equation elements so that predictions can be made as well as all of the stats of the fit.
-    rmse
+  }
+
+  def fitMultipleOrders(
+    x: Seq[Double],
+    y: Seq[Double],
+    orders: Array[Int]
+  ): Array[PolynomialRegressorResult] = {
+
+    orders.map(o => fit(x, y, o))
+
   }
 
 }

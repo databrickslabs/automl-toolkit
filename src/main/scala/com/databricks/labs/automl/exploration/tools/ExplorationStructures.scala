@@ -1,5 +1,34 @@
 package com.databricks.labs.automl.exploration.tools
 
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
+import org.apache.commons.math3.distribution.RealDistribution
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics
+
+case class SummaryStats(count: Long,
+                        min: Double,
+                        max: Double,
+                        sum: Double,
+                        mean: Double,
+                        geometricMean: Double,
+                        variance: Double,
+                        popVariance: Double,
+                        secondMoment: Double,
+                        sumOfSquares: Double,
+                        stdDeviation: Double,
+                        sumOfLogs: Double)
+
+case class DistributionValidationData(test: String,
+                                      pValue: Double,
+                                      dStatistic: Double)
+
+case class DistributionTestPayload(testName: String,
+                                   distribution: RealDistribution)
+
+case class DistributionTestResult(bestDistributionFit: String,
+                                  bestDistributionPValue: Double,
+                                  bestDistributionDStatistic: Double,
+                                  allTests: Array[DistributionValidationData])
+
 case class OneDimStatsData(mean: Double,
                            geomMean: Double,
                            variance: Double,
@@ -8,7 +37,9 @@ case class OneDimStatsData(mean: Double,
                            skew: Double,
                            kurtosis: Double,
                            kurtosisType: String,
-                           skewType: String)
+                           skewType: String,
+                           summaryStats: SummaryStats,
+                           distributionData: DistributionTestResult)
 
 case class ShapiroScoreData(w: Double, z: Double, probability: Double)
 
@@ -48,3 +79,32 @@ case class SimpleRegressorResult(slope: Double,
                                  pairLength: Long,
                                  pearsonR: Double,
                                  crossProductSum: Double)
+
+case class PolynomialRegressorResult(order: Int,
+                                     function: PolynomialFunction,
+                                     residualSumSquares: Double,
+                                     sumSquareError: Double,
+                                     totalSumSquares: Double,
+                                     mse: Double,
+                                     rmse: Double,
+                                     r2: Double)
+
+case class PairedSeq(left: SummaryStatistics, right: SummaryStatistics)
+case class TTestData(alpha: Double,
+                     tStat: Double,
+                     tTestSignificance: Boolean,
+                     tTestPValue: Double,
+                     equivalencyJudgement: Char)
+
+case class KSTestResult(ksTestPvalue: Double,
+                        ksTestDStatistic: Double,
+                        ksTestEquivalency: Char)
+
+case class CorrelationTestResult(covariance: Double,
+                                 pearsonCoefficient: Double,
+                                 spearmanCoefficient: Double,
+                                 kendallsTauCoefficient: Double)
+
+case class PairedTestResult(correlationTestData: CorrelationTestResult,
+                            tTestData: TTestData,
+                            kolmogorovSmirnovData: KSTestResult)

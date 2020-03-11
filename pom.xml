@@ -82,6 +82,12 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.vegas-viz</groupId>
+            <artifactId>vegas_2.11</artifactId>
+            <version>0.3.11</version>
+            <scope>${dependency.scope}</scope>
+        </dependency>
+        <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.11</artifactId>
             <version>3.0.6</version>
