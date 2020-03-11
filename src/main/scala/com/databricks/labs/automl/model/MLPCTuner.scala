@@ -183,13 +183,16 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
     val mlpcModel = configureModel(modelConfig)
     val builtModel = mlpcModel.fit(train)
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    optimizedPredictions.foreach(_ => ())
+
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     for (i <- _classificationMetrics) {
-      scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
+      scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
     }
 
-    MLPCModelsWithResults(
+    val mlpcModelsWithResults = MLPCModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
@@ -197,6 +200,8 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
       generation
     )
 
+    optimizedPredictions.unpersist()
+    mlpcModelsWithResults
   }
 
   private def runBattery(battery: Array[MLPCConfig],
@@ -234,7 +239,10 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        kFoldBuffer += generateAndScoreMLPCModel(train, test, x)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        kFoldBuffer += generateAndScoreMLPCModel(optimizedTrain, optimizedTest, x)
+        optimizedTrain.unpersist()
+        optimizedTest.unpersist()
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {

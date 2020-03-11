@@ -20,6 +20,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
+import scala.collection.JavaConverters._
 
 class XGBoostTuner(df: DataFrame,
                    modelSelection: String,
@@ -112,6 +113,16 @@ class XGBoostTuner(df: DataFrame,
         }
     }
 
+//    val coresPerWorker = sc.parallelize("1").map(_ => java.lang.Runtime.getRuntime.availableProcessors).collect()(0)
+//    val numberOfWorkers = sc.statusTracker.getExecutorInfos.length - 1
+//    val totalCores = coresPerWorker * numberOfWorkers
+//    val tasksPerCore = try { spark.conf.get("spark.task.cpus").toInt }
+//      catch { case e: java.util.NoSuchElementException => 1}
+//
+//    val environmentVars = System.getenv().asScala
+//    val numWorkers = try { environmentVars("num_workers").toInt }
+//      catch { case e: java.util.NoSuchElementException =>  scala.math.floor(totalCores / tasksPerCore).toInt }
+
     val builtModel = modelSelection match {
       case "classifier" =>
         val xgClass = new XGBoostClassifier()
@@ -127,6 +138,8 @@ class XGBoostTuner(df: DataFrame,
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
+          .setNthread(coresPerTask)
+          .setNumWorkers(xgbWorkers)
           .setMissing(0.0f)
         if (uniqueLabels > 2) {
           xgClass
@@ -148,6 +161,8 @@ class XGBoostTuner(df: DataFrame,
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
+          .setNthread(coresPerTask)
+          .setNumWorkers(xgbWorkers)
           .setMissing(0.0f)
       case _ =>
         throw new UnsupportedOperationException(
@@ -273,15 +288,18 @@ class XGBoostTuner(df: DataFrame,
 
     val predictedData = builtModel.transform(test)
 
+    val optimizedPredictions = predictedData.repartition(xgbWorkers).cache()
+    optimizedPredictions.foreach(_ => ())
+
     // Due to a bug in XGBoost's transformer for accessing the probability Vector to provide a prediction
     // This method needs to be called if the unique count for the label class is non-binary for a classifier.
 
     val fixedPredictionData = modelSelection match {
-      case "regressor" => predictedData
+      case "regressor" => optimizedPredictions
       case _ =>
         uniqueLabels match {
-          case x if x <= 2 => predictedData
-          case _           => multiClassPredictionExtract(predictedData)
+          case x if x <= 2 => optimizedPredictions
+          case _           => multiClassPredictionExtract(optimizedPredictions)
         }
     }
 
@@ -299,13 +317,16 @@ class XGBoostTuner(df: DataFrame,
         }
     }
 
-    XGBoostModelsWithResults(
+    val xgbModelWithResults = XGBoostModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
       scoringMap.toMap,
       generation
     )
+
+    optimizedPredictions.unpersist()
+    xgbModelWithResults
   }
 
   private def runBattery(
@@ -350,7 +371,10 @@ class XGBoostTuner(df: DataFrame,
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        kFoldBuffer += generateAndScoreXGBoostModel(train, test, x)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, xgbWorkers, true)
+        kFoldBuffer += generateAndScoreXGBoostModel(optimizedTrain, optimizedTest, x)
+        optimizedTrain.unpersist()
+        optimizedTest.unpersist()
       }
       val scores = new ArrayBuffer[Double]
       kFoldBuffer.map(x => {

@@ -394,21 +394,23 @@ class LightGBMTuner(df: DataFrame,
     val builtModel = model.fit(train)
 
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
+    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     _gbmType.modelType match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
+          scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, optimizedPredictions)
         }
     }
 
-    LightGBMModelsWithResults(
+    val lightGBMModelsWithResults = LightGBMModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
@@ -416,6 +418,8 @@ class LightGBMTuner(df: DataFrame,
       generation
     )
 
+    optimizedPredictions.unpersist()
+    lightGBMModelsWithResults
   }
 
   /**
@@ -473,7 +477,10 @@ class LightGBMTuner(df: DataFrame,
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong(), uniqueLabels)
-        kFoldBuffer += generateAndScoreGBMModel(train, test, x)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        kFoldBuffer += generateAndScoreGBMModel(optimizedTrain, optimizedTest, x)
+        optimizedTrain.unpersist()
+        optimizedTest.unpersist()
       }
       val scores = ArrayBuffer[Double]()
       kFoldBuffer.map(x => { scores += x.score })
