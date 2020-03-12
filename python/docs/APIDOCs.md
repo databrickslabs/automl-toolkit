@@ -30,7 +30,7 @@ This class takes six parameters for instantiation:
 `prediction_type` - either "regressor" or "classifier"
 
 
-`df` - Dataframe that will be used for feature importance algorithm
+`dataframe` - Dataframe that will be used for feature importance algorithm
 
 `cutoff_value` - threshold value for feature importance algorithm
 
@@ -102,7 +102,7 @@ generic_overrides = {
   ## Calculate Feature Importance 
 from py_auto_ml.exploration.feature_importance import FeatureImportance
 
-fi_importances_package = FeatureImportance("XGBoost", "classifier",  source_data,20.0,"count",generic_overrides)
+fi_importances_package = FeatureImportance("XGBoost", "classifier",  dataframe,20.0,"count",generic_overrides)
 ```
 Once the feature importance algorithm has been run, there are two dataframes that remain as attributes of the instance 
 of the class. The first is the `importances` dataframe which lists the features and their importance value. The second
@@ -127,12 +127,28 @@ type of runs you can read more about [HERE](https://github.com/databricks/provid
 
 `data_frame` - Dataframe that will be used for feature importance algorithm
 
-`runner_type` - either "run", "confuison", or "prediction"
+`runner_type` - either "run", "confusion", or "prediction"
 
 `overrides` - dictionary of configuration overrides. If null, this will run with default configurations
 
 Below is an example of calling the `AutomationRunner` class with the overrides defined above
 ```python
+## Bring in the dataset 
+from pyspark.sql.functions import col,expr, when 
+dataframe = spark.read.parquet("/tmp/loan-risk-analysis/loan-risk-analysis-full-cleansed.parquet")\
+  .withColumn("label", when((col("bad_loan") == "true"), 1).otherwise(0))\
+  .drop(col("bad_loan"))\
+  .drop(col("net"))\
+  .sample(False, 0.025, 42)\
+  .repartition(192)
+
+
+#Splitting Train and Test
+dataset_train = dataframe.where(expr("issue_year <= 2015")).cache()
+dataset_valid = dataframe.where(expr("issue_year > 2015")).cache()
+dataset_train.createOrReplaceTempView("dataset_train")
+dataset_valid.createOrReplaceTempView("dataset_valid")
+
 model_family = "XGBoost"
 prediction_type = "classifier"
 run_type = "confusion"
@@ -142,7 +158,7 @@ from py_auto_ml.automation_runner import AutomationRunner
 
 runner = AutomationRunner(model_family,
                          prediction_type,
-                         source_data,
+                         dataframe,
                          run_type,
                          generic_overrides)
 ```
@@ -164,7 +180,7 @@ several different model families in parallel. The `FamilyRunner` class takes thr
 
 `prediction_type` - either `regressor` or `classifier`
 
-`df` - Spark Dataframe 
+`dataframe` - Spark Dataframe 
 
 Below is an example of calling the `FamilyRunner` class:
 ```python
@@ -264,7 +280,7 @@ family_runner_configs = {
 
 family_runner = FamilyRunner(family_runner_configs,
                             prediction_type,
-                            source_data)
+                            dataframe)
 
 ```
 
