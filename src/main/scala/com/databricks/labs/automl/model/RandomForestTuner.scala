@@ -9,6 +9,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.regression.RandomForestRegressor
 import org.apache.spark.sql.DataFrame
@@ -271,9 +272,8 @@ class RandomForestTuner(df: DataFrame,
     val builtModel = randomForestModel.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions =
-      predictedData.repartition(optimalJVMModelPartitions).cache()
-    optimizedPredictions.foreach(_ => ())
+
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
@@ -342,6 +342,7 @@ class RandomForestTuner(df: DataFrame,
 
       val kFoldBuffer = data.map { z =>
         generateAndScoreRandomForestModel(z.data.train, z.data.test, x)
+
       }
 
 //      for (_ <- _kFoldIteratorRange) {

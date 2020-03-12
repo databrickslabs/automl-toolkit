@@ -16,6 +16,7 @@ import org.apache.spark.ml.evaluation.{
   MulticlassClassificationEvaluator,
   RegressionEvaluator
 }
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.{count, _}
 import org.apache.spark.sql.{DataFrame, Row}
@@ -110,6 +111,7 @@ trait Evolution
   var _cardinalityThreshold: Int = _defaultKSampleConfig.cardinalityThreshold
   var _numericRatio: Double = _defaultKSampleConfig.numericRatio
   var _numericTarget: Int = _defaultKSampleConfig.numericTarget
+
   lazy final val xgbWorkers: Int = try {
     environmentVars("num_workers").toString.toInt
   } catch {
@@ -117,7 +119,7 @@ trait Evolution
       scala.math.floor(totalCores / coresPerTask / _parallelism).toInt
   }
   lazy final val optimalJVMModelPartitions: Int =
-    scala.math.floor(parTasks / _parallelism).toInt
+    scala.math.floor(parTasks / (_parallelism / 2)).toInt
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
@@ -1197,15 +1199,15 @@ trait Evolution
                         optimalParts: Int,
                         shuffle: Boolean = false): (DataFrame, DataFrame) = {
     val optimizedTrain = if (shuffle) {
-      train.repartition(optimalParts).cache()
+      train.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
     } else {
-      train.coalesce(optimalParts).cache()
+      train.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
     }
 
     val optimizedTest = if (shuffle) {
-      test.repartition(optimalParts).cache()
+      test.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
     } else {
-      test.coalesce(optimalParts).cache()
+      test.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
     }
 
     optimizedTrain.foreach(_ => ())
