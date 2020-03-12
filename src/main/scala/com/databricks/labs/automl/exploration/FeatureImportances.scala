@@ -7,6 +7,7 @@ import com.databricks.labs.automl.exploration.structures.{
   FeatureImportanceTools
 }
 import com.databricks.labs.automl.feature.FeatureInteraction
+import com.databricks.labs.automl.model.tools.DataSplitUtility
 import com.databricks.labs.automl.model.{RandomForestTuner, XGBoostTuner}
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize.DataSanitizer
@@ -164,9 +165,18 @@ class FeatureImportances(data: DataFrame,
 
     val adjustedFieldNames = cleanFieldNames(vectorFields)
 
+    val splitData = DataSplitUtility.split(
+      df,
+      config.kFold,
+      config.trainSplitMethod,
+      config.labelCol,
+      config.deltaCacheBackingDirectory,
+      config.splitCachingStrategy
+    )
+
     val result = modelFamily match {
       case RandomForest =>
-        val rfModel = new RandomForestTuner(df, config.modelType)
+        val rfModel = new RandomForestTuner(df, splitData, config.modelType)
           .setLabelCol(config.labelCol)
           .setFeaturesCol(config.featuresCol)
           .setRandomForestNumericBoundaries(config.numericBoundaries)
@@ -310,6 +320,18 @@ class FeatureImportances(data: DataFrame,
               .toMap
         }
     }
+
+    // TODO: for now, this is a placeholder.... unpersisting
+
+    splitData.foreach { x =>
+      {
+        x.data.train.unpersist()
+        x.data.test.unpersist()
+      }
+    }
+
+    //TODO: end of block to write
+
     result
   }
 

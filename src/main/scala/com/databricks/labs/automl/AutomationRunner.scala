@@ -7,9 +7,11 @@ import com.databricks.labs.automl.inference.{
   InferenceTools
 }
 import com.databricks.labs.automl.model._
-import com.databricks.labs.automl.model.tools.PostModelingOptimization
+import com.databricks.labs.automl.model.tools.{
+  DataSplitUtility,
+  PostModelingOptimization
+}
 import com.databricks.labs.automl.params._
-
 import com.databricks.labs.automl.reports.{
   DecisionTreeSplits,
   RandomForestFeatureImportance
@@ -27,7 +29,6 @@ import ml.dmlc.xgboost4j.scala.spark.{
   XGBoostClassificationModel,
   XGBoostRegressionModel
 }
-
 import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification._
@@ -61,10 +62,20 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       payload.data
     }
 
+    val splitData = DataSplitUtility.split(
+      payload.data,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy
+    )
+
     if (_mainConfig.dataPrepCachingFlag) payload.data.count()
 
     val initialize = new RandomForestTuner(
       cachedData,
+      splitData,
       payload.modelType,
       isPipeline
     ).setLabelCol(_mainConfig.labelCol)
@@ -234,6 +245,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       statsBuffer += hyperDataFrame
 
     }
+
+    // if the split configuration is for DELTA, then check the delete flag and delete the data sets.
+
+    // TODO: for now, this is a placeholder.... unpersisting
+
+    splitData.foreach { x =>
+      {
+        x.data.train.unpersist()
+        x.data.test.unpersist()
+      }
+    }
+
+    //TODO: end of block to write
 
     (
       resultBuffer.toArray,

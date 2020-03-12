@@ -2109,6 +2109,67 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   /**
+    * Setter for providing a path to write the kfold train/test splits as Delta data sets to (useful for extremely
+    * large data sets or a situation where using local disk storage might be prohibitively expensive)
+    * @param value String path to a dbfs location for creating the temporary (or persisted)
+    * @since 0.7.1
+    * @author Ben Wilson, Databricks
+    */
+  def setTunerDeltaCacheBackingDirectory(value: String): this.type = {
+
+    require(
+      value.take(6) == "dbfs:/",
+      s"Delta backing location must be written to dbfs."
+    )
+    _instanceConfig.tunerConfig.tunerDeltaCacheBackingDirectory = value
+    this
+  }
+
+  /**
+    * Setter for determining the split caching strategy (either persist to disk for each kfold split or backing to Delta)
+    * @param value Configuration string either 'persist' or 'delta'
+    * @since 0.7.1
+    * @author Ben Wilson, Databricks
+    */
+  def setSplitCachingStrategy(value: String): this.type = {
+    val valueSet = value.toLowerCase
+    require(
+      valueSet == "persist" || valueSet == "delta",
+      s"SplitCachingStrategy '${}' is invalid.  Must be either 'delta' or 'persist'"
+    )
+    _instanceConfig.tunerConfig.splitCachingStrategy = valueSet
+    this
+  }
+
+  /**
+    * Setter for whether or not to delete the written train/test splits for the run in Delta.  Defaulted to true
+    * which means that the job will delete the data on Object store to clean itself up after the run is completed
+    * if the splitCachingStrategy is set to 'delta'
+    * @param value Boolean - true => delete false => leave on Object Store
+    * @since 0.7.1
+    * @author Ben Wilson, Databricks
+    */
+  def setTunerDeltaCacheBackingDirectoryRemovalFlag(
+    value: Boolean
+  ): this.type = {
+    _instanceConfig.tunerConfig.tunerDeltaCacheBackingDirectoryRemovalFlag =
+      value
+    this
+  }
+
+  def deltaCheckBackingDirectoryRemovalOn(): this.type = {
+    _instanceConfig.tunerConfig.tunerDeltaCacheBackingDirectoryRemovalFlag =
+      true
+    this
+  }
+
+  def deltaCheckBackingDirectoryRemovalOff(): this.type = {
+    _instanceConfig.tunerConfig.tunerDeltaCacheBackingDirectoryRemovalFlag =
+      false
+    this
+  }
+
+  /**
     * Getters
     */
   def getInstanceConfig: InstanceConfig = _instanceConfig
@@ -2371,7 +2432,12 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           indexMixingMode =
             config.tunerConfig.tunerInitialGenerationIndexMixingMode,
           arraySeed = config.tunerConfig.tunerInitialGenerationArraySeed
-        )
+        ),
+        deltaCacheBackingDirectory =
+          config.tunerConfig.tunerDeltaCacheBackingDirectory,
+        deltaCacheBackingDirectoryRemovalFlag =
+          config.tunerConfig.tunerDeltaCacheBackingDirectoryRemovalFlag,
+        splitCachingStrategy = config.tunerConfig.splitCachingStrategy
       ),
       mlFlowLoggingFlag = config.loggingConfig.mlFlowLoggingFlag,
       mlFlowLogArtifactsFlag = config.loggingConfig.mlFlowLogArtifactsFlag,
@@ -2470,7 +2536,12 @@ object ConfigurationGenerator extends ConfigurationDefaults {
       featureInteractionParallelism =
         config.featureEngineeringConfig.featureInteractionParallelism,
       featureInteractionTargetInteractionPercentage =
-        config.featureEngineeringConfig.featureInteractionTargetInteractionPercentage
+        config.featureEngineeringConfig.featureInteractionTargetInteractionPercentage,
+      deltaCacheBackingDirectory =
+        config.tunerConfig.tunerDeltaCacheBackingDirectory,
+      deltaCacheBackingDirectoryRemovalFlag =
+        config.tunerConfig.tunerDeltaCacheBackingDirectoryRemovalFlag,
+      splitCachingStrategy = config.tunerConfig.splitCachingStrategy
     )
 
   }
@@ -3525,6 +3596,28 @@ object ConfigurationGenerator extends ConfigurationDefaults {
         config
           .getOrElse("mlFlowCustomRunTags", defaultMap("mlFlowCustomRunTags"))
           .asInstanceOf[Map[String, AnyVal]]
+      )
+      .setTunerDeltaCacheBackingDirectory(
+        config
+          .getOrElse(
+            "tunerDeltaCacheBackingDirectory",
+            defaultMap("tunerDeltaCacheBackingDirectory")
+          )
+          .toString
+      )
+      .setTunerDeltaCacheBackingDirectoryRemovalFlag(
+        config
+          .getOrElse(
+            "tunerDeltaCacheBackingDirectoryRemovalFlag",
+            defaultMap("tunerDeltaCacheBackingDirectoryRemovalFlag")
+          )
+          .toString
+          .toBoolean
+      )
+      .setSplitCachingStrategy(
+        config
+          .getOrElse("splitCachingStrategy", defaultMap("splitCachingStrategy"))
+          .toString
       )
 
     configObject.getInstanceConfig

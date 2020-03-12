@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.reports
 
 import com.databricks.labs.automl.model.RandomForestTuner
+import com.databricks.labs.automl.model.tools.DataSplitUtility
 import com.databricks.labs.automl.params.{
   MainConfig,
   RandomForestModelsWithResults
@@ -42,8 +43,20 @@ class RandomForestFeatureImportance(data: DataFrame,
     fields: Array[String]
   ): (RandomForestModelsWithResults, DataFrame, Array[String]) = {
 
-    val (modelResults, modelStats) = new RandomForestTuner(data, modelType)
-      .setLabelCol(featConfig.labelCol)
+    val splitData = DataSplitUtility.split(
+      data,
+      featConfig.geneticConfig.kFold,
+      featConfig.geneticConfig.trainSplitMethod,
+      featConfig.labelCol,
+      featConfig.geneticConfig.deltaCacheBackingDirectory,
+      featConfig.geneticConfig.splitCachingStrategy
+    )
+
+    val (modelResults, modelStats) = new RandomForestTuner(
+      data,
+      splitData,
+      modelType
+    ).setLabelCol(featConfig.labelCol)
       .setFeaturesCol(featConfig.featuresCol)
       .setRandomForestNumericBoundaries(featConfig.numericBoundaries)
       .setRandomForestStringBoundaries(featConfig.stringBoundaries)
@@ -130,6 +143,17 @@ class RandomForestFeatureImportance(data: DataFrame,
           s"Extraction mode ${_cutoffType} is not supported for feature importance reduction"
         )
     }
+
+    // TODO: for now, this is a placeholder.... unpersisting
+
+    splitData.foreach { x =>
+      {
+        x.data.train.unpersist()
+        x.data.test.unpersist()
+      }
+    }
+
+    //TODO: end of block to write
 
     (bestModelData, importances, extractedFields)
 
