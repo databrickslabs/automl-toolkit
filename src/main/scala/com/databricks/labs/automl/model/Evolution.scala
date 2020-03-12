@@ -113,7 +113,7 @@ trait Evolution
   var _numericTarget: Int = _defaultKSampleConfig.numericTarget
   lazy final val xgbWorkers: Int = try { environmentVars("num_workers").toString.toInt }
   catch { case e: java.util.NoSuchElementException =>  scala.math.floor(totalCores / coresPerTask / _parallelism).toInt }
-  lazy final val optimalJVMModelPartitions: Int = scala.math.floor(parTasks / _parallelism).toInt
+  lazy final val optimalJVMModelPartitions: Int = scala.math.floor(parTasks / (_parallelism / 2)).toInt
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)

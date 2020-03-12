@@ -174,8 +174,8 @@ class LogisticRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
     val builtModel = regressionModel.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).persist(StorageLevel.DISK_ONLY)
-    optimizedPredictions.foreach(_ => ())
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
@@ -232,7 +232,7 @@ class LogisticRegressionTuner(df: DataFrame, isPipeline: Boolean = false)
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions, shuffle=true)
         kFoldBuffer += generateAndScoreLogisticRegression(optimizedTrain, optimizedTest, x)
         optimizedTrain.unpersist()
         optimizedTest.unpersist()

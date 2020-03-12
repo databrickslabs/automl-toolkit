@@ -289,8 +289,8 @@ class XGBoostTuner(df: DataFrame,
 
     val predictedData = builtModel.transform(test)
 
-    val optimizedPredictions = predictedData.repartition(xgbWorkers).persist(StorageLevel.DISK_ONLY)
-    optimizedPredictions.foreach(_ => ())
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     // Due to a bug in XGBoost's transformer for accessing the probability Vector to provide a prediction
     // This method needs to be called if the unique count for the label class is non-binary for a classifier.
