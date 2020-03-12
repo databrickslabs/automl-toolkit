@@ -13,6 +13,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.regression.GBTRegressor
 import org.apache.spark.sql.{DataFrame, Row}
@@ -272,8 +273,8 @@ class GBTreesTuner(df: DataFrame,
     val builtModel = gbtModel.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
-    optimizedPredictions.foreach(_ => ())
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
@@ -340,7 +341,7 @@ class GBTreesTuner(df: DataFrame,
       for (_ <- _kFoldIteratorRange) {
         val Array(train, test) =
           genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions, shuffle=true)
         kFoldBuffer += generateAndScoreGBTModel(optimizedTrain, optimizedTest, x)
         optimizedTrain.unpersist()
         optimizedTest.unpersist()
