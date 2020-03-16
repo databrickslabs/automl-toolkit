@@ -7,7 +7,10 @@ import com.databricks.labs.automl.exploration.structures.{
   FeatureImportanceTools
 }
 import com.databricks.labs.automl.feature.FeatureInteraction
-import com.databricks.labs.automl.model.tools.DataSplitUtility
+import com.databricks.labs.automl.model.tools.split.{
+  DataSplitCustodial,
+  DataSplitUtility
+}
 import com.databricks.labs.automl.model.{RandomForestTuner, XGBoostTuner}
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize.DataSanitizer
@@ -171,7 +174,8 @@ class FeatureImportances(data: DataFrame,
       config.trainSplitMethod,
       config.labelCol,
       config.deltaCacheBackingDirectory,
-      config.splitCachingStrategy
+      config.splitCachingStrategy,
+      config.featureImportanceModelFamily
     )
 
     val result = modelFamily match {
@@ -248,7 +252,7 @@ class FeatureImportances(data: DataFrame,
             adjustedFieldNames.zip(importances).toMap[String, Double]
         }
       case XGBoost =>
-        val xgModel = new XGBoostTuner(df, config.modelType)
+        val xgModel = new XGBoostTuner(df, splitData, config.modelType)
           .setLabelCol(config.labelCol)
           .setFeaturesCol(config.featuresCol)
           .setXGBoostNumericBoundaries(config.numericBoundaries)
@@ -321,16 +325,7 @@ class FeatureImportances(data: DataFrame,
         }
     }
 
-    // TODO: for now, this is a placeholder.... unpersisting
-
-    splitData.foreach { x =>
-      {
-        x.data.train.unpersist()
-        x.data.test.unpersist()
-      }
-    }
-
-    //TODO: end of block to write
+    DataSplitCustodial.cleanCachedInstances(splitData, config)
 
     result
   }

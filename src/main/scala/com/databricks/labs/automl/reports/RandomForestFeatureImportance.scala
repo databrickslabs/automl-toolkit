@@ -1,7 +1,10 @@
 package com.databricks.labs.automl.reports
 
 import com.databricks.labs.automl.model.RandomForestTuner
-import com.databricks.labs.automl.model.tools.DataSplitUtility
+import com.databricks.labs.automl.model.tools.split.{
+  DataSplitCustodial,
+  DataSplitUtility
+}
 import com.databricks.labs.automl.params.{
   MainConfig,
   RandomForestModelsWithResults
@@ -49,7 +52,8 @@ class RandomForestFeatureImportance(data: DataFrame,
       featConfig.geneticConfig.trainSplitMethod,
       featConfig.labelCol,
       featConfig.geneticConfig.deltaCacheBackingDirectory,
-      featConfig.geneticConfig.splitCachingStrategy
+      featConfig.geneticConfig.splitCachingStrategy,
+      featConfig.modelFamily
     )
 
     val (modelResults, modelStats) = new RandomForestTuner(
@@ -144,16 +148,7 @@ class RandomForestFeatureImportance(data: DataFrame,
         )
     }
 
-    // TODO: for now, this is a placeholder.... unpersisting
-
-    splitData.foreach { x =>
-      {
-        x.data.train.unpersist()
-        x.data.test.unpersist()
-      }
-    }
-
-    //TODO: end of block to write
+    DataSplitCustodial.cleanCachedInstances(splitData, featConfig)
 
     (bestModelData, importances, extractedFields)
 

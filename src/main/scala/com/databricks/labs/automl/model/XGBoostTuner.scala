@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
@@ -13,17 +14,17 @@ import com.databricks.labs.automl.params.{
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassifier, XGBoostRegressor}
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.storage.StorageLevel
-import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
-import scala.collection.JavaConverters._
 
 class XGBoostTuner(df: DataFrame,
+                   data: Array[TrainSplitReferences],
                    modelSelection: String,
                    isPipeline: Boolean = false)
     extends SparkSessionWrapper
@@ -367,20 +368,11 @@ class XGBoostTuner(df: DataFrame,
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[XGBoostModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, xgbWorkers, true)
-        kFoldBuffer += generateAndScoreXGBoostModel(optimizedTrain, optimizedTest, x)
-        optimizedTrain.unpersist()
-        optimizedTest.unpersist()
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreXGBoostModel(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
@@ -404,7 +396,7 @@ class XGBoostTuner(df: DataFrame,
 
       val runAvg = XGBoostModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation

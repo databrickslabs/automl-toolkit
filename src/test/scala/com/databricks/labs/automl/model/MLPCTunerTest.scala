@@ -2,22 +2,59 @@ package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.executor.DataPrep
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.model.tools.split.DataSplitUtility
 import com.databricks.labs.automl.params.MLPCModelsWithResults
-import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
+import com.databricks.labs.automl.{
+  AbstractUnitSpec,
+  AutomationUnitTestsUtil,
+  DiscreteTestDataGenerator
+}
 import org.apache.spark.sql.AnalysisException
 
 class MLPCTunerTest extends AbstractUnitSpec {
 
   "MLPCTuner" should "throw NullPointerException for passing invalid params" in {
     a[NullPointerException] should be thrownBy {
-      new MLPCTuner(null).evolveBest()
+
+      val data = new DataPrep(
+        DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+      ).prepData().data
+
+      val trainSplits = DataSplitUtility.split(
+        data,
+        1,
+        "random",
+        "label",
+        "dbfs:/test",
+        "cache",
+        "MLPC"
+      )
+
+      new MLPCTuner(null, trainSplits).evolveBest()
     }
   }
 
   it should "should throw AnalysisException for passing invalid dataset" in {
     a[AnalysisException] should be thrownBy {
-      new MLPCTuner(AutomationUnitTestsUtil.sparkSession.emptyDataFrame)
-        .evolveBest()
+
+      val data = new DataPrep(
+        DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+      ).prepData().data
+
+      val trainSplits = DataSplitUtility.split(
+        data,
+        1,
+        "random",
+        "label",
+        "dbfs:/test",
+        "cache",
+        "MLPC"
+      )
+
+      new MLPCTuner(
+        AutomationUnitTestsUtil.sparkSession.emptyDataFrame,
+        trainSplits
+      ).evolveBest()
     }
   }
 
@@ -28,10 +65,22 @@ class MLPCTunerTest extends AbstractUnitSpec {
         .generateDefaultConfig("mlpc", "classifier")
     )
 
+    val data =
+      new DataPrep(AutomationUnitTestsUtil.getAdultDf()).prepData().data
+
+    val splitData = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      "income",
+      "dbfs:/test",
+      "cache",
+      "MLPC"
+    )
+
     val logisticRegressionModelsWithResults: MLPCModelsWithResults =
-      new MLPCTuner(
-        new DataPrep(AutomationUnitTestsUtil.getAdultDf()).prepData().data
-      ).setFirstGenerationGenePool(5)
+      new MLPCTuner(data, splitData)
+        .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
         .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)

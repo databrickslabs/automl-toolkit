@@ -1,4 +1,4 @@
-package com.databricks.labs.automl.model.tools
+package com.databricks.labs.automl.model.tools.split
 
 import com.databricks.labs.automl.model.Evolution
 import com.databricks.labs.automl.model.tools.structures.{

@@ -87,21 +87,41 @@ class GenericConfigGenerator(predictionType: String)
     */
   @throws(classOf[IllegalArgumentException])
   def setScoringMetric(value: String): this.type = {
+
+    val adjusted_value = value.toLowerCase
+    val matched_value = adjusted_value match {
+      case "f1"                => "f1"
+      case "weightedprecision" => "weightedPrecision"
+      case "weightedrecall"    => "weightedRecall"
+      case "accuracy"          => "accuracy"
+      case "areaunderpr"       => "areaUnderPR"
+      case "areaunderroc"      => "areaUnderROC"
+      case "rmse"              => "rmse"
+      case "mse"               => "mse"
+      case "r2"                => "r2"
+      case "mae"               => "mae"
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Supplied Scoring Metric '${value}' is not supported. " +
+            s"Must be one of: weightedPrecision, weightedRecall, accuracy, areaUnderPR, areaUnderROC, rmse, mse, r2, mae.'"
+        )
+    }
+
     familyType match {
       case Regressor =>
         validateMembership(
-          value,
+          matched_value,
           allowableRegressionScoringMetrics,
           s"$predictionType Scoring Metric"
         )
       case Classifier =>
         validateMembership(
-          value,
+          matched_value,
           allowableClassificationScoringMetrics,
           s"$predictionType Scoring Metric"
         )
     }
-    _genericConfig.scoringMetric = value
+    _genericConfig.scoringMetric = matched_value
     this
   }
 
@@ -2134,8 +2154,8 @@ class ConfigurationGenerator(modelFamily: String,
   def setSplitCachingStrategy(value: String): this.type = {
     val valueSet = value.toLowerCase
     require(
-      valueSet == "persist" || valueSet == "delta",
-      s"SplitCachingStrategy '${}' is invalid.  Must be either 'delta' or 'persist'"
+      valueSet == "persist" || valueSet == "delta" || valueSet == "cache",
+      s"SplitCachingStrategy '${}' is invalid.  Must be either 'delta', 'cache', or 'persist'"
     )
     _instanceConfig.tunerConfig.splitCachingStrategy = valueSet
     this

@@ -2,6 +2,7 @@ package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.executor.DataPrep
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.model.tools.split.DataSplitUtility
 import com.databricks.labs.automl.params.RandomForestModelsWithResults
 import com.databricks.labs.automl.{
   AbstractUnitSpec,
@@ -13,14 +14,37 @@ class RandomForestTunerTest extends AbstractUnitSpec {
 
   "RandomForestTuner" should "throw UnsupportedOperationException for passing invalid params" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new RandomForestTuner(null, null).evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "RandomForest"
+      )
+
+      new RandomForestTuner(null, splitData, null).evolveBest()
     }
   }
 
   it should "throw UnsupportedOperationException for passing invalid modelSelection" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new RandomForestTuner(AutomationUnitTestsUtil.getAdultDf(), "err")
-        .evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "RandomForest"
+      )
+
+      new RandomForestTuner(
+        AutomationUnitTestsUtil.getAdultDf(),
+        splitData,
+        "err"
+      ).evolveBest()
     }
   }
 
@@ -28,9 +52,21 @@ class RandomForestTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("randomforest", "classifier")
     )
-    val data = DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+    ).prepData().data
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "RandomForest"
+    )
+
     val randomForestModelsWithResults: RandomForestModelsWithResults =
-      new RandomForestTuner(new DataPrep(data).prepData().data, "classifier")
+      new RandomForestTuner(data, trainSplits, "classifier")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
@@ -140,10 +176,21 @@ class RandomForestTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("randomforest", "classifier")
     )
-    val data =
+    val data = new DataPrep(
       DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
+    ).prepData().data
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "RandomForest"
+    )
+
     val randomForestModelsWithResults: RandomForestModelsWithResults =
-      new RandomForestTuner(new DataPrep(data).prepData().data, "classifier")
+      new RandomForestTuner(data, trainSplits, "classifier")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
@@ -253,10 +300,21 @@ class RandomForestTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("randomforest", "regressor")
     )
-    val data =
+    val data = new DataPrep(
       DiscreteTestDataGenerator.generateRegressionData(10000)
+    ).prepData().data
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "RandomForest"
+    )
+
     val randomForestModelsWithResults: RandomForestModelsWithResults =
-      new RandomForestTuner(new DataPrep(data).prepData().data, "regressor")
+      new RandomForestTuner(data, trainSplits, "regressor")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)

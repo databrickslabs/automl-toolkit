@@ -544,7 +544,25 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setScoringMetric(value: String): this.type = {
-    _scoringMetric = value
+    val adjusted_value = value.toLowerCase
+    val matched_value = adjusted_value match {
+      case "f1"                => "f1"
+      case "weightedprecision" => "weightedPrecision"
+      case "weightedrecall"    => "weightedRecall"
+      case "accuracy"          => "accuracy"
+      case "areaunderpr"       => "areaUnderPR"
+      case "areaunderroc"      => "areaUnderROC"
+      case "rmse"              => "rmse"
+      case "mse"               => "mse"
+      case "r2"                => "r2"
+      case "mae"               => "mae"
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Supplied Scoring Metric '${value}' is not supported. " +
+            s"Must be one of: weightedPrecision, weightedRecall, accuracy, areaUnderPR, areaUnderROC, rmse, mse, r2, mae.'"
+        )
+    }
+    _scoringMetric = matched_value
     setConfigs()
     this
   }
@@ -2024,10 +2042,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     */
   def setDeltaCacheBackingDirectory(value: String): this.type = {
 
-    require(
-      value.take(6) == "dbfs:/",
-      s"Delta backing location must be written to dbfs."
-    )
+    if (value != "") {
+      require(
+        value.take(6) == "dbfs:/",
+        s"Delta backing location must be written to dbfs."
+      )
+    }
     _deltaCacheBackingDirectory = value
     setGeneticConfig()
     setConfigs()
@@ -2043,8 +2063,8 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def setSplitCachingStrategy(value: String): this.type = {
     val valueSet = value.toLowerCase
     require(
-      valueSet == "persist" || valueSet == "delta",
-      s"SplitCachingStrategy '${}' is invalid.  Must be either 'delta' or 'persist'"
+      valueSet == "persist" || valueSet == "delta" || valueSet == "cache",
+      s"SplitCachingStrategy '${}' is invalid.  Must be either 'delta', 'cache', or 'persist'"
     )
     _splitCachingStrategy = valueSet
     setGeneticConfig()

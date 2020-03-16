@@ -321,8 +321,6 @@ class RandomForestTuner(df: DataFrame,
     val runs = battery.par
     runs.tasksupport = taskSupport
 
-//    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
-
     val currentStatus = statusObj.generateGenerationStartStatement(
       generation,
       calculateModelingFamilyRemainingTime(generation, modelCnt)
@@ -338,25 +336,11 @@ class RandomForestTuner(df: DataFrame,
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-//      val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
-
       val kFoldBuffer = data.map { z =>
         generateAndScoreRandomForestModel(z.data.train, z.data.test, x)
-
       }
 
-//      for (_ <- _kFoldIteratorRange) {
-////        val Array(train, test) =
-////          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-//        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
-//        kFoldBuffer += generateAndScoreRandomForestModel(optimizedTrain, optimizedTest, x)
-//        optimizedTrain.unpersist()
-//        optimizedTest.unpersist()
-//      }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
 

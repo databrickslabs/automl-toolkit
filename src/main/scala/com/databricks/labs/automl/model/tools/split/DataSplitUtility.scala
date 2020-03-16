@@ -1,4 +1,4 @@
-package com.databricks.labs.automl.model.tools
+package com.databricks.labs.automl.model.tools.split
 
 import com.databricks.labs.automl.model.tools.structures.{
   TrainSplitReferences,
@@ -12,19 +12,24 @@ class DataSplitUtility(mainDataset: DataFrame,
                        splitMethod: String,
                        labelColumn: String,
                        rootDir: String,
-                       persistMode: String)
+                       persistMode: String,
+                       modelFamily: String)
     extends SplitUtilityTooling {
 
   final val uniqueLabels = mainDataset.select(labelColumn).distinct().collect()
 
   def trainSplitPersist: Array[TrainSplitReferences] = {
 
+    val optimalParts = modelFamily match {
+      case "XGBoost" => xgbWorkers
+      case _         => optimalJVMModelPartitions
+    }
+
     (0 to kIterations).map { x =>
       val Array(train, test) =
         genTestTrain(mainDataset, scala.util.Random.nextLong(), uniqueLabels)
-
       val (persistedTrain, persistedTest) =
-        optimizeTestTrain(train, test, optimalJVMModelPartitions)
+        optimizeTestTrain(train, test, optimalParts, shuffle = true)
 
       TrainSplitReferences(
         x,
@@ -32,6 +37,32 @@ class DataSplitUtility(mainDataset: DataFrame,
         TrainTestPaths("", "")
       )
 
+    }.toArray
+
+  }
+
+  def trainSplitCache: Array[TrainSplitReferences] = {
+
+    val optimalParts = modelFamily match {
+      case "XGBoost" => xgbWorkers
+      case _         => optimalJVMModelPartitions
+    }
+
+    (0 to kIterations).map { x =>
+      val Array(train, test) =
+        genTestTrain(mainDataset, scala.util.Random.nextLong(), uniqueLabels)
+
+      val trainCache = train.repartition(optimalParts).cache()
+      val testCache = test.repartition(optimalParts).cache()
+
+      trainCache.foreach(_ => ())
+      testCache.foreach(_ => ())
+
+      TrainSplitReferences(
+        x,
+        TrainTestData(trainCache, testCache),
+        TrainTestPaths("", "")
+      )
     }.toArray
 
   }
@@ -56,6 +87,7 @@ class DataSplitUtility(mainDataset: DataFrame,
     persistMode match {
       case "persist" => trainSplitPersist
       case "delta"   => trainSplitDelta
+      case "cache"   => trainSplitCache
       case _ =>
         throw new UnsupportedOperationException(
           s"Train Split mode $persistMode is not supported."
@@ -73,14 +105,16 @@ object DataSplitUtility {
             splitMethod: String,
             labelColumn: String,
             rootDir: String,
-            persistMode: String): Array[TrainSplitReferences] =
+            persistMode: String,
+            modelFamily: String): Array[TrainSplitReferences] =
     new DataSplitUtility(
       mainDataSet,
       kIterations,
       splitMethod,
       labelColumn,
       rootDir,
-      persistMode
+      persistMode,
+      modelFamily
     ).performSplit
 
 }

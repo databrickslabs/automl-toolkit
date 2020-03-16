@@ -7,10 +7,11 @@ import com.databricks.labs.automl.inference.{
   InferenceTools
 }
 import com.databricks.labs.automl.model._
-import com.databricks.labs.automl.model.tools.{
-  DataSplitUtility,
-  PostModelingOptimization
+import com.databricks.labs.automl.model.tools.split.{
+  DataSplitCustodial,
+  DataSplitUtility
 }
+import com.databricks.labs.automl.model.tools.{PostModelingOptimization}
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.reports.{
   DecisionTreeSplits,
@@ -57,21 +58,22 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[RandomForestModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
     val splitData = DataSplitUtility.split(
-      payload.data,
+      cachedData,
       _mainConfig.geneticConfig.kFold,
       _mainConfig.geneticConfig.trainSplitMethod,
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
-      _mainConfig.geneticConfig.splitCachingStrategy
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
     )
-
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
 
     val initialize = new RandomForestTuner(
       cachedData,
@@ -246,18 +248,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
-    // if the split configuration is for DELTA, then check the delete flag and delete the data sets.
-
-    // TODO: for now, this is a placeholder.... unpersisting
-
-    splitData.foreach { x =>
-      {
-        x.data.train.unpersist()
-        x.data.test.unpersist()
-      }
-    }
-
-    //TODO: end of block to write
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
 
     (
       resultBuffer.toArray,
@@ -275,15 +266,26 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[LightGBMModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     val initialize = new LightGBMTuner(
       cachedData,
+      splitData,
       payload.modelType,
       lightGBMType,
       isPipeline
@@ -455,6 +457,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
     (
       resultBuffer.toArray,
       statsBuffer.reduce(_ union _),
@@ -470,15 +474,29 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[XGBoostModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
-    val initialize = new XGBoostTuner(cachedData, payload.modelType, isPipeline)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new XGBoostTuner(
+      cachedData,
+      splitData,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setXGBoostNumericBoundaries(_mainConfig.numericBoundaries)
@@ -645,6 +663,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
     (
       resultBuffer.toArray,
       statsBuffer.reduce(_ union _),
@@ -660,16 +680,26 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[MLPCModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new MLPCTuner(cachedData, isPipeline)
+        val initialize = new MLPCTuner(cachedData, splitData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -855,6 +885,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -875,15 +907,29 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[GBTModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
-    val initialize = new GBTreesTuner(cachedData, payload.modelType, isPipeline)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new GBTreesTuner(
+      cachedData,
+      splitData,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
@@ -1054,6 +1100,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
     (
       resultBuffer.toArray,
       statsBuffer.reduce(_ union _),
@@ -1069,17 +1117,30 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[LinearRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "regressor" =>
-        val initialize = new LinearRegressionTuner(cachedData, isPipeline)
-          .setLabelCol(_mainConfig.labelCol)
+        val initialize = new LinearRegressionTuner(
+          cachedData,
+          splitData,
+          isPipeline
+        ).setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setLinearRegressionNumericBoundaries(_mainConfig.numericBoundaries)
@@ -1264,6 +1325,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -1285,17 +1348,30 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[LogisticRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new LogisticRegressionTuner(cachedData, isPipeline)
-          .setLabelCol(_mainConfig.labelCol)
+        val initialize = new LogisticRegressionTuner(
+          cachedData,
+          splitData,
+          isPipeline
+        ).setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setLogisticRegressionNumericBoundaries(_mainConfig.numericBoundaries)
@@ -1479,6 +1555,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -1500,16 +1578,26 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[SVMModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new SVMTuner(cachedData, isPipeline)
+        val initialize = new SVMTuner(cachedData, splitData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
           .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
@@ -1692,6 +1780,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -1712,15 +1802,26 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): (Array[TreesModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     val initialize = new DecisionTreeTuner(
-      payload.data,
+      cachedData,
+      splitData,
       payload.modelType,
       isPipeline
     ).setLabelCol(_mainConfig.labelCol)
@@ -1890,6 +1991,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       statsBuffer += hyperDataFrame
 
     }
+
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
 
     (
       resultBuffer.toArray,
