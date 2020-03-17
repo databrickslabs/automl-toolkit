@@ -1,6 +1,6 @@
 import json
 from pyspark.sql.functions import DataFrame
-from py_auto_ml.local_spark_singleton import SparkSingleton
+from python.py_auto_ml.local_spark_singleton import SparkSingleton
 
 
 class FeatureImportance:
@@ -26,7 +26,7 @@ class FeatureImportance:
     def run_feature_importance(self,
                                model_family: str,
                                prediction_type: str,
-                               df: DataFrame,
+                               dataframe: DataFrame,
                                cutoff_value: float,
                                cutoff_type: str,
                                overrides=None):
@@ -61,10 +61,17 @@ class FeatureImportance:
             default_flag = "true"
 
         # Pass to JVM to run FI
-        self.spark._jvm.com.databricks.labs.automl.pyspark.FeatureImportanceUtil.runFeatureImportance()
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FeatureImportanceUtil.runFeatureImportance(model_family,
+                                                                                                      prediction_type,
+                                                                                                      stringified_overrides,
+                                                                                                      dataframe._jdf,
+                                                                                                      cutoff_type,
+                                                                                                      cutoff_value,
+                                                                                                      default_flag)
         self.feature_importance = True
+        self._get_returns()
 
-    def bring_in_returns(self):
+    def _get_returns(self):
         """
 
         :return: importances dataframe with top X fields and feature importance measure based on algorithm
