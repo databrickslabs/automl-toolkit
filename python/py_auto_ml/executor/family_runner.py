@@ -84,7 +84,10 @@ class FamilyRunner:
                                                                                             label_col,
                                                                                             stringified_configs,
                                                                                             dataframe)
-        self.inference_df = self.spark.sq("SELECT * FROM inferenceDF")
+        # Pull out the inference
+        inference_df = self.spark.sq("SELECT * FROM inferenceDF")
+
+        return inference_df
 
 
 
