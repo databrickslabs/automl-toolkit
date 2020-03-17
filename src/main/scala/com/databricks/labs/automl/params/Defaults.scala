@@ -194,7 +194,7 @@ trait Defaults {
     hyperSpaceModelType = _defaultHyperSpaceModelType,
     initialGenerationMode = _defaultInitialGenerationMode,
     initialGenerationConfig = _defaultFirstGenerationConfig,
-    deltaCacheBackingDirectory = "",
+    deltaCacheBackingDirectory = "dbfs:/mnt/automl/",
     splitCachingStrategy = "persist",
     deltaCacheBackingDirectoryRemovalFlag = true
   )

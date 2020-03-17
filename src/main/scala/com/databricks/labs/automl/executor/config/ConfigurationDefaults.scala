@@ -560,7 +560,7 @@ trait ConfigurationDefaults {
     val tunerInitialGenerationIndexMixingMode = "linear"
     val tunerInitialGenerationArraySeed = 42L
     val tunerOutputDfRepartitionScaleFactor = 3
-    val tunerDeltaCacheBackingDirectory = ""
+    val tunerDeltaCacheBackingDirectory = "dbfs:/mnt/automl/"
     val tunerDeltaCacheBackingDirectoryRemovalFlag = true
     val splitCachingStrategy = "persist"
 
