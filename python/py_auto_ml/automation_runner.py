@@ -1,7 +1,7 @@
 import json
 from pyspark.sql.functions import DataFrame
 from python.py_auto_ml.local_spark_singleton import SparkSingleton
-from  python.py_auto_ml.utilities.helpers
+from  python.py_auto_ml.utilities.helpers import Helpers
 
 
 class AutomationRunner:
@@ -48,9 +48,12 @@ class AutomationRunner:
 
         :return:
         """
-
+        # Checking for supported model families and types
+        Helpers.check_model_family(model_family)
+        Helpers.check_prediction_type(prediction_type)
         runner_type_lower = runner_type.lower()
         self._check_runner_types(runner_type_lower)
+
 
         # Check if you need default instance config or generating from map of overrides
         if overrides is not None:
