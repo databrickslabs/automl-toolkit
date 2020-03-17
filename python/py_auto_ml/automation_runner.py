@@ -1,6 +1,7 @@
 import json
 from pyspark.sql.functions import DataFrame
-from py_auto_ml.local_spark_singleton import SparkSingleton
+from python.py_auto_ml.local_spark_singleton import SparkSingleton
+from  python.py_auto_ml.utilities.helpers
 
 
 class AutomationRunner:
@@ -26,7 +27,7 @@ class AutomationRunner:
     def run_automation_runner(self,
                               model_family: str,
                               prediction_type: str,
-                              df: DataFrame,
+                              dataframe: DataFrame,
                               runner_type: str,
                               overrides=None):
         """
@@ -37,7 +38,7 @@ class AutomationRunner:
         :param prediction_type: str
             Either "classifier" or "regressor"
 
-        :param df: DataFrame
+        :param dataframe: DataFrame
 
         :param runner_type: str
             One of the following calls to the automation runner: "run", "confusion", "prediction"
@@ -63,13 +64,15 @@ class AutomationRunner:
         self.spark._jvm.com.databricks.labs.automl.pyspark.AutomationRunnerUtil.runAutomationRunner(model_family,
                                                                                                     prediction_type,
                                                                                                     stringified_overrides,
-                                                                                                    df._jdf,
+                                                                                                    dataframe._jdf,
                                                                                                     runner_type_lower,
                                                                                                     default_flag)
         self._automation_runner = True
 
-    def get_returns(self,
-                          runner_type: str):
+        self._get_returns(runner_type_lower)
+
+    def _get_returns(self,
+                    runner_type: str):
         """
 
         :param runner_type:
@@ -89,10 +92,7 @@ class AutomationRunner:
                 model_report: dataframe
         """
         # Cache the returns
-        if self._automation_runner != True:
-            raise Exception ("In order to generate the proper returns for the automation runner, please first run the "
-                             "automation runner with the `run_automation_runner`")
-        else:
+        if self._automation_runner == True:
             if runner_type == "run":
                 self.generation_report = self.spark.sql("select * from generationReport")
                 self.model_report = self.spark.sql("select * from modelReport")
@@ -107,6 +107,10 @@ class AutomationRunner:
                 self.model_report = self.spark.sql("select * from modelReportData")
             else:
                 print("No returns were added - check your runner_type")
+
+        else:
+            raise Exception ("In order to generate the proper returns for the automation runner, please first run the "
+                             "automation runner with the `run_automation_runner`")
 
     @staticmethod
     def _check_runner_types(runner_type: str):
