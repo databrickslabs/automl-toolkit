@@ -118,6 +118,7 @@ trait Evolution
     case e: java.util.NoSuchElementException =>
       scala.math.floor(totalCores / coresPerTask / _parallelism).toInt
   }
+
   lazy final val optimalJVMModelPartitions: Int =
     scala.math.floor(parTasks / (_parallelism / 2)).toInt
 
@@ -813,6 +814,13 @@ trait Evolution
 
   def getDataReductionFactor: Double = _dataReduce
 
+  println(s"DEBUG: \n Evolution.scala --> xgbWorkers: $xgbWorkers \n " +
+    s"Evolution.scala --> totalCores: $totalCores \n " +
+    s"Evolution.scala --> _parallelism: ${_parallelism} \n " +
+    s"Evolution.scala --> getParallelism: ${getParallelism} \n " +
+    s"Evolution.scala --> optimalJVMModelPartitions: $optimalJVMModelPartitions \n " +
+    s"Evolution.scala --> parTasks: $parTasks")
+
   /**
     * Internal method for validating if a numeric mapping that is specified contains any invalid keys
     * @param standardConfig The static defined numeric mapping for a model type
@@ -955,11 +963,14 @@ trait Evolution
                       seed: Long,
                       uniqueLabels: Array[Row]): Array[DataFrame] = {
 
+    println("DEBUG: Generating empty train/test split sets")
     var (trainData, testData) = generateEmptyTrainTest(data)
 
     uniqueLabels.foreach { x =>
+      println(s"DEBUG: Unique Label: $x")
       val conversionValue = toDoubleType(x(0)).get
 
+      println("DEBUG: performing stratified random split")
       val Array(trainSplit, testSplit) = data
         .filter(col(_labelCol) === conversionValue)
         .randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
@@ -967,6 +978,7 @@ trait Evolution
       trainData = trainData.union(trainSplit)
       testData = testData.union(testSplit)
 
+      println("DEBUG: returning train & test datasets")
     }
 
     Array(trainData, testData)
@@ -1176,6 +1188,8 @@ trait Evolution
                    seed: Long,
                    uniqueLabels: Array[Row]): Array[DataFrame] = {
 
+    println(s"DEBUG: Split Method: ${_trainSplitMethod}")
+    println(s"DEBUG: getTrainSplitMethod Method: ${getTrainSplitMethod}")
     _trainSplitMethod match {
       case "random" =>
         data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
@@ -1198,19 +1212,24 @@ trait Evolution
                         test: DataFrame,
                         optimalParts: Int,
                         shuffle: Boolean = false): (DataFrame, DataFrame) = {
+//  TODO: TOMES - Why is this still hardocded DISK_ONLY?
+    println(s"DEBUG: Train persist called. Shuffle = $shuffle. Optimal parts: $optimalParts")
     val optimizedTrain = if (shuffle) {
       train.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
     } else {
       train.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
     }
 
+    println(s"DEBUG: Test persist called. Shuffle = $shuffle. Optimal parts: $optimalParts")
     val optimizedTest = if (shuffle) {
       test.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
     } else {
       test.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
     }
 
+    println("DEBUG: Forcing the persist for Train")
     optimizedTrain.foreach(_ => ())
+    println("DEBUG: Forcing the persist for Test")
     optimizedTest.foreach(_ => ())
 
     (optimizedTrain, optimizedTest)

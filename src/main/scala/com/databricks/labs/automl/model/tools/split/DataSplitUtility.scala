@@ -25,9 +25,10 @@ class DataSplitUtility(mainDataset: DataFrame,
       case _         => optimalJVMModelPartitions
     }
 
-    (0 to kIterations).map { x =>
+    (0 until kIterations).map { x =>
       val Array(train, test) =
         genTestTrain(mainDataset, scala.util.Random.nextLong(), uniqueLabels)
+      println(s"DEBUG: Generated train/test split for kfold $x. Beginning persist.")
       val (persistedTrain, persistedTest) =
         optimizeTestTrain(train, test, optimalParts, shuffle = true)
 

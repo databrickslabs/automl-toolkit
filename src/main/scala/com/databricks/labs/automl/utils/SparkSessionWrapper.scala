@@ -30,4 +30,13 @@ trait SparkSessionWrapper extends Serializable {
     scala.math.floor(totalCores / coresPerTask).toInt
   lazy val parTasks: Int = if (preCalcParTasks < 1) 1 else preCalcParTasks
 
+  val envString = s"coresPerWorker: $coresPerWorker \n" +
+    s"numberOfWorkerNodes: $numberOfWorkerNodes \n " +
+    s"totalCores: $totalCores \n " +
+    s"coresPerTask: $coresPerTask \n " +
+    s"preCalcParTasks: $preCalcParTasks \n " +
+    s"parTasks: $parTasks"
+
+  println(envString)
+
 }

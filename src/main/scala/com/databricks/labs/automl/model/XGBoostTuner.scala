@@ -125,6 +125,10 @@ class XGBoostTuner(df: DataFrame,
 //    val numWorkers = try { environmentVars("num_workers").toInt }
 //      catch { case e: java.util.NoSuchElementException =>  scala.math.floor(totalCores / tasksPerCore).toInt }
 
+    val xgbStartString = s"Building XGBoost model with: ${coresPerTask} threads & ${xgbWorkers} workers."
+    println(xgbStartString)
+    logger.log(Level.INFO, xgbStartString)
+
     val builtModel = modelSelection match {
       case "classifier" =>
         val xgClass = new XGBoostClassifier()
