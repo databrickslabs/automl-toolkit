@@ -1120,11 +1120,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setParallelism(value: Integer): this.type = {
-    //TODO: FIND OUT WHAT THIS RESTRICTION NEEDS TO BE FOR PARALLELISM.
+  def setParallelism(value: Int): this.type = {
     require(
-      _parallelism < 10000,
-      s"Parallelism above 10000 will result in cluster instability."
+      _parallelism < 100,
+      s"Parallelism above 100 will result in cluster instability."
     )
     _parallelism = value
     setGeneticConfig()
@@ -1132,7 +1131,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setKFold(value: Integer): this.type = {
+  def setKFold(value: Int): this.type = {
     _kFold = value
     setGeneticConfig()
     setConfigs()

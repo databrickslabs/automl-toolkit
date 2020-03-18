@@ -175,7 +175,13 @@ class FeatureImportances(data: DataFrame,
       config.labelCol,
       config.deltaCacheBackingDirectory,
       config.splitCachingStrategy,
-      config.featureImportanceModelFamily
+      config.featureImportanceModelFamily,
+      config.parallelism,
+      config.trainPortion,
+      "syntheticColumn",
+      config.trainSplitChronologicalColumn,
+      config.trainSplitChronlogicalRandomPercentage,
+      config.dataReductionFactor
     )
 
     val result = modelFamily match {

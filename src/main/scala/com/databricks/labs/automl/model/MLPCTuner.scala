@@ -343,6 +343,8 @@ class MLPCTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
 
+    logger.log(Level.DEBUG, debugSettings)
+
     // Set the parameter guides for layers / label counts (only set once)
     calcFeatureInputSize
     calcClassDistinctCount
@@ -506,6 +508,8 @@ class MLPCTuner(df: DataFrame,
   def evolveParameters(): Array[MLPCModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+
+    logger.log(Level.DEBUG, debugSettings)
 
     // Set the parameter guides for layers / label counts (only set once)
     this.calcFeatureInputSize

@@ -5,6 +5,7 @@ import com.databricks.labs.automl.model.tools.structures.{
   TrainTestData,
   TrainTestPaths
 }
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.DataFrame
 
 class DataSplitUtility(mainDataset: DataFrame,
@@ -13,24 +14,51 @@ class DataSplitUtility(mainDataset: DataFrame,
                        labelColumn: String,
                        rootDir: String,
                        persistMode: String,
-                       modelFamily: String)
+                       modelFamily: String,
+                       parallelism: Int,
+                       trainPortion: Double,
+                       syntheticCol: String,
+                       trainSplitChronologicalColumn: String,
+                       trainSplitChronologicalRandomPercentage: Double,
+                       reductionFactor: Double)
     extends SplitUtilityTooling {
+
+  @transient private val logger: Logger = Logger.getLogger(this.getClass)
 
   final val uniqueLabels = mainDataset.select(labelColumn).distinct().collect()
 
   def trainSplitPersist: Array[TrainSplitReferences] = {
 
     val optimalParts = modelFamily match {
-      case "XGBoost" => xgbWorkers
-      case _         => optimalJVMModelPartitions
+      case "XGBoost" => PerformanceSettings.xgbWorkers(parallelism)
+      case _         => PerformanceSettings.optimalJVMModelPartitions(parallelism)
     }
 
     (0 until kIterations).map { x =>
       val Array(train, test) =
-        genTestTrain(mainDataset, scala.util.Random.nextLong(), uniqueLabels)
-      println(s"DEBUG: Generated train/test split for kfold $x. Beginning persist.")
+        SplitOperators.genTestTrain(
+          mainDataset,
+          scala.util.Random.nextLong(),
+          uniqueLabels,
+          splitMethod,
+          labelColumn,
+          trainPortion,
+          syntheticCol,
+          trainSplitChronologicalColumn,
+          trainSplitChronologicalRandomPercentage,
+          reductionFactor
+        )
+      logger.log(
+        Level.DEBUG,
+        s"DEBUG: Generated train/test split for kfold $x. Beginning persist."
+      )
       val (persistedTrain, persistedTest) =
-        optimizeTestTrain(train, test, optimalParts, shuffle = true)
+        SplitOperators.optimizeTestTrain(
+          train,
+          test,
+          optimalParts,
+          shuffle = true
+        )
 
       TrainSplitReferences(
         x,
@@ -45,14 +73,31 @@ class DataSplitUtility(mainDataset: DataFrame,
   def trainSplitCache: Array[TrainSplitReferences] = {
 
     val optimalParts = modelFamily match {
-      case "XGBoost"      => xgbWorkers
-      case "RandomForest" => optimalJVMModelPartitions * 4
-      case _              => optimalJVMModelPartitions
+      case "XGBoost" => PerformanceSettings.xgbWorkers(parallelism)
+      case "RandomForest" =>
+        PerformanceSettings.optimalJVMModelPartitions(parallelism) * 4
+      case _ => PerformanceSettings.optimalJVMModelPartitions(parallelism)
     }
 
     (0 to kIterations).map { x =>
       val Array(train, test) =
-        genTestTrain(mainDataset, scala.util.Random.nextLong(), uniqueLabels)
+        SplitOperators.genTestTrain(
+          mainDataset,
+          scala.util.Random.nextLong(),
+          uniqueLabels,
+          splitMethod,
+          labelColumn,
+          trainPortion,
+          syntheticCol,
+          trainSplitChronologicalColumn,
+          trainSplitChronologicalRandomPercentage,
+          reductionFactor
+        )
+
+      logger.log(
+        Level.DEBUG,
+        s"DEBUG: Generated train/test split for kfold $x. Beginning cache to memory."
+      )
 
       val trainCache = train.repartition(optimalParts).cache()
       val testCache = test.repartition(optimalParts).cache()
@@ -73,11 +118,27 @@ class DataSplitUtility(mainDataset: DataFrame,
 
     (0 to kIterations).map { x =>
       val Array(train, test) =
-        genTestTrain(mainDataset, scala.util.Random.nextLong(), uniqueLabels)
+        SplitOperators.genTestTrain(
+          mainDataset,
+          scala.util.Random.nextLong(),
+          uniqueLabels,
+          splitMethod,
+          labelColumn,
+          trainPortion,
+          syntheticCol,
+          trainSplitChronologicalColumn,
+          trainSplitChronologicalRandomPercentage,
+          reductionFactor
+        )
 
       val deltaPaths = formTrainTestPaths(rootDir)
 
       val deltaReferences = storeLoadDelta(train, test, deltaPaths)
+
+      logger.log(
+        Level.DEBUG,
+        s"DEBUG: Generated train/test split for kfold $x. Stored tables to Delta paths."
+      )
 
       TrainSplitReferences(x, deltaReferences, deltaPaths)
     }.toArray
@@ -108,7 +169,13 @@ object DataSplitUtility {
             labelColumn: String,
             rootDir: String,
             persistMode: String,
-            modelFamily: String): Array[TrainSplitReferences] =
+            modelFamily: String,
+            parallelism: Int,
+            trainPortion: Double,
+            syntheticCol: String,
+            trainSplitChronologicalColumn: String,
+            trainSplitChronologicalRandomPercentage: Double,
+            reductionFactor: Double): Array[TrainSplitReferences] =
     new DataSplitUtility(
       mainDataSet,
       kIterations,
@@ -116,7 +183,13 @@ object DataSplitUtility {
       labelColumn,
       rootDir,
       persistMode,
-      modelFamily
+      modelFamily,
+      parallelism,
+      trainPortion,
+      syntheticCol,
+      trainSplitChronologicalColumn,
+      trainSplitChronologicalRandomPercentage,
+      reductionFactor
     ).performSplit
 
 }

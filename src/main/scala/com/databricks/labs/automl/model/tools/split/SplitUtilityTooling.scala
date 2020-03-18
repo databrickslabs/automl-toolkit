@@ -1,13 +1,13 @@
 package com.databricks.labs.automl.model.tools.split
 
-import com.databricks.labs.automl.model.Evolution
 import com.databricks.labs.automl.model.tools.structures.{
   TrainTestData,
   TrainTestPaths
 }
+import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
 
-trait SplitUtilityTooling extends Evolution {
+trait SplitUtilityTooling extends SparkSessionWrapper {
 
   def formRootPath(configStoreLocation: String): String = {
 

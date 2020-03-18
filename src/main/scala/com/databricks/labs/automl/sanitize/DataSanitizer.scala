@@ -2,6 +2,7 @@ package com.databricks.labs.automl.sanitize
 
 import com.databricks.labs.automl.exceptions.BooleanFieldFillException
 import com.databricks.labs.automl.inference.{NaFillConfig, NaFillPayload}
+import com.databricks.labs.automl.model.tools.split.PerformanceSettings
 import com.databricks.labs.automl.utils.structures.FeatureEngineeringEnums.FeatureEngineeringEnums
 import com.databricks.labs.automl.utils.structures.{
   FeatureEngineeringAllowables,
@@ -246,11 +247,7 @@ class DataSanitizer(data: DataFrame)
                                    columnList: List[String],
                                    statistics: String): DataFrame = {
 
-//    val dfParts = df.rdd.partitions.length.toDouble
-//    val summaryParts = Math.min(Math.ceil(dfParts / 20.0).toInt, 200)
-//    val summaryParts =
-//      Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
-    val readyDF = df.repartition(parTasks).cache
+    val readyDF = df.repartition(PerformanceSettings.parTasks).cache
     readyDF.foreach(_ => ())
     val selectionColumns = "Summary" +: columnList
     val x = if (statistics.isEmpty) {

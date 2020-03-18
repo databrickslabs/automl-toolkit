@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.split.PerformanceSettings
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
@@ -115,18 +116,9 @@ class XGBoostTuner(df: DataFrame,
         }
     }
 
-//    val coresPerWorker = sc.parallelize("1").map(_ => java.lang.Runtime.getRuntime.availableProcessors).collect()(0)
-//    val numberOfWorkers = sc.statusTracker.getExecutorInfos.length - 1
-//    val totalCores = coresPerWorker * numberOfWorkers
-//    val tasksPerCore = try { spark.conf.get("spark.task.cpus").toInt }
-//      catch { case e: java.util.NoSuchElementException => 1}
-//
-//    val environmentVars = System.getenv().asScala
-//    val numWorkers = try { environmentVars("num_workers").toInt }
-//      catch { case e: java.util.NoSuchElementException =>  scala.math.floor(totalCores / tasksPerCore).toInt }
-
-    val xgbStartString = s"Building XGBoost model with: ${coresPerTask} threads & ${xgbWorkers} workers."
-    println(xgbStartString)
+    val xgbStartString =
+      s"Building XGBoost model with: ${PerformanceSettings.coresPerTask} threads & ${PerformanceSettings
+        .xgbWorkers(_parallelism)} workers."
     logger.log(Level.INFO, xgbStartString)
 
     val builtModel = modelSelection match {
@@ -144,8 +136,8 @@ class XGBoostTuner(df: DataFrame,
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
-          .setNthread(coresPerTask)
-          .setNumWorkers(xgbWorkers)
+          .setNthread(PerformanceSettings.coresPerTask)
+          .setNumWorkers(PerformanceSettings.xgbWorkers(_parallelism))
           .setMissing(0.0f)
         if (uniqueLabels > 2) {
           xgClass
@@ -167,8 +159,8 @@ class XGBoostTuner(df: DataFrame,
           .setMinChildWeight(modelConfig.minChildWeight)
           .setNumRound(modelConfig.numRound)
           .setTrainTestRatio(modelConfig.trainTestRatio)
-          .setNthread(coresPerTask)
-          .setNumWorkers(xgbWorkers)
+          .setNthread(PerformanceSettings.coresPerTask)
+          .setNumWorkers(PerformanceSettings.xgbWorkers(_parallelism))
           .setMissing(0.0f)
       case _ =>
         throw new UnsupportedOperationException(
@@ -526,6 +518,8 @@ class XGBoostTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
 
+    logger.log(Level.DEBUG, debugSettings)
+
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
     )
@@ -679,6 +673,8 @@ class XGBoostTuner(df: DataFrame,
   def evolveParameters(): Array[XGBoostModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+
+    logger.log(Level.DEBUG, debugSettings)
 
     var generation = 1
     // Record of all generations results
