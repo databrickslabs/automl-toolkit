@@ -3,8 +3,15 @@ package com.databricks.labs.automl.sanitize
 import com.databricks.labs.automl.exceptions.BooleanFieldFillException
 import com.databricks.labs.automl.inference.{NaFillConfig, NaFillPayload}
 import com.databricks.labs.automl.utils.structures.FeatureEngineeringEnums.FeatureEngineeringEnums
-import com.databricks.labs.automl.utils.structures.{FeatureEngineeringAllowables, FeatureEngineeringEnums}
-import com.databricks.labs.automl.utils.{DataValidation, SchemaUtils, SparkSessionWrapper}
+import com.databricks.labs.automl.utils.structures.{
+  FeatureEngineeringAllowables,
+  FeatureEngineeringEnums
+}
+import com.databricks.labs.automl.utils.{
+  DataValidation,
+  SchemaUtils,
+  SparkSessionWrapper
+}
 import org.apache.spark.ml.feature.StringIndexer
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -12,7 +19,9 @@ import org.apache.spark.sql.types._
 
 import scala.collection.mutable.ArrayBuffer
 
-class DataSanitizer(data: DataFrame) extends DataValidation with SparkSessionWrapper {
+class DataSanitizer(data: DataFrame)
+    extends DataValidation
+    with SparkSessionWrapper {
 
   private var _labelCol = "label"
   private var _featureCol = "features"
@@ -248,7 +257,8 @@ class DataSanitizer(data: DataFrame) extends DataValidation with SparkSessionWra
       val colBatches = getBatches(columnList)
       colBatches
         .map { batch =>
-          readyDF.select(batch map col: _*)
+          readyDF
+            .select(batch map col: _*)
             .summary()
             .select("Summary" +: batch map col: _*)
         }
@@ -257,10 +267,11 @@ class DataSanitizer(data: DataFrame) extends DataValidation with SparkSessionWra
         .reduce((x, y) => x.join(broadcast(y), Seq("Summary")))
 
     } else {
-      readyDF.summary(statistics.replaceAll(" ", "").split(","): _*)
+      readyDF
+        .summary(statistics.replaceAll(" ", "").split(","): _*)
         .select(selectionColumns map col: _*)
     }
-    readyDF.unpersist()
+    readyDF.unpersist(true)
     x
   }
 
@@ -683,6 +694,9 @@ class DataSanitizer(data: DataFrame) extends DataValidation with SparkSessionWra
       .fill(fillMap.categoricalColumns)
       .na
       .fill(fillMap.booleanColumns)
+      .filter(col(_labelCol).isNotNull)
+      .filter(!col(_labelCol).isNaN)
+      .toDF()
 
     if (decidedModel != null && decidedModel.nonEmpty) {
       (filledData, fillMap, decidedModel)

@@ -1403,11 +1403,6 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   def setTunerKFold(value: Int): this.type = {
-    if (value < 5)
-      println(
-        "WARNING - Setting KFold < 5 may result in a poorly generalized tuning run due to " +
-          "over-fitting within a particular train/test split."
-      )
     _instanceConfig.tunerConfig.tunerKFold = value
     this
   }

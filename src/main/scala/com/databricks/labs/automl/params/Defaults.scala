@@ -100,7 +100,7 @@ trait Defaults {
 
   def _defaultFeatureInteractionFlag: Boolean = false
 
-  def _defaultDataPrepCachingFlag: Boolean = true
+  def _defaultDataPrepCachingFlag: Boolean = false
 
   def _defaultDataReductionFactor: Double = 0.5
 

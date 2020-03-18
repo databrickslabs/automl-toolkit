@@ -44,8 +44,9 @@ class DataSplitUtility(mainDataset: DataFrame,
   def trainSplitCache: Array[TrainSplitReferences] = {
 
     val optimalParts = modelFamily match {
-      case "XGBoost" => xgbWorkers
-      case _         => optimalJVMModelPartitions
+      case "XGBoost"      => xgbWorkers
+      case "RandomForest" => optimalJVMModelPartitions * 4
+      case _              => optimalJVMModelPartitions
     }
 
     (0 to kIterations).map { x =>

@@ -388,7 +388,7 @@ trait ConfigurationDefaults {
     val covarianceFilterFlag = false
     val oheFlag = oneHotEncodeFlag(family)
     val scaleFlag = scalingFlag(family)
-    val dataPrepCachingFlag = true
+    val dataPrepCachingFlag = false
     val autoStoppingFlag = false
     val pipelineDebugFlag = false
     val featureInteractionFlag = false

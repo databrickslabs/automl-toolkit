@@ -13,20 +13,21 @@ trait SparkSessionWrapper extends Serializable {
 
   lazy val sc: SparkContext = SparkContext.getOrCreate()
 
-  val coresPerWorker: Int = sc
+  lazy val coresPerWorker: Int = sc
     .parallelize("1", 1)
     .map(_ => java.lang.Runtime.getRuntime.availableProcessors)
     .collect()(0)
-  val numberOfWorkerNodes: Int = sc.statusTracker.getExecutorInfos.length - 1
-  val totalCores: Int = coresPerWorker * numberOfWorkerNodes
-  val coresPerTask
+  lazy val numberOfWorkerNodes
+    : Int = sc.statusTracker.getExecutorInfos.length - 1
+  lazy val totalCores: Int = coresPerWorker * numberOfWorkerNodes
+  lazy val coresPerTask
     : Int = try { spark.conf.get("spark.task.cpus").toInt } catch {
     case e: java.util.NoSuchElementException => 1
   }
 
-  val environmentVars: Map[String, String] = System.getenv().asScala.toMap
-  private val preCalcParTasks: Int =
+  lazy val environmentVars: Map[String, String] = System.getenv().asScala.toMap
+  private lazy val preCalcParTasks: Int =
     scala.math.floor(totalCores / coresPerTask).toInt
-  val parTasks: Int = if (preCalcParTasks < 1) 1 else preCalcParTasks
+  lazy val parTasks: Int = if (preCalcParTasks < 1) 1 else preCalcParTasks
 
 }
