@@ -161,3 +161,4 @@ This software is provided as-is and is not officially supported by Databricks.  
 * Lead Developer: Ben Wilson, Sr. RSA, Databricks
 * Developer: Daniel Tomes, RSA Practice Leader, Databricks
 * Developer: Jas Bali, Solutions Consultant, Databricks
+* Developer: Mary Grace Moesta, Customer Success Engineer, Databricks
