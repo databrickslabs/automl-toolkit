@@ -13,8 +13,7 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
   lazy val objectMapper = new ObjectMapper()
   def runFamilyRunner(configs:String,
                       predictionType: String,
-                      df: DataFrame,
-                      tmpPath: String): Unit = {
+                      df: DataFrame): Unit = {
     import spark.implicits._
 
     val firstMap = jsonToMap(configs)
@@ -24,13 +23,6 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
     runner.familyFinalOutput.modelReportDataFrame.createOrReplaceTempView("modelReportDataFrame")
     runner.familyFinalOutput.generationReportDataFrame.createOrReplaceTempView("generationReportDataFrame")
     runner.bestMlFlowRunId.toSeq.toDF("model_family", "run_id").createOrReplaceTempView("bestMlFlowRunId")
-
-    //Write out all the model to get them later in python
-
-    for (i <- runner.bestMlFlowRunId.keys) {
-      val savePath = tmpPath + i.asInstanceOf[String]
-      runner.bestPipelineModel(i).write.overwrite().save(savePath)
-    }
   }
 
   def runMlFlowInference(mlFlowRunId:String,
