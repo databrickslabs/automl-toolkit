@@ -100,7 +100,7 @@ trait Defaults {
 
   def _defaultFeatureInteractionFlag: Boolean = false
 
-  def _defaultDataPrepCachingFlag: Boolean = true
+  def _defaultDataPrepCachingFlag: Boolean = false
 
   def _defaultDataReductionFactor: Double = 0.5
 
@@ -193,7 +193,10 @@ trait Defaults {
     hyperSpaceModelCount = _defaultHyperSpaceModelCount,
     hyperSpaceModelType = _defaultHyperSpaceModelType,
     initialGenerationMode = _defaultInitialGenerationMode,
-    initialGenerationConfig = _defaultFirstGenerationConfig
+    initialGenerationConfig = _defaultFirstGenerationConfig,
+    deltaCacheBackingDirectory = "dbfs:/mnt/automl/",
+    splitCachingStrategy = "persist",
+    deltaCacheBackingDirectoryRemovalFlag = true
   )
 
   def _fillConfigDefaults = FillConfig(
@@ -505,7 +508,10 @@ trait Defaults {
       hyperSpaceModelType = _defaultHyperSpaceModelType,
       hyperSpaceModelCount = _defaultHyperSpaceModelCount,
       initialGenerationMode = _defaultInitialGenerationMode,
-      initialGenerationConfig = _defaultFirstGenerationConfig
+      initialGenerationConfig = _defaultFirstGenerationConfig,
+      deltaCacheBackingDirectory = "",
+      splitCachingStrategy = "persist",
+      deltaCacheBackingDirectoryRemovalFlag = true
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
@@ -579,7 +585,10 @@ trait Defaults {
       hyperSpaceModelType = _defaultHyperSpaceModelType,
       hyperSpaceModelCount = _defaultHyperSpaceModelCount,
       initialGenerationMode = _defaultInitialGenerationMode,
-      initialGenerationConfig = _defaultFirstGenerationConfig
+      initialGenerationConfig = _defaultFirstGenerationConfig,
+      deltaCacheBackingDirectory = "",
+      splitCachingStrategy = "persist",
+      deltaCacheBackingDirectoryRemovalFlag = true
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,

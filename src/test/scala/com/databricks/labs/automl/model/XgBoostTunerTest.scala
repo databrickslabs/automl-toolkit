@@ -2,6 +2,7 @@ package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.executor.DataPrep
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.model.tools.split.DataSplitUtility
 import com.databricks.labs.automl.params.XGBoostModelsWithResults
 import com.databricks.labs.automl.{
   AbstractUnitSpec,
@@ -13,13 +14,34 @@ class XgBoostTunerTest extends AbstractUnitSpec {
 
   "XgBoostTuner" should "throw UnsupportedOperationException for passing invalid params" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new XGBoostTuner(null, null).evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "XGBoost"
+      )
+
+      new XGBoostTuner(null, splitData, null).evolveBest()
     }
   }
 
   it should "throw UnsupportedOperationException for passing invalid modelSelection" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new XGBoostTuner(AutomationUnitTestsUtil.getAdultDf(), "err").evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "XGBoost"
+      )
+
+      new XGBoostTuner(AutomationUnitTestsUtil.getAdultDf(), splitData, "err")
+        .evolveBest()
     }
   }
 
@@ -27,9 +49,21 @@ class XgBoostTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("xgboost", "classifier")
     )
-    val data = DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+    ).prepData().data
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "XGBoost"
+    )
+
     val xGBoostModelsWithResults: XGBoostModelsWithResults =
-      new XGBoostTuner(new DataPrep(data).prepData().data, "classifier")
+      new XGBoostTuner(data, trainSplits, "classifier")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
@@ -138,10 +172,21 @@ class XgBoostTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("xgboost", "classifier")
     )
-    val data =
+    val data = new DataPrep(
       DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
+    ).prepData().data
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "XGBoost"
+    )
+
     val xGBoostModelsWithResults: XGBoostModelsWithResults =
-      new XGBoostTuner(new DataPrep(data).prepData().data, "classifier")
+      new XGBoostTuner(data, trainSplits, "classifier")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
@@ -250,9 +295,20 @@ class XgBoostTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("xgboost", "regressor")
     )
-    val data = DiscreteTestDataGenerator.generateRegressionData(10000)
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateRegressionData(10000)
+    ).prepData().data
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "XGBoost"
+    )
     val xGBoostModelsWithResults: XGBoostModelsWithResults =
-      new XGBoostTuner(new DataPrep(data).prepData().data, "regressor")
+      new XGBoostTuner(data, trainSplits, "regressor")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)

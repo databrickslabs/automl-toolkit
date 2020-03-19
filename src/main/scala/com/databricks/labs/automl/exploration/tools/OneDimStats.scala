@@ -1,6 +1,10 @@
 package com.databricks.labs.automl.exploration.tools
 
+import org.apache.commons.math3.distribution
+import org.apache.commons.math3.distribution._
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 import org.apache.commons.math3.stat.descriptive.moment._
+import org.apache.commons.math3.stat.inference.TestUtils
 
 /**
   * Package for testing a one-dimensional data set with standard data explanation metrics
@@ -90,8 +94,96 @@ class OneDimStats(data: Array[Double]) {
     new StandardDeviation().evaluate(data)
 
   /**
-    * Public method for executing analysis of all metrics
+    * Private method for returning the statistics evaluator for the data series
+    * @return SummaryStats payload
+    */
+  private def getSummaryStatistics: SummaryStats = {
+
+    val stats = new SummaryStatistics()
+    data.foreach(x => stats.addValue(x))
+
+    SummaryStats(
+      count = stats.getN,
+      min = stats.getMin,
+      max = stats.getMax,
+      sum = stats.getSum,
+      mean = stats.getMean,
+      geometricMean = stats.getGeometricMean,
+      variance = stats.getVariance,
+      popVariance = stats.getPopulationVariance,
+      secondMoment = stats.getSecondMoment,
+      sumOfSquares = stats.getSumsq,
+      stdDeviation = stats.getStandardDeviation,
+      sumOfLogs = stats.getSumOfLogs
+    )
+
+  }
+
+  /**
+    * Helper method for comparing a distribution to the data series in order to get the p-value and the d-statistic
+    * of difference from the 'shape' of the distribution.
+    * @param test The payload consisting of test name (for pass-through) and the RealDistribution under test.
     * @return
+    */
+  private def compareKolmogorovSmirnov(
+    test: DistributionTestPayload
+  ): DistributionValidationData = {
+
+    val p = TestUtils.kolmogorovSmirnovTest(test.distribution, data)
+    val d = TestUtils.kolmogorovSmirnovStatistic(test.distribution, data)
+
+    DistributionValidationData(test.testName, p, d)
+  }
+
+  /**
+    * Method for comparing a data series to a set of standard distributions
+    * @return DistributionTestResult, consisting of, at a top-level, the best fit
+    *         based on p-value of similarity, the p-value, and the D-statistic.
+    *         Also returned are all of the different distribution test results for the series (for performing
+    *         distributed analytic roll-up on a distributed DataFrame's partitions)
+    * @since 0.7.0
+    * @author Ben Wilson, Databricks
+    */
+  private def compareToDistributions: DistributionTestResult = {
+
+    val tests = Array(
+      DistributionTestPayload("normal", new NormalDistribution(0, 1)),
+      DistributionTestPayload("standardBetaPrime", new BetaDistribution(1, 1)),
+      DistributionTestPayload("cauchy", new CauchyDistribution(0, 1)),
+      DistributionTestPayload("standardChiSq", new ChiSquaredDistribution(1)),
+      DistributionTestPayload("exponential", new ExponentialDistribution(1)),
+      DistributionTestPayload("f", new FDistribution(1, 1)),
+      DistributionTestPayload("erlang", new GammaDistribution(1, 2)),
+      DistributionTestPayload("gumbel", new GumbelDistribution(1, 2)),
+      DistributionTestPayload("laplace", new LaplaceDistribution(0, 1)),
+      DistributionTestPayload("levy", new LevyDistribution(0, 1)),
+      DistributionTestPayload("logistic", new LogisticDistribution(0, 1)),
+      DistributionTestPayload("logNormal", new LogNormalDistribution(0, 1)),
+      DistributionTestPayload("nakagami", new NakagamiDistribution(1, 1)),
+      DistributionTestPayload(
+        "pareto",
+        new distribution.ParetoDistribution(1, 1)
+      ),
+      DistributionTestPayload("studentT", new TDistribution(1)),
+      DistributionTestPayload("weibull", new WeibullDistribution(1, 1))
+    )
+
+    val allTests = tests.map(x => compareKolmogorovSmirnov(x))
+
+    val bestFit = allTests.sortWith(_.pValue < _.pValue).head
+
+    DistributionTestResult(
+      bestDistributionFit = bestFit.test,
+      bestDistributionPValue = bestFit.pValue,
+      bestDistributionDStatistic = bestFit.dStatistic,
+      allTests = allTests
+    )
+
+  }
+
+  /**
+    * Public method for executing analysis of all metrics
+    * @return OneDimStatsData, containing all of the information for the analysis of the One Dimensional series of data.
     * @since 0.7.0
     * @author Ben Wilson, Databricks
     */
@@ -125,7 +217,9 @@ class OneDimStats(data: Array[Double]) {
       skew,
       kurtosis,
       kurtosisType,
-      skewType
+      skewType,
+      getSummaryStatistics,
+      compareToDistributions
     )
 
   }

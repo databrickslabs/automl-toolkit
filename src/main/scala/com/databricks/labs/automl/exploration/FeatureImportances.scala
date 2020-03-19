@@ -7,6 +7,10 @@ import com.databricks.labs.automl.exploration.structures.{
   FeatureImportanceTools
 }
 import com.databricks.labs.automl.feature.FeatureInteraction
+import com.databricks.labs.automl.model.tools.split.{
+  DataSplitCustodial,
+  DataSplitUtility
+}
 import com.databricks.labs.automl.model.{RandomForestTuner, XGBoostTuner}
 import com.databricks.labs.automl.pipeline.FeaturePipeline
 import com.databricks.labs.automl.sanitize.DataSanitizer
@@ -164,9 +168,25 @@ class FeatureImportances(data: DataFrame,
 
     val adjustedFieldNames = cleanFieldNames(vectorFields)
 
+    val splitData = DataSplitUtility.split(
+      df,
+      config.kFold,
+      config.trainSplitMethod,
+      config.labelCol,
+      config.deltaCacheBackingDirectory,
+      config.splitCachingStrategy,
+      config.featureImportanceModelFamily,
+      config.parallelism,
+      config.trainPortion,
+      "syntheticColumn",
+      config.trainSplitChronologicalColumn,
+      config.trainSplitChronlogicalRandomPercentage,
+      config.dataReductionFactor
+    )
+
     val result = modelFamily match {
       case RandomForest =>
-        val rfModel = new RandomForestTuner(df, config.modelType)
+        val rfModel = new RandomForestTuner(df, splitData, config.modelType)
           .setLabelCol(config.labelCol)
           .setFeaturesCol(config.featuresCol)
           .setRandomForestNumericBoundaries(config.numericBoundaries)
@@ -238,7 +258,7 @@ class FeatureImportances(data: DataFrame,
             adjustedFieldNames.zip(importances).toMap[String, Double]
         }
       case XGBoost =>
-        val xgModel = new XGBoostTuner(df, config.modelType)
+        val xgModel = new XGBoostTuner(df, splitData, config.modelType)
           .setLabelCol(config.labelCol)
           .setFeaturesCol(config.featuresCol)
           .setXGBoostNumericBoundaries(config.numericBoundaries)
@@ -310,6 +330,9 @@ class FeatureImportances(data: DataFrame,
               .toMap
         }
     }
+
+    DataSplitCustodial.cleanCachedInstances(splitData, config)
+
     result
   }
 

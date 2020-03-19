@@ -4,7 +4,7 @@
     <groupId>com.databricks</groupId>
     <artifactId>automatedml</artifactId>
     <packaging>jar</packaging>
-    <version>2_11-0.7.0.1</version>
+    <version>2_11-0.7.1</version>
     <properties>
         <scala.version>2.11.12</scala.version>
         <spark.version>2.4.0</spark.version>
@@ -80,6 +80,12 @@
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.vegas-viz</groupId>
+            <artifactId>vegas_2.11</artifactId>
+            <version>0.3.11</version>
+            <scope>${dependency.scope}</scope>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>

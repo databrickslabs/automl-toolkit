@@ -2,6 +2,7 @@ package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.executor.DataPrep
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.model.tools.split.DataSplitUtility
 import com.databricks.labs.automl.params.TreesModelsWithResults
 import com.databricks.labs.automl.{
   AbstractUnitSpec,
@@ -13,14 +14,36 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
 
   "DecisionTreeTuner" should "throw UnsupportedOperationException for passing invalid params" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new DecisionTreeTuner(null, null).evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "Trees"
+      )
+
+      new DecisionTreeTuner(null, splitData, null).evolveBest()
     }
   }
 
   it should "throw UnsupportedOperationException for passing invalid modelSelection" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new DecisionTreeTuner(AutomationUnitTestsUtil.getAdultDf(), "err")
-        .evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "Trees"
+      )
+      new DecisionTreeTuner(
+        AutomationUnitTestsUtil.getAdultDf(),
+        splitData,
+        "err"
+      ).evolveBest()
     }
   }
 
@@ -29,10 +52,24 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("trees", "classifier")
     )
+
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+    ).prepData().data
+
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "Trees"
+    )
+
     val treesModelsWithResults: TreesModelsWithResults = new DecisionTreeTuner(
-      new DataPrep(
-        DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
-      ).prepData().data,
+      data,
+      trainSplits,
       "classifier"
     ).setFirstGenerationGenePool(5)
       .setLabelCol(_mainConfig.labelCol)
@@ -142,10 +179,24 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("trees", "classifier")
     )
+
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
+    ).prepData().data
+
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "Trees"
+    )
+
     val treesModelsWithResults: TreesModelsWithResults = new DecisionTreeTuner(
-      new DataPrep(
-        DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
-      ).prepData().data,
+      data,
+      trainSplits,
       "classifier"
     ).setFirstGenerationGenePool(5)
       .setLabelCol(_mainConfig.labelCol)
@@ -257,11 +308,24 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       ConfigurationGenerator.generateDefaultConfig("trees", "regressor")
     )
 
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
+    ).prepData().data
+
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "Trees"
+    )
+
     val treesModelsWithResults: TreesModelsWithResults = new DecisionTreeTuner(
-      new DataPrep(
-        DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
-      ).prepData().data,
-      "regressor"
+      data,
+      trainSplits,
+      "classifier"
     ).setFirstGenerationGenePool(5)
       .setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)

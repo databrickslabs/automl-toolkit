@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
@@ -13,6 +14,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.regression.GBTRegressor
 import org.apache.spark.sql.{DataFrame, Row}
@@ -24,6 +26,7 @@ import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
 class GBTreesTuner(df: DataFrame,
+                   data: Array[TrainSplitReferences],
                    modelSelection: String,
                    isPipeline: Boolean = false)
     extends SparkSessionWrapper
@@ -272,15 +275,16 @@ class GBTreesTuner(df: DataFrame,
     val builtModel = gbtModel.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
-    optimizedPredictions.foreach(_ => ())
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     modelSelection match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
+          scoringMap(i) =
+            classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
@@ -335,20 +339,11 @@ class GBTreesTuner(df: DataFrame,
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
-        kFoldBuffer += generateAndScoreGBTModel(optimizedTrain, optimizedTest, x)
-        optimizedTrain.unpersist()
-        optimizedTest.unpersist()
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreGBTModel(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
@@ -372,7 +367,7 @@ class GBTreesTuner(df: DataFrame,
 
       val runAvg = GBTModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation
@@ -480,6 +475,8 @@ class GBTreesTuner(df: DataFrame,
 
     if (modelSelection == "classifier")
       ModelUtils.validateGBTClassifier(df, _labelCol)
+
+    logger.log(Level.DEBUG, debugSettings)
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -640,6 +637,8 @@ class GBTreesTuner(df: DataFrame,
     if (!isPipeline) resetNumericBoundaries
     if (modelSelection == "classifier")
       ModelUtils.validateGBTClassifier(df, _labelCol)
+
+    logger.log(Level.DEBUG, debugSettings)
 
     var generation = 1
     // Record of all generations results

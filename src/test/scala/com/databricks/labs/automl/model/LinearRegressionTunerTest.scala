@@ -2,20 +2,42 @@ package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.executor.DataPrep
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.model.tools.split.DataSplitUtility
 import com.databricks.labs.automl.params.LinearRegressionModelsWithResults
 import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
 
 class LinearRegressionTunerTest extends AbstractUnitSpec {
   "LinearRegressionTuner" should "throw NoSuchElementException for passing invalid params" in {
     a[NullPointerException] should be thrownBy {
-      new LinearRegressionTuner(null).evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "LinearRegression"
+      )
+
+      new LinearRegressionTuner(null, splitData).evolveBest()
     }
   }
 
   it should "should throw NoSuchElementException for passing invalid dataset" in {
     a[AssertionError] should be thrownBy {
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "LinearRegression"
+      )
+
       new LinearRegressionTuner(
-        AutomationUnitTestsUtil.sparkSession.emptyDataFrame
+        AutomationUnitTestsUtil.sparkSession.emptyDataFrame,
+        splitData
       ).evolveBest()
     }
   }
@@ -26,10 +48,21 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
       ConfigurationGenerator
         .generateDefaultConfig("linearregression", "regressor")
     )
-    val data = AutomationUnitTestsUtil.convertCsvToDf("/AirQualityUCI.csv")
+    val data = new DataPrep(
+      AutomationUnitTestsUtil.convertCsvToDf("/AirQualityUCI.csv")
+    ).prepData().data
+    val splitData = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      "income",
+      "dbfs:/test",
+      "cache",
+      "LinearRegression"
+    )
 
     val linearRegressionModelsWithResults: LinearRegressionModelsWithResults =
-      new LinearRegressionTuner(new DataPrep(data).prepData().data)
+      new LinearRegressionTuner(data, splitData)
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)

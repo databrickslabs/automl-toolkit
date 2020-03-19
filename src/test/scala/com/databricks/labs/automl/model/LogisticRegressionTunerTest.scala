@@ -2,6 +2,7 @@ package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.executor.DataPrep
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.model.tools.split.DataSplitUtility
 import com.databricks.labs.automl.params.LogisticRegressionModelsWithResults
 import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
 
@@ -9,14 +10,40 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
 
   "LogisticRegressionTuner" should "throw IllegalArgumentException for passing invalid params" in {
     a[IllegalArgumentException] should be thrownBy {
-      new LogisticRegressionTuner(null).evolveBest()
+      val data =
+        new DataPrep(AutomationUnitTestsUtil.getAdultDf()).prepData().data
+      val trainSplits = DataSplitUtility.split(
+        data,
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "LogisticRegression"
+      )
+
+      new LogisticRegressionTuner(null, trainSplits).evolveBest()
     }
   }
 
   it should "should throw IllegalArgumentException for passing invalid dataset" in {
     a[IllegalArgumentException] should be thrownBy {
+
+      val data =
+        new DataPrep(AutomationUnitTestsUtil.getAdultDf()).prepData().data
+      val trainSplits = DataSplitUtility.split(
+        data,
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "LogisticRegression"
+      )
+
       new LogisticRegressionTuner(
-        AutomationUnitTestsUtil.sparkSession.emptyDataFrame
+        AutomationUnitTestsUtil.sparkSession.emptyDataFrame,
+        trainSplits
       ).evolveBest()
     }
   }
@@ -28,11 +55,22 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
         .generateDefaultConfig("logisticregression", "classifier")
     )
 
+    val data =
+      new DataPrep(AutomationUnitTestsUtil.getAdultDf()).prepData().data
+    val trainSplits = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      _mainConfig.labelCol,
+      "dbfs:/test",
+      "cache",
+      "LogisticRegression"
+    )
+
     val logisticRegressionModelsWithResults
       : LogisticRegressionModelsWithResults =
-      new LogisticRegressionTuner(
-        new DataPrep(AutomationUnitTestsUtil.getAdultDf()).prepData().data
-      ).setFirstGenerationGenePool(5)
+      new LogisticRegressionTuner(data, trainSplits)
+        .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
         .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)

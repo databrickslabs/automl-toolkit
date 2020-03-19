@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
@@ -12,6 +13,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.{DataFrame, Row}
@@ -22,7 +24,9 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
+class MLPCTuner(df: DataFrame,
+                data: Array[TrainSplitReferences],
+                isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults {
@@ -183,8 +187,8 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
     val mlpcModel = configureModel(modelConfig)
     val builtModel = mlpcModel.fit(train)
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
-    optimizedPredictions.foreach(_ => ())
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
@@ -234,20 +238,11 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[MLPCModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
-        kFoldBuffer += generateAndScoreMLPCModel(optimizedTrain, optimizedTest, x)
-        optimizedTrain.unpersist()
-        optimizedTest.unpersist()
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreMLPCModel(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       for (a <- _classificationMetrics) {
@@ -258,7 +253,7 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
 
       val runAvg = MLPCModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation
@@ -347,6 +342,8 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
   private def continuousEvolution(): Array[MLPCModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+
+    logger.log(Level.DEBUG, debugSettings)
 
     // Set the parameter guides for layers / label counts (only set once)
     calcFeatureInputSize
@@ -511,6 +508,8 @@ class MLPCTuner(df: DataFrame, isPipeline: Boolean = false)
   def evolveParameters(): Array[MLPCModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+
+    logger.log(Level.DEBUG, debugSettings)
 
     // Set the parameter guides for layers / label counts (only set once)
     this.calcFeatureInputSize

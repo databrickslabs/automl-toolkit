@@ -1,11 +1,7 @@
 package com.databricks.labs.automl.model
 
-import com.databricks.labs.automl.model.tools.{
-  GenerationOptimizer,
-  HyperParameterFullSearch,
-  ModelReporting,
-  ModelUtils
-}
+import com.databricks.labs.automl.model.tools._
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.params.{
   Defaults,
   RandomForestConfig,
@@ -13,10 +9,11 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.regression.RandomForestRegressor
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{DataFrame, Row}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -24,13 +21,14 @@ import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
 class RandomForestTuner(df: DataFrame,
+                        data: Array[TrainSplitReferences],
                         modelSelection: String,
                         isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults {
 
-  private val logger: Logger = Logger.getLogger(this.getClass)
+  @transient private val logger: Logger = Logger.getLogger(this.getClass)
 
   // Instantiate the default scoring metric
   private var _scoringMetric = modelSelection match {
@@ -274,15 +272,16 @@ class RandomForestTuner(df: DataFrame,
     val builtModel = randomForestModel.fit(train)
 
     val predictedData = builtModel.transform(test)
-    val optimizedPredictions = predictedData.repartition(optimalJVMModelPartitions).cache()
-    optimizedPredictions.foreach(_ => ())
+
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     modelSelection match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
+          scoringMap(i) =
+            classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
@@ -322,8 +321,6 @@ class RandomForestTuner(df: DataFrame,
     val runs = battery.par
     runs.tasksupport = taskSupport
 
-    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
-
     val currentStatus = statusObj.generateGenerationStartStatement(
       generation,
       calculateModelingFamilyRemainingTime(generation, modelCnt)
@@ -339,20 +336,11 @@ class RandomForestTuner(df: DataFrame,
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[RandomForestModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions)
-        kFoldBuffer += generateAndScoreRandomForestModel(optimizedTrain, optimizedTest, x)
-        optimizedTrain.unpersist()
-        optimizedTest.unpersist()
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreRandomForestModel(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
 
@@ -377,7 +365,7 @@ class RandomForestTuner(df: DataFrame,
 
       val runAvg = RandomForestModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation
@@ -480,6 +468,8 @@ class RandomForestTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
     if (!isPipeline) resetNumericBoundaries
+
+    logger.log(Level.DEBUG, debugSettings)
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -638,6 +628,8 @@ class RandomForestTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
     if (!isPipeline) resetNumericBoundaries
+
+    logger.log(Level.DEBUG, debugSettings)
 
     var generation = 1
     // Record of all generations results

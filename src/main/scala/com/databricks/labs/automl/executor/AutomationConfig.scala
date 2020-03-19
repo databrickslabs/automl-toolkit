@@ -248,6 +248,14 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
 
   var _firstGenerationMode: String = _defaultInitialGenerationMode
 
+  var _deltaCacheBackingDirectory: String =
+    _geneticTunerDefaults.deltaCacheBackingDirectory
+
+  var _splitCachingStrategy: String = _geneticTunerDefaults.splitCachingStrategy
+
+  var _deltaCacheBackingDirectoryRemovalFlag: Boolean =
+    _geneticTunerDefaults.deltaCacheBackingDirectoryRemovalFlag
+
   var _geneticConfig: GeneticConfig = _geneticTunerDefaults
 
   var _mainConfig: MainConfig = _mainConfigDefaults
@@ -536,7 +544,25 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   }
 
   def setScoringMetric(value: String): this.type = {
-    _scoringMetric = value
+    val adjusted_value = value.toLowerCase
+    val matched_value = adjusted_value match {
+      case "f1"                => "f1"
+      case "weightedprecision" => "weightedPrecision"
+      case "weightedrecall"    => "weightedRecall"
+      case "accuracy"          => "accuracy"
+      case "areaunderpr"       => "areaUnderPR"
+      case "areaunderroc"      => "areaUnderROC"
+      case "rmse"              => "rmse"
+      case "mse"               => "mse"
+      case "r2"                => "r2"
+      case "mae"               => "mae"
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Supplied Scoring Metric '${value}' is not supported. " +
+            s"Must be one of: weightedPrecision, weightedRecall, accuracy, areaUnderPR, areaUnderROC, rmse, mse, r2, mae.'"
+        )
+    }
+    _scoringMetric = matched_value
     setConfigs()
     this
   }
@@ -1094,11 +1120,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setParallelism(value: Integer): this.type = {
-    //TODO: FIND OUT WHAT THIS RESTRICTION NEEDS TO BE FOR PARALLELISM.
+  def setParallelism(value: Int): this.type = {
     require(
-      _parallelism < 10000,
-      s"Parallelism above 10000 will result in cluster instability."
+      _parallelism < 100,
+      s"Parallelism above 100 will result in cluster instability."
     )
     _parallelism = value
     setGeneticConfig()
@@ -1106,7 +1131,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setKFold(value: Integer): this.type = {
+  def setKFold(value: Int): this.type = {
     _kFold = value
     setGeneticConfig()
     setConfigs()
@@ -2017,6 +2042,74 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  /**
+    * Setter for providing a path to write the kfold train/test splits as Delta data sets to (useful for extremely
+    * large data sets or a situation where using local disk storage might be prohibitively expensive)
+    * @param value String path to a dbfs location for creating the temporary (or persisted)
+    * @since 0.7.1
+    * @author Ben Wilson, Databricks
+    */
+  def setDeltaCacheBackingDirectory(value: String): this.type = {
+
+    if (value != "") {
+      require(
+        value.take(6) == "dbfs:/",
+        s"Delta backing location must be written to dbfs."
+      )
+    }
+    _deltaCacheBackingDirectory = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for determining the split caching strategy (either persist to disk for each kfold split or backing to Delta)
+    * @param value Configuration string either 'persist' or 'delta'
+    * @since 0.7.1
+    * @author Ben Wilson, Databricks
+    */
+  def setSplitCachingStrategy(value: String): this.type = {
+    val valueSet = value.toLowerCase
+    require(
+      valueSet == "persist" || valueSet == "delta" || valueSet == "cache",
+      s"SplitCachingStrategy '${}' is invalid.  Must be either 'delta', 'cache', or 'persist'"
+    )
+    _splitCachingStrategy = valueSet
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  /**
+    * Setter for whether or not to delete the written train/test splits for the run in Delta.  Defaulted to true
+    * which means that the job will delete the data on Object store to clean itself up after the run is completed
+    * if the splitCachingStrategy is set to 'delta'
+    * @param value Boolean - true => delete false => leave on Object Store
+    * @since 0.7.1
+    * @author Ben Wilson, Databricks
+    */
+  def setDeltaCacheBackingDirectoryRemovalFlag(value: Boolean): this.type = {
+    _deltaCacheBackingDirectoryRemovalFlag = value
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def deltaCheckBackingDirectoryRemovalOn(): this.type = {
+    _deltaCacheBackingDirectoryRemovalFlag = true
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
+  def deltaCheckBackingDirectoryRemovalOff(): this.type = {
+    _deltaCacheBackingDirectoryRemovalFlag = false
+    setGeneticConfig()
+    setConfigs()
+    this
+  }
+
   private def setGeneticConfig(): this.type = {
     _geneticConfig = GeneticConfig(
       parallelism = _parallelism,
@@ -2055,7 +2148,11 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
       hyperSpaceModelType = _hyperSpaceModelType,
       hyperSpaceModelCount = _hyperSpaceModelCount,
       initialGenerationMode = _firstGenerationMode,
-      initialGenerationConfig = _firstGenerationConfig
+      initialGenerationConfig = _firstGenerationConfig,
+      deltaCacheBackingDirectory = _deltaCacheBackingDirectory,
+      splitCachingStrategy = _splitCachingStrategy,
+      deltaCacheBackingDirectoryRemovalFlag =
+        _deltaCacheBackingDirectoryRemovalFlag
     )
     this
   }
@@ -2264,7 +2361,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     _geneticMBORegressorType = config.geneticMBORegressorType
     _geneticMBOCandidateFactor = config.geneticMBOCandidateFactor
     setFirstGenerationConfig(config.initialGenerationConfig)
-
+    _deltaCacheBackingDirectoryRemovalFlag =
+      config.deltaCacheBackingDirectoryRemovalFlag
+    _deltaCacheBackingDirectory = config.deltaCacheBackingDirectory
+    _splitCachingStrategy = config.splitCachingStrategy
     this
   }
 
@@ -2704,6 +2804,13 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
   def getInferenceConfigSaveLocation: String = _inferenceConfigSaveLocation
 
   def getDataReductionFactor: Double = _dataReductionFactor
+
+  def getDeltaCacheBackingDirectory: String = _deltaCacheBackingDirectory
+
+  def getDeltaCacheBackingDirectoryRemovalFlag: Boolean =
+    _deltaCacheBackingDirectoryRemovalFlag
+
+  def getSplitCachingStrategy: String = _splitCachingStrategy
 
   /**
     * Helper method for extracting the config from a run's GenericModelReturn payload

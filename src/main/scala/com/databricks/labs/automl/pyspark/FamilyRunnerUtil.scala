@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.executor.FamilyRunner
+import com.databricks.labs.automl.pyspark.utils.Utils
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 
 object FamilyRunnerUtil extends SparkSessionWrapper {
@@ -30,7 +31,8 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
     configs
       .asInstanceOf[Map[String, Map[String, Any]]]
       .map({
-        case (key, valuesMap) => {
+        case (key, rawValuesMap) => {
+          val valuesMap: Map[String, Any] = rawValuesMap ++ Utils.cleansNestedTypes(rawValuesMap)
           ConfigurationGenerator.generateConfigFromMap(key, predictionType, valuesMap)
         }
       })

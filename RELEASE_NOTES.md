@@ -1,5 +1,48 @@
 ## Auto ML Toolkit Release Notes
 
+### Version 0.7.1
+#### Features
+* Complete overhaul of train/test splitting and kFolding.  Prior to this performance scaling improvement, 
+the train and test data sets would be calculated during each model's kfold stage, resulting in non-homogenous
+comparisons between hyper parameters, as well as performance degradation from consantly having to perform 
+splitting of the data.  There are three new parameters to control the behavior of splitting:
+```text
+Configuration parameters:
+
+- "tunerDeltaCacheBackingDirectory"
+  This new setting will define a location on dbfs in order to write extremely large training and test split data sets
+  to.  This is particularly recommended for use cases in which the volume of the data is so large that making even a 
+  few copies of the raw data would exceed budgeted cluster size allowances (recommended for data sets that are in the 
+  100's of GB range - TB range)
+- "tunerDeltaCacheBackingDirectoryRemovalFlag"
+  This new setting (Boolean flag) will determine, if using 'delta' mode on splitCachingStrategy, whether or not
+  to delete the delta data sets on dbfs after training is completed.  By default, this is set to true (will delete and 
+  clean up the directories).  If further evaluation or testing of the train test splits is needed after the run is 
+  completed, or if investigation into the composition of the splits is desired, or if auditing of the training data
+  is required due to business rules, set this flag to false.  
+  NOTE: directory pathing prevention of collisions is done through the generation of a UUID.  The path on dbfs
+  will have this as part of the root bucket for the run.
+- "splitCachingStrategy" DEFAULT: 'persist'
+  Options: 'cache', 'persist', or 'delta'
+  - delta mode: this will perform a train/test split for each kFold specified in the job definition, write the train
+  and test datasets to dbfs in delta format, and provide a reference to the delta source for the training run.  
+    NOTE: this will incur overhead and is NOT recommended for data sets that can easily fit multiple copies into 
+    memory on the cluster.  
+  - persist mode: this will cache and persist the train and test kFold data sets onto local disk.  This is recommended
+  for larger data sets that in order to fit n copies of the data in memory would require an extremely large or 
+  expensive cluster.  This is the default mode.
+  - cache mode: this will use standard caching (memory and disk) for the kFold sets of train and test.  This mode
+  is only recommended if the data set is relatively small and k copies of the data set can comfortably reside in memory
+  on the cluster.
+```
+
+#### Bug Fixes / Improvements
+* scoring metric can now support resolution of differently spelled metrics (upper case, camel case, etc.)
+  and will resolve to the standard naming conventions within SparkML for Binary, Multiclass, and Regression
+  evaluators.
+* Model training was getting one additional fold than applied at configuration, this has been resolved.
+* Type casting enabled from python API for complex nested types to config
+
 ### Version 0.6.2
 #### Features
 * Added support for PySpark!  There is now a Python API for Databricks labs automl!
