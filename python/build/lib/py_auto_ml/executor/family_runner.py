@@ -108,7 +108,7 @@ class FamilyRunner:
         """
         self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runPathInference(path,
                                                                                              dataframe._jdf)
-        inferred_df = self.spark.sql('SELECT * FROM pathInferenceDf')
+        inferred_df = self.spark.sql('SELECT * FROM pathInferenceDF')
 
         return inferred_df
 
