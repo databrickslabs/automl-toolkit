@@ -1,6 +1,6 @@
 import json
 from pyspark.sql.functions import DataFrame
-from python.py_auto_ml.local_spark_singleton import SparkSingleton
+from py_auto_ml.local_spark_singleton import SparkSingleton
 
 
 class FeatureImportance:
@@ -69,7 +69,7 @@ class FeatureImportance:
                                                                                                       cutoff_value,
                                                                                                       default_flag)
         self.feature_importance = True
-        self._get_returns()
+        return self._get_returns()
 
     def _get_returns(self):
         """
@@ -80,7 +80,8 @@ class FeatureImportance:
         if self.feature_importance != True:
             raise Exception ("Please first generate feature importances by running `run_feature_importance`")
         else:
-            self.importances = self.spark.sql("select * from importances")
-            self.top_fields = self.spark.sql("select feature from importances")
+            importances = self.spark.sql("select * from importances")
+            top_fields = self.spark.sql("select feature from importances")
+            return importances, top_fields
 
 
