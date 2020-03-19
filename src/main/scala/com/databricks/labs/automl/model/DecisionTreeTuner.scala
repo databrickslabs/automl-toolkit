@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
@@ -14,11 +15,11 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.regression.DecisionTreeRegressor
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -26,6 +27,7 @@ import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
 class DecisionTreeTuner(df: DataFrame,
+                        data: Array[TrainSplitReferences],
                         modelSelection: String,
                         isPipeline: Boolean = false)
     extends SparkSessionWrapper
@@ -265,7 +267,8 @@ class DecisionTreeTuner(df: DataFrame,
     modelSelection match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
+          scoringMap(i) =
+            classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
@@ -303,8 +306,6 @@ class DecisionTreeTuner(df: DataFrame,
     val runs = battery.par
     runs.tasksupport = taskSupport
 
-    val uniqueLabels: Array[Row] = df.select(_labelCol).distinct().collect()
-
     val currentStatus = statusObj.generateGenerationStartStatement(
       generation,
       calculateModelingFamilyRemainingTime(generation, modelCnt)
@@ -320,20 +321,11 @@ class DecisionTreeTuner(df: DataFrame,
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[TreesModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions, shuffle=true)
-        kFoldBuffer += generateAndScoreTreesModel(optimizedTrain, optimizedTest, x)
-        optimizedTrain.unpersist()
-        optimizedTest.unpersist()
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreTreesModel(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
@@ -357,7 +349,7 @@ class DecisionTreeTuner(df: DataFrame,
 
       val runAvg = params.TreesModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation

@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
@@ -25,6 +26,7 @@ import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
 class GBTreesTuner(df: DataFrame,
+                   data: Array[TrainSplitReferences],
                    modelSelection: String,
                    isPipeline: Boolean = false)
     extends SparkSessionWrapper
@@ -281,7 +283,8 @@ class GBTreesTuner(df: DataFrame,
     modelSelection match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, optimizedPredictions)
+          scoringMap(i) =
+            classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
@@ -336,20 +339,11 @@ class GBTreesTuner(df: DataFrame,
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        val (optimizedTrain, optimizedTest) = optimizeTestTrain(train, test, optimalJVMModelPartitions, shuffle=true)
-        kFoldBuffer += generateAndScoreGBTModel(optimizedTrain, optimizedTest, x)
-        optimizedTrain.unpersist()
-        optimizedTest.unpersist()
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreGBTModel(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
@@ -373,7 +367,7 @@ class GBTreesTuner(df: DataFrame,
 
       val runAvg = GBTModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation

@@ -2,6 +2,7 @@ package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.executor.DataPrep
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.model.tools.split.DataSplitUtility
 import com.databricks.labs.automl.params.GBTModelsWithResults
 import com.databricks.labs.automl.{
   AbstractUnitSpec,
@@ -13,13 +14,34 @@ class GBTreesTunerTest extends AbstractUnitSpec {
 
   "GBTreesTuner" should "throw UnsupportedOperationException for passing invalid params" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new GBTreesTuner(null, null).evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "GBT"
+      )
+
+      new GBTreesTuner(null, splitData, null).evolveBest()
     }
   }
 
   it should "should throw UnsupportedOperationException for passing invalid modelSelection" in {
     a[UnsupportedOperationException] should be thrownBy {
-      new GBTreesTuner(AutomationUnitTestsUtil.getAdultDf(), "err").evolveBest()
+      val splitData = DataSplitUtility.split(
+        AutomationUnitTestsUtil.getAdultDf(),
+        1,
+        "random",
+        "income",
+        "dbfs:/test",
+        "cache",
+        "GBT"
+      )
+
+      new GBTreesTuner(AutomationUnitTestsUtil.getAdultDf(), splitData, "err")
+        .evolveBest()
     }
   }
 
@@ -28,9 +50,20 @@ class GBTreesTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("gbt", "classifier")
     )
-    val data = DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateBinaryClassificationData(10000)
+    ).prepData().data
+    val splitData = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      "income",
+      "dbfs:/test",
+      "cache",
+      "GBT"
+    )
     val gbtModelsWithResults: GBTModelsWithResults =
-      new GBTreesTuner(new DataPrep(data).prepData().data, "classifier")
+      new GBTreesTuner(data, splitData, "classifier")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
@@ -142,9 +175,22 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       ConfigurationGenerator.generateDefaultConfig("gbt", "classifier")
     )
     val data =
-      DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
+      new DataPrep(
+        DiscreteTestDataGenerator.generateMultiClassClassificationData(10000)
+      ).prepData().data
+
+    val splitData = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      "income",
+      "dbfs:/test",
+      "cache",
+      "GBT"
+    )
+
     val gbtModelsWithResults: GBTreesTuner =
-      new GBTreesTuner(new DataPrep(data).prepData().data, "classifier")
+      new GBTreesTuner(data, splitData, "classifier")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)
@@ -243,9 +289,21 @@ class GBTreesTunerTest extends AbstractUnitSpec {
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
       ConfigurationGenerator.generateDefaultConfig("gbt", "regressor")
     )
-    val data = DiscreteTestDataGenerator.generateRegressionData(10000)
+    val data = new DataPrep(
+      DiscreteTestDataGenerator.generateRegressionData(10000)
+    ).prepData().data
+    val splitData = DataSplitUtility.split(
+      data,
+      1,
+      "random",
+      "income",
+      "dbfs:/test",
+      "cache",
+      "GBT"
+    )
+
     val gbtModelsWithResults: GBTModelsWithResults =
-      new GBTreesTuner(new DataPrep(data).prepData().data, "regressor")
+      new GBTreesTuner(data, splitData, "regressor")
         .setFirstGenerationGenePool(5)
         .setLabelCol(_mainConfig.labelCol)
         .setFeaturesCol(_mainConfig.featuresCol)

@@ -111,9 +111,15 @@ trait Evolution
   var _cardinalityThreshold: Int = _defaultKSampleConfig.cardinalityThreshold
   var _numericRatio: Double = _defaultKSampleConfig.numericRatio
   var _numericTarget: Int = _defaultKSampleConfig.numericTarget
-  lazy final val xgbWorkers: Int = try { environmentVars("num_workers").toString.toInt }
-  catch { case e: java.util.NoSuchElementException =>  scala.math.floor(totalCores / coresPerTask / _parallelism).toInt }
-  lazy final val optimalJVMModelPartitions: Int = scala.math.floor(parTasks / (_parallelism / 2)).toInt
+
+  lazy final val xgbWorkers: Int = try {
+    environmentVars("num_workers").toString.toInt
+  } catch {
+    case e: java.util.NoSuchElementException =>
+      scala.math.floor(totalCores / coresPerTask / _parallelism).toInt
+  }
+  lazy final val optimalJVMModelPartitions: Int =
+    scala.math.floor(parTasks / (_parallelism / 2)).toInt
 
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
@@ -1168,18 +1174,18 @@ trait Evolution
 
   def genTestTrain(data: DataFrame,
                    seed: Long,
-                   uniqueLables: Array[Row]): Array[DataFrame] = {
+                   uniqueLabels: Array[Row]): Array[DataFrame] = {
 
     _trainSplitMethod match {
       case "random" =>
         data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
       case "chronological" => chronologicalSplit(data, seed)
-      case "stratified"    => stratifiedSplit(data, seed, uniqueLables)
+      case "stratified"    => stratifiedSplit(data, seed, uniqueLabels)
       case "overSample"    => overSampleSplit(data, seed)
       case "underSample"   => underSampleSplit(data, seed)
       case "stratifyReduce" =>
-        stratifyReduce(data, _dataReduce, seed, uniqueLables)
-      case "kSample" => kSamplingSplit(data, seed, uniqueLables)
+        stratifyReduce(data, _dataReduce, seed, uniqueLabels)
+      case "kSample" => kSamplingSplit(data, seed, uniqueLabels)
       case _ =>
         throw new IllegalArgumentException(
           s"Cannot conduct train test split in mode: '${_trainSplitMethod}'"
@@ -1191,8 +1197,7 @@ trait Evolution
   def optimizeTestTrain(train: DataFrame,
                         test: DataFrame,
                         optimalParts: Int,
-                        shuffle: Boolean = false
-                       ): (DataFrame, DataFrame) = {
+                        shuffle: Boolean = false): (DataFrame, DataFrame) = {
     val optimizedTrain = if (shuffle) {
       train.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
     } else {

@@ -560,6 +560,9 @@ trait ConfigurationDefaults {
     val tunerInitialGenerationIndexMixingMode = "linear"
     val tunerInitialGenerationArraySeed = 42L
     val tunerOutputDfRepartitionScaleFactor = 3
+    val tunerDeltaCacheBackingDirectory = "dbfs:/mnt/automl/"
+    val tunerDeltaCacheBackingDirectoryRemovalFlag = true
+    val splitCachingStrategy = "persist"
 
     TunerConfig(
       tunerAutoStoppingScore,
@@ -616,7 +619,10 @@ trait ConfigurationDefaults {
       tunerInitialGenerationPermutationCount,
       tunerInitialGenerationIndexMixingMode,
       tunerInitialGenerationArraySeed,
-      tunerOutputDfRepartitionScaleFactor
+      tunerOutputDfRepartitionScaleFactor,
+      tunerDeltaCacheBackingDirectory,
+      tunerDeltaCacheBackingDirectoryRemovalFlag,
+      splitCachingStrategy
     )
   }
 
@@ -801,7 +807,10 @@ trait ConfigurationDefaults {
       "mlFlowLoggingMode" -> logDef.mlFlowLoggingMode,
       "mlFlowBestSuffix" -> logDef.mlFlowBestSuffix,
       "inferenceConfigSaveLocation" -> logDef.inferenceConfigSaveLocation,
-      "mlFlowCustomRunTags" -> logDef.mlFlowCustomRunTags
+      "mlFlowCustomRunTags" -> logDef.mlFlowCustomRunTags,
+      "tunerDeltaCacheBackingDirectory" -> tunerDef.tunerDeltaCacheBackingDirectory,
+      "tunerDeltaCacheBackingDirectoryRemovalFlag" -> tunerDef.tunerDeltaCacheBackingDirectoryRemovalFlag,
+      "splitCachingStrategy" -> tunerDef.splitCachingStrategy
     )
   }
 
