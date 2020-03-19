@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import org.apache.spark.sql.SparkSession
 import com.databricks.labs.automl.exploration.FeatureImportances
+import com.databricks.labs.automl.pyspark.utils.Utils
 
 object FeatureImportanceUtil {
   lazy val objectMapper = new ObjectMapper()
@@ -45,9 +46,8 @@ object FeatureImportanceUtil {
     }
     else{
       // Generating config from the map of overrides if default configs aren't being used
-      val overrides = jsonToMap(configJson)
-      val fiConfig = ConfigurationGenerator.generateConfigFromMap(modelFamily,predictionType,overrides)
-      return fiConfig
+      val overrides = Utils.cleansNestedTypes(jsonToMap(configJson))
+      ConfigurationGenerator.generateConfigFromMap(modelFamily,predictionType,overrides)
     }
   }
 
