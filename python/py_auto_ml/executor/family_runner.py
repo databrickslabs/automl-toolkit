@@ -15,8 +15,7 @@ class FamilyRunner:
     def run_family_runner(self,
                           family_configs: dict,
                           prediction_type: str,
-                          df: DataFrame,
-                          path: str):
+                          df: DataFrame):
         """
 
         :param family_configs: dict
@@ -31,8 +30,7 @@ class FamilyRunner:
         stringified_family_configs = json.dumps(family_configs)
         self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runFamilyRunner(stringified_family_configs,
                                                                                             prediction_type,
-                                                                                            df._jdf,
-                                                                                            path)
+                                                                                            df._jdf)
         self._family_runner = True
 
         return self._get_returns()
