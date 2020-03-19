@@ -14,3 +14,15 @@ class Helpers:
         if prediction_type not in supported_prediction_types:
             raise Exception("Prediction type is not supported - it must be one of the following",
                             supported_prediction_types)
+
+    @staticmethod
+    def check_runner_types(runner_type: str):
+        """
+
+        :param runner_type: str
+            Checking that the runner_type is a supported runner_type
+        :return:
+        """
+        acceptable_strings = ["run", "confusion", "prediction"]
+        if runner_type not in acceptable_strings:
+            raise Exception("runner_type must be one of the following run, confusion, or prediction")
