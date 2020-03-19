@@ -69,7 +69,7 @@ class FeatureImportance:
                                                                                                       cutoff_value,
                                                                                                       default_flag)
         self.feature_importance = True
-        self._get_returns()
+        return self._get_returns()
 
     def _get_returns(self):
         """

@@ -15,8 +15,7 @@ class FamilyRunner:
     def run_family_runner(self,
                           family_configs: dict,
                           prediction_type: str,
-                          df: DataFrame,
-                          path: str):
+                          df: DataFrame):
         """
 
         :param family_configs: dict
@@ -31,11 +30,10 @@ class FamilyRunner:
         stringified_family_configs = json.dumps(family_configs)
         self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runFamilyRunner(stringified_family_configs,
                                                                                             prediction_type,
-                                                                                            df._jdf,
-                                                                                            path)
+                                                                                            df._jdf)
         self._family_runner = True
 
-        self._get_returns()
+        return self._get_returns()
 
     # Fetch  the temp tables and bring them into python
 
@@ -85,7 +83,7 @@ class FamilyRunner:
         """
         stringified_configs = json.dumps(configs)
 
-        self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runInference(mlflow_run_id,
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runMlFlowInference(mlflow_run_id,
                                                                                          model_family,
                                                                                          prediction_type,
                                                                                          label_col,
@@ -96,7 +94,7 @@ class FamilyRunner:
 
         return inference_df
 
-    def pipeline_inference(self,
+    def path_pipeline_inference(self,
                            path: str,
                            dataframe: DataFrame):
         """
@@ -105,10 +103,15 @@ class FamilyRunner:
             Path to the pipelined model created by AutoML
         :param dataframe:
             Spark dataframe that will be used for inference
-        :return: dataframe: Dataframe
-            Dataframe with  inference
+        :return: inference_df: Dataframe
+            Dataframe with predictions
         """
-        pass
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runPathInference(path,
+                                                                                             dataframe._jdf)
+        inferred_df = self.spark.sql('SELECT * FROM pathInferenceDf')
+
+        return inferred_df
+
 
 
 

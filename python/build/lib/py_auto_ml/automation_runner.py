@@ -73,7 +73,7 @@ class AutomationRunner:
                                                                                                     default_flag)
         self._automation_runner = True
 
-        self._get_returns(runner_type_lower)
+        return self._get_returns(runner_type_lower)
 
     def _get_returns(self,
                     runner_type: str):
