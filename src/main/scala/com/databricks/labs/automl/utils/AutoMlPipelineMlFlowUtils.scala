@@ -49,7 +49,7 @@ object AutoMlPipelineMlFlowUtils {
       AutoMlPipelineMlFlowUtils.getMainConfigByPipelineId(pipelineId)
     if (mlFlowRunIdAndConfig.mainConfig.mlFlowLoggingFlag) {
       val mlflowTracker = MLFlowTracker(
-        mlFlowRunIdAndConfig.mainConfig.mlFlowConfig
+        mlFlowRunIdAndConfig.mainConfig
       )
       val client = mlflowTracker.createHostedMlFlowClient()
       // Delete a tag first
@@ -72,9 +72,9 @@ object AutoMlPipelineMlFlowUtils {
   }
 
   def getPipelinePathByRunId(runId: String,
-                             mlFlowConfig: MLFlowConfig): String = {
+                             mainConfig: MainConfig): String = {
     try {
-      MLFlowTracker(mlFlowConfig)
+      MLFlowTracker(mainConfig)
         .createHostedMlFlowClient()
         .getRun(runId)
         .getData

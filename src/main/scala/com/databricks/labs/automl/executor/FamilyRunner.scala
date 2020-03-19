@@ -179,7 +179,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     addMainConfigToPipelineCache(mainConfig)
     if (mainConfig.mlFlowLoggingFlag) {
       val mlFlowRunId =
-        MLFlowTracker(mainConfig.mlFlowConfig).generateMlFlowRunId()
+        MLFlowTracker(mainConfig).generateMlFlowRunId()
       PipelineStateCache
         .addToPipelineCache(
           mainConfig.pipelineId,

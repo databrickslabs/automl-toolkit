@@ -2070,7 +2070,12 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setMlFlowModelSaveDirectory(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Model save directory must be written to dbfs:/."
+    )
     _instanceConfig.loggingConfig.mlFlowModelSaveDirectory = value
     this
   }
@@ -2086,7 +2091,12 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setInferenceConfigSaveLocation(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Inference save location must be on dbfs:/."
+    )
     _instanceConfig.loggingConfig.inferenceConfigSaveLocation = value
     this
   }

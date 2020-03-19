@@ -1879,7 +1879,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
                                  modelFamily: String,
                                  modelType: String): MLFlowReportStructure = {
 
-    val mlFlowLogger = MLFlowTracker(_mainConfig.mlFlowConfig)
+    val mlFlowLogger = MLFlowTracker(_mainConfig)
 
     if (_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn()
     else mlFlowLogger.logArtifactsOff()
@@ -1899,7 +1899,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     modelType: String
   ): MLFlowReportStructure = {
 
-    val mlFlowLogger = MLFlowTracker(_mainConfig.mlFlowConfig)
+    val mlFlowLogger = MLFlowTracker(_mainConfig)
     mlFlowLogger.logMlFlowForPipeline(
       AutoMlPipelineMlFlowUtils
         .getMainConfigByPipelineId(_mainConfig.pipelineId)
@@ -2130,7 +2130,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     msg: String
   ): Option[MLFlowReportStructure] = {
     try {
-      val genTracker = MLFlowTracker(_mainConfig.mlFlowConfig)
+      val genTracker = MLFlowTracker(_mainConfig)
       val dummyLog = MLFlowReturn(
         genTracker.createHostedMlFlowClient(),
         msg,

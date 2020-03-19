@@ -1764,7 +1764,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setMlFlowModelSaveDirectory(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Model save directory must be written to dbfs:/."
+    )
     _mlFlowModelSaveDirectory = value
     setMlFlowConfig()
     setConfigs()
@@ -1993,7 +1998,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setInferenceConfigSaveLocation(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Inference save location must be on dbfs:/."
+    )
     _inferenceConfigSaveLocation = value
     setConfigs()
     this
