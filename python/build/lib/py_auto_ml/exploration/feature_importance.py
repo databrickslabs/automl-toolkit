@@ -26,7 +26,7 @@ class FeatureImportance:
     def run_feature_importance(self,
                                model_family: str,
                                prediction_type: str,
-                               df: DataFrame,
+                               dataframe: DataFrame,
                                cutoff_value: float,
                                cutoff_type: str,
                                overrides=None):
@@ -64,22 +64,24 @@ class FeatureImportance:
         self.spark._jvm.com.databricks.labs.automl.pyspark.FeatureImportanceUtil.runFeatureImportance(model_family,
                                                                                                       prediction_type,
                                                                                                       stringified_overrides,
-                                                                                                      df._jdf,
+                                                                                                      dataframe._jdf,
                                                                                                       cutoff_type,
                                                                                                       cutoff_value,
                                                                                                       default_flag)
         self.feature_importance = True
+        self._get_returns()
 
-    def bring_in_returns(self):
+    def _get_returns(self):
         """
 
         :return: importances dataframe with top X fields and feature importance measure based on algorithm
         :return: top_fields dataframe with the top X fields based on feature importance algorithm
         """
         if self.feature_importance != True:
-            raise Exception ("Please first generate feature importnaces by running `run_feature_importance`")
+            raise Exception ("Please first generate feature importances by running `run_feature_importance`")
         else:
-            self.importances = self.spark.sql("select * from importances")
-            self.top_fields = self.spark.sql("select feature from importances")
+            importances = self.spark.sql("select * from importances")
+            top_fields = self.spark.sql("select feature from importances")
+            return importances, top_fields
 
 

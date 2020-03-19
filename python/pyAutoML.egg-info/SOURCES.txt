@@ -12,4 +12,8 @@ py_auto_ml/exploration/__init__.py
 py_auto_ml/exploration/feature_importance.py
 py_auto_ml/test/__init__.py
 py_auto_ml/test/local_spark_singleton.py
+py_auto_ml/test/test_automation_runner.py
 py_auto_ml/test/test_family_runner.py
+py_auto_ml/test/test_feature_importance.py
+utilities/__init__.py
+utilities/helpers.py
