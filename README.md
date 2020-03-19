@@ -1,6 +1,7 @@
 # Databricks Labs AutoML
 [Release Notes](RELEASE_NOTES.md) |
 [Developer Docs](APIDOCS.md) |
+[Python Docs](python/docs/APIDOCs.md) |
 [Demo](demos) |
 [Release Artifacts](bin) |
 [Contributors](#core-contribution-team)

@@ -40,6 +40,7 @@ Configuration parameters:
 * scoring metric can now support resolution of differently spelled metrics (upper case, camel case, etc.)
   and will resolve to the standard naming conventions within SparkML for Binary, Multiclass, and Regression
   evaluators.
+* Model training was getting one additional fold than applied at configuration, this has been resolved.
 
 ### Version 0.6.2
 #### Features

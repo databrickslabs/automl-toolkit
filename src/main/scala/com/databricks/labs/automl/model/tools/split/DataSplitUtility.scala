@@ -27,6 +27,19 @@ class DataSplitUtility(mainDataset: DataFrame,
 
   final val uniqueLabels = mainDataset.select(labelColumn).distinct().collect()
 
+  private val debugLog = s"Split Log for ${modelFamily}: \n " +
+    s"KFolds: ${kIterations} \n " +
+    s"Split method: ${splitMethod} \n " +
+    s"Persist Mode: ${persistMode} \n " +
+    s"Parallelism: ${parallelism} \n " +
+    s"Train Portion: $trainPortion  \n " +
+    s"Synthetic Column: $syntheticCol \n " +
+    s"Chron Column: $trainSplitChronologicalColumn \n " +
+    s"Chron Random Pct: $trainSplitChronologicalRandomPercentage \n " +
+    s"Reduction Factor: $reductionFactor"
+
+  logger.log(Level.DEBUG, debugLog)
+
   def trainSplitPersist: Array[TrainSplitReferences] = {
 
     val optimalParts = modelFamily match {
