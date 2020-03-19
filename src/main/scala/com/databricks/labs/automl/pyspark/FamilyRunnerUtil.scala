@@ -29,7 +29,7 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
 
     for (i <- runner.bestMlFlowRunId.keys) {
       val savePath = tmpPath + i.asInstanceOf[String]
-      runner.bestPipelineModel(i).write.overwrite()
+      runner.bestPipelineModel(i).write.overwrite().save(savePath)
     }
   }
 
