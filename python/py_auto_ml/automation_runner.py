@@ -1,7 +1,7 @@
 import json
 from pyspark.sql.functions import DataFrame
-from python.py_auto_ml.local_spark_singleton import SparkSingleton
-from  python.py_auto_ml.utilities.helpers import Helpers
+from py_auto_ml.local_spark_singleton import SparkSingleton
+from py_auto_ml.utilities.helpers import Helpers
 
 
 class AutomationRunner:
@@ -51,8 +51,9 @@ class AutomationRunner:
         # Checking for supported model families and types
         Helpers.check_model_family(model_family)
         Helpers.check_prediction_type(prediction_type)
+
         runner_type_lower = runner_type.lower()
-        self._check_runner_types(runner_type_lower)
+        Helpers.check_runner_types(runner_type_lower)
 
 
         # Check if you need default instance config or generating from map of overrides
@@ -72,7 +73,7 @@ class AutomationRunner:
                                                                                                     default_flag)
         self._automation_runner = True
 
-        self._get_returns(runner_type_lower)
+        return self._get_returns(runner_type_lower)
 
     def _get_returns(self,
                     runner_type: str):
@@ -115,14 +116,3 @@ class AutomationRunner:
             raise Exception ("In order to generate the proper returns for the automation runner, please first run the "
                              "automation runner with the `run_automation_runner`")
 
-    @staticmethod
-    def _check_runner_types(runner_type: str):
-        """
-
-        :param runner_type: str
-            Checking that the runner_type is a supported runner_type
-        :return:
-        """
-        acceptable_strings = ["run", "confusion", "prediction"]
-        if runner_type not in acceptable_strings:
-            raise Exception("runner_type must be one of the following run, confusion, or prediction")
