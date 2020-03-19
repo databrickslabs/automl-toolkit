@@ -40,7 +40,7 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
       // get pipeline model
       val pipelineModel = PipelineModelInference.getPipelineModelByMlFlowRunId(mlFlowRunId, loggingConfig)
       // run inference on df and pipeline model from mlflow
-      pipelineModel.transform(df.drop(labelCol)).createOrReplaceTempView("inferenceDF")
+      pipelineModel.transform(df.drop(labelCol)).createOrReplaceTempView("pathInferenceDF")
     }
 
   def runPathInference(path: String,
