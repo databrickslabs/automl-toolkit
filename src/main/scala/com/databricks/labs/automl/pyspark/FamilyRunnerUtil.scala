@@ -7,6 +7,7 @@ import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, Insta
 import com.databricks.labs.automl.executor.FamilyRunner
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import com.databricks.labs.automl.pipeline.inference.PipelineModelInference
+import org.apache.spark.ml.PipelineModel
 
 object FamilyRunnerUtil extends SparkSessionWrapper {
   lazy val objectMapper = new ObjectMapper()
@@ -17,8 +18,7 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
     import spark.implicits._
 
     val firstMap = jsonToMap(configs)
-    val familyRunnerConfigs = buildArray(firstMap,
-      predictionType)
+    val familyRunnerConfigs = buildArray(firstMap,predictionType)
     //run the family runner
     val runner = FamilyRunner(df, familyRunnerConfigs).executeWithPipeline()
     runner.familyFinalOutput.modelReportDataFrame.createOrReplaceTempView("modelReportDataFrame")
@@ -27,33 +27,37 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
 
     //Write out all the model to get them later in python
 
-    for(i <- runner.bestMlFlowRunId.keys){
+    for (i <- runner.bestMlFlowRunId.keys) {
       val savePath = tmpPath + i.asInstanceOf[String]
-      runner.bestPipelineModel(i).write.overwrite().
+      runner.bestPipelineModel(i).write.overwrite()
     }
+  }
 
-    def runInferencePipeline(mlFlowRunId:String,
+  def runMlFlowInference(mlFlowRunId:String,
                             modelFamily:String,
                             predictionType:String,
                             labelCol:String,
-                            configs:Map[String,Any],
+                            configs:String,
                             df:DataFrame): Unit = {
 
       // TO DO add support for default configs
       // generate the configs
-      val configs = ConfigurationGenerator.generateConfigFromMap(modelFamily, predictionType, overrides)
+      val familyRunnerConfigs = ConfigurationGenerator.generateConfigFromMap(modelFamily, predictionType, jsonToMap(configs))
       // get logging config
-      val loggingConfig = configs.loggingConfig
+      val loggingConfig = familyRunnerConfigs.loggingConfig
       // get pipeline model
       val pipelineModel = PipelineModelInference.getPipelineModelByMlFlowRunId(mlFlowRunId, loggingConfig)
       // run inference on df and pipeline model from mlflow
-      val inferenceDataFrame = pipelineModel.transform(df.drop("label")).createOrReplaceTempView("inference_df")
-      // store as temp view to get it back in python
-      inferenceDataFrame.createOrReplaceTempView("inferenceDF")
+      pipelineModel.transform(df.drop(labelCol)).createOrReplaceTempView("inferenceDF")
     }
 
-
+  def runPathInference(path: String,
+                       dataframe: DataFrame): Unit = {
+    // Read in the Pipeline
+    PipelineModel.load(path).transform(dataframe).createOrReplaceGlobalTempView(viewName = "pathInferenceDf")
   }
+
+
 
   def buildArray(configs: Map[String, Any],
                  predictionType: String): Array[InstanceConfig] = {
