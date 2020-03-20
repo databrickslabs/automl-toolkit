@@ -32,7 +32,7 @@ class MLFlowTracker extends InferenceTools {
   private var _mlFlowLoggingMode: String = _
   private var _mlFlowBestSuffix: String = _
   private var _mlFlowCustomRunTags: Map[String, String] = Map.empty
-  private var _mlFlowClient: Option[MlflowClient] = _
+  private var _mlFlowClient: MlflowClient = _
 
   private val logger: Logger = Logger.getLogger(this.getClass)
   final private val HOSTED_NAMESPACE = List("databricks.com", "databricks.net")
@@ -96,12 +96,18 @@ class MLFlowTracker extends InferenceTools {
   def getMlFlowBestSuffix: String = _mlFlowBestSuffix
   def getMlFlowCustomRunTags: Map[String, String] = _mlFlowCustomRunTags
 
+  /**
+    * Get a single MLFlow Client for the instance of the object. Reduce garbage collection by not creating
+    * a version each time the object is called.
+    * As of 0.7.1
+    * @return
+    */
   def getMLFlowClient: MlflowClient = {
-    if (_mlFlowClient.isEmpty) {
-      _mlFlowClient = Some(createHostedMlFlowClient())
-      _mlFlowClient.get
+    if (_mlFlowClient == null) {
+      _mlFlowClient = createHostedMlFlowClient()
+      _mlFlowClient
     } else {
-      _mlFlowClient.get
+      _mlFlowClient
     }
   }
 
@@ -151,7 +157,7 @@ class MLFlowTracker extends InferenceTools {
   }
 
   def generateMlFlowRunId(): String = {
-    val client = createHostedMlFlowClient()
+    val client = getMLFlowClient
     val experimentId = getOrCreateExperimentId(client, _mlFlowExperimentName + _mlFlowBestSuffix).toString
     client.createRun(experimentId).getRunId
   }
@@ -176,10 +182,14 @@ class MLFlowTracker extends InferenceTools {
     }
   }
 
-  private def saveConfig(configDir: String): String = {
-    // Generate a new unique uuid for the config to ensure there are no overwrites.
-    val uniqueConfigID = java.util.UUID.randomUUID().toString.replace("-", "")
-    val configPath = s"${configDir}/config/config_${uniqueConfigID}.json"
+  /**
+    * Save the entire _mainConfig as a json string and add it as an artifact in MLFlow
+    * @param runId MLFlow run id
+    * @param configDir The parent directory of where the config file will be stored in /dbfs fuse path
+    * @return
+    */
+  private def saveConfig(runId: String, configDir: String): String = {
+    val configPath = s"${configDir}/config_${runId}.json"
     if (! new File(createFusePath(configDir)).exists()) new File(createFusePath(configDir)).mkdirs
     logger.log(Level.DEBUG, s"DEBUG: ConfigPath = $configPath")
     logger.log(Level.DEBUG, convertMainConfigToJson(_mainConfig))
@@ -189,12 +199,11 @@ class MLFlowTracker extends InferenceTools {
     pw.close()
 
     // Add tag for config file location
-    mlflowLoggingClient.setTag(
+    getMLFlowClient.setTag(
       runId,
       "MainConfigLocation",
       configPath
     )
-
     createFusePath(configPath)
   }
 
@@ -360,7 +369,7 @@ class MLFlowTracker extends InferenceTools {
   ): MLFlowReportStructure = {
 
     val dummyLog =
-      MLFlowReturn(createHostedMlFlowClient(), "none", Array(("none", 0.0)))
+      MLFlowReturn(getMLFlowClient, "none", Array(("none", 0.0)))
 
     logger.log(Level.INFO, s"DEBUG: mlFlowLoggingMode: ${_mlFlowLoggingMode}")
 
@@ -405,7 +414,7 @@ class MLFlowTracker extends InferenceTools {
                            optimizationStrategy: String
                           ): MLFlowReportStructure = {
     val dummyLog =
-      MLFlowReturn(createHostedMlFlowClient(), "none", Array(("none", 0.0)))
+      MLFlowReturn(getMLFlowClient, "none", Array(("none", 0.0)))
 
     val bestLog = _mlFlowLoggingMode match {
       case "tuningOnly" =>
@@ -429,12 +438,12 @@ class MLFlowTracker extends InferenceTools {
   }
 
   private def logBestForPipeline(
-                      mlFlowRunId: String,
+                      runId: String,
                       runData: Array[GenericModelReturn],
                       modelFamily: String,
                       modelType: String,
                       optimizationStrategy: String): MLFlowReturn = {
-    val mlflowLoggingClient = createHostedMlFlowClient()
+    val mlflowLoggingClient = getMLFlowClient
 
     val experimentId = getOrCreateExperimentId(
       mlflowLoggingClient,
@@ -443,33 +452,34 @@ class MLFlowTracker extends InferenceTools {
 
     val bestModel = getBestModel(optimizationStrategy, runData)
 
-    val runIdPayload = Array((mlFlowRunId, bestModel.score))
+    val runIdPayload = Array((runId, bestModel.score))
 
     val modelHyperParams = bestModel.hyperParams.keys
     val metrics = bestModel.metrics.keys
 
     modelHyperParams.foreach { x =>
       val valueData = bestModel.hyperParams(x)
-      mlflowLoggingClient.logParam(mlFlowRunId, x, valueData.toString)
+      mlflowLoggingClient.logParam(runId, x, valueData.toString)
     }
     metrics.foreach { x =>
       val valueData = bestModel.metrics(x)
-      mlflowLoggingClient.logMetric(mlFlowRunId, x, valueData.toString.toDouble)
+      mlflowLoggingClient.logMetric(runId, x, valueData.toString.toDouble)
     }
 
     val modelDescriptor = s"${modelType}_$modelFamily"
-    mlflowLoggingClient.logParam(mlFlowRunId, "modelType", modelDescriptor)
+    mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
 
-    mlflowLoggingClient.logParam(mlFlowRunId, "generation", "Best")
+    mlflowLoggingClient.logParam(runId, "generation", "Best")
 
-    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun/").toString
-    val configDir = s"${baseDirectory}${modelDescriptor}_${mlFlowRunId}"
-    val configPath = saveConfig(configDir)
-    mlflowLoggingClient.logArtifact(mlFlowRunId, new File(configPath))
+    // Save main config to MLFlow
+    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun").toString
+    val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
+    val configPath = saveConfig(runId, configDir)
+    mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
     // Log custom tags if present
     if (_mlFlowCustomRunTags.nonEmpty) {
-      logCustomTags(mlflowLoggingClient, mlFlowRunId, _mlFlowCustomRunTags)
+      logCustomTags(mlflowLoggingClient, runId, _mlFlowCustomRunTags)
     }
 
     MLFlowReturn(
@@ -493,7 +503,7 @@ class MLFlowTracker extends InferenceTools {
                       optimizationStrategy: String): MLFlowReturn = {
 
     val bestModel = getBestModel(optimizationStrategy, runData)
-    val mlflowLoggingClient = createHostedMlFlowClient()
+    val mlflowLoggingClient = getMLFlowClient
     val experimentId = getOrCreateExperimentId(
       mlflowLoggingClient,
       _mlFlowExperimentName + _mlFlowBestSuffix
@@ -502,7 +512,7 @@ class MLFlowTracker extends InferenceTools {
     var totalVersion =
       mlflowLoggingClient.getExperiment(experimentId).getRunsCount
 
-    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun/").toString
+    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun").toString
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 
@@ -533,7 +543,7 @@ class MLFlowTracker extends InferenceTools {
 
     mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
 
-    val modelDir = s"$baseDirectory${modelDescriptor}_$runId/bestModel"
+    val modelDir = s"$baseDirectory/${modelDescriptor}_$runId/bestModel"
 
     saveModel(
       mlflowLoggingClient,
@@ -545,8 +555,9 @@ class MLFlowTracker extends InferenceTools {
     )
     mlflowLoggingClient.logParam(runId, "generation", "Best")
 
-    val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
-    val configPath = saveConfig(configDir)
+    // Save main config to MLFlow
+    val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
+    val configPath = saveConfig(runId, configDir)
     mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
     // Log custom tags if present
@@ -556,9 +567,9 @@ class MLFlowTracker extends InferenceTools {
 
     //Inference data save
     val inferencePath = Paths
-      .get(s"$inferenceSaveLocation/$experimentId/${_mlFlowBestSuffix}/")
+      .get(s"$inferenceSaveLocation/$experimentId/${_mlFlowBestSuffix}")
       .toString
-    val inferenceLocation = inferencePath + runId + _mlFlowBestSuffix
+    val inferenceLocation = inferencePath + "/" + runId + _mlFlowBestSuffix
     val inferenceMlFlowConfig = getInternalMlFlowConfig(baseDirectory)
     val inferenceModelConfig = getInferenceModelConfig(
       modelFamily,
@@ -630,7 +641,7 @@ class MLFlowTracker extends InferenceTools {
 
     val runIdPayloadBuffer = ArrayBuffer[(String, Double)]()
 
-    val mlflowLoggingClient = createHostedMlFlowClient()
+    val mlflowLoggingClient = getMLFlowClient
     val experimentId = getOrCreateExperimentId(mlflowLoggingClient).toString
 
     var totalVersion =
@@ -684,9 +695,10 @@ class MLFlowTracker extends InferenceTools {
           mlflowLoggingClient.logMetric(runId, k, valueData.toString.toDouble)
         }
 
-        val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun/").toString
-        val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
-        val configPath = saveConfig(configDir)
+        // Save main config to MLFlow
+        val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun").toString
+        val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
+        val configPath = saveConfig(runId, configDir)
         mlflowLoggingClient.logArtifact(runId, new File(configPath))
         mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
 
@@ -713,7 +725,7 @@ class MLFlowTracker extends InferenceTools {
 
     val runIdPayloadBuffer = ArrayBuffer[(String, Double)]()
 
-    val mlflowLoggingClient = createHostedMlFlowClient()
+    val mlflowLoggingClient = getMLFlowClient
 
     val experimentId = getOrCreateExperimentId(mlflowLoggingClient).toString
 
@@ -724,7 +736,7 @@ class MLFlowTracker extends InferenceTools {
     runData.map(x => generationSet += x.generation)
     val uniqueGenerations = generationSet.result.toArray.sortWith(_ < _)
 
-    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/").toString
+    val baseDirectory = Paths.get(s"${_modelSaveDirectory}").toString
 
     val modelDescriptor = s"${modelType}_$modelFamily"
 
@@ -787,7 +799,7 @@ class MLFlowTracker extends InferenceTools {
         val uniqueModelId = java.util.UUID.randomUUID().toString.replace("-", "")
 
         // Set a location to write the model to
-        val modelDir = s"$baseDirectory${modelDescriptor}_$runId/$uniqueModelId"
+        val modelDir = s"$baseDirectory/${modelDescriptor}_$runId/$uniqueModelId"
 
         // log the model artifact
         saveModel(
@@ -803,8 +815,8 @@ class MLFlowTracker extends InferenceTools {
         mlflowLoggingClient.logParam(runId, "generation", x.generation.toString)
 
         // Save the Config and add to MLFlow artifacts
-        val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
-        val configPath = saveConfig(configDir)
+        val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
+        val configPath = saveConfig(runId, configDir)
         mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
         // Log custom tags if present

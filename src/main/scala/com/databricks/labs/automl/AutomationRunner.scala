@@ -2314,7 +2314,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     try {
       val genTracker = MLFlowTracker(_mainConfig)
       val dummyLog = MLFlowReturn(
-        genTracker.createHostedMlFlowClient(),
+        genTracker.getMLFlowClient,
         msg,
         Array((msg, 0.0))
       )

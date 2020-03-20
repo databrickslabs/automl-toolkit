@@ -51,7 +51,7 @@ object AutoMlPipelineMlFlowUtils {
       val mlflowTracker = MLFlowTracker(
         mlFlowRunIdAndConfig.mainConfig
       )
-      val client = mlflowTracker.createHostedMlFlowClient()
+      val client = mlflowTracker.getMLFlowClient
       // Delete a tag first
       try {
         mlflowTracker
@@ -75,7 +75,7 @@ object AutoMlPipelineMlFlowUtils {
                              mainConfig: MainConfig): String = {
     try {
       MLFlowTracker(mainConfig)
-        .createHostedMlFlowClient()
+        .getMLFlowClient
         .getRun(runId)
         .getData
         .getTagsList
