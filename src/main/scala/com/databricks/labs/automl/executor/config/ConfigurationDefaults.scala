@@ -667,6 +667,10 @@ trait ConfigurationDefaults {
     )
   }
 
+  def getDefaultConfig(modelFamily: String,
+                       predictionType: String): InstanceConfig =
+    instanceConfig(modelFamily, predictionType)
+
   private[config] def defaultConfigMap(
     modelFamily: String,
     predictionType: String
