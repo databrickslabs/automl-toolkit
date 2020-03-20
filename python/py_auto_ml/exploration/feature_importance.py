@@ -1,27 +1,13 @@
 import json
 from pyspark.sql.functions import DataFrame
 from py_auto_ml.local_spark_singleton import SparkSingleton
+from py_auto_ml.utilities.helpers import Helpers
 
 
 class FeatureImportance:
-    def __init__(self,
-                 # model_family: str,
-                 # prediction_type: str,
-                 # df: DataFrame,
-                 # cutoff_value: float,
-                 # cutoff_type: str,
-                 # overrides=None
-                 ):
+    def __init__(self):
         self.spark = SparkSingleton.get_instance()
-        # Run feature importances
-        # self.run_feature_importance(model_family,
-        #                             prediction_type,
-        #                             df,
-        #                             cutoff_value,
-        #                             cutoff_type,
-        #                             overrides)
-        # Get Returns as attributes of the class
-        # self.bring_in_returns()
+
 
     def run_feature_importance(self,
                                model_family: str,
@@ -51,6 +37,12 @@ class FeatureImportance:
 
         :return:
         """
+
+        # Checking for supported model families and types
+        Helpers.check_model_family(model_family)
+        Helpers.check_prediction_type(prediction_type)
+
+
         ## Set flag for default configs
         if overrides is not None:
             default_flag = "false"
@@ -74,14 +66,19 @@ class FeatureImportance:
     def _get_returns(self):
         """
 
-        :return: importances dataframe with top X fields and feature importance measure based on algorithm
-        :return: top_fields dataframe with the top X fields based on feature importance algorithm
+        :return: dict of dataframes:
+            'importances': importances df
+            'top_fields': top fields df
         """
         if self.feature_importance != True:
             raise Exception ("Please first generate feature importances by running `run_feature_importance`")
         else:
             importances = self.spark.sql("select * from importances")
             top_fields = self.spark.sql("select feature from importances")
-            return importances, top_fields
+            return_dict = {
+                'importances': importances,
+                'top_fields': top_fields
+            }
+            return return_dict
 
 
