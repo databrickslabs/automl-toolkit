@@ -119,7 +119,7 @@ class WorkspaceDirectoryValidation(apiURL: String,
         } else {
           throw new RuntimeException(
             s"Unable to validate or create Workspace path to $adjustedPath. Ensure permissions" +
-              s"are sufficient to have write access to Workspace Location.  " +
+              s" are sufficient to have write access to Workspace Location.  " +
               s"\n\nSee: https://docs.databricks.com/user-guide/workspace.html for further information."
           )
         }

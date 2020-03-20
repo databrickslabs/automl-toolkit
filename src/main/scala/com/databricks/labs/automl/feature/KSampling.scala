@@ -608,9 +608,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     // Extract the fields and types that are part of the feature vector.
     val featureFieldsPayload = schemaPayload.features
       .map(x => x.fieldName)
-      .flatMap(
-        y => schemaPayload.fullSchema.filter(z => y.contains(z.fieldName))
-      )
+      .flatMap(y => schemaPayload.fullSchema.filter(z => y == z.fieldName))
 
     // Perform casting by applying the original DataTypes to the feature vector fields.
     featureFieldsPayload
@@ -732,7 +730,6 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     val origSchema = df.schema.names
     val schemaMappings =
       generateSchemaInformationPayload(df.schema, collectedFieldsToIgnore)
-
     val labelColumnType =
       schemaMappings.fullSchema
         .filter(x => x.fieldName == _labelCol)
@@ -753,6 +750,9 @@ class KSampling(df: DataFrame) extends KSamplingBase {
 
     // Transform the scaled data with the KMeans model
     val kModelData = kModel.transform(scaled)
+
+    // Get the original partition count
+    val sourcePartitions = df.rdd.partitions.length
 
     val returnfinalDf = labelValues
       .map { x =>
@@ -784,8 +784,9 @@ class KSampling(df: DataFrame) extends KSamplingBase {
         rebuildFeatureVector(finalDF, schemaMappings.features)
           .withColumn(conf.labelCol, lit(x.labelValue))
       }
-      .reduce(_.union(_))
+      .reduce(_.unionByName(_))
       .toDF()
+      .repartition(sourcePartitions)
 
     addDummyDataForIgnoredColumns(returnfinalDf, ignoredFieldsTypes)
       .select(origSchema map col: _*)

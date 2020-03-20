@@ -26,7 +26,7 @@ case class MLPCExtractConfig(layers: Int,
                              solver: String,
                              stepSize: Double,
                              tolerance: Double,
-                             hiddenLayerSize: Int)
+                             hiddenLayerSizeAdjust: Int)
 
 case class FieldTypes(numericHyperParams: Array[String],
                       stringHyperParams: Array[String],
@@ -310,7 +310,7 @@ trait GenerationOptimizerBase extends SparkSessionWrapper {
             solver = x.solver,
             stepSize = x.stepSize,
             tolerance = x.tolerance,
-            hiddenLayerSize = layers.hiddenLayers
+            hiddenLayerSizeAdjust = layers.hiddenLayers
           )
         })
         spark.createDataFrame(adjust)
@@ -625,7 +625,7 @@ class GenerationOptimizer[A, B](val modelType: String,
           inputFeatures,
           distinctClasses,
           x.getAs[Int]("layers"),
-          x.getAs[Int]("hiddenLayersSize")
+          x.getAs[Int]("hiddenLayerSizeAdjust")
         )
 
         MLPCConfig(

@@ -16,6 +16,7 @@ import org.apache.spark.ml.evaluation.{
   MulticlassClassificationEvaluator,
   RegressionEvaluator
 }
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.{count, _}
 import org.apache.spark.sql.{DataFrame, Row}
@@ -44,7 +45,7 @@ trait Evolution
   var _seed: Long = _defaultSeed
   var _kFoldIteratorRange: scala.collection.parallel.immutable.ParRange =
     Range(0, _kFold).par
-
+  var _fieldsToIgnore = _defaultFieldsToIgnoreInVector
   var _optimizationStrategy: String = _defaultOptimizationStrategy
   var _firstGenerationGenePool: Int = _defaultFirstGenerationGenePool
   var _numberOfMutationGenerations: Int = _defaultNumberOfMutationGenerations
@@ -111,6 +112,15 @@ trait Evolution
   var _numericRatio: Double = _defaultKSampleConfig.numericRatio
   var _numericTarget: Int = _defaultKSampleConfig.numericTarget
 
+  lazy final val xgbWorkers: Int = try {
+    environmentVars("num_workers").toString.toInt
+  } catch {
+    case e: java.util.NoSuchElementException =>
+      scala.math.floor(totalCores / coresPerTask / _parallelism).toInt
+  }
+  lazy final val optimalJVMModelPartitions: Int =
+    scala.math.floor(parTasks / (_parallelism / 2)).toInt
+
   var _randomizer: scala.util.Random = scala.util.Random
   _randomizer.setSeed(_seed)
 
@@ -121,6 +131,11 @@ trait Evolution
 
   def setFeaturesCol(value: String): this.type = {
     _featureCol = value
+    this
+  }
+
+  def setFieldsToIgnore(value: Array[String]): this.type = {
+    _fieldsToIgnore = value
     this
   }
 
@@ -729,6 +744,8 @@ trait Evolution
 
   def getFeaturesCol: String = _featureCol
 
+  def getFieldsToIgnore: Array[String] = _fieldsToIgnore
+
   def getTrainPortion: Double = _trainPortion
 
   def getTrainSplitMethod: String = _trainSplitMethod
@@ -1157,23 +1174,46 @@ trait Evolution
 
   def genTestTrain(data: DataFrame,
                    seed: Long,
-                   uniqueLables: Array[Row]): Array[DataFrame] = {
+                   uniqueLabels: Array[Row]): Array[DataFrame] = {
 
     _trainSplitMethod match {
       case "random" =>
         data.randomSplit(Array(_trainPortion, 1 - _trainPortion), seed)
       case "chronological" => chronologicalSplit(data, seed)
-      case "stratified"    => stratifiedSplit(data, seed, uniqueLables)
+      case "stratified"    => stratifiedSplit(data, seed, uniqueLabels)
       case "overSample"    => overSampleSplit(data, seed)
       case "underSample"   => underSampleSplit(data, seed)
       case "stratifyReduce" =>
-        stratifyReduce(data, _dataReduce, seed, uniqueLables)
-      case "kSample" => kSamplingSplit(data, seed, uniqueLables)
+        stratifyReduce(data, _dataReduce, seed, uniqueLabels)
+      case "kSample" => kSamplingSplit(data, seed, uniqueLabels)
       case _ =>
         throw new IllegalArgumentException(
           s"Cannot conduct train test split in mode: '${_trainSplitMethod}'"
         )
     }
+
+  }
+
+  def optimizeTestTrain(train: DataFrame,
+                        test: DataFrame,
+                        optimalParts: Int,
+                        shuffle: Boolean = false): (DataFrame, DataFrame) = {
+    val optimizedTrain = if (shuffle) {
+      train.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
+    } else {
+      train.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
+    }
+
+    val optimizedTest = if (shuffle) {
+      test.repartition(optimalParts).persist(StorageLevel.DISK_ONLY)
+    } else {
+      test.coalesce(optimalParts).persist(StorageLevel.DISK_ONLY)
+    }
+
+    optimizedTrain.foreach(_ => ())
+    optimizedTest.foreach(_ => ())
+
+    (optimizedTrain, optimizedTest)
 
   }
 

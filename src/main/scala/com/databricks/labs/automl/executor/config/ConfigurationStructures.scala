@@ -161,7 +161,10 @@ case class TunerConfig(var tunerAutoStoppingScore: Double,
                        var tunerInitialGenerationPermutationCount: Int,
                        var tunerInitialGenerationIndexMixingMode: String,
                        var tunerInitialGenerationArraySeed: Long,
-                       var tunerOutputDfRepartitionScaleFactor: Int)
+                       var tunerOutputDfRepartitionScaleFactor: Int,
+                       var tunerDeltaCacheBackingDirectory: String,
+                       var tunerDeltaCacheBackingDirectoryRemovalFlag: Boolean,
+                       var splitCachingStrategy: String)
 
 case class AlgorithmConfig(var stringBoundaries: Map[String, List[String]],
                            var numericBoundaries: Map[String, (Double, Double)])

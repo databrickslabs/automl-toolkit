@@ -236,7 +236,7 @@ trait DataGeneratorUtilities {
     }
     val outputArray = Array
       .fill(targetCount / (sortedArray.length - 1))(sortedArray)
-      .flatten
+      .flatten ++ sortedArray
       .take(targetCount)
 
     if (sortMode == RAND) Random.shuffle(outputArray.toList).toArray
@@ -913,6 +913,64 @@ trait DataGeneratorUtilities {
               .toList
           )
           .toArray
+    }
+
+  }
+
+  /**
+    * Private method for generating an arbitrary logistic map series of data (recurrence relation of degree 2)
+    * @param targetCount Number of elements to produce
+    * @param start Starting position
+    * @param lambda r factor (mortality)
+    * @return Array[Double] as influenced by the r value to determine the degree of distribution within the data
+    * @since 0.7.0
+    * @author Ben Wilson, Databricks
+    */
+  private def logisticMap(targetCount: Int,
+                          start: Double,
+                          lambda: Double): Array[Double] = {
+
+    Stream.iterate(start)(x => lambda * x * (1 - x)).take(targetCount).toArray
+
+  }
+
+  /**
+    * Method for generating different sequences of data based on polynomial mapping
+    *
+    * General notes about r values (lambda)
+    * 0 - 1 (decay to 0)
+    * 1 - 2 (stabilizes to r-1/r
+    * 2 - 3 (flucturate and eventually hit r-1/r)
+    * 3 - 3.44949 (permanent oscialltions between two values) (bi-modal)
+    * 3.4495 - 3.54409 (permanent oscillations among 4 values) (quad-modal)
+    * > 3.5441 8, 16, 32, 64... relative chaos of repeating values
+    * > 3.56995 - pure chaos
+    *
+    * @param targetCount Number of elements to produce
+    * @param start Starting position in the space 0.0 -> 1.0
+    * @param dataType String of one of "decay", "bimodal" or "chaotic" to generate 3 different types of numeric series
+    *
+    * @note read https://en.wikipedia.org/wiki/Logistic_map for further information.
+    * @since 0.7.0
+    * @author Ben Wilson, Databricks
+    */
+  def generatePeriodicData(targetCount: Int,
+                           start: Double,
+                           dataType: String): Array[Double] = {
+
+    require(
+      start > 0.0 && start < 1.0,
+      s"simulating series outside of range 0, 1 will generate useless data"
+    )
+
+    dataType match {
+      case "decay"   => logisticMap(targetCount, start, 2.9)
+      case "bimodal" => logisticMap(targetCount, start, 3.25)
+      case "chaotic" => logisticMap(targetCount, start, 3.55)
+      case _ =>
+        throw new IllegalArgumentException(
+          "Unsupported type.  Must be either 'decay', 'bimodal', or 'chaotic'"
+        )
     }
 
   }

@@ -7,9 +7,12 @@ import com.databricks.labs.automl.inference.{
   InferenceTools
 }
 import com.databricks.labs.automl.model._
-import com.databricks.labs.automl.model.tools.PostModelingOptimization
+import com.databricks.labs.automl.model.tools.split.{
+  DataSplitCustodial,
+  DataSplitUtility
+}
+import com.databricks.labs.automl.model.tools.{PostModelingOptimization}
 import com.databricks.labs.automl.params._
-
 import com.databricks.labs.automl.reports.{
   DecisionTreeSplits,
   RandomForestFeatureImportance
@@ -27,7 +30,6 @@ import ml.dmlc.xgboost4j.scala.spark.{
   XGBoostClassificationModel,
   XGBoostRegressionModel
 }
-
 import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification._
@@ -51,20 +53,36 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   private val logger: Logger = Logger.getLogger(this.getClass)
 
   private def runRandomForest(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[RandomForestModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
-    val initialize = new RandomForestTuner(cachedData, payload.modelType)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new RandomForestTuner(
+      cachedData,
+      splitData,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setRandomForestNumericBoundaries(_mainConfig.numericBoundaries)
       .setRandomForestStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -210,8 +228,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getRandomForestNumericBoundaries)
+        .setStringBoundaries(initialize.getRandomForestStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .randomForestPrediction(
@@ -230,6 +248,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
     (
       resultBuffer.toArray,
       statsBuffer.reduce(_ union _),
@@ -241,23 +261,37 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   private def runLightGBM(
     lightGBMType: String,
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[LightGBMModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     val initialize = new LightGBMTuner(
       cachedData,
+      splitData,
       payload.modelType,
-      lightGBMType
+      lightGBMType,
+      isPipeline
     ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setLGBMNumericBoundaries(_mainConfig.numericBoundaries)
       .setLGBMStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -403,8 +437,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getLightGBMNumericBoundaries)
+        .setStringBoundaries(initialize.getLightGBMStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .lightGBMPrediction(
@@ -423,6 +457,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
     (
       resultBuffer.toArray,
       statsBuffer.reduce(_ union _),
@@ -433,20 +469,36 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runXGBoost(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[XGBoostModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
-    val initialize = new XGBoostTuner(cachedData, payload.modelType)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new XGBoostTuner(
+      cachedData,
+      splitData,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setXGBoostNumericBoundaries(_mainConfig.numericBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
@@ -591,7 +643,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
+        .setNumericBoundaries(initialize.getXGBoostNumericBoundaries)
         .setStringBoundaries(_mainConfig.stringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -611,6 +663,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
     (
       resultBuffer.toArray,
       statsBuffer.reduce(_ union _),
@@ -621,22 +675,34 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runMLPC(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[MLPCModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new MLPCTuner(cachedData)
+        val initialize = new MLPCTuner(cachedData, splitData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setMlpcNumericBoundaries(_mainConfig.numericBoundaries)
           .setMlpcStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
@@ -797,8 +863,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
-            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setNumericBoundaries(initialize.getMlpcNumericBoundaries)
+            .setStringBoundaries(initialize.getMlpcStringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .mlpcPrediction(
@@ -819,6 +885,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -834,20 +902,36 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runGBT(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[GBTModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
-    val initialize = new GBTreesTuner(cachedData, payload.modelType)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new GBTreesTuner(
+      cachedData,
+      splitData,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setGBTNumericBoundaries(_mainConfig.numericBoundaries)
       .setGBTStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -996,8 +1080,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getGBTNumericBoundaries)
+        .setStringBoundaries(initialize.getGBTStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .gbtPrediction(
@@ -1016,6 +1100,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     }
 
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
     (
       resultBuffer.toArray,
       statsBuffer.reduce(_ union _),
@@ -1026,22 +1112,37 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runLinearRegression(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[LinearRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "regressor" =>
-        val initialize = new LinearRegressionTuner(cachedData)
-          .setLabelCol(_mainConfig.labelCol)
+        val initialize = new LinearRegressionTuner(
+          cachedData,
+          splitData,
+          isPipeline
+        ).setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setLinearRegressionNumericBoundaries(_mainConfig.numericBoundaries)
           .setLinearRegressionStringBoundaries(_mainConfig.stringBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
@@ -1202,8 +1303,10 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
-            .setStringBoundaries(_mainConfig.stringBoundaries)
+            .setNumericBoundaries(
+              initialize.getLinearRegressionNumericBoundaries
+            )
+            .setStringBoundaries(initialize.getLinearRegressionStringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
             .linearRegressionPrediction(
@@ -1222,6 +1325,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -1237,26 +1342,38 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
-  private def runLogisticRegression(payload: DataGeneration): (Array[
-                                                                 LogisticRegressionModelsWithResults
-                                                               ],
-                                                               DataFrame,
-                                                               String,
-                                                               DataFrame) = {
+  private def runLogisticRegression(
+    payload: DataGeneration,
+    isPipeline: Boolean = false
+  ): (Array[LogisticRegressionModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new LogisticRegressionTuner(cachedData)
-          .setLabelCol(_mainConfig.labelCol)
+        val initialize = new LogisticRegressionTuner(
+          cachedData,
+          splitData,
+          isPipeline
+        ).setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setLogisticRegressionNumericBoundaries(_mainConfig.numericBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
@@ -1416,7 +1533,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setNumericBoundaries(
+              initialize.getLogisticRegressionNumericBoundaries
+            )
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -1436,6 +1555,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -1452,22 +1573,34 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runSVM(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[SVMModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
     payload.modelType match {
       case "classifier" =>
-        val initialize = new SVMTuner(cachedData)
+        val initialize = new SVMTuner(cachedData, splitData, isPipeline)
           .setLabelCol(_mainConfig.labelCol)
           .setFeaturesCol(_mainConfig.featuresCol)
+          .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
           .setSvmNumericBoundaries(_mainConfig.numericBoundaries)
           .setScoringMetric(_mainConfig.scoringMetric)
           .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
@@ -1627,7 +1760,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             .setHyperParameterSpaceCount(
               _mainConfig.geneticConfig.hyperSpaceInferenceCount
             )
-            .setNumericBoundaries(_mainConfig.numericBoundaries)
+            .setNumericBoundaries(initialize.getSvmNumericBoundaries)
             .setStringBoundaries(_mainConfig.stringBoundaries)
             .setSeed(_mainConfig.geneticConfig.seed)
             .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
@@ -1647,6 +1780,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
         }
 
+        DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
+
         (
           resultBuffer.toArray,
           statsBuffer.reduce(_ union _),
@@ -1662,20 +1797,36 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   }
 
   private def runTrees(
-    payload: DataGeneration
+    payload: DataGeneration,
+    isPipeline: Boolean = false
   ): (Array[TreesModelsWithResults], DataFrame, String, DataFrame) = {
 
     val cachedData = if (_mainConfig.dataPrepCachingFlag) {
-      payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      val data = payload.data.persist(StorageLevel.MEMORY_AND_DISK)
+      data.foreach(_ => ())
+      data
     } else {
       payload.data
     }
 
-    if (_mainConfig.dataPrepCachingFlag) payload.data.count()
+    val splitData = DataSplitUtility.split(
+      cachedData,
+      _mainConfig.geneticConfig.kFold,
+      _mainConfig.geneticConfig.trainSplitMethod,
+      _mainConfig.labelCol,
+      _mainConfig.geneticConfig.deltaCacheBackingDirectory,
+      _mainConfig.geneticConfig.splitCachingStrategy,
+      _mainConfig.modelFamily
+    )
 
-    val initialize = new DecisionTreeTuner(payload.data, payload.modelType)
-      .setLabelCol(_mainConfig.labelCol)
+    val initialize = new DecisionTreeTuner(
+      cachedData,
+      splitData,
+      payload.modelType,
+      isPipeline
+    ).setLabelCol(_mainConfig.labelCol)
       .setFeaturesCol(_mainConfig.featuresCol)
+      .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
       .setTreesStringBoundaries(_mainConfig.stringBoundaries)
       .setScoringMetric(_mainConfig.scoringMetric)
@@ -1821,8 +1972,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         .setHyperParameterSpaceCount(
           _mainConfig.geneticConfig.hyperSpaceInferenceCount
         )
-        .setNumericBoundaries(_mainConfig.numericBoundaries)
-        .setStringBoundaries(_mainConfig.stringBoundaries)
+        .setNumericBoundaries(initialize.getTreesNumericBoundaries)
+        .setStringBoundaries(initialize.getTreesStringBoundaries)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy(_mainConfig.scoringOptimizationStrategy)
         .treesPrediction(
@@ -1840,6 +1991,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       statsBuffer += hyperDataFrame
 
     }
+
+    DataSplitCustodial.cleanCachedInstances(splitData, _mainConfig)
 
     (
       resultBuffer.toArray,
@@ -1895,7 +2048,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     val (resultArray, modelStats, modelSelection, dataframe) =
       _mainConfig.modelFamily match {
         case "RandomForest" =>
-          val (results, stats, selection, data) = runRandomForest(payload)
+          val (results, stats, selection, data) =
+            runRandomForest(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1907,7 +2061,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "XGBoost" =>
-          val (results, stats, selection, data) = runXGBoost(payload)
+          val (results, stats, selection, data) =
+            runXGBoost(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1922,7 +2077,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             "gbmLasso" | "gbmRidge" | "gbmPoisson" | "gbmQuantile" | "gbmMape" |
             "gbmTweedie" | "gbmGamma" =>
           val (results, stats, selection, data) =
-            runLightGBM(_mainConfig.modelFamily, payload)
+            runLightGBM(_mainConfig.modelFamily, payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1934,7 +2089,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "GBT" =>
-          val (results, stats, selection, data) = runGBT(payload)
+          val (results, stats, selection, data) = runGBT(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1946,7 +2101,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "MLPC" =>
-          val (results, stats, selection, data) = runMLPC(payload)
+          val (results, stats, selection, data) = runMLPC(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractMLPCPayload(x.modelHyperParams),
@@ -1958,7 +2113,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "LinearRegression" =>
-          val (results, stats, selection, data) = runLinearRegression(payload)
+          val (results, stats, selection, data) =
+            runLinearRegression(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1970,7 +2126,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "LogisticRegression" =>
-          val (results, stats, selection, data) = runLogisticRegression(payload)
+          val (results, stats, selection, data) =
+            runLogisticRegression(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1982,7 +2139,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "SVM" =>
-          val (results, stats, selection, data) = runSVM(payload)
+          val (results, stats, selection, data) = runSVM(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -1994,7 +2151,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           }
           (genericResults, stats, selection, data)
         case "Trees" =>
-          val (results, stats, selection, data) = runTrees(payload)
+          val (results, stats, selection, data) = runTrees(payload, isPipeline)
           results.foreach { x =>
             genericResults += GenericModelReturn(
               hyperParams = extractPayload(x.modelHyperParams),
@@ -2061,7 +2218,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
       logger.log(Level.INFO, pretty)
       mlFlowResult
-    } else if (isPipeline) {
+    } else if (isPipeline && _mainConfig.mlFlowLoggingFlag) {
       logPipelineResultsToMlFlow(
         genericResultData,
         _mainConfig.modelFamily,
@@ -2309,9 +2466,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     if (_mainConfig.dataPrepCachingFlag) dataSubset.unpersist()
 
+    val cleanedData = _mainConfig.geneticConfig.trainSplitMethod match {
+      case "kSample" =>
+        runResults.rawData
+          .filter(
+            col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+          )
+          .drop(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      case _ => runResults.rawData
+    }
+
     val predictedData = predictFromBestModel(
       runResults.modelReport,
-      runResults.rawData,
+      cleanedData,
       runResults.modelSelection
     )
 
@@ -2366,9 +2533,19 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
     val tunerResult = executeTuning(prepData())
 
+    val cleanedData = _mainConfig.geneticConfig.trainSplitMethod match {
+      case "kSample" =>
+        tunerResult.rawData
+          .filter(
+            col(_mainConfig.geneticConfig.kSampleConfig.syntheticCol) === false
+          )
+          .drop(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
+      case _ => tunerResult.rawData
+    }
+
     val predictedData = predictFromBestModel(
       tunerResult.modelReport,
-      tunerResult.rawData,
+      cleanedData,
       tunerResult.modelSelection
     )
 

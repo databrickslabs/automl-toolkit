@@ -1,7 +1,5 @@
 package com.databricks.labs.automl.params
 
-import com.databricks.labs.automl.pipeline.PipelineStateCache
-
 case class MainConfig(modelFamily: String,
                       labelCol: String,
                       featuresCol: String,
@@ -38,8 +36,7 @@ case class MainConfig(modelFamily: String,
                       inferenceConfigSaveLocation: String,
                       dataReductionFactor: Double,
                       pipelineDebugFlag: Boolean,
-                      pipelineId: String =
-                        PipelineStateCache.generatePipelineId())
+                      pipelineId: String)
 
 case class DataPrepConfig(naFillFlag: Boolean,
                           varianceFilterFlag: Boolean,
@@ -144,7 +141,10 @@ case class GeneticConfig(parallelism: Int,
                          hyperSpaceModelType: String,
                          hyperSpaceModelCount: Int,
                          initialGenerationMode: String,
-                         initialGenerationConfig: FirstGenerationConfig)
+                         initialGenerationConfig: FirstGenerationConfig,
+                         deltaCacheBackingDirectory: String,
+                         splitCachingStrategy: String,
+                         deltaCacheBackingDirectoryRemovalFlag: Boolean)
 
 case class ScalingConfig(scalerType: String,
                          scalerMin: Double,

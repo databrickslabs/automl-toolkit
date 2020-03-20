@@ -1,6 +1,7 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools._
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.params.{
   Defaults,
   LightGBMConfig,
@@ -9,6 +10,7 @@ import com.databricks.labs.automl.params.{
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import com.microsoft.ml.spark.lightgbm.{LightGBMClassifier, LightGBMRegressor}
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Row}
 
@@ -17,7 +19,11 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class LightGBMTuner(df: DataFrame, modelSelection: String, lightGBMType: String)
+class LightGBMTuner(df: DataFrame,
+                    data: Array[TrainSplitReferences],
+                    modelSelection: String,
+                    lightGBMType: String,
+                    isPipeline: Boolean = false)
     extends LightGBMBase
     with SparkSessionWrapper
     with Defaults
@@ -391,21 +397,24 @@ class LightGBMTuner(df: DataFrame, modelSelection: String, lightGBMType: String)
     val builtModel = model.fit(train)
 
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     _gbmType.modelType match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
+          scoringMap(i) =
+            classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, optimizedPredictions)
         }
     }
 
-    LightGBMModelsWithResults(
+    val lightGBMModelsWithResults = LightGBMModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
@@ -413,6 +422,8 @@ class LightGBMTuner(df: DataFrame, modelSelection: String, lightGBMType: String)
       generation
     )
 
+    optimizedPredictions.unpersist()
+    lightGBMModelsWithResults
   }
 
   /**
@@ -465,15 +476,11 @@ class LightGBMTuner(df: DataFrame, modelSelection: String, lightGBMType: String)
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = ArrayBuffer[LightGBMModelsWithResults]()
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong(), uniqueLabels)
-        kFoldBuffer += generateAndScoreGBMModel(train, test, x)
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreGBMModel(z.data.train, z.data.test, x)
       }
-      val scores = ArrayBuffer[Double]()
-      kFoldBuffer.map(x => { scores += x.score })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
 
@@ -498,7 +505,7 @@ class LightGBMTuner(df: DataFrame, modelSelection: String, lightGBMType: String)
 
       val runAvg = LightGBMModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation

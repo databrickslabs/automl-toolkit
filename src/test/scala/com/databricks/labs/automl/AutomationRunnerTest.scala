@@ -1,6 +1,6 @@
 package com.databricks.labs.automl
 
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.{AnalysisException, Row}
 
 class AutomationRunnerTest extends AbstractUnitSpec {
 
@@ -46,8 +46,8 @@ class AutomationRunnerTest extends AbstractUnitSpec {
     }
   }
 
-  it should "throw IllegalArgumentException with empty input dataset with schema" in {
-    a[IllegalArgumentException] should be thrownBy {
+  it should "throw NullPointerException with empty input dataset with schema" in {
+    a[NullPointerException] should be thrownBy {
       val adultDfwithLabel = AutomationUnitTestsUtil.getAdultDf()
       new AutomationRunner(
         AutomationUnitTestsUtil.sparkSession.createDataFrame(
@@ -58,8 +58,8 @@ class AutomationRunnerTest extends AbstractUnitSpec {
     }
   }
 
-  it should "throw IllegalArgumentException with empty input dataset with no schema" in {
-    a[IllegalArgumentException] should be thrownBy {
+  it should "throw AnalysisException with empty input dataset with no schema" in {
+    a[AnalysisException] should be thrownBy {
       new AutomationRunner(AutomationUnitTestsUtil.sparkSession.emptyDataFrame)
         .runWithConfusionReport()
     }

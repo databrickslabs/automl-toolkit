@@ -240,7 +240,7 @@ class SyntheticFeatureGenerator(data: DataFrame)
     )
 
     // Merge the original DataFrame with the synthetic data
-    data.withColumn(_syntheticCol, lit(false)).union(syntheticData)
+    data.withColumn(_syntheticCol, lit(false)).unionByName(syntheticData)
 
   }
 

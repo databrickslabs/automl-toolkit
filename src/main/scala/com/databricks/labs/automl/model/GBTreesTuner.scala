@@ -1,9 +1,11 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
-  ModelReporting
+  ModelReporting,
+  ModelUtils
 }
 import com.databricks.labs.automl.params.{
   Defaults,
@@ -12,6 +14,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.regression.GBTRegressor
 import org.apache.spark.sql.{DataFrame, Row}
@@ -22,7 +25,10 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class GBTreesTuner(df: DataFrame, modelSelection: String)
+class GBTreesTuner(df: DataFrame,
+                   data: Array[TrainSplitReferences],
+                   modelSelection: String,
+                   isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
     with Defaults {
@@ -87,6 +93,26 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   def getClassificationMetrics: List[String] = classificationMetrics
 
   def getRegressionMetrics: List[String] = regressionMetrics
+
+  /**
+    * Private method for updating the maxBins setting for the tree algorithm to ensure that cardinality validation
+    * occurs for each nominal field in the feature vector to ensure that entnopy / information gain / gini calculations
+    * can be conducted correctly.
+    * @since 0.6.2
+    * @author Ben Wilson, Databricks
+    */
+  private def resetNumericBoundaries: this.type = {
+
+    _gbtNumericBoundaries = ModelUtils.resetTreeBinsSearchSpace(
+      df,
+      _gbtNumericBoundaries,
+      _fieldsToIgnore,
+      _labelCol,
+      _featureCol
+    )
+    this
+
+  }
 
   private def resetClassificationMetrics: List[String] = modelSelection match {
     case "classifier" =>
@@ -249,27 +275,33 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
     val builtModel = gbtModel.fit(train)
 
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     modelSelection match {
       case "classifier" =>
         for (i <- _classificationMetrics) {
-          scoringMap(i) = classificationScoring(i, _labelCol, predictedData)
+          scoringMap(i) =
+            classificationScoring(i, _labelCol, optimizedPredictions)
         }
       case "regressor" =>
         for (i <- regressionMetrics) {
-          scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
+          scoringMap(i) = regressionScoring(i, _labelCol, optimizedPredictions)
         }
     }
 
-    GBTModelsWithResults(
+    val gbtModelsWithResults = GBTModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
       scoringMap.toMap,
       generation
     )
+
+    optimizedPredictions.unpersist()
+    gbtModelsWithResults
   }
 
   private def runBattery(battery: Array[GBTConfig],
@@ -307,17 +339,11 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[GBTModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        kFoldBuffer += generateAndScoreGBTModel(train, test, x)
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreGBTModel(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
       modelSelection match {
@@ -341,7 +367,7 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
 
       val runAvg = GBTModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation
@@ -445,6 +471,10 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   private def continuousEvolution(): Array[GBTModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    if (!isPipeline) resetNumericBoundaries
+
+    if (modelSelection == "classifier")
+      ModelUtils.validateGBTClassifier(df, _labelCol)
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -602,6 +632,9 @@ class GBTreesTuner(df: DataFrame, modelSelection: String)
   def evolveParameters(): Array[GBTModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+    if (!isPipeline) resetNumericBoundaries
+    if (modelSelection == "classifier")
+      ModelUtils.validateGBTClassifier(df, _labelCol)
 
     var generation = 1
     // Record of all generations results

@@ -31,7 +31,7 @@ trait ConfigurationDefaults {
       case ("xgboost", "regressor")             => XGBoostRegressor
       case ("xgboost", "classifier")            => XGBoostClassifier
       case ("mlpc", "classifier")               => MLPC
-      case ("svm", "classifier")                => SVM
+      case ("svm", "regressor")                 => SVM
 //      case ("gbmbinary", "classifier")          => LightGBMBinary // turning these off until LightGBM is fixed by MSFT
 //      case ("gbmmulti", "classifier")           => LightGBMMulti
 //      case ("gbmmultiova", "classifier")        => LightGBMMultiOVA
@@ -117,7 +117,7 @@ trait ConfigurationDefaults {
   final val allowableOutlierFilterBounds: List[String] =
     List("lower", "upper", "both")
   final val allowablePearsonFilterStats: List[String] =
-    List("pvalue", "degreesFreedom", "pearsonStat")
+    List("pValue", "degreesFreedom", "pearsonStat")
   final val allowablePearsonFilterDirections: List[String] =
     List("greater", "lesser")
   final val allowablePearsonFilterModes: List[String] = List("auto", "manual")
@@ -179,7 +179,7 @@ trait ConfigurationDefaults {
   private def familyScoringCheck(predictionType: PredictionType): String = {
     predictionType match {
       case Regressor => "rmse"
-      case _         => "areaUnderROC"
+      case _         => "f1"
     }
   }
 
@@ -560,6 +560,9 @@ trait ConfigurationDefaults {
     val tunerInitialGenerationIndexMixingMode = "linear"
     val tunerInitialGenerationArraySeed = 42L
     val tunerOutputDfRepartitionScaleFactor = 3
+    val tunerDeltaCacheBackingDirectory = ""
+    val tunerDeltaCacheBackingDirectoryRemovalFlag = true
+    val splitCachingStrategy = "persist"
 
     TunerConfig(
       tunerAutoStoppingScore,
@@ -616,7 +619,10 @@ trait ConfigurationDefaults {
       tunerInitialGenerationPermutationCount,
       tunerInitialGenerationIndexMixingMode,
       tunerInitialGenerationArraySeed,
-      tunerOutputDfRepartitionScaleFactor
+      tunerOutputDfRepartitionScaleFactor,
+      tunerDeltaCacheBackingDirectory,
+      tunerDeltaCacheBackingDirectoryRemovalFlag,
+      splitCachingStrategy
     )
   }
 
@@ -801,7 +807,10 @@ trait ConfigurationDefaults {
       "mlFlowLoggingMode" -> logDef.mlFlowLoggingMode,
       "mlFlowBestSuffix" -> logDef.mlFlowBestSuffix,
       "inferenceConfigSaveLocation" -> logDef.inferenceConfigSaveLocation,
-      "mlFlowCustomRunTags" -> logDef.mlFlowCustomRunTags
+      "mlFlowCustomRunTags" -> logDef.mlFlowCustomRunTags,
+      "tunerDeltaCacheBackingDirectory" -> tunerDef.tunerDeltaCacheBackingDirectory,
+      "tunerDeltaCacheBackingDirectoryRemovalFlag" -> tunerDef.tunerDeltaCacheBackingDirectoryRemovalFlag,
+      "splitCachingStrategy" -> tunerDef.splitCachingStrategy
     )
   }
 

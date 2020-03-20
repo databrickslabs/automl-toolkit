@@ -48,5 +48,8 @@ case class FeatureImportanceConfig(
   featureInteractionRetentionMode: String,
   featureInteractionContinuousDiscretizerBucketCount: Int,
   featureInteractionParallelism: Int,
-  featureInteractionTargetInteractionPercentage: Double
+  featureInteractionTargetInteractionPercentage: Double,
+  deltaCacheBackingDirectory: String,
+  deltaCacheBackingDirectoryRemovalFlag: Boolean,
+  splitCachingStrategy: String
 )

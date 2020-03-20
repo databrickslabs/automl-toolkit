@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.model
 
+import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.model.tools.{
   GenerationOptimizer,
   HyperParameterFullSearch,
@@ -12,6 +13,7 @@ import com.databricks.labs.automl.params.{
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
@@ -21,7 +23,9 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.mutable.ParHashSet
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class LinearRegressionTuner(df: DataFrame)
+class LinearRegressionTuner(df: DataFrame,
+                            data: Array[TrainSplitReferences],
+                            isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Defaults
     with Evolution {
@@ -181,19 +185,24 @@ class LinearRegressionTuner(df: DataFrame)
     val builtModel = regressionModel.fit(train)
 
     val predictedData = builtModel.transform(test)
+    val optimizedPredictions = predictedData.persist(StorageLevel.DISK_ONLY)
+//    optimizedPredictions.foreach(_ => ())
 
     val scoringMap = scala.collection.mutable.Map[String, Double]()
 
     for (i <- regressionMetrics) {
-      scoringMap(i) = regressionScoring(i, _labelCol, predictedData)
+      scoringMap(i) = regressionScoring(i, _labelCol, optimizedPredictions)
     }
-    LinearRegressionModelsWithResults(
+    val lrModelsWithResults = LinearRegressionModelsWithResults(
       modelConfig,
       builtModel,
       scoringMap(_scoringMetric),
       scoringMap.toMap,
       generation
     )
+
+    optimizedPredictions.unpersist()
+    lrModelsWithResults
   }
 
   private def runBattery(
@@ -228,17 +237,11 @@ class LinearRegressionTuner(df: DataFrame)
 
       val kFoldTimeStamp = System.currentTimeMillis() / 1000
 
-      val kFoldBuffer = new ArrayBuffer[LinearRegressionModelsWithResults]
-
-      for (_ <- _kFoldIteratorRange) {
-        val Array(train, test) =
-          genTestTrain(df, scala.util.Random.nextLong, uniqueLabels)
-        kFoldBuffer += generateAndScoreLinearRegression(train, test, x)
+      val kFoldBuffer = data.map { z =>
+        generateAndScoreLinearRegression(z.data.train, z.data.test, x)
       }
-      val scores = new ArrayBuffer[Double]
-      kFoldBuffer.map(x => {
-        scores += x.score
-      })
+
+      val scores = kFoldBuffer.map(_.score)
 
       val scoringMap = scala.collection.mutable.Map[String, Double]()
 
@@ -250,7 +253,7 @@ class LinearRegressionTuner(df: DataFrame)
 
       val runAvg = LinearRegressionModelsWithResults(
         x,
-        kFoldBuffer.result.head.model,
+        kFoldBuffer.head.model,
         scores.sum / scores.length,
         scoringMap.toMap,
         generation

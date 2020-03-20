@@ -5,7 +5,7 @@ object ModelDefaults {
   protected[config] def randomForestNumeric: Map[String, (Double, Double)] =
     Map(
       "numTrees" -> Tuple2(50.0, 1000.0),
-      "maxBins" -> Tuple2(10.0, 100.0),
+      "maxBins" -> Tuple2(10.0, 500.0),
       "maxDepth" -> Tuple2(2.0, 20.0),
       "minInfoGain" -> Tuple2(0.0, 1.0),
       "subSamplingRate" -> Tuple2(0.5, 1.0)
@@ -17,7 +17,7 @@ object ModelDefaults {
   )
 
   protected[config] def treesNumeric: Map[String, (Double, Double)] = Map(
-    "maxBins" -> Tuple2(10.0, 100.0),
+    "maxBins" -> Tuple2(10.0, 500.0),
     "maxDepth" -> Tuple2(2.0, 20.0),
     "minInfoGain" -> Tuple2(0.0, 1.0),
     "minInstancesPerNode" -> Tuple2(1.0, 50.0)
@@ -36,7 +36,7 @@ object ModelDefaults {
     "subSample" -> Tuple2(0.4, 0.6),
     "minChildWeight" -> Tuple2(0.1, 10.0),
     "numRound" -> Tuple2(5.0, 25.0),
-    "maxBins" -> Tuple2(25.0, 512.0),
+    "maxBins" -> Tuple2(25.0, 500.0),
     "trainTestRatio" -> Tuple2(0.2, 0.8)
   )
 
@@ -53,7 +53,7 @@ object ModelDefaults {
   )
 
   protected[config] def gbtNumeric: Map[String, (Double, Double)] = Map(
-    "maxBins" -> Tuple2(10.0, 100.0),
+    "maxBins" -> Tuple2(10.0, 500.0),
     "maxIter" -> Tuple2(10.0, 100.0),
     "maxDepth" -> Tuple2(2.0, 20.0),
     "minInfoGain" -> Tuple2(0.0, 1.0),

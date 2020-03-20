@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.params
 
+import com.databricks.labs.automl.pipeline.PipelineStateCache
 import com.databricks.labs.automl.utils.InitDbUtils
 
 trait Defaults {
@@ -121,6 +122,8 @@ trait Defaults {
 
   def _defaultDataPrepParallelism: Int = 20
 
+  def _defaultPipelineId: String = PipelineStateCache.generatePipelineId()
+
   def _defaultFirstGenerationConfig = FirstGenerationConfig(
     permutationCount = 10,
     indexMixingMode = "linear",
@@ -190,7 +193,10 @@ trait Defaults {
     hyperSpaceModelCount = _defaultHyperSpaceModelCount,
     hyperSpaceModelType = _defaultHyperSpaceModelType,
     initialGenerationMode = _defaultInitialGenerationMode,
-    initialGenerationConfig = _defaultFirstGenerationConfig
+    initialGenerationConfig = _defaultFirstGenerationConfig,
+    deltaCacheBackingDirectory = "",
+    splitCachingStrategy = "persist",
+    deltaCacheBackingDirectoryRemovalFlag = true
   )
 
   def _fillConfigDefaults = FillConfig(
@@ -435,7 +441,8 @@ trait Defaults {
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
     dataReductionFactor = _defaultDataReductionFactor,
-    pipelineDebugFlag = _defaultPipelineDebugFlag
+    pipelineDebugFlag = _defaultPipelineDebugFlag,
+    pipelineId = _defaultPipelineId
   )
 
   def _featureImportancesDefaults = MainConfig(
@@ -501,14 +508,18 @@ trait Defaults {
       hyperSpaceModelType = _defaultHyperSpaceModelType,
       hyperSpaceModelCount = _defaultHyperSpaceModelCount,
       initialGenerationMode = _defaultInitialGenerationMode,
-      initialGenerationConfig = _defaultFirstGenerationConfig
+      initialGenerationConfig = _defaultFirstGenerationConfig,
+      deltaCacheBackingDirectory = "",
+      splitCachingStrategy = "persist",
+      deltaCacheBackingDirectoryRemovalFlag = true
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
     dataReductionFactor = _defaultDataReductionFactor,
-    pipelineDebugFlag = false
+    pipelineDebugFlag = false,
+    pipelineId = _defaultPipelineId
   )
 
   def _treeSplitDefaults = MainConfig(
@@ -574,13 +585,17 @@ trait Defaults {
       hyperSpaceModelType = _defaultHyperSpaceModelType,
       hyperSpaceModelCount = _defaultHyperSpaceModelCount,
       initialGenerationMode = _defaultInitialGenerationMode,
-      initialGenerationConfig = _defaultFirstGenerationConfig
+      initialGenerationConfig = _defaultFirstGenerationConfig,
+      deltaCacheBackingDirectory = "",
+      splitCachingStrategy = "persist",
+      deltaCacheBackingDirectoryRemovalFlag = true
     ),
     mlFlowLoggingFlag = _defaultMlFlowLoggingFlag,
     mlFlowLogArtifactsFlag = _defaultMlFlowArtifactsFlag,
     mlFlowConfig = _mlFlowConfigDefaults,
     inferenceConfigSaveLocation = _inferenceConfigSaveLocationDefault,
     dataReductionFactor = _defaultDataReductionFactor,
-    pipelineDebugFlag = false
+    pipelineDebugFlag = false,
+    pipelineId = _defaultPipelineId
   )
 }

@@ -1,7 +1,49 @@
 ## Auto ML Toolkit Release Notes
 
+### Version 0.7.1
+#### Features
+* Complete overhaul of train/test splitting and kFolding.  Prior to this performance scaling improvement, 
+the train and test data sets would be calculated during each model's kfold stage, resulting in non-homogenous
+comparisons between hyper parameters, as well as performance degradation from consantly having to perform 
+splitting of the data.  There are three new parameters to control the behavior of splitting:
+```text
+Configuration parameters:
+
+- "tunerDeltaCacheBackingDirectory"
+  This new setting will define a location on dbfs in order to write extremely large training and test split data sets
+  to.  This is particularly recommended for use cases in which the volume of the data is so large that making even a 
+  few copies of the raw data would exceed budgeted cluster size allowances (recommended for data sets that are in the 
+  100's of GB range - TB range)
+- "tunerDeltaCacheBackingDirectoryRemovalFlag"
+  This new setting (Boolean flag) will determine, if using 'delta' mode on splitCachingStrategy, whether or not
+  to delete the delta data sets on dbfs after training is completed.  By default, this is set to true (will delete and 
+  clean up the directories).  If further evaluation or testing of the train test splits is needed after the run is 
+  completed, or if investigation into the composition of the splits is desired, or if auditing of the training data
+  is required due to business rules, set this flag to false.  
+  NOTE: directory pathing prevention of collisions is done through the generation of a UUID.  The path on dbfs
+  will have this as part of the root bucket for the run.
+- "splitCachingStrategy" DEFAULT: 'persist'
+  Options: 'cache', 'persist', or 'delta'
+  - delta mode: this will perform a train/test split for each kFold specified in the job definition, write the train
+  and test datasets to dbfs in delta format, and provide a reference to the delta source for the training run.  
+    NOTE: this will incur overhead and is NOT recommended for data sets that can easily fit multiple copies into 
+    memory on the cluster.  
+  - persist mode: this will cache and persist the train and test kFold data sets onto local disk.  This is recommended
+  for larger data sets that in order to fit n copies of the data in memory would require an extremely large or 
+  expensive cluster.  This is the default mode.
+  - cache mode: this will use standard caching (memory and disk) for the kFold sets of train and test.  This mode
+  is only recommended if the data set is relatively small and k copies of the data set can comfortably reside in memory
+  on the cluster.
+```
+
+#### Bug Fixes / Improvements
+* scoring metric can now support resolution of differently spelled metrics (upper case, camel case, etc.)
+  and will resolve to the standard naming conventions within SparkML for Binary, Multiclass, and Regression
+  evaluators.
+
 ### Version 0.6.2
 #### Features
+* Added support for PySpark!  There is now a Python API for Databricks labs automl!
 * Added FeatureInteraction module (configurable to interact either all features or only those that pass checks for 
 perceived gain of adding the interacted feature based on its parents)
 ```text
@@ -32,11 +74,20 @@ Configuration of feature interaction modes is through setting the configurations
     an interacted column would be included in the feature vector if it's Information Gain was greater than 
     or equal to 80% of the Information Gain of its parents)
 ```
-
+* Added the ability to calculate Differential Entropy for Regression Tasks (supported in both FeatureInteraction and 
+in the new Pearson Filtering algorithm)
+* Full refactor of Pearson Filtering and Feature Correlation to utilize DataFrames for column-wise comparisons 
+ Adjusted core looping algorithm to support exactly 1:1 checking of n x m column validation.  Speed improvements are 
+ dramatic for data sets utilizing higher numbers of features.
+ * Improved cardinality detection for data types and inspection of correlation detection based on approrpriate 
+ methodology (Information Gain / Entropy for Classifiers, Differential Entropy for Regressors) and handling of 
+ nominal vs continuous numeric types correctly for such validators.
+ 
 #### Bug Fixes
 * Adjusted Pipeline OneHotEncoder to ensure prevention of metadata loss from StringIndexers for inference .transforms()
     through the use of additional StringIndexer stages immediately preceding the OneHotEncoder stages.
-
+* Stability improvements - creation of ~63 new unit tests to validate core functionality
+* Over 200 issues solved due to new unit testing test suite (not going to mention them all here)
 
 ### Version 0.6.1
 * Upgraded MlFLow to 1.3.0
