@@ -11,9 +11,9 @@ import org.apache.spark.ml.PipelineModel
 
 object FamilyRunnerUtil extends SparkSessionWrapper {
   lazy val objectMapper = new ObjectMapper()
-  def runFamilyRunner(configs:String,
-                      predictionType: String,
-                      df: DataFrame): Unit = {
+  def runFamilyRunner(df: DataFrame,
+                      configs:String,
+                      predictionType: String): Unit = {
     import spark.implicits._
 
     val firstMap = jsonToMap(configs)
@@ -47,6 +47,20 @@ object FamilyRunnerUtil extends SparkSessionWrapper {
                        dataframe: DataFrame): Unit = {
     // Read in the Pipeline
     PipelineModel.load(path).transform(dataframe).createOrReplaceTempView(viewName = "pathInferenceDF")
+  }
+
+  def runFeatureEngPipeline(df: DataFrame,
+                            modelFamily: String,
+                            predictionType: String,
+                            configs:String): Unit = {
+    import spark.implicits._
+
+    val firstMap = jsonToMap(configs)
+    val familyRunnerConfigs = buildArray(firstMap, predictionType)
+    //run the family runner
+    val featureEngPipelineModel = FamilyRunner(df, familyRunnerConfigs).
+      generateFeatureEngineeredPipeline(verbose = true)(modelFamily)
+    featureEngPipelineModel.transform(df).createOrReplaceTempView(viewName = "featEngDf")
   }
 
   def buildArray(configs: Map[String, Any],
