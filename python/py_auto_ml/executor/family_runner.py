@@ -1,21 +1,17 @@
 import json
 from pyspark.sql.functions import DataFrame
 from py_auto_ml.local_spark_singleton import SparkSingleton
+from py_auto_ml.utilities.helpers import Helpers
 
 
 class FamilyRunner:
     def __init__(self):
         self.spark = SparkSingleton.get_instance()
-        # self.run_family_runner(family_configs,
-        #                        prediction_type,
-        #                        df,
-        #                        path)
-        # self._get_returns()
 
     def run_family_runner(self,
-                          family_configs: dict,
+                          df: DataFrame,
                           prediction_type: str,
-                          df: DataFrame):
+                          family_configs: dict):
         """
 
         :param family_configs: dict
@@ -27,10 +23,15 @@ class FamilyRunner:
             Path to writing to writing out the pipeline models
         :return:
         """
+        # Checking for supported model families and types
+        Helpers.check_model_family(model_family)
+        Helpers.check_prediction_type(prediction_type)
+
         stringified_family_configs = json.dumps(family_configs)
-        self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runFamilyRunner(stringified_family_configs,
-                                                                                            prediction_type,
-                                                                                            df._jdf)
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runFamilyRunner(df._jdf,
+                                                                                            stringified_family_configs,
+                                                                                            prediction_type)
+
         self._family_runner = True
 
         return self._get_returns()
@@ -40,9 +41,10 @@ class FamilyRunner:
     def _get_returns(self):
         """
 
-        :return: model_report: dataframe
-            generation_report: dataframe
-            best_mlflow_run_id: dataframe
+        :return: dict of dataframes
+            'model_report':model_report: dataframe
+            'generation_report':generation_report: dataframe
+            'best_mlflow_run_id':best_mlflow_run_id: dataframe
         """
         if self._family_runner != True:
             raise Exception("You must first run the family runner to generate the proper return dataframes")
@@ -50,7 +52,12 @@ class FamilyRunner:
             model_report = self.spark.sql("SELECT * FROM modelReportDataFrame")
             generation_report = self.spark.sql("SELECT * FROM generationReportDataFrame")
             best_mlflow_run_id = self.spark.sql("SELECT * FROM bestMlFlowRunId")
-            return model_report, generation_report, best_mlflow_run_id
+            return_dict = {
+                'model_report': model_report,
+                'generation_report': generation_report,
+                'best_mlflow_run_id': best_mlflow_run_id
+            }
+            return return_dict
 
     # Get the best mlflow run Id from DF
     # Get pipeline path from tag in MLflow using tracking client
@@ -81,6 +88,10 @@ class FamilyRunner:
         :return inferred_df: dataframe
             The dataframe with prediction
         """
+        # Checking for supported model families and types
+        Helpers.check_model_family(model_family)
+        Helpers.check_prediction_type(prediction_type)
+
         stringified_configs = json.dumps(configs)
 
         self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runMlFlowInference(mlflow_run_id,
@@ -106,11 +117,50 @@ class FamilyRunner:
         :return: inference_df: Dataframe
             Dataframe with predictions
         """
+        # Checking for supported model families and types
+        Helpers.check_model_family(model_family)
+        Helpers.check_prediction_type(prediction_type)
+
         self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runPathInference(path,
                                                                                              dataframe._jdf)
         inferred_df = self.spark.sql('SELECT * FROM pathInferenceDF')
 
         return inferred_df
+
+    def feature_eng_pipeline(self,
+                             df: DataFrame,
+                             model_family: str,
+                             prediction_type: str,
+                             configs= {}
+                             ):
+        """
+
+        :param df: Dataframe
+            Dataframe feature engineering pipeline will be applied to
+        :param model_family: string
+            Supported model family
+        :param prediction_type: string
+            Supported prediction type
+        :param configs: dict
+            Dictionary of overrides
+        :return: Dataframe
+            Feature engineered dataframe
+        """
+
+        # Checking for supported model families and types
+        Helpers.check_model_family(model_family)
+        Helpers.check_prediction_type(prediction_type)
+
+
+        stringified_family_configs = json.dumps(configs)
+        self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runFeatureEngPipeline(df._jdf,
+                                                                                                  model_family,
+                                                                                                  prediction_type,
+                                                                                                  stringified_family_configs)
+        feature_eng_df = self.spark.sql("SELECT * FROM featEngDf")
+
+        return feature_eng_df
+
 
 
 
