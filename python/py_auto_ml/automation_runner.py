@@ -6,23 +6,9 @@ from py_auto_ml.utilities.helpers import Helpers
 
 class AutomationRunner:
 
-    def __init__(self,
-                 # model_family: str,
-                 # prediction_type: str,
-                 # df: DataFrame,
-                 # runner_type: str,
-                 # overrides=None
-                 ):
+    def __init__(self):
         # Setup Spark singleton Instance
         self.spark = SparkSingleton.get_instance()
-        # Run automation runner
-        # self._run_automation_runner(model_family,
-        #                            prediction_type,
-        #                            df,
-        #                            runner_type,
-        #                            overrides)
-        # # Bring in the returns attributes of the class
-        # self.get_returns(runner_type.lower())
 
     def run_automation_runner(self,
                               model_family: str,
@@ -98,17 +84,35 @@ class AutomationRunner:
         # Cache the returns
         if self._automation_runner == True:
             if runner_type == "run":
-                self.generation_report = self.spark.sql("select * from generationReport")
-                self.model_report = self.spark.sql("select * from modelReport")
+                generation_report = self.spark.sql("select * from generationReport")
+                model_report = self.spark.sql("select * from modelReport")
+                return_dict = {
+                    'generation_report': generation_report,
+                    "model_report": model_report
+                }
+                return return_dict
             elif runner_type == "confusion":
-                self.confusion_data = self.spark.sql("select * from confusionData")
-                self.prediction_data = self.spark.sql("select * from predictionData")
-                self.generation_report = self.spark.sql("select * from generationReport")
-                self.model_report = self.spark.sql("select * from modelReport")
+                confusion_data = self.spark.sql("select * from confusionData")
+                prediction_data = self.spark.sql("select * from predictionData")
+                generation_report = self.spark.sql("select * from generationReport")
+                model_report = self.spark.sql("select * from modelReport")
+                return_dict = {
+                    'confusiion_data': confusion_data,
+                    'prediction_data': prediction_data,
+                    'generation_report': generation_report,
+                    'model_report': model_report
+                }
+                return return_dict
             elif runner_type == "prediction":
-                self.data_with_predictions = self.spark.sql("select * from dataWithPredictions")
-                self.generation_report = self.spark.sql("select * from generationReport")
-                self.model_report = self.spark.sql("select * from modelReportData")
+                data_with_predictions = self.spark.sql("select * from dataWithPredictions")
+                generation_report = self.spark.sql("select * from generationReport")
+                model_report = self.spark.sql("select * from modelReportData")
+                return_dict = {
+                    'data_with_predictions': data_with_predictions,
+                    'generation_report': generation_report,
+                    'model_report': model_report
+                }
+                return return_dict
             else:
                 print("No returns were added - check your runner_type")
 
