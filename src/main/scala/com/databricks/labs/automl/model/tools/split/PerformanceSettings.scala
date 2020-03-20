@@ -46,7 +46,16 @@ object PerformanceSettings extends SparkSessionWrapper {
       environmentVars("num_workers").toString.toInt
     } catch {
       case e: java.util.NoSuchElementException =>
-        scala.math.floor(totalCores / coresPerTask / parallelism).toInt
+        val workerCount = scala.math.floor(totalCores / coresPerTask / parallelism).toInt
+        require(workerCount >= 1, s"XGBoost requires at least one core per XGB worker. " +
+          s"Current configuration is not compatible with XGBoost. Consider increasing cluster size or " +
+          s"decreasing parallelism or lowering spark.task.cpus. The XGBWorker count is derived: " +
+          s"floor(total Cluster Cores / spark.task.cpus / parallelism).toInt. This number must be >= 1. \n " +
+          s"XGB numWorkers == ${workerCount} \n " +
+          s"Total Cluster Cores == ${totalCores} \n " +
+          s"spark.task.cpu == ${coresPerTask} == nThread" +
+          s"Parallelism == ${parallelism}")
+        workerCount
     }
   }
 
