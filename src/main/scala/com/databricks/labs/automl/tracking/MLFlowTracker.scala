@@ -444,6 +444,11 @@ class MLFlowTracker extends InferenceTools {
 
     mlflowLoggingClient.logParam(mlFlowRunId, "generation", "Best")
 
+    val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun/").toString
+    val configDir = s"${baseDirectory}${modelDescriptor}_${mlFlowRunId}"
+    val configPath = saveConfig(configDir)
+    mlflowLoggingClient.logArtifact(mlFlowRunId, new File(configPath))
+
     // Log custom tags if present
     if (_mlFlowCustomRunTags.nonEmpty) {
       logCustomTags(mlflowLoggingClient, mlFlowRunId, _mlFlowCustomRunTags)
@@ -524,7 +529,7 @@ class MLFlowTracker extends InferenceTools {
 
     val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
     val configPath = saveConfig(configDir)
-    mlflowLoggingClient.logArtifact(runId, new File(createFusePath(configPath)))
+    mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
     // Log custom tags if present
     if (_mlFlowCustomRunTags.nonEmpty) {
@@ -660,7 +665,13 @@ class MLFlowTracker extends InferenceTools {
           val valueData = x.metrics(k)
           mlflowLoggingClient.logMetric(runId, k, valueData.toString.toDouble)
         }
+
+        val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun/").toString
+        val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
+        val configPath = saveConfig(configDir)
+        mlflowLoggingClient.logArtifact(runId, new File(configPath))
         mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
+
         // log the generation
         mlflowLoggingClient.logParam(runId, "generation", x.generation.toString)
         // Log custom tags if present
@@ -775,7 +786,7 @@ class MLFlowTracker extends InferenceTools {
 
         val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
         val configPath = saveConfig(configDir)
-        mlflowLoggingClient.logArtifact(runId, new File(createFusePath(configPath)))
+        mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
         // Log custom tags if present
         if (_mlFlowCustomRunTags.nonEmpty) {
