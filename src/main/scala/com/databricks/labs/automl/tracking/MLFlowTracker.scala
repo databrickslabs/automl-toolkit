@@ -166,6 +166,20 @@ class MLFlowTracker extends InferenceTools {
     }
   }
 
+  private def saveConfig(configDir: String): String = {
+    // Generate a new unique uuid for the config to ensure there are no overwrites.
+    val uniqueConfigID = java.util.UUID.randomUUID().toString.replace("-", "")
+    val configPath = s"${configDir}/config_${uniqueConfigID}.json"
+    if (! new File(createFusePath(configDir)).exists()) new File(createFusePath(configDir)).mkdirs
+    //    "dbfs:/Users/daniel.tomes@databricks.com/ml/automl/regression/Airbnb_Test_mlFlowConfig
+    println(s"DEBUG: ConfigPath = $configPath")
+    logger.log(Level.INFO, s"DEBUG: logBest(): ConfigPath = $configPath")
+    val pw = new PrintWriter(new File(createFusePath(configPath)))
+    pw.write(convertMainConfigToJson(_mainConfig).compactJson)
+    pw.close()
+    createFusePath(configPath)
+  }
+
   /**
     * Private method for saving an individual model, creating a Fuse mount for it, and registering the artifact.
     *
@@ -476,7 +490,7 @@ class MLFlowTracker extends InferenceTools {
       mlflowLoggingClient,
       experimentId,
       modelDescriptor,
-      "BestRun",
+      "BestRun_",
       runVersion.toString
     )
 
@@ -494,16 +508,6 @@ class MLFlowTracker extends InferenceTools {
       mlflowLoggingClient.logMetric(runId, x, valueData.toString.toDouble)
     }
 
-    // Generate a new unique uuid for the config to ensure there are no overwrites.
-    val uniqueConfigID = java.util.UUID.randomUUID().toString.replace("-", "")
-    val configPath = s"${baseDirectory}${modelDescriptor}_${runId}/config_${uniqueConfigID}.json"
-    println(s"DEBUG: ConfigPath = $configPath")
-    logger.log(Level.INFO, s"DEBUG: logBest(): ConfigPath = $configPath")
-    val pw = new PrintWriter(new File(createFusePath(configPath)))
-    pw.write(convertMainConfigToJson(_mainConfig).compactJson)
-    pw.close()
-    mlflowLoggingClient.logArtifact(runId, new File(createFusePath(configPath)))
-
     mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
 
     val modelDir = s"$baseDirectory${modelDescriptor}_$runId/bestModel"
@@ -517,6 +521,10 @@ class MLFlowTracker extends InferenceTools {
       "BestRun"
     )
     mlflowLoggingClient.logParam(runId, "generation", "Best")
+
+    val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
+    val configPath = saveConfig(configDir)
+    mlflowLoggingClient.logArtifact(runId, new File(createFusePath(configPath)))
 
     // Log custom tags if present
     if (_mlFlowCustomRunTags.nonEmpty) {
@@ -746,13 +754,6 @@ class MLFlowTracker extends InferenceTools {
 
         mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
 
-        val uniqueConfigID = java.util.UUID.randomUUID().toString.replace("-", "")
-        val configPath = s"${baseDirectory}${modelDescriptor}_${runId}/config_${uniqueConfigID}.json"
-        val pw = new PrintWriter(new File(createFusePath(configPath)))
-        pw.write(convertMainConfigToJson(_mainConfig).compactJson)
-        pw.close()
-        mlflowLoggingClient.logArtifact(runId, new File(createFusePath(configPath)))
-
         // Generate a new unique uuid for the model to ensure there are no overwrites.
         val uniqueModelId = java.util.UUID.randomUUID().toString.replace("-", "")
 
@@ -771,6 +772,10 @@ class MLFlowTracker extends InferenceTools {
 
         // log the generation
         mlflowLoggingClient.logParam(runId, "generation", x.generation.toString)
+
+        val configDir = s"${baseDirectory}${modelDescriptor}_${runId}"
+        val configPath = saveConfig(configDir)
+        mlflowLoggingClient.logArtifact(runId, new File(createFusePath(configPath)))
 
         // Log custom tags if present
         if (_mlFlowCustomRunTags.nonEmpty) {

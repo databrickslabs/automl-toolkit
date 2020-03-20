@@ -1,5 +1,6 @@
 package com.databricks.labs.automl.inference
 
+import com.databricks.labs.automl.executor.config.InstanceConfig
 import com.databricks.labs.automl.params.MainConfig
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.sql.DataFrame
@@ -72,6 +73,19 @@ trait InferenceTools extends SparkSessionWrapper {
       compactJson = compact,
       prettyJson = pretty
     )
+  }
+
+  case class JsonReturn(compactJson: String, prettyJson: String)
+//  def increment[B <: Base](b: Base) = { b.i += 1; b }
+  def convertInstanceConfigToJson[T](config: Any): Option[JsonReturn] = {
+    config.asInstanceOf
+
+    implicit val formats: Formats = Serialization.formats(hints=NoTypeHints)
+    config match {
+      case v: MainConfig => config.asInstanceOf[MainConfig]; Some(JsonReturn(writePretty(v), write(v)))
+      case v: InstanceConfig => config.asInstanceOf[InstanceConfig]; Some(JsonReturn(writePretty(v), write(v)))
+      case v: InferenceMainConfig => config.asInstanceOf[InferenceMainConfig]; Some(JsonReturn(writePretty(v), write(v)))
+    }
   }
 
   /**

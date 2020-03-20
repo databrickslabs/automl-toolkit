@@ -386,7 +386,7 @@ trait Defaults {
       mlFlowAPIToken = mlfloWLoggingConfig.mlFlowAPIToken,
       mlFlowModelSaveDirectory = mlfloWLoggingConfig.mlFlowModelSaveDirectory,
       mlFlowLoggingMode = "full",
-      mlFlowBestSuffix = "_best",
+      mlFlowBestSuffix = "best",
       mlFlowCustomRunTags = Map[String, String]()
     )
   }
