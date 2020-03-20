@@ -2098,6 +2098,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): TunerOutput = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
+    logger.log(Level.INFO, convertMainConfigToJson(_mainConfig))
 
     val (resultArray, modelStats, modelSelection, dataframe) =
       _mainConfig.modelFamily match {

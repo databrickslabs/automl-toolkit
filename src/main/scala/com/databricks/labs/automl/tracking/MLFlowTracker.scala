@@ -14,6 +14,7 @@ import org.mlflow.api.proto.Service
 import org.mlflow.api.proto.Service.CreateRun
 import org.mlflow.tracking.MlflowClient
 import org.mlflow.tracking.creds._
+import org.apache.log4j.{Level, Logger}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -32,6 +33,7 @@ class MLFlowTracker extends InferenceTools {
   private var _mlFlowBestSuffix: String = _
   private var _mlFlowCustomRunTags: Map[String, String] = Map.empty
 
+  private val logger: Logger = Logger.getLogger(this.getClass)
   final private val HOSTED_NAMESPACE = List("databricks.com", "databricks.net")
 
   def setMainConfig(value: MainConfig): this.type = {
@@ -328,6 +330,8 @@ class MLFlowTracker extends InferenceTools {
     val dummyLog =
       MLFlowReturn(createHostedMlFlowClient(), "none", Array(("none", 0.0)))
 
+    logger.log(Level.INFO, s"DEBUG: mlFlowLoggingMode: ${_mlFlowLoggingMode}")
+
     val bestLog = _mlFlowLoggingMode match {
       case "tuningOnly" =>
         dummyLog
@@ -493,6 +497,8 @@ class MLFlowTracker extends InferenceTools {
     // Generate a new unique uuid for the config to ensure there are no overwrites.
     val uniqueConfigID = java.util.UUID.randomUUID().toString.replace("-", "")
     val configPath = s"${baseDirectory}${modelDescriptor}_${runId}/config_${uniqueConfigID}.json"
+    println(s"DEBUG: ConfigPath = $configPath")
+    logger.log(Level.INFO, s"DEBUG: logBest(): ConfigPath = $configPath")
     val pw = new PrintWriter(new File(createFusePath(configPath)))
     pw.write(convertMainConfigToJson(_mainConfig).compactJson)
     pw.close()
