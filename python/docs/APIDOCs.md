@@ -102,7 +102,9 @@ generic_overrides = {
   ## Calculate Feature Importance 
 from py_auto_ml.exploration.feature_importance import FeatureImportance
 
-fi_importances_package = FeatureImportance("XGBoost", "classifier",  dataframe,20.0,"count",generic_overrides)
+FI = FeatureImportance()
+
+fi_importances = FI.run_feature_importances("XGBoost", "classifier",  dataframe,20.0,"count",generic_overrides)
 ```
 Once the feature importance algorithm has been run, there are two dataframes that remain as attributes of the instance 
 of the class. The first is the `importances` dataframe which lists the features and their importance value. The second
@@ -111,7 +113,7 @@ dataframes once the feature importance algorithm has been run.
 
 ```python
 ##Retrieving the importances DF
-fi_importances.importances.show()
+fi_importances
 
 ## Retrieving the top_fields DF
 fi_importances.top_fields.show()
