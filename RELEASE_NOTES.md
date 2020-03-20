@@ -35,6 +35,13 @@ Configuration parameters:
   is only recommended if the data set is relatively small and k copies of the data set can comfortably reside in memory
   on the cluster.
 ```
+* Main config is now written and tracked via MLFlow. Any pipeline trained as of 0.7.1 will provide a full config
+in json format in MLFlow Artifacts and next to your saved models path.
+
+* Run Inference Pipelines with only a RunID. You no longer have to track and manage a LoggingConfig to pass into
+the inference pipeline. That constructor has been deprecated, only use it for legacy pipelines. Old training pipelines
+will not be able to run this way but all future pipelines created as of 0.7.1 will be able to run with only the 
+MLFlow runId.
 
 #### Bug Fixes / Improvements
 * scoring metric can now support resolution of differently spelled metrics (upper case, camel case, etc.)
@@ -42,6 +49,8 @@ Configuration parameters:
   evaluators.
 * Model training was getting one additional fold than applied at configuration, this has been resolved.
 * Type casting enabled from python API for complex nested types to config
+* Minor changes to assertions to provide a better experience
+* Minor internal function changes
 
 ### Version 0.6.2
 #### Features

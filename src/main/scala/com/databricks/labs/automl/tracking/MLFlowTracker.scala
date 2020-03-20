@@ -3,10 +3,11 @@ package com.databricks.labs.automl.tracking
 import java.io.{File, PrintWriter}
 import java.nio.file.Paths
 
+import com.databricks.labs.automl.executor.config.ConfigurationGenerator
 import com.databricks.labs.automl.inference.InferenceConfig._
 import com.databricks.labs.automl.inference.{InferenceModelConfig, InferenceTools}
 import com.databricks.labs.automl.params.{GenericModelReturn, MLFlowConfig, MainConfig}
-import com.databricks.labs.automl.utils.PipelineMlFlowTagKeys
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, InitDbUtils, PipelineMlFlowTagKeys}
 import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
@@ -20,6 +21,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
+import scala.io.Source
 
 class MLFlowTracker extends InferenceTools {
 
@@ -885,6 +887,12 @@ class MLFlowTracker extends InferenceTools {
 
 }
 object MLFlowTracker {
+  /**
+    * Normal method for instantiating MLFlowTracker. Must be used for training tuning and can be used for
+    * Inference
+    * @param mainConfig
+    * @return
+    */
   def apply(mainConfig: MainConfig): MLFlowTracker = {
     new MLFlowTracker()
     .setMlFlowTrackingURI(mainConfig.mlFlowConfig.mlFlowTrackingURI)
@@ -894,5 +902,51 @@ object MLFlowTracker {
     .setMlFlowLoggingMode(mainConfig.mlFlowConfig.mlFlowLoggingMode)
     .setMlFlowBestSuffix(mainConfig.mlFlowConfig.mlFlowBestSuffix)
     .setMainConfig(mainConfig)
+  }
+
+  /**
+    * WARNING -- ONLY FOR INFERENCE PIPELINE
+    * Create MLFlow tracker with only a required RunID. Used for Inference Runs referencing a main config
+    * tracked by MLFlow
+    * @param runId String of MLFlow runId to be used for Inference
+    * @param trackingURI Optional input to use an external tracking server
+    * @param apiToken Optional input to use non-default user token
+    * @return
+    */
+  def apply(runId: String, trackingURI: Option[String] = None, apiToken: Option[String] = None): MLFlowTracker = {
+    def createFusePath(path: String): String = {
+      path.replace("dbfs:", "/dbfs")
+    }
+
+    val _uri = if (trackingURI.isEmpty) InitDbUtils.getTrackingURI else trackingURI.get
+    val _apiToken = if (apiToken.isEmpty) InitDbUtils.getAPIToken else apiToken.get
+
+    val client = new MlflowClient(new BasicMlflowHostCreds(_uri, _apiToken))
+    val mainConfigPath = AutoMlPipelineMlFlowUtils.getMlFlowTagByKey(client, runId, "MainConfigLocation")
+    val sourceBuffer = Source.fromFile(createFusePath(mainConfigPath))
+    val jString = sourceBuffer.getLines.mkString
+    sourceBuffer.close()
+    val mainConfig = ConfigurationGenerator.generateMainConfigFromJson(jString)
+    new MLFlowTracker()
+      .setMlFlowTrackingURI(mainConfig.mlFlowConfig.mlFlowTrackingURI)
+      .setMlFlowHostedAPIToken(mainConfig.mlFlowConfig.mlFlowAPIToken)
+      .setMlFlowExperimentName(mainConfig.mlFlowConfig.mlFlowExperimentName)
+      .setModelSaveDirectory(mainConfig.mlFlowConfig.mlFlowModelSaveDirectory)
+      .setMlFlowLoggingMode(mainConfig.mlFlowConfig.mlFlowLoggingMode)
+      .setMlFlowBestSuffix(mainConfig.mlFlowConfig.mlFlowBestSuffix)
+      .setMainConfig(mainConfig)
+  }
+
+  @deprecated("No Main Config tracking available with this method. " +
+    "Only pass in logging config for for old pipelines. For new pipelines only call " +
+    "MLFlowTracker(runId, optional trackingURI, optional apiToken)", "0.7.1")
+  def apply(mlFlowConfig: MLFlowConfig): MLFlowTracker = {
+    new MLFlowTracker()
+      .setMlFlowTrackingURI(mlFlowConfig.mlFlowTrackingURI)
+      .setMlFlowHostedAPIToken(mlFlowConfig.mlFlowAPIToken)
+      .setMlFlowExperimentName(mlFlowConfig.mlFlowExperimentName)
+      .setModelSaveDirectory(mlFlowConfig.mlFlowModelSaveDirectory)
+      .setMlFlowLoggingMode(mlFlowConfig.mlFlowLoggingMode)
+      .setMlFlowBestSuffix(mlFlowConfig.mlFlowBestSuffix)
   }
 }

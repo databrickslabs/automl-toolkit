@@ -3,6 +3,8 @@ package com.databricks.labs.automl.inference
 import com.databricks.labs.automl.executor.config.InstanceConfig
 import com.databricks.labs.automl.params.MainConfig
 import com.databricks.labs.automl.utils.SparkSessionWrapper
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.json4s._
@@ -65,27 +67,13 @@ trait InferenceTools extends SparkSessionWrapper {
 
   def convertMainConfigToJson(config: MainConfig): MainJsonReturn = {
 
-    implicit val formats: Formats = Serialization.formats(hints=NoTypeHints)
-    val pretty = writePretty(config)
-    val compact = write(config)
+    val objectMapper = new ObjectMapper()
+    objectMapper.registerModule(DefaultScalaModule)
 
     MainJsonReturn(
-      compactJson = compact,
-      prettyJson = pretty
+      compactJson = objectMapper.writeValueAsString(config),
+      prettyJson = objectMapper.writerWithDefaultPrettyPrinter.writeValueAsString(config)
     )
-  }
-
-  case class JsonReturn(compactJson: String, prettyJson: String)
-//  def increment[B <: Base](b: Base) = { b.i += 1; b }
-  def convertInstanceConfigToJson[T](config: Any): Option[JsonReturn] = {
-    config.asInstanceOf
-
-    implicit val formats: Formats = Serialization.formats(hints=NoTypeHints)
-    config match {
-      case v: MainConfig => config.asInstanceOf[MainConfig]; Some(JsonReturn(writePretty(v), write(v)))
-      case v: InstanceConfig => config.asInstanceOf[InstanceConfig]; Some(JsonReturn(writePretty(v), write(v)))
-      case v: InferenceMainConfig => config.asInstanceOf[InferenceMainConfig]; Some(JsonReturn(writePretty(v), write(v)))
-    }
   }
 
   /**

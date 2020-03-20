@@ -3,9 +3,12 @@ package com.databricks.labs.automl.executor.config
 import com.databricks.labs.automl.exploration.structures.FeatureImportanceConfig
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline.PipelineStateCache
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.{read, writePretty}
 import org.json4s.{Formats, FullTypeHints, NoTypeHints}
+import org.json4s.jackson.JsonMethods
 
 import scala.collection.mutable.ListBuffer
 
@@ -2635,6 +2638,18 @@ object ConfigurationGenerator extends ConfigurationDefaults {
   def generateInstanceConfigFromJson(json: String): InstanceConfig = {
     implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
     read[InstanceConfig](json)
+  }
+
+  def generateMainConfigFromJson(json: String): MainConfig = {
+    val objectMapper = new ObjectMapper()
+    objectMapper.registerModule(DefaultScalaModule)
+    objectMapper.readValue(json, classOf[MainConfig])
+  }
+
+  def jsonStrToMap(jsonStr: String): Map[String, Any] = {
+    implicit val formats = org.json4s.DefaultFormats
+
+    JsonMethods.parse(jsonStr).extract[Map[String, Any]]
   }
 
   private def validateMapConfig(defaultMap: Map[String, Any],

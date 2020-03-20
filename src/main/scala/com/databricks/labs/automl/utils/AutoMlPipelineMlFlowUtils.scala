@@ -2,6 +2,7 @@ package com.databricks.labs.automl.utils
 
 import java.nio.file.Paths
 
+import com.databricks.labs.automl.executor.config.LoggingConfig
 import com.databricks.labs.automl.params.{MLFlowConfig, MainConfig}
 import com.databricks.labs.automl.pipeline.{PipelineStateCache, PipelineVars}
 import com.databricks.labs.automl.tracking.MLFlowTracker
@@ -10,6 +11,7 @@ import org.apache.spark.ml.{PipelineModel, PredictionModel}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 import org.mlflow.api.proto.Service
+import org.mlflow.tracking.MlflowClient
 
 /**
   * @author Jas Bali
@@ -71,23 +73,40 @@ object AutoMlPipelineMlFlowUtils {
     }
   }
 
+  def getMlFlowTagByKey(client: MlflowClient, runId: String, tag: String): String = {
+    client.getRun(runId)
+      .getData.getTagsList
+      .toArray()
+      .map(item => item.asInstanceOf[Service.RunTag])
+      .filter(item => item.getKey.equals(tag))
+      .head.getValue
+  }
+
   def getPipelinePathByRunId(runId: String,
-                             mainConfig: MainConfig): String = {
+                             loggingConfig: Option[LoggingConfig] = None,
+                             mainConfig: Option[MainConfig] = None): String = {
     try {
-      MLFlowTracker(mainConfig)
-        .getMLFlowClient
-        .getRun(runId)
-        .getData
-        .getTagsList
-        .toArray
-        .map(item => item.asInstanceOf[Service.RunTag])
-        .filter(
-          item =>
-            item.getKey
-              .equals(PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY)
-        )
-        .head
-        .getValue
+      if (loggingConfig.isDefined) {
+        val client = MLFlowTracker(MLFlowConfig(
+          loggingConfig.get.mlFlowTrackingURI,
+          loggingConfig.get.mlFlowExperimentName,
+          loggingConfig.get.mlFlowAPIToken,
+          loggingConfig.get.mlFlowModelSaveDirectory,
+          loggingConfig.get.mlFlowLoggingMode,
+          loggingConfig.get.mlFlowBestSuffix,
+          loggingConfig.get.mlFlowCustomRunTags
+        )).getMLFlowClient
+        getMlFlowTagByKey(client, runId, PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY)
+      }
+      if (mainConfig.isDefined) {
+        val client = MLFlowTracker(mainConfig.get)
+          .getMLFlowClient
+        getMlFlowTagByKey(client, runId, PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY)
+      } else {
+        val client = MLFlowTracker(runId)
+          .getMLFlowClient
+        getMlFlowTagByKey(client, runId, PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY)
+      }
     } catch {
       case e: Exception => {
         throw new RuntimeException(
