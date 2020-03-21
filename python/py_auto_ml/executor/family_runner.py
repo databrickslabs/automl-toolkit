@@ -116,9 +116,6 @@ class FamilyRunner:
         :return: inference_df: Dataframe
             Dataframe with predictions
         """
-        # Checking for supported model families and types
-        Helpers.check_model_family(model_family)
-        Helpers.check_prediction_type(prediction_type)
 
         self.spark._jvm.com.databricks.labs.automl.pyspark.FamilyRunnerUtil.runPathInference(path,
                                                                                              dataframe._jdf)
