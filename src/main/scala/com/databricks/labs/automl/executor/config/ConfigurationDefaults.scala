@@ -633,7 +633,7 @@ trait ConfigurationDefaults {
       InitDbUtils.getMlFlowLoggingConfig(mlFlowLoggingFlag)
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"
-    val inferenceSaveLocation = "/inference/"
+    val inferenceSaveLocation = "dbfs:/tmp/automl/inference/"
     val mlFlowCustomRunTags = Map[String, String]()
 
     LoggingConfig(
