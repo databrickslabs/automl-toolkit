@@ -38,6 +38,7 @@ object PerformanceSettings extends SparkSessionWrapper {
       s"preCalcParTasks: $preCalcParTasks \n " +
       s"parTasks: $parTasks"
 
+  @throws(classOf[IllegalArgumentException])
   def xgbWorkers(parallelism: Int): Int = {
     //DEBUG
     logger.log(Level.DEBUG, envString)
@@ -63,11 +64,13 @@ object PerformanceSettings extends SparkSessionWrapper {
     //DEBUG
     logger.log(Level.DEBUG, envString)
     val jvmParts = scala.math.floor(parTasks / (parallelism / 2)).toInt
-    if (jvmParts < 10) logger.log(Level.WARN, s"WARNING: JVM Model partitions < 10. Consider a larger" +
+    val warnMessage = s"WARNING: JVM Model partitions < 10. Consider a larger" +
       s"cluster or reducing Parallelism. JVM Model Parallelism is calculated: floor(parTasks / (parallelism / 2)). \n " +
       s"JVM Parallelism: ${jvmParts} \n " +
       s"parTasks: ${parTasks} \n " +
-      s"Parallelism: ${parallelism}")
+      s"Parallelism: ${parallelism}"
+    if (jvmParts < 10) logger.log(Level.WARN, warnMessage)
+    println(warnMessage)
     jvmParts
   }
 
