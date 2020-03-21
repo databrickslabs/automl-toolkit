@@ -193,11 +193,13 @@ class MLFlowTracker extends InferenceTools {
   private def saveConfig(runId: String, configDir: String): String = {
     val configPath = s"${configDir}/config_${runId}.json"
     if (! new File(createFusePath(configDir)).exists()) new File(createFusePath(configDir)).mkdirs
+    val cleansedTokenConfig = _mainConfig.mlFlowConfig.copy(mlFlowAPIToken = "[REDACTED]")
+    val cleansedMainConfig = _mainConfig.copy(mlFlowConfig = cleansedTokenConfig)
     logger.log(Level.DEBUG, s"DEBUG: ConfigPath = $configPath")
-    logger.log(Level.DEBUG, convertMainConfigToJson(_mainConfig))
+    logger.log(Level.DEBUG, convertMainConfigToJson(cleansedMainConfig))
 
     val pw = new PrintWriter(new File(createFusePath(configPath)))
-    pw.write(convertMainConfigToJson(_mainConfig).compactJson)
+    pw.write(convertMainConfigToJson(cleansedMainConfig).compactJson)
     pw.close()
 
     // Add tag for config file location
