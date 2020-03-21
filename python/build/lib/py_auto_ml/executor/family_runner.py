@@ -147,8 +147,7 @@ class FamilyRunner:
             Feature engineered dataframe
         """
 
-        # Checking for supported model families and types
-        Helpers.check_model_family(model_family)
+        # Checking for supported pred types
         Helpers.check_prediction_type(prediction_type)
 
 

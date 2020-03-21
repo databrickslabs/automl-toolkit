@@ -97,7 +97,7 @@ class AutomationRunner:
                 generation_report = self.spark.sql("select * from generationReport")
                 model_report = self.spark.sql("select * from modelReport")
                 return_dict = {
-                    'confusiion_data': confusion_data,
+                    'confusion_data': confusion_data,
                     'prediction_data': prediction_data,
                     'generation_report': generation_report,
                     'model_report': model_report
