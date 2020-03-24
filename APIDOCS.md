@@ -1,6 +1,12 @@
 # AutoML-Toolkit
 
-The AutoML-Toolkit is an automated ML solution for Apache Spark.  It provides common data cleansing and feature engineering support, automated hyper-parameter tuning through distributed genetic algorithms, and model tracking integration with MLFlow.  It currently supports Supervised Learning algorithms that are provided as part of Spark Mllib.
+The AutoML-Toolkit is an automated ML solution for Apache Spark.  It provides common data cleansing and feature engineering support, automated hyper-parameter tuning through distributed genetic algorithms, and model tracking integration with MLFlow.  
+It currently supports Supervised Learning algorithms that are provided as part of Spark Mllib, as well as a few Spark-supported open source distributed
+ML packages. 
+> NOTE: There are a number of features and modules within this code base that do not exist in core Spark and these APIs ARE
+exposed for use (although not documented in this APIDOC).  For further information on core functionality of these modules, and to explore
+the scaladocs for these modules, feel free to clone the repo, load into an IDE, and auto-generate the scaladoc for 
+viewing on your browser through the HTML generator for scaladocs feature.
 
 ## General Overview
 
@@ -21,7 +27,6 @@ This example shows configuring 3 seperate tuning runs (RandomForest Classifier, 
 ```scala
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
 import com.databricks.labs.automl.executor.FamilyRunner
-import com.databricks.labs.automl.exploration.FeatureImportances
 
 val runName = "Automated-Model-Run-1"
 
@@ -141,6 +146,7 @@ Sets the modeling family (Spark Mllib) to be used to train / validate.
 if below the `modelDistinctThreshold`, will use a Classifier flavor of the Model Family.  Otherwise, it will use the Regression Type.
 
 Currently supported models:
+* "XGBoost" - [XGBoost Classifier](https://xgboost.readthedocs.io/en/latest/jvm/xgboost4j_spark_tutorial.html#) or [XGBoost Regressor](https://xgboost.readthedocs.io/en/latest/jvm/xgboost4j_spark_tutorial.html#)
 * "RandomForest" - [Random Forest Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#random-forest-classifier) or [Random Forest Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#random-forest-regression)
 * "GBT" - [Gradient Boosted Trees Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#gradient-boosted-tree-classifier) or [Gradient Boosted Trees Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#gradient-boosted-tree-regression)
 * "Trees" - [Decision Tree Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#decision-tree-classifier) or [Decision Tree Regressor](http://spark.apache.org/docs/latest/ml-classification-regression.html#decision-tree-regression)
@@ -149,8 +155,10 @@ Currently supported models:
 * "MLPC" - [Multi-Layer Perceptron Classifier](http://spark.apache.org/docs/latest/ml-classification-regression.html#multilayer-perceptron-classifier)
 * "SVM" - [Linear Support Vector Machines](http://spark.apache.org/docs/latest/ml-classification-regression.html#linear-support-vector-machine)
 
-
-
+* "LightGBM" (currently suspended, pending library improvements to LightGBM) [LightGBM](https://github.com/Azure/mmlspark/blob/master/docs/lightgbm.md)
+> NOTE: The automl-toolkit has the interfaces available for tuning LightGBM, but due to limitations in the underlying 
+>thread management in LightGBM, asynchronous instantiations of models causes extreme instability to Spark.  If fixed in the future,
+>this model will be moved to an [Accessible-Experimental] state.
 
 ### Generic Config
 
@@ -205,7 +213,8 @@ This setting determines how to handle DateTime type fields.
 
 #### Fields to ignore in vector
 
-Setter: `.setFieldsToIgnoreInVector(<Array[String]>)` Map Name `'fieldsToIgnoreInVector'`
+Setter: `.setFieldsToIgnoreInVector(<Array[String]>)` 
+Map Name `'fieldsToIgnoreInVector'`
 
 ```text
 Default: Array.empty[String]
@@ -219,10 +228,11 @@ training and prediction is complete.
 
 #### Scoring Metric
 
-Setter: `.setScoringMetric(<String>)` Map Name `'scoringMetric'`
+Setter: `.setScoringMetric(<String>)` 
+Map Name `'scoringMetric'`
 
 ```text
-Default is set dynamically by the model family type (either regressor or classifier).
+Default is set dynamically by the prediction type (either regressor or classifier).
 
 Available values:
 
@@ -242,14 +252,15 @@ For Classifer modeling, the default is [f1](https://en.wikipedia.org/wiki/F1_sco
 
 #### Scoring Optimization Strategy
 
-Setter: `.setScoringOptimizationStrategy(<String>)`  Map Name `'scoringOptimizationStrategy'`
+Setter: `.setScoringOptimizationStrategy(<String>)`  
+Map Name `'scoringOptimizationStrategy'`
 
 ```text
 The optimization strategy is a measure of the direction for which future candidates within the algorithm will be considered 'good'.  
 At the conclusion of each tuning round, the evaluation of 'best as of time 'x'' is determined by sorting the results in either a maximal or minimal way,
 and as such, this setting is critical to getting a good result from the tuning portion of the automl toolkit
 
-Default: Determined by modeling type (Classifier is 'maximize', Regressor is 'minimize'
+Default: Determined by prediction type (Classifier is 'maximize', Regressor is 'minimize')
 Available values: 'maximize' or 'minimize'
 ```
 > NOTE take care when selecting which direction to optimize, particularly with r2 optimization.  The intent is typically to ***maximize*** this value, but the default
@@ -335,10 +346,13 @@ This module will perform validation of each field of the data set (excluding fie
 `.setFieldsToIgnoreInVector(<Array[String]>])` and any fields that have been culled by any previous optional DataPrep
 feature engineering module) to the label column that has been set (`.setLabelCol()`).
 
-The mechanism for comparison is a ChiSquareTest that utilizes one of three currently supported modes (listed below)
+The mechanism for comparison is a ChiSquareTest that utilizes one of three currently supported modes :
+- pValue
+- pearsonStat
+- degreesFreedom
 
+For further reading on Pearson's chi-squared test -> 
 [Spark Doc - ChiSquaredTest](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.ml.stat.ChiSquareTest$)
-
 [Pearson's Chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test)
 
 #### Available Overrides
@@ -550,7 +564,8 @@ case class FeatureEngineeringConfig(
 
 #### Data Prep Parallelism
 
-Setter: `.setDataPrepParallelism(<Int>)`  Map Name: `'dataPrepParallelism'`
+Setter: `.setDataPrepParallelism(<Int>)`  
+Map Name: `'dataPrepParallelism'`
 
 ```text
 Default: 10
@@ -568,12 +583,14 @@ inherently parallelizable, and as such, the cluster can be utilized to asynchron
 
 #### Numeric Fill Stat
 
-Setter: `.setFillConfigNumericFillStat(<String>)`  Map Name: `'fillConfigNumericFillStat'`
+Setter: `.setFillConfigNumericFillStat(<String>)`  
+Map Name: `'fillConfigNumericFillStat'`
 
 ```text
 Specifies the behavior of the naFill algorithm for numeric (continuous) fields.
 Values that are generated as potential fill candidates are set according to the available statistics that are
 calculated from a df.summary() method.
+
 Default: "mean"
 ```
 * For all numeric types (or date/time types that have been cast to numeric types)
@@ -587,7 +604,8 @@ Default: "mean"
 
 #### Character Fill Stat
 
-Setter: `.setFillConfigCharacterFillStat(<String>)`  Map Name: `'fillConfigCharacterFillStat'`
+Setter: `.setFillConfigCharacterFillStat(<String>)`  
+Map Name: `'fillConfigCharacterFillStat'`
 
 ```text
 Specifies the behavior of the naFill algorithm for character (String, Char, Boolean, Byte, etc.) fields.
@@ -602,7 +620,8 @@ Default: "max"
 
 #### Model Selection Distinct Threshold
 
-Setter: `.setFillConfigModelSelectionDistinctThreshold`  Map Name: `'fillConfigModelSelectionDistinctThreshold'`
+Setter: `.setFillConfigModelSelectionDistinctThreshold`  
+Map Name: `'fillConfigModelSelectionDistinctThreshold'`
 
 ```text
 Default: 50
@@ -618,7 +637,8 @@ Classification Task.
 
 #### Outlier Filter Bounds
 
-Setter: `.setOutlierFilterBounds(<String>)`  Map Name: `'outlierFilterBounds'`
+Setter: `.setOutlierFilterBounds(<String>)`  
+Map Name: `'outlierFilterBounds'`
 
 ```text
 Default: "both"
@@ -638,7 +658,8 @@ For Further reading: [Distributions](https://en.wikipedia.org/wiki/List_of_proba
 
 #### Lower Filter NTile
 
-Setter: `.setOutlierLowerFilterNTile(<Double>)`  Map Name: `'outlierLowerFilterNTile'`
+Setter: `.setOutlierLowerFilterNTile(<Double>)`  
+Map Name: `'outlierLowerFilterNTile'`
 
 ```text
 Default: 0.02
@@ -650,7 +671,8 @@ Filters out values (rows) that are below the specified quantile level based on a
 
 #### Upper Filter NTile
 
-Setter: `.setOutlierUpperFilterNTile(<Double>)`  Map Name: `'outlierUpperFilterNTile'`
+Setter: `.setOutlierUpperFilterNTile(<Double>)`  
+Map Name: `'outlierUpperFilterNTile'`
 
 ```text
 Default: 0.98
@@ -660,7 +682,8 @@ Filters out values (rows) that are above the specified quantile threshold based 
 
 #### Outlier Filter Precision
 
-Setter: `.setOutlierFilterPrecision(<Double>)`  Map Name: `'outlierFilterPrecision'`
+Setter: `.setOutlierFilterPrecision(<Double>)`  
+Map Name: `'outlierFilterPrecision'`
 
 ```text
 Default: 0.01
@@ -674,7 +697,8 @@ shuffling (computationally expensive) will be required to calculate the value.
 
 #### Outlier Continuous Data Threshold
 
-Setter: `.setOutlierContinuousDataThreshold(<Int>)`  Map Name: `'outlierContinuousDataThreshold'`
+Setter: `.setOutlierContinuousDataThreshold(<Int>)`  
+Map Name: `'outlierContinuousDataThreshold'`
 
 ```text
 Default: 50
@@ -695,7 +719,8 @@ Determines an exclusion filter of unique values that will be ignored if the uniq
 
 #### Outlier Fields To Ignore
 
-Setter: `.setOutlierFieldsToIgnore(<Array[String]>)`  Map Name: `'outlierFieldsToIgnore'`
+Setter: `.setOutlierFieldsToIgnore(<Array[String]>)`  
+Map Name: `'outlierFieldsToIgnore'`
 
 ```text
 Default: Array("") <empty array>
@@ -709,7 +734,8 @@ Any column names that are supplied to this setter will not be used for row filte
 
 #### Pearson Filter Statistic
 
-Setter: `.pearsonFilterStatistic(<String>)`  Map Name: `'pearsonFilterStatistic'`
+Setter: `.pearsonFilterStatistic(<String>)`  
+Map Name: `'pearsonFilterStatistic'`
 
 ```text
 Default: "pearsonStat"
@@ -741,7 +767,8 @@ Correlation Detection between a feature value and the label value is capable of 
 
 #### Pearson Filter Direction
 
-Setter: `.setPearsonFilterDirection(<String>)`  Map Name: `'pearsonFilterDirection'`
+Setter: `.setPearsonFilterDirection(<String>)`  
+Map Name: `'pearsonFilterDirection'`
 
 ```text
 Default: "greater"
@@ -753,7 +780,8 @@ Specifies whether to filter values out that are higher or lower than the target 
 
 #### Pearson Filter Manual Value
 
-Setter: `.setPearsonFilterManualValue(<Double>)`  Map Name: `'pearsonFilterManualValue'`
+Setter: `.setPearsonFilterManualValue(<Double>)`  
+Map Name: `'pearsonFilterManualValue'`
 
 ```text
 Default: 0.0
@@ -771,7 +799,8 @@ the removal of fields (columns) that have a pearson correlation coefficient resu
 
 #### Pearson Filter Mode
 
-Setter: `.setPearsonFilterMode(<String>)`  Map Name: `'pearsonFilterMode'`
+Setter: `.setPearsonFilterMode(<String>)`  
+Map Name: `'pearsonFilterMode'`
 
 ```text
 Default: "auto"
@@ -788,7 +817,8 @@ acceptable threshold value for the test that is deemed acceptable based on analy
 
 #### Pearson Auto Filter N Tile
 
-Setter: `.setPearsonAutoFilterNTile(<Double>)`  Map Name: `'pearsonAutoFilterNTile'`
+Setter: `.setPearsonAutoFilterNTile(<Double>)`  
+Map Name: `'pearsonAutoFilterNTile'`
 
 ```text
 Default: 0.75
@@ -806,7 +836,8 @@ important predictive-power features of the vector.
 
 #### Correlation (Covariance) Cutoff Low
 
-Setter: `.setCovarianceCutoffLow(<Double>)`  Map Name: `'covarianceCutoffLow'`
+Setter: `.setCovarianceCutoffLow(<Double>)`  
+Map Name: `'covarianceCutoffLow'`
 
 ```text
 Default: -0.8
@@ -820,7 +851,8 @@ pearson correlation coefficient between left->right fields is below this thresho
 
 #### Correlation (Covariance) Cutoff High
 
-Setter: `.setCovarianceCutoffHigh(<Double>)`  Map Name: `'covarianceCutoffHigh'`
+Setter: `.setCovarianceCutoffHigh(<Double>)`  
+Map Name: `'covarianceCutoffHigh'`
 
 ```text
 Default: 0.8
@@ -833,7 +865,8 @@ The upper positive correlation filter level.  Correlation Coefficients above thi
 
 #### Scaling Type
 
-Setter: `.setScalingType(<String>)`  Map Name: `'scalingType'`
+Setter: `.setScalingType(<String>)`  
+Map Name: `'scalingType'`
 
 ```text
 Default: "minMax"
@@ -845,7 +878,8 @@ Sets the scaling library to be employed in scaling the feature vector.
 
 #### Scaler Min
 
-Setter: `.setScalingMin(<Double>)`  Map Name: `'scalingMin'`
+Setter: `.setScalingMin(<Double>)`  
+Map Name: `'scalingMin'`
 
 ```text
 Default: 0.0
@@ -858,7 +892,8 @@ Used to set the scaling lower threshold for MinMax Scaler
 
 #### Scaler Max
 
-Setter: `.setScalingMax(<Double>)`  Map Name: `'scalingMax'`
+Setter: `.setScalingMax(<Double>)`  
+Map Name: `'scalingMax'`
 
 ```text
 Default: 1.0
@@ -871,13 +906,13 @@ Used to set the scaling upper threshold for MinMax Scaler
 
 #### Scaling p-norm
 
-Setter: `.setScalingPNorm(<Double>)`  Map Name: `'scalingPNorm'`
+Setter: `.setScalingPNorm(<Double>)`  
+Map Name: `'scalingPNorm'`
 
 ```text
 Default: 2.0
-
-Only used in "normalize" mode.
 ```
+> NOTE: Only used in "normalize" mode.
 
 > NOTE: value must be >=1.0 for proper functionality in a finite vector space.
 
@@ -887,7 +922,8 @@ Further Reading: [P-Norm](https://en.wikipedia.org/wiki/Norm_(mathematics)#p-nor
 
 #### Standard Scaler Mean Flag
 
-Setter: `.setScalingStandardMeanFlag(<Boolean>)`  Map Name: `'scalingStandardMeanFlag'`
+Setter: `.setScalingStandardMeanFlag(<Boolean>)`  
+Map Name: `'scalingStandardMeanFlag'`
 
 ```text
 Default: false
@@ -901,21 +937,21 @@ With this flag set to `true`, The features within the vector are centered around
 >
 #### Standard Scaler StdDev Flag
 
-Setter: `.setScalingStdDevFlag(<Boolean>)`  Map Name: `'scalingStdDevFlag'`
+Setter: `.setScalingStdDevFlag(<Boolean>)`  
+Map Name: `'scalingStdDevFlag'`
 
 ```text
-Default: true
-
-Only used in "standard" mode
+Default: true for Linear Models, false for tree-based models (gets set AT RUNTIME unless explicitly turned off for linear models)
 ```
+> NOTE: Only used in "standard" mode
 
 Scales the data to the unit standard deviation. [Explanation](https://en.wikipedia.org/wiki/Standard_deviation#Corrected_sample_standard_deviation)
 
 
-
 #### Feature Interaction Retention Mode
 
-Setter: `.setFeatureInteractionRetentionMode(<String>)`  Map Name: `'featureInteractionRetentionMode'`
+Setter: `.setFeatureInteractionRetentionMode(<String>)`  
+Map Name: `'featureInteractionRetentionMode'`
 
 ```text
  Setter for determining the mode of operation for inclusion of interacted features.
@@ -928,48 +964,60 @@ Setter: `.setFeatureInteractionRetentionMode(<String>)`  Map Name: `'featureInte
   - strict -> the threshold percentage must be met for BOTH parents.
       (in the above example, the IG for the interaction would have to be > 0.81 in order to be included in
       the feature vector).
+
+Default: 'optimistic'
 ```
 
 #### Feature Interaction Continuous Discretizer Bucket Count
 
-Setter: `.setFeatureInteractionContinuousDiscretizerBucketCount(<Int>)`  Map Name: `'featureInteractionContinuousDiscretizerBucketCount'`
+Setter: `.setFeatureInteractionContinuousDiscretizerBucketCount(<Int>)`  
+Map Name: `'featureInteractionContinuousDiscretizerBucketCount'`
 
 ```text
 Setter for determining the behavior of continuous feature columns.  In order to calculate Entropy for a continuous
 variable, the distribution must be converted to nominal values for estimation of per-split information gain.
 This setting defines how many nominal categorical values to create out of a continuously distributed feature
 in order to calculate Entropy.
+
+Default: 10
 ```
 
 > Note: must be greater than 1
 
 #### Feature Interaction Parallelism
 
-Setter: `.setFeatureInteractionParallelism(<Int>)`  Map Name: `'featureInteractionParallelism'`
+Setter: `.setFeatureInteractionParallelism(<Int>)`  
+Map Name: `'featureInteractionParallelism'`
 
 ```text
 Setter for configuring the concurrent count for scoring of feature interaction candidates.
 Due to the nature of these operations, the configuration here may need to be set differently to that of
 the modeling and general feature engineering phases of the toolkit.  This is highly dependent on the row
 count of the data set being submitted.
+
+Default: 12
 ```
 > NOTE: must be greater than 0
 >> It is recommended to decrease this value for larger data sets to avoid overwhelming the executor thread pools or filling the Heap too quickly.
 
-#### Feature Interaction Target Intercation Percentage
+#### Feature Interaction Target Interaction Percentage
 
-Setter: `.setFeatureInteractionTargetInteractionPercentage(<Double>)`  Map Name: `'featureInteractionTargetInteractionPercentage'`
+Setter: `.setFeatureInteractionTargetInteractionPercentage(<Double>)`  
+Map Name: `'featureInteractionTargetInteractionPercentage'`
 
 ```text
 Establishes the minimum acceptable InformationGain or Variance allowed for an interaction
 candidate based on comparison to the scores of its parents.  This value is a 'reduction from matched' in that
 a value of 0.1 here would mean that children candidates that are at least 90% of the IG value of parents would be
 included in the final feature vector.
+
+Default: 10.0
 ```
 
 #### Feature Importance Cutoff Type
 
-Setter: `.setFeatureImportanceCutoffType(<String>)`  Map Name: `'featureImportanceCutoffType'`
+Setter: `.setFeatureImportanceCutoffType(<String>)`  
+Map Name: `'featureImportanceCutoffType'`
 
 ```text
 Setting for determining where to limit the feature vector after completing a feature importances run in order to return
@@ -982,7 +1030,8 @@ Default: 'count'
 
 #### Feature Importance Cutoff Value
 
-Setter: `.setFeatureImportanceCutoffValue(<Double>)`  Map Name: `'featureImportanceCutoffValue'`
+Setter: `.setFeatureImportanceCutoffValue(<Double>)`  
+Map Name: `'featureImportanceCutoffValue'`
 
 ```text
 Restrictive filtering limit on either counts of fields (if feature importance cutoff type is in 'count' mode) ranked,
@@ -991,15 +1040,20 @@ or direct value of feature importance.
 WARNING: depending on the algorithm used to calculate feature importances, operating in 'value' mode is different for
 XGBoost vs. RandomForest since their scoring methodologies are different.  Please see respective API docs for
 XGBoost and Spark RandomForest to get an understanding of how these are calculated before attempting 'value' mode.
+
+Default: 15.0
 ```
 
 #### Data Reduction Factor
 
-Setter: `.setDataReductionFactor(<Double>)`  Map Name: `'dataReductionFactor'`
+Setter: `.setDataReductionFactor(<Double>)`  
+Map Name: `'dataReductionFactor'`
 
 ```text
 Testing feature for validating large runs on a smaller subset of data (DEV API ONLY)
 Will reduce the size of the data set by the value provided, if set.  
+
+Default: 0.5 (will drop half of the rows)
 ```
 
 > NOTE: must in range 0 to 1.
@@ -1009,7 +1063,8 @@ Will reduce the size of the data set by the value provided, if set.
 
 #### Fill Config Cardinality Switch
 
-Setter: `.setFillConfigCardinalitySwitch(<Boolean>)`  Map Name: `'fillConfigCardinalitySwitch'`
+Setter: `.setFillConfigCardinalitySwitch(<Boolean>)`  
+Map Name: `'fillConfigCardinalitySwitch'`
 
 ```text
 Toggles the checking for whether to treat a field as nominal or continuous based on the distinct counts.
@@ -1024,49 +1079,58 @@ Default: true (on)
 
 #### Fill Config Cardinality Type
 
-Setter: `.setfFillConfigCardinalityType(<String>)`  Map Name: `'fillConfigCardinalityType'`
+Setter: `.setfFillConfigCardinalityType(<String>)`  
+Map Name: `'fillConfigCardinalityType'`
 
 ```text
 Configuration for how cardinality is calculated, either 'approx' or 'exact'
+
+Default: 'exact'
 ```
 > NOTE: setting 'exact' on extremely large data sets will incur large waits as data is serialized to get counts.
 
 #### Fill Config Cardinality Limit
 
-Setter: `.setFillConfigCardinalityLimit(<Int>)`  Map Name: `'fillConfigCardinalityLimit'`
+Setter: `.setFillConfigCardinalityLimit(<Int>)`  
+Map Name: `'fillConfigCardinalityLimit'`
 
 ```text
 The cardinality threshold for use if the fill config cardinality switch is turned on - this is the value that distinct
 counts below which will be considered to be 'nominal' and handled as a categorical fill value.
-```
 
 Default: 200
+```
 
 #### Fill Config Cardinality Precision
 
-Setter: `.setFillConfigCardinalityPrecision(<Double>)`  Map Name: `'fillConfigCardinalityPrecision'`
+Setter: `.setFillConfigCardinalityPrecision(<Double>)`  
+Map Name: `'fillConfigCardinalityPrecision'`
 
 ```text
 Precision value for 'approx' mode on fill config cardinality type
 
 Must be in range >0 to 1
+
+Default: 0.05
 ```
 
 #### Fill Config Cardinality Check Mode
 
-Setter: `.setFillConfigCardinalityCheckMode(<String>)`  Map Name: `'fillConfigCardinalityCheckMode'`
+Setter: `.setFillConfigCardinalityCheckMode(<String>)`  
+Map Name: `'fillConfigCardinalityCheckMode'`
 
 ```text
 Setter for the cardinality check mode to be used.  Available modes are "warn" and "silent".
 - In "warn" mode, an exception will be thrown if the cardinality for a categorical column is above the threshold.
 - In "silent" mode, the field will be ignored from processing and will not be included in the feature vector.
-```
 
 Default: 'silent"
+```
 
 #### Fill Config Filter Precision
 
-Setter: `.setFillConfigFilterPrecision(<Double>)`  Map Name: `'fillConfigFilterPrecision'`
+Setter: `.setFillConfigFilterPrecision(<Double>)`  
+Map Name: `'fillConfigFilterPrecision'`
 
 ```text
 Setter for defining the precision for calculating the model type as per the label column
@@ -1077,20 +1141,22 @@ Must be in range 0 to 1
 
 #### Fill Config Categorical NA Fill Map
 
-Setter: `.setFillConfigCategoricalNAFillMap(<Map[String, String]>)`  Map Name: `'fillConfigCategoricalNAFillMap'`
+Setter: `.setFillConfigCategoricalNAFillMap(<Map[String, String]>)`  
+Map Name: `'fillConfigCategoricalNAFillMap'`
 
 ```text
 A means of directly controlling at a column-level distinct overrides to columns for na fill of categorical data for StringType columns. The structure is of
 Column Name -> fill value
 This will function only on non-numeric value type columns and the data will be cast as a String, regardless of the input
 data type that is applied in the Map.
-```
 
-Default: Empty Map
+Default: Map.empty[String, String] (empty Map)
+```
 
 #### Fill Config Numeric NA Fill Map
 
-Setter: `.setFillConfigNumericNAFillMap(<Map[String, Double]>)`  Map Name: `'fillConfigNumericNAFillMap'`
+Setter: `.setFillConfigNumericNAFillMap(<Map[String, Double]>)`  
+Map Name: `'fillConfigNumericNAFillMap'`
 
 ```text
 A means of directly controlling at a column-level distinct overrides to columns for na fill for numeric Type columns
@@ -1098,31 +1164,38 @@ A means of directly controlling at a column-level distinct overrides to columns 
 Column Name -> fill value
 This will function only numeric value type columns and the data will be cast as a Double, regardless of the input
 data type that is applied in the Map. i.e. to fill with Int 1, simply write as a Double 1.0
-```
 
-Default: empty Map
+Default: Map.empty[String, Double] (empty Map)
+```
 
 #### Fill Config Character NA Blanket Fill Value
 
-Setter: `.setFillConfigCharacterNABlanketFillValue(<String>)`  Map Name: `'fillConfigCharacterNABlanketFillValue'`
+Setter: `.setFillConfigCharacterNABlanketFillValue(<String>)`  
+Map Name: `'fillConfigCharacterNABlanketFillValue'`
 
 ```text
 Sets the ability to fill all categorical (StringType) columns in the data set to the same na fill replacement value.
+
+Default: ""
 ```
 > Note - only recommended for certain ML applications.  Not advised for most.
 
 #### Fill Config Numeric NA Blanket Fill Value
 
-Setter: `.setFillConfigNumericNABlanketFillValue(<Double>)`  Map Name: `'fillConfigNumericNABlanketFillValue'`
+Setter: `.setFillConfigNumericNABlanketFillValue(<Double>)` 
+ Map Name: `'fillConfigNumericNABlanketFillValue'`
 
 ```text
 Sets the ability to fill all numeric columns in the data set to the same na fill value.
+
+Default: 0.0
 ```
 > Note - not recommended, but included as a feature for certain older application needs from legacy migrations.
 
 #### Fill Config NA Fill Mode
 
-Setter: `.setFillConfigNAFillMode(<String>)`  Map Name: `'fillConfigNAFillMode'`
+Setter: `.setFillConfigNAFillMode(<String>)`  
+Map Name: `'fillConfigNAFillMode'`
 
 ```text
  Mode for na fill
@@ -1139,9 +1212,11 @@ Setter: `.setFillConfigNAFillMode(<String>)`  Map Name: `'fillConfigNAFillMode'`
      all categorical character fields na values with a blanket fill value.
    - blanketFillNumOnly:  Will use statistics to fill in character fields, but will replace
      all numeric fields na values with a blanket value.
-```
 
 Default: 'auto'
+```
+
+
 
 
 ### Tuner Config
@@ -1209,7 +1284,8 @@ case class TunerConfig(var tunerAutoStoppingScore: Double,
 
 #### Tuner Auto Stopping Score
 
-Setter: `.setTunerAutoStoppingScore(<Double>)`  Map Name: `'tunerAutoStoppingScore'`
+Setter: `.setTunerAutoStoppingScore(<Double>)`  
+Map Name: `'tunerAutoStoppingScore'`
 
 ```text
 Setting for specifying the early stopping value.  
@@ -1223,7 +1299,8 @@ Default: 0.95
 
 #### Tuner Parallelism
 
-Setter: `.setTunerParallelism(<Int>)`  Map Name: `'tunerParallelism'`
+Setter: `.setTunerParallelism(<Int>)`  
+Map Name: `'tunerParallelism'`
 
 ```text
 Means for setting the number of asynchronous models that are executed concurrently within the generational genetic algorithm.
@@ -1246,7 +1323,8 @@ However, in practice, running too many models in parallel will likely OOM the wo
 
 #### Tuner Kfold
 
-Setter: `.setTunerKFold(<Int>)`  Map Name: `'tunerKFold'`
+Setter: `.setTunerKFold(<Int>)`  
+Map Name: `'tunerKFold'`
 
 ```text
 Sets the number of different splits that are happening on the pre-modeled data set for train and test, allowing for
@@ -1262,7 +1340,8 @@ Default: 5
 
 #### Tuner Train Portion
 
-Setter: `.setTunerTrainPortion(<Double>)`  Map Name: `'tunerTrainPortion'`
+Setter: `.setTunerTrainPortion(<Double>)`  
+Map Name: `'tunerTrainPortion'`
 
 ```text
 Sets the proportion of the input DataFrame to be used for Train (the value of this variable) and Test
@@ -1275,7 +1354,8 @@ Default: 0.8
 
 #### Train Split Method
 
-Setter: `.setTunerTrainSplitMethod(<String>)`  Map Name: `'tunerTrainSplitMethod'`
+Setter: `.setTunerTrainSplitMethod(<String>)`  
+Map Name: `'tunerTrainSplitMethod'`
 
 This setting allows for specifying how to split the provided data set into test/training sets for scoring validation.
 Some ML use cases are highly time-dependent, even in traditional ML algorithms (i.e. predicting customer churn).  
@@ -1286,9 +1366,10 @@ Additional reading: [Sampling in Machine Learning](https://en.wikipedia.org/wiki
 
 Setter: `.setTrainSplitMethod(<String>)`
 ```text
+Available options: "random" or "chronological" or "stratified" or "underSample" or "overSample" or "kSample"
+
 Default: "random"
 
-Available options: "random" or "chronological" or "stratified" or "underSample" or "overSample" or "kSample"
 ```
 Chronological Split Mode
 - Splits train / test between a sortable field (date, datetime, unixtime, etc.)
@@ -1306,7 +1387,7 @@ Stratified Mode
 - Stratified mode will balance all of the values present in the label column of a classification algorithm so that there
 is adequate coverage of all available labels in both train and test for each kfold split step.
 
-***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column and there is a need for
+***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column (class imbalance) and there is a need for
 training on the full, unmanipulated data set.***
 
 UnderSampling Mode
@@ -1316,7 +1397,7 @@ to target the row count of the smallest class. (Only recommended for moderate sk
 
 ***If using this mode, ensure that the smallest class has sufficient row counts to make training effective!***
 
-OverSampling Mode
+OverSampling Mode [NOT RECOMMENDED FOR GENERAL USE]
 
 - Over sampling will evaluate the class with the highest count of entries and during splitting, will replicate all
 other classes' data to *generally match* the counts of the most frequent class. (**this is not exact and can vary from
@@ -1328,23 +1409,34 @@ run to run**)
 KSampling Mode
 - Uses a distributed implementation of [SMOTE](https://en.wikipedia.org/wiki/Oversampling_and_undersampling_in_data_analysis#SMOTE) applied to
 the minority class(es) for the training split only (test is not augmented).  
+At it's core, the algorithm is building k clusters based on the feature vector.  From these cluster centroids, 
+a MinHashLSH model is built to perform distance calculations from the centroids to each of the members of the cluster
+centroid.  The collection of candidate points are then sorted based on the distance metric, at which point random
+numbers of vector index values are mutated between the adjacent points near the centroid and the centroid value 
+itself.  These synthetic feature elements are then vectorized, labeled as 'synthetic' and used to augment the 
+minority classes present in the unbalanced classification training set.  
+> NOTE: The synthetic data IS NOT INCLUDED IN THE TEST SETS for scoring of models. 
 
 > NOTE: as this is an ML-based augmentation system, there is considerable time and resources involved in creating 'intelligent'
 >over-sampling of the minority class(es), which will occur prior to the modeling phase.
 
 #### Tuner KSample Synthetic Col
 
-Setter: `.setTunerKSampleSyntheticCol(<String>)`  Map Name: `'tunerKSampleSyntheticCol'`
+Setter: `.setTunerKSampleSyntheticCol(<String>)`  
+Map Name: `'tunerKSampleSyntheticCol'`
 
 ```text
 Internal temporary column name denoting normal vs synthetic rows of data to ensure that a train/test split will not
 include synthetic data in the test data set (which would invalidate the model's scoring)
+
+Default: 'synthetic_ksample'
 ```
 > NOTE: the name can be anything, provided it isn't the same as a name in the data set already, or a reserved field name (i.e. 'features' or 'label')
 
 #### Tuner KSample K Groups
 
-Setter: `.setTunerKSampleKGroups(<Int>)`  Map Name: `'tunerKSampleKGroups'`
+Setter: `.setTunerKSampleKGroups(<Int>)`  
+Map Name: `'tunerKSampleKGroups'`
 
 ```text
 Specifies the number of K clusters to generate for the synthetic data generation for minority classes
@@ -1355,7 +1447,8 @@ Default: 25
 
 #### Tuner KSample KMeans MaxIter
 
-Setter: `.setTunerKSampleKMeansMaxIter(<Int>)`  Map Name: `'tunerKSampleKMeansMaxIter'`
+Setter: `.setTunerKSampleKMeansMaxIter(<Int>)`  
+Map Name: `'tunerKSampleKMeansMaxIter'`
 
 ```text
 Specifies the maximum number of iterations for the KMeans model to attempt to converge
@@ -1366,7 +1459,8 @@ Default: 100
 
 #### Tuner KSample KMeans Tolerance
 
-Setter: `.setTunerKSampleKMeansTolerance(<Double>)`  Map Name: `'tunerKSampleKMeansTolerance'`
+Setter: `.setTunerKSampleKMeansTolerance(<Double>)`  
+Map Name: `'tunerKSampleKMeansTolerance'`
 
 ```text
 KMeans setting for determining the tolerance value for convergence.
@@ -1380,7 +1474,8 @@ See [DOC](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.sp
 
 #### Tuner KSample KMeans Distribution Measurement
 
-Setter: `.setTunerKSampleKMeansDistanceMeasurement(<String>)`  Map Name: `'tunerKSampleKMeansDistanceMeasurement'`
+Setter: `.setTunerKSampleKMeansDistanceMeasurement(<String>)`  
+Map Name: `'tunerKSampleKMeansDistanceMeasurement'`
 
 ```text
 Which distance measurement to use for generation of synthetic data.
@@ -1392,24 +1487,31 @@ Default: 'euclidean'
 
 #### Tuner KSample KMeans Seed
 
-Setter: `.setTunerKSampleKMeansSeed(<Long>)`  Map Name: `'tunerKSampleKMeansSeed'`
+Setter: `.setTunerKSampleKMeansSeed(<Long>)`  
+Map Name: `'tunerKSampleKMeansSeed'`
 
 ```text
 The seed for KMeans to attempt to create a somewhat repeatable convergence for a particular data set.
+
+Default: 42L
 ```
 
 #### Tuner KSample KMeans Prediction Col
 
-Setter: `.setTunerKSampleKMeansPredictionCol(<String>)`  Map Name: `'tunerKSampleKMeansPredictionCol'`
+Setter: `.setTunerKSampleKMeansPredictionCol(<String>)`  
+Map Name: `'tunerKSampleKMeansPredictionCol'`
 
 ```text
 Internal use only column name for KSampling internal processes.  
+
+Default: 'kGroups_ksample'
 ```
 > NOTE: ensure that reserved field names are not used, nor a field name that is present in the raw data set.
 
 #### Tuner KSample LSH Hash Tables
 
-Setter: `.setTunerKSampleLSHHashTables(<Int>)`  Map Name: `'tunerKSampleLSHHashTables'`
+Setter: `.setTunerKSampleLSHHashTables(<Int>)`  
+Map Name: `'tunerKSampleLSHHashTables'`
 
 ```text
 Sets the number of hash tables involved in the jaccard distance calculations in MinHashLSH
@@ -1421,24 +1523,31 @@ For further reading, review the [docs and links](http://spark.apache.org/docs/la
 
 #### Tuner KSample LSH Seed
 
-Setter: `.setTunerKSampleLSHSeed(<Long>)`  Map Name: `'tunerKSampleLSHSeed'`
+Setter: `.setTunerKSampleLSHSeed(<Long>)`  
+Map Name: `'tunerKSampleLSHSeed'`
 
 ```text
 Seed for the MinHashLSH algorithm for repeatability.
+
+Default: 42L
 ```
 
 #### Tuner KSample LSH Output Col
 
-Setter: `.setTunerKSampleLSHOutputCol(<String>)`  Map Name: `'tunerKSampleLSHOutputCol'`
+Setter: `.setTunerKSampleLSHOutputCol(<String>)`  
+Map Name: `'tunerKSampleLSHOutputCol'`
 
 ```text
 Internal use only column name for MinHashLSH processes.
+
+Default: 'hashes_ksample'
 ```
 > NOTE: ensure that reserved field names are not used or any name of a field in the raw data set.
 
 #### Tuner KSample Quorum Count
 
-Setter: `.setTunerKSampleQuorumCount(<Int>)`  Map Name: `'tunerKSampleQuorumCount'`
+Setter: `.setTunerKSampleQuorumCount(<Int>)`  
+Map Name: `'tunerKSampleQuorumCount'`
 
 ```text
 Setting for how many vectors to include in adjacency calculations to the centroid position of the K-cluster
@@ -1451,7 +1560,8 @@ Default: 7
 
 #### Tuner KSample Minimum Vector Count to Mutate
 
-Setter: `.setTunerKSampleMinimumVectorCountToMutate(<Int>)`  Map Name: `'tunerKSampleMinimumVectorCountToMutate'`
+Setter: `.setTunerKSampleMinimumVectorCountToMutate(<Int>)`  
+Map Name: `'tunerKSampleMinimumVectorCountToMutate'`
 
 ```text
 Minimum threshold value for vector indeces to mutate within the feature vector during synthetic data generation.
@@ -1466,7 +1576,8 @@ Default: 1
 
 #### Tuner KSample Vector Mutation Method
 
-Setter: `.setTunerKSampleVectorMutationMethod(<String>)`  Map Name: `'tunerKSampleVectorMutationMethod'`
+Setter: `.setTunerKSampleVectorMutationMethod(<String>)`  
+Map Name: `'tunerKSampleVectorMutationMethod'`
 
 ```text
 One of three modes:
@@ -1479,7 +1590,8 @@ Default: 'random'
 
 #### Tuner KSample Mutation Mode
 
-Setter: `.setTunerKSampleMutationMode(<String>)`  Map Name: `'tunerKSampleMutationMode'`
+Setter: `.setTunerKSampleMutationMode(<String>)`  
+Map Name: `'tunerKSampleMutationMode'`
 
 ```text
 Defines the method of mixing of the Vector positions selected to the centroid position.
@@ -1493,7 +1605,8 @@ Default: 'weighted'
 
 #### Tuner KSample Mutation Value
 
-Setter: `.setTunerKSampleMutationValue(<Double>)`  Map Name: `'tunerKSampleMutationValue'`
+Setter: `.setTunerKSampleMutationValue(<Double>)`  
+Map Name: `'tunerKSampleMutationValue'`
 
 ```text
 Specifies the magnitude of mixing in 'weighted' or 'ratio' modes of mutation mode.
@@ -1504,7 +1617,8 @@ Default: 0.5
 
 #### Tuner KSample Label Balance Mode
 
-Setter: `.setTunerKSampleLabelBalanceMode(<String>)`  Map Name: `'tunerKSampleLabelBalanceMode'`
+Setter: `.setTunerKSampleLabelBalanceMode(<String>)`  
+Map Name: `'tunerKSampleLabelBalanceMode'`
 
 ```text
 Split methodology for the KSample methodology.  
@@ -1518,7 +1632,8 @@ Default: 'match'
 
 #### Tuner KSample Cardinality Threshold
 
-Setter: `.seTunerKSampleCardinalityThreshold(<Int>)`  Map Name: `'tunerKSampleCardinalityThreshold'`
+Setter: `.seTunerKSampleCardinalityThreshold(<Int>)`  
+Map Name: `'tunerKSampleCardinalityThreshold'`
 
 ```text
 Cardinality check threshold for determining if synthetic data should be resolved on an ordinal scale (rounded / floored)
@@ -1529,7 +1644,8 @@ Default: 20
 
 #### Tuner KSample
 
-Setter: `.setTunerKSampleNumericRatio(<Double>)`  Map Name: `'tunerKSampleNumericRatio'`
+Setter: `.setTunerKSampleNumericRatio(<Double>)`  
+Map Name: `'tunerKSampleNumericRatio'`
 
 ```text
 For Percentage mode on setTunerKSampleLabelBalanceMode()
@@ -1541,7 +1657,8 @@ Default: 0.2
 
 #### Tuner KSample
 
-Setter: `.setTunerKSampleNumericTarget(<Int>)`  Map Name: `'tunerKSampleNumericTarget'`
+Setter: `.setTunerKSampleNumericTarget(<Int>)`  
+Map Name: `'tunerKSampleNumericTarget'`
 
 ```text
 For Target mode on setTunerKSampleLabelBalanceMode()
@@ -1557,7 +1674,8 @@ Default: 500
 Specify the field to be used in restricting the train / test split based on sort order and percentage of data set to conduct the split.
 > As specified above, there is no requirement that this field be a date or datetime type.  However, it *is recommended*.
 
-Setter: `.setTunerTrainSplitChronologicalColumn(<String>)`  Map Name: `'tunerTrainSplitChronologicalColumn'`
+Setter: `.setTunerTrainSplitChronologicalColumn(<String>)`  
+Map Name: `'tunerTrainSplitChronologicalColumn'`
 
 ```text
 Default: "datetime"
@@ -1574,7 +1692,8 @@ Due to the fact that a Chronological split, when done by a sort and percentage '
 generation would extract an identical train and test data set each iteration if the split were left static.  This
 setting allows for a 'jitter' to the train / test boundary to ensure that k-fold validation provides more useful results.
 
-Setter: `.setTunerTrainSplitChronologicalRandomPercentage(<Double>)` Map Name: `'tunerTrainSplitChronologicalRandomPercentage'`
+Setter: `.setTunerTrainSplitChronologicalRandomPercentage(<Double>)` 
+Map Name: `'tunerTrainSplitChronologicalRandomPercentage'`
 
 ```text
 
@@ -1589,7 +1708,8 @@ parameters on the exact same data set.
 
 #### Tuner Seed
 
-Setter: `.setTunerSeed(<Long>)`  Map Name: `'tunerSeed'`
+Setter: `.setTunerSeed(<Long>)`  
+Map Name: `'tunerSeed'`
 
 ```text
 Sets the seed for both random selection generation for the initial random pool of values, as well as initializing
@@ -1600,7 +1720,8 @@ Default: 42L
 
 #### Tuner First Generation Gene Pool
 
-Setter: `.setTunerFirstGenerationGenePool(<Int>)`  Map Name: `'tunerFirstGenerationGenePool'`
+Setter: `.setTunerFirstGenerationGenePool(<Int>)`  
+Map Name: `'tunerFirstGenerationGenePool'`
 
 ```text
 Determines the random search seed pool for the genetic algorithm to operate from.  
@@ -1614,7 +1735,8 @@ Default: 20
 
 #### Tuner Number of Generations
 
-Setter: `.setTunerNumberOfGenerations(<Int>)`  Map Name: `'tunerNumberOfGenerations'`
+Setter: `.setTunerNumberOfGenerations(<Int>)`  
+Map Name: `'tunerNumberOfGenerations'`
 
 ```text
 This setting, applied only to batch processing mode, sets the number of mutation generations that will occur.
@@ -1628,7 +1750,8 @@ Default: 10
 
 #### Tuner Number of Parents To Retain
 
-Setter: `.setTunerNumberOfParentsToRetain(<Int>)`  Map Name: `tunerNumberOfParentsToRetain`
+Setter: `.setTunerNumberOfParentsToRetain(<Int>)`  
+Map Name: `tunerNumberOfParentsToRetain`
 
 ```text
 This setting will restrict the number of candidate 'best' results of the previous generation of hyper parameter tuning,
@@ -1643,7 +1766,8 @@ Default: 3
 
 #### Tuner Number of Mutations Per Generation
 
-Setter: `.setTunerNumberOfMutationsPerGeneration(<Int>)`  Map Name: `tunerNumberOfMutationsPerGeneration`
+Setter: `.setTunerNumberOfMutationsPerGeneration(<Int>)`  
+Map Name: `tunerNumberOfMutationsPerGeneration`
 
 ```text
 This setting specifies the size of each evolution batch pool per generation (other than the first seed generation).
@@ -1655,7 +1779,8 @@ what is set by `.setTunerParallelism()`, it will add to the run-time.
 
 #### Tuner Genetic Mixing
 
-Setter: `.setTunerGeneticMixing(<Double>)`  Map Name: `'tunerGeneticMixing'`
+Setter: `.setTunerGeneticMixing(<Double>)`  
+Map Name: `'tunerGeneticMixing'`
 
 ```text
 This setting defines the ratio of impact that the 'best parent' that is used to mutate with a new randomly generated
@@ -1672,7 +1797,8 @@ Conversely, setting the value > 0.9 will not mutate the next generation strongly
 
 #### Tuner Generational Mutation Strategy
 
-Setter: `.setTunerGenerationalMutationStrategy(<Double>)`  Map Name: `'tunerGenerationalMutationStrategy'`
+Setter: `.setTunerGenerationalMutationStrategy(<Double>)`  
+Map Name: `'tunerGenerationalMutationStrategy'`
 
 ```text
 Provides for one of two modes:
@@ -1704,7 +1830,8 @@ Available options: "linear" or "fixed"
 
 #### Tuner Fixed Mutation Value
 
-Setter: `.setTunerFixedMutationValue(<Int>)`  Map Name: `'tunerFixedMutationValue'`
+Setter: `.setTunerFixedMutationValue(<Int>)`  
+Map Name: `'tunerFixedMutationValue'`
 
 ```text
 Allows for restricting the number of hyper parameters to mutate per generational epoch.
@@ -1717,7 +1844,8 @@ Default: 1
 
 #### Tuner Mutation Magnitude Mode
 
-Setter: `.setTunerMutationMagnitudeMode(<String>)`  Map Name: `'tunerMutationMagnitudeMode'`
+Setter: `.setTunerMutationMagnitudeMode(<String>)`  
+Map Name: `'tunerMutationMagnitudeMode'`
 
 ```text
 
@@ -1747,7 +1875,8 @@ Available options: "fixed" or "random"
 
 #### Tuner Evolution Strategy
 
-Setter: `.setTunerEvolutionStrategy(<String>)`  Map Name: `'tunerEvolutionStrategy'`
+Setter: `.setTunerEvolutionStrategy(<String>)`  
+Map Name: `'tunerEvolutionStrategy'`
 
 ```text
 Determining the mode (batch vs. continuous)
@@ -1777,7 +1906,8 @@ Available options: "batch" or "continuous"
 
 #### Tuner Genetic MBO Regressor Type
 
-Setter: `.setTunerGeneticMBORegressorType(<String>)`  Map Name: `'tunerGeneticMBORegressorType'`
+Setter: `.setTunerGeneticMBORegressorType(<String>)`  
+Map Name: `'tunerGeneticMBORegressorType'`
 
 ```text
 The post-genetic algorithm stage consists of running MBO (Model-based optimization) on apriori hyper parameters
@@ -1790,7 +1920,8 @@ Default 'XGBoost'
 
 #### Tuner Genetic MBO Candidate Factor
 
-Setter: `.setTunerGeneticMBOCandidateFactor(<Int>)`  Map Name: `'tunerGeneticMBOCandidateFactor'`
+Setter: `.setTunerGeneticMBOCandidateFactor(<Int>)`  
+Map Name: `'tunerGeneticMBOCandidateFactor'`
 
 ```text
 Setter for defining the factor to be applied to the candidate listing of hyperparameters to generate through
@@ -1803,7 +1934,8 @@ Default: 10
 
 #### Tuner Continuous Evolution Improvement Threshold [EXPERIMENTAL]
 
-Setter: `.setTunerContinuousEvolutionImprovementThreshold(<Int>)`  Map Name: `'tunerContinuousEvolutionImprovementThreshold'`
+Setter: `.setTunerContinuousEvolutionImprovementThreshold(<Int>)`  
+Map Name: `'tunerContinuousEvolutionImprovementThreshold'`
 
 ```text
 Setter for defining the secondary stopping criteria for continuous training mode ( number of consistently
@@ -1818,7 +1950,8 @@ Default -10
 
 #### Tuner Continuous Evolution Max Iterations [EXPERIMENTAL]
 
-Setter: `.setTunerContinuousEvolutionMaxIterations(<Int>)`  Map Name: `'tunerContinuousEvolutionMaxIterations'`
+Setter: `.setTunerContinuousEvolutionMaxIterations(<Int>)`  
+Map Name: `'tunerContinuousEvolutionMaxIterations'`
 
 ```text
 This parameter sets the total maximum cap on the number of hyper parameter tuning models that are
@@ -1833,7 +1966,8 @@ Default: 200
 
 [OVERRIDE WARNING]
 
-Setter: `.setTunerContinuousEvolutionStoppingScore(<Double>)`  Map Name: `'tunerContinuousEvolutionStoppingScore'`
+Setter: `.setTunerContinuousEvolutionStoppingScore(<Double>)`  
+Map Name: `'tunerContinuousEvolutionStoppingScore'`
 
 **NOTE**: ***This value MUST be overridden in regression problems***
 
@@ -1852,7 +1986,8 @@ criteria is met, since Futures may have been submitted before the result of a 'w
 
 #### Tuner Continuous Evolution Parallelism [EXPERIMENTAL]
 
-Setter: `.setTunerContinuousEvolutionParallelism(<Int>)`  Map Name: `'tunerContinuousEvolutionParallelism'`
+Setter: `.setTunerContinuousEvolutionParallelism(<Int>)`  
+Map Name: `'tunerContinuousEvolutionParallelism'`
 
 ```text
 This setting defines the number of concurrent Futures that are submitted in continuous mode.  Setting this number too
@@ -1867,7 +2002,8 @@ parameter space, with the benefit of run-time optimization by parallel async exe
 
 #### Tuner Continuous Evolution Mutation Aggressiveness [EXPERIMENTAL]
 
-Setter: `.setTunerContinousEvolutionMutationAggressiveness(<Int>)`  Map Name: `'tunerContinuousEvolutionMutationAggressiveness'`
+Setter: `.setTunerContinousEvolutionMutationAggressiveness(<Int>)`  
+Map Name: `'tunerContinuousEvolutionMutationAggressiveness'`
 
 ```text
 Similar to the batch mode setting `.setFixedMutationValue()`; however, there is no concept of a 'linear' vs 'fixed'
@@ -1884,7 +2020,8 @@ or to automate the **re-tuning of a production model** on a scheduled basis, set
 
 #### Tuner Continuous Evolution Genetic Mixing [EXPERIMENTAL]
 
-Setter: `.setTunerContinuousEvolutionGeneticMixing(<Double>)`  Map Name: `'tunerContinuousEvolutionGeneticMixing'`
+Setter: `.setTunerContinuousEvolutionGeneticMixing(<Double>)`  
+Map Name: `'tunerContinuousEvolutionGeneticMixing'`
 
 ```text
 This mirrors the batch mode genetic mixing parameter.  Refer to description above.
@@ -1896,7 +2033,8 @@ Restricted to range {0, 1}
 
 #### Tuner Continuous Evolution Rolling Improvement Count [EXPERIMENTAL]
 
-Setter: `.setTunerContinuousEvolutionRollingImprovementCount(<Int>)`  Map Name: `'tunerContinuousEvolutionRollingImprovementCount'`
+Setter: `.setTunerContinuousEvolutionRollingImprovementCount(<Int>)`  
+Map Name: `'tunerContinuousEvolutionRollingImprovementCount'`
 
 ```text
 [EXPERIMENTAL]
@@ -1908,7 +2046,8 @@ Default: 20
 
 #### Tuner Model Seed
 
-Setters: `.setTunerModelSeed(<Map[String, Any]>)`  Map Name: `'tunerModelSeed'`
+Setters: `.setTunerModelSeed(<Map[String, Any]>)`  
+Map Name: `'tunerModelSeed'`
 
 ```text
 Allows for 'jump-starting' a model tuning run, primarily for the purpose of
@@ -1923,7 +2062,8 @@ result in poor hyper parameter tuning performance.  *It is always best to not se
 
 #### Tuner Hyper Space Inference Flag
 
-Setters: `.setTunerHyperSpaceInferenceFlag(<Boolean>)`  Map Name: `'tunerHyperSpaceInferenceFlag'`
+Setters: `.setTunerHyperSpaceInferenceFlag(<Boolean>)`  
+Map Name: `'tunerHyperSpaceInferenceFlag'`
 
 ```text
 Whether or not to run a hyper space inference run at the conclusion of the genetic algorithm.
@@ -1934,7 +2074,8 @@ Default: ON
 
 #### Tuner Hyper Space Inference Count
 
-Setters: `.setTunerHyperSpaceInferenceCount(<Int>)`  Map Name: `'tunerHyperSpaceInferenceCount'`
+Setters: `.setTunerHyperSpaceInferenceCount(<Int>)`  
+Map Name: `'tunerHyperSpaceInferenceCount'`
 
 ```text
 Count of synthetic rows of permutations to generate for the MBO-based post genetic tuning runs.
@@ -1944,7 +2085,8 @@ Default: 200000
 >and simply put more stress on the driver.
 
 #### Tuner Hyper Space Model Count
-Setters: `.setTunerHyperSpaceModelCount(<Int>)`  Map Name: `'tunerHyperSpaceModelCount'`
+Setters: `.setTunerHyperSpaceModelCount(<Int>)`  
+Map Name: `'tunerHyperSpaceModelCount'`
 
 ```text
 Number of models to generate from the predicted 'best hyper parameters' from the MBO stage.
@@ -1955,7 +2097,8 @@ Default: 10
 
 #### Tuner Hyper Space Model Type
 
-Setters: `setTunerHyperSpaceModelType(<String>)`  Map Name: `'tunerHyperSpaceModelType'`
+Setters: `setTunerHyperSpaceModelType(<String>)`  
+Map Name: `'tunerHyperSpaceModelType'`
 
 ```text
 The type of Regressor to use in the MBO phase (RandomForest or XGBoost or LinearRegression)
@@ -1964,7 +2107,8 @@ Default: RandomForest
 
 #### Tuner Initial Generation Mode
 
-Setters: `.setTunerInitialGenerationMode(<String>)`  Map Name: `'tunerInitialGenerationMode'`
+Setters: `.setTunerInitialGenerationMode(<String>)`  
+Map Name: `'tunerInitialGenerationMode'`
 
 ```text
 Whether to use a random search (default) or a permutations-based search space.
@@ -1978,7 +2122,8 @@ Default: 'random'
 
 #### Tuner Initial Generation Permutation Count
 
-Setters: `.setTunerInitialGenerationPermutationCount(<Int>)`  Map Name: `'tunerInitialGenerationPermutationCount'`
+Setters: `.setTunerInitialGenerationPermutationCount(<Int>)`  
+Map Name: `'tunerInitialGenerationPermutationCount'`
 
 ```text
 Sets the number of hyper parameter combinations to generate and utilize when in 'permutation' mode for the initial
@@ -1988,7 +2133,8 @@ Default: 10
 
 #### Tuner Initial Generation Index Mixing Mode
 
-Setters: `.setTunerInitialGenerationIndexMixingMode(<String>)`  Map Name: `'tunerInitialGenerationIndexMixingMode'`
+Setters: `.setTunerInitialGenerationIndexMixingMode(<String>)` 
+Map Name: `'tunerInitialGenerationIndexMixingMode'`
 
 ```text
 Sets the method in which the hyper parameter permutations are configured.
@@ -2001,7 +2147,8 @@ Default: 'linear'
 
 #### Tuner Initial Generation Array Seed
 
-Setters: `.setTunerInitialGenerationArraySeed(<Long>)`  Map Name: `'tunerInitialGenerationArraySeed'`
+Setters: `.setTunerInitialGenerationArraySeed(<Long>)`  
+Map Name: `'tunerInitialGenerationArraySeed'`
 
 ```text
 Sets the seed for the generation of permutations to make the samplers for the random mode first-selection repeatable.
@@ -2010,7 +2157,8 @@ Default: 42L
 
 #### Tuner Output Df Repartition Scale Factor
 
-Setters: `.setTunerOutputDfRepartitionScaleFactor(<Int>)`  Map Name: `'tunerOutputDfRepartitionScaleFactor'`
+Setters: `.setTunerOutputDfRepartitionScaleFactor(<Int>)`  
+Map Name: `'tunerOutputDfRepartitionScaleFactor'`
 
 ```text
 Sets the degree of repartitioning factor that is done on the output Dataframes coming from the toolkit.
@@ -2235,7 +2383,8 @@ The implementation here leverages the JavaAPI and can support both remote and Da
 
 #### MLFlow Logging Flag
 
-Setters: `.mlFlowLoggingOn()` and `.mlFlowLoggingOff()`  Map Name: `'mlFlowLoggingFlag'`
+Setters: `.mlFlowLoggingOn()` and `.mlFlowLoggingOff()`  
+Map Name: `'mlFlowLoggingFlag'`
 
 ```text
 Provides for either logging the results of the hyper parameter tuning run to MLFlow or not.
@@ -2255,7 +2404,8 @@ This will be removed in future releasees.
 
 #### MLFlow Tracking URI [FOR EXTERNAL MLFLOW TRACKING SERVERS ONLY]
 
-Setter: `.setMlFlowTrackingURI(<String>)`  Map Name: `'mlFlowTrackingURI'`
+Setter: `.setMlFlowTrackingURI(<String>)`  
+Map Name: `'mlFlowTrackingURI'`
 
 ```text
 If using a non-Databricks hosted MLFlow instance, this is the address to your tracking server.
@@ -2265,7 +2415,8 @@ If running on Databricks, this information is automatically pulled for you and u
 
 #### MLFlow Experiment Name [CRITICAL TO OVERRIDE FOR MOST USE CASES]
 
-Setter `.setMlFlowExperimentName(<String>)`  Map Name: `'mlFlowExperimentName'`
+Setter `.setMlFlowExperimentName(<String>)`  
+Map Name: `'mlFlowExperimentName'`
 
 ```text
 The Workspace-resolved path within your shard that you would like the model's results to be logged to.
@@ -2276,7 +2427,8 @@ If this value is not specified, it will log to the same Workspace directory path
 
 #### MLFlow API Token [FOR EXTENERAL MLFLOW TRACKING SERVERS ONLY]
 
-Setter: `.setMlFlowAPIToken(<String>)`  Map Name: `'mlFlowAPIToken'`
+Setter: `.setMlFlowAPIToken(<String>)`  
+Map Name: `'mlFlowAPIToken'`
 
 ```text
 If using a non-Databricks hosted MLFlow instance, this is the API Token to your tracking server.
@@ -2287,7 +2439,8 @@ If running on Databricks, this information is automatically pulled for you and u
 
 #### MLFlow Model Save Directory [CRITICAL TO OVERRIDE FOR MOST USE CASES]
 
-Setter: `.setMlFlowModelSaveDirectory(<String>)`
+Setter: `.setMlFlowModelSaveDirectory(<String>)`  
+Map Name: `'mlFlowModelSaveDirectory'`
 
 ```text
 The path root to store all of the models that are generated with each hyper parameter optimization iteration.
@@ -2299,7 +2452,8 @@ this will infer a dbfs location for writing the model artifacts to.
 
 #### MLFlow Logging Mode
 
-Setter: `.setMlFlowLoggingMode(<String>)`  Map Name: `'mlFlowLoggingMode'`
+Setter: `.setMlFlowLoggingMode(<String>)`  
+Map Name: `'mlFlowLoggingMode'`
 
 ```text
 Sets whether to log all results (default), just the best run's results, or just the tuning results.
@@ -2312,7 +2466,8 @@ Default: 'full'
 
 #### MLFlow Best Suffix
 
-Setter: `.setMlFlowBestSuffix(<String>)`  Map Name: `'mlFlowBestSuffix'`
+Setter: `.setMlFlowBestSuffix(<String>)`  
+Map Name: `'mlFlowBestSuffix'`
 
 ```text
 A seperate MLFlow log entry for the best results for each of the Families tested.
@@ -2322,7 +2477,8 @@ Default: '_best'
 
 #### Inference Config Save Location [DEPRECATED API]
 
-Setter: `.setInferenceConfigSaveLocation(<String>)`  Map Name: `'inferenceConfigSaveLocation'`
+Setter: `.setInferenceConfigSaveLocation(<String>)`  
+Map Name: `'inferenceConfigSaveLocation'`
 
 ```text
 Can be set to a location on dbfs for now, but this API is deprecated in favor of the PipelineAPI and will be
@@ -2331,7 +2487,8 @@ removed in a future version.
 
 #### MLFlow Custom Run Tags
 
-Setter: `.setMlFlowCustomRunTags(<Map[String, AnyVal]>`  Map Name: `'mlFlowCustomRunTags'`
+Setter: `.setMlFlowCustomRunTags(<Map[String, AnyVal]>`  
+Map Name: `'mlFlowCustomRunTags'`
 
 ```text
 Additional data that can be logged about the run in mlflow.  
@@ -2339,7 +2496,8 @@ Additional data that can be logged about the run in mlflow.
 
 #### Tuner Delta Cache Backing Directory
 
-Setter: `.setTunerDeltaCacheBackingDirectory(<String>)`  Map Name: `'tunerDeltaCacheBackingDirectory'`
+Setter: `.setTunerDeltaCacheBackingDirectory(<String>)`  
+Map Name: `'tunerDeltaCacheBackingDirectory'`
 
 ```text
 If using 'delta' mode on the split caching strategy, this is the dbfs root path to use to temporarily (or persistently)
@@ -2349,7 +2507,8 @@ write the delta train / test split tables to.
 
 #### Tuner Delta Cache Backing Directory Removal Flag
 
-Setter: `.setTunerDeltaCacheBackingDirectoryRemovalFlag(<Boolean>)`  Map Name: `'tunerDeltaCacheBackingDirectoryRemovalFlag'`
+Setter: `.setTunerDeltaCacheBackingDirectoryRemovalFlag(<Boolean>)`  
+Map Name: `'tunerDeltaCacheBackingDirectoryRemovalFlag'`
 
 ```text
 Specifies whether to 'clean up' the delta dbfs location for 'delta mode' split caching strategy
@@ -2362,7 +2521,8 @@ Default: True, will remove files
 
 #### Split Caching Strategy
 
-Setter: `.setSplitCachingStrategy(<String>)`  Map Name: `'splitCachingStrategy'`
+Setter: `.setSplitCachingStrategy(<String>)`  
+Map Name: `'splitCachingStrategy'`
 
 ```text
 Mode to use to store the train test splits before model tuning begins.
@@ -2419,8 +2579,93 @@ contained within this data structure (either the json or the Dataframe)
 
 ## Feature Importance
 
-DOCS COMING SOON
+To utilize the Feature Importance functionality and the associated API, the settings are similar to what is listed
+above in the main APIs.
 
-## Decision Splits
+The total config is:
 
-DOCS COMING SOON
+```scala
+case class FeatureImportanceConfig(
+  labelCol: String,
+  featuresCol: String,
+  dataPrepParallelism: Int,
+  numericBoundaries: Map[String, (Double, Double)],
+  stringBoundaries: Map[String, List[String]],
+  scoringMetric: String,
+  trainPortion: Double,
+  trainSplitMethod: String,
+  trainSplitChronologicalColumn: String,
+  trainSplitChronlogicalRandomPercentage: Double,
+  parallelism: Int,
+  kFold: Int,
+  seed: Long,
+  scoringOptimizationStrategy: String,
+  firstGenerationGenePool: Int,
+  numberOfGenerations: Int,
+  numberOfMutationsPerGeneration: Int,
+  numberOfParentsToRetain: Int,
+  geneticMixing: Double,
+  generationalMutationStrategy: String,
+  mutationMagnitudeMode: String,
+  fixedMutationValue: Int,
+  autoStoppingScore: Double,
+  autoStoppingFlag: Boolean,
+  evolutionStrategy: String,
+  continuousEvolutionMaxIterations: Int,
+  continuousEvolutionStoppingScore: Double,
+  continuousEvolutionParallelism: Int,
+  continuousEvolutionMutationAggressiveness: Int,
+  continuousEvolutionGeneticMixing: Double,
+  continuousEvolutionRollingImprovementCount: Int,
+  dataReductionFactor: Double,
+  firstGenMode: String,
+  firstGenPermutations: Int,
+  firstGenIndexMixingMode: String,
+  firstGenArraySeed: Long,
+  fieldsToIgnore: Array[String],
+  numericFillStat: String,
+  characterFillStat: String,
+  modelSelectionDistinctThreshold: Int,
+  dateTimeConversionType: String,
+  modelType: String,
+  featureImportanceModelFamily: String,
+  featureInteractionFlag: Boolean,
+  featureInteractionRetentionMode: String,
+  featureInteractionContinuousDiscretizerBucketCount: Int,
+  featureInteractionParallelism: Int,
+  featureInteractionTargetInteractionPercentage: Double,
+  deltaCacheBackingDirectory: String,
+  deltaCacheBackingDirectoryRemovalFlag: Boolean,
+  splitCachingStrategy: String
+)
+```
+
+These settings are applied through using the Configuration Generator, with identical map overrides as specified in 
+the previous sections.
+
+The main API for feature importances is used as follows:
+
+```scala
+import com.databricks.labs.automl.executor.config.ConfigurationGenerator
+import com.databricks.labs.automl.exploration.FeatureImportances
+
+val configurationOverrides = Map(
+  "labelCol" -> "my_label",
+  "tunerParallelism" -> 6,
+  "tunerKFold" -> 3,
+  "tunerTrainSplitMethod" -> "stratified",
+  "scoringMetric" -> "areaUnderROC",
+  "tunerNumberOfGenerations" -> 3,
+  "tunerNumberOfMutationsPerGeneration" -> 8,
+  "tunerInitialGenerationMode" -> "permutations",
+  "tunerInitialGenerationPermutationCount" -> 18,
+  "tunerFirstGenerationGenePool" -> 18
+)
+
+val config = ConfigurationGenerator.generateConfigFromMap("RandomForest", "classifier", configurationOverrides)
+val featConfig = ConfigurationGenerator.generateFeatureImportanceConfig(config)
+
+val featureImportances = FeatureImportances(df, featConfig, "count", 20).generateFeatureImportances()
+```
+
+
