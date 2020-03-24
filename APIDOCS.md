@@ -323,7 +323,7 @@ The mechanism for comparison is a ChiSquareTest that utilizes one of three curre
 [Pearson's Chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test)
 
 #### Available Overrides
-[Pearson Filter Statistic](pearson_filter_statistic)
+[Pearson Filter Statistic](#pearson-filter-statistic)
 
 ### Covariance Filtering (covarianceFilterFlag)
 ```text
@@ -667,7 +667,7 @@ Any column names that are supplied to this setter will not be used for row filte
 >> Typical use cases for this
 
 
-#### [pearson_filter_statistic](Pearson Filter Statistic)
+#### Pearson Filter Statistic
 
 Setter: `.pearsonFilterStatistic(<String>)`  Map Name: `'pearsonFilterStatistic'`
 
