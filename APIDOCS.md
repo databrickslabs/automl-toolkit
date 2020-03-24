@@ -281,6 +281,21 @@ Turned off via setter .naFillOff()
 
 This module allows for filling both numeric values and categorical & string values.
 
+#### Available Overrides
+* [Numeric Fill Stat](#numeric-fill-stat)
+* [Character Fill Stat](#character-fill-stat)
+* [Cardinality Check Mode](#fill-config-cardinality-check-mode)
+* [Cardinality Switch](#fill-config-cardinality-switch)
+* [Cardinality Type](#fill-config-cardinality-type)
+* [Cardinlaity Limit](#fill-config-cardinality-limit)
+* [Cardinality Precision](#fill-config-cardinality-precision)
+* [Character NA Blanket Fill Value](#fill-config-character-na-blanket-fill-value)
+* [Filter Precision](#fill-config-filter-precision)
+* [NA Fill Mode](#fill-config-na-fill-mode)
+* [Numeric Na Blanket Fill Value](#fill-config-numeric-na-blanket-fill-value)
+* [Numeric NA Fill Map](#fill-config-numeric-na-fill-map)
+* [Categorical NA Fill Map](#fill-config-categorical-na-fill-map)
+
 
 ### Filter Zero Variance Features (varianceFilterFlag)
 ```text
@@ -291,7 +306,6 @@ NOTE: It is HIGHLY recommended to leave this turned on.
 Feature fields with zero information gain increase overall processing time and provide no real value to the model.
 ```
 There are no options associated with module.
-
 
 ### Filter Outliers (outlierFilterFlag)
 ```text
@@ -306,6 +320,11 @@ Including outliers in some families of machine learning models will result in dr
 > NOTE: It is recommended to only use this feature when doing basic exploratory analysis.  Filtering outliers should be
 > conducted externally on a feature data set once the problem statement and analysis of data is completed.  
 
+#### Available Overrides
+* [Continuous Data Threshold](#outlier-continuous-data-threshold)
+* [Fields To Ignore](#outlier-fields-to-ignore)
+* [Filter Bounds](#outlier-filter-bounds)
+* [Filter Precision](#outlier-filter-precision)
 
 ### Pearson Filtering (pearsonFilterFlag)
 ```text
@@ -323,7 +342,11 @@ The mechanism for comparison is a ChiSquareTest that utilizes one of three curre
 [Pearson's Chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test)
 
 #### Available Overrides
-[Pearson Filter Statistic](#pearson-filter-statistic)
+* [Pearson Filter Statistic](#pearson-filter-statistic)
+* [Pearson Filter Direction](#pearson-filter-direction)
+* [Pearson Filter Manual Value](#pearson-filter-manual-value)
+* [Pearson Filter Mode](#pearson-filter-mode)
+* [Pearson Auto Filter N Tile](#pearson-auto-filter-n-tile)
 
 ### Covariance Filtering (covarianceFilterFlag)
 ```text
@@ -344,6 +367,10 @@ In sequential mode (parallelism = 1), it is O(n * log(n)) and should be turned o
 > There are no settings for determining left / right / both sided filtering.  Instead, the cutoff values can be set to achieve this.
 > > i.e. to only filter positively correlated values, apply the setting: `.setCovarianceCutoffLow(-1.0)` which would only filter
 > > fields that are **exactly** negatively correlated (linear negative correlation)
+
+#### Available Overrides
+* [Cutoff-Low](#correlation-covariance-cutoff-low)
+* [Cutoff-High](#correlation-covariance-cutoff-high)
 
 ##### General Algorithm example
 
@@ -415,6 +442,10 @@ The available scaling modes are:
 * [maxAbs](http://spark.apache.org/docs/latest/ml-features.html#maxabsscaler)
     * Scales the feature vector to a range of {-1, 1} by dividing each value by the Max Absolute Value of the feature.
     * Retains Vector type.
+    
+#### Available Overrides
+* [Scaling Type](#scaling-type)
+* [Scaling P-Norm](#scaling-p-norm)
 
 ### Feature Interaction (featureInteractionFlag)
 
@@ -436,6 +467,12 @@ DEFAULT: OFF
 > NOTE strict is 'safest', but in general does not create additional fields.  It is recommended to use either 'optimisitic' for most use cases
 >and 'all' for testing purposes or in aiding feature engineering iterative tasks to inform where to create more information for future experiments.
 
+#### Available Overrides
+* [Continuous Discretizer Bucket Count](#feature-interaction-continuous-discretizer-bucket-count)
+* [Parallelism](#feature-interaction-parallelism)
+* [Retention Mode](#feature-interaction-retention-mode)
+* [Target Interaction Percentage](#feature-interaction-target-intercation-percentage)
+
 ### DataPrepCachingFlag
 
 This setting will determine whether caching of the feature engineering stages happen prior to splitting.  It can be
@@ -451,6 +488,9 @@ currently running models are complete, will stop the tuning phase.
 
 > NOTE: this feature WILL NOT TERMINATE CURRENTLY RUNNING TASKS.  Each model is run asynchronously, and once committed
 >to execution, will run to completion.  This feature only prevents ADDITIONAL Futures from being executed.
+
+#### Available Overrides
+* [Auto-Stopping Score](#tuner-auto-stopping-score)
 
 ### Pipeline Debug Flag
 
