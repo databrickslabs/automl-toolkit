@@ -417,7 +417,7 @@ trait ConfigurationDefaults {
     )
 
   private[config] def featureEngineeringConfig(): FeatureEngineeringConfig = {
-    val dataPrepParallelism = 20
+    val dataPrepParallelism = 10
     val numericFillStat = "mean"
     val characterFillStat = "max"
     val modelSelectionDistinctThreshold = 50

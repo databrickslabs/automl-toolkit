@@ -1212,7 +1212,7 @@ class ConfigurationGenerator(modelFamily: String,
     * OneHotEncoding or StringIndexing
     *
     * @param value Int: The value at above which a field will be declared to be of too high a cardinality for StringIndexing or OneHotEncoding
-    * @note Default: 20
+    * @note Default: 200
     * @throws java.lang.IllegalArgumentException if the number is <= to 0
     * @since 0.5.2
     * @author Ben Wilson, Databricks
@@ -1403,9 +1403,9 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   def setTunerKFold(value: Int): this.type = {
-    if (value < 5)
+    if (value < 2)
       println(
-        "WARNING - Setting KFold < 5 may result in a poorly generalized tuning run due to " +
+        "WARNING - Setting KFold < 2 may result in a poorly generalized tuning run due to " +
           "over-fitting within a particular train/test split."
       )
     _instanceConfig.tunerConfig.tunerKFold = value
@@ -1837,7 +1837,7 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   /**
-    * Setter for defining the secondary stopping criteria for continuous training mode ( number of consistentlt
+    * Setter for defining the secondary stopping criteria for continuous training mode ( number of consistently
     * not-improving runs to terminate the learning algorithm due to diminishing returns.
     * @param value Negative Integer (an improvement to a priori will reset the counter and subsequent non-improvements
     *              will decrement a mutable counter.  If the counter hits this limit specified in value, the continuous

@@ -1,5 +1,7 @@
 # Databricks Labs AutoML
 [Release Notes](RELEASE_NOTES.md) |
+[Python API Docs](python/docs/APIDOCs.md) |
+[Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl)
 [Developer Docs](APIDOCS.md) |
 [Demo](demos) |
 [Release Artifacts](bin) |
@@ -7,11 +9,17 @@
 
 
 This Databricks Labs project is a non-supported end-to-end supervised learning solution for automating:
-* Feature clean-up
+* Feature clean-up 
+    * Advanced NA fill, covariance calculations, collinearity determination, outlier filtering, and data casting
+* Feature Importance calculation suite
+    * RandomForest or XGBoost determinations
+* Feature Interaction with [Information Gain selection](https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence)
 * Feature vectorization
+* Advanced train/test split techniques (including Distributed [SMOTE](https://en.wikipedia.org/wiki/Oversampling_and_undersampling_in_data_analysis#SMOTE) (KSample))
 * Model selection and training
 * Hyper parameter optimization and selection
-* Batch Prediction
+    * Hyperspace, Genetic, and MBO-based selection
+* Batch Prediction through serialized [SparkML Pipelines](https://spark.apache.org/docs/latest/ml-pipeline.html)
 * Logging of model results and training runs (using [MLFlow](https://mlflow.org))
 
 This package utilizes Apache Spark ML and currently supports the following model family types:
@@ -24,13 +32,13 @@ This package utilizes Apache Spark ML and currently supports the following model
 * Multi-Layer Perceptron Classifier
 * Support Vector Machines
 * XGBoost (Regressor and Classifier)
-```text
-NOTE: As of version 0.5.1, XGBoost model serialization (saving) is not functional.  This will be enabled in a future release.
-```
+
 
 ## Documentation
 
-Developer API documentation can be found [here](APIDOCS.md)
+Scala API documentation can be found [here](APIDOCS.md)
+
+Python API documentation can be found [here](python/docs/APIDOCs.md) 
 
 
 ## Building
@@ -79,6 +87,8 @@ libraries and configurations are provided 'out of the box'
 Attach the following libraries to the cluster:
 * PyPi:  mlflow==1.3.0
 * Maven: org.mlflow:mlflow-client:1.3.0
+* The automl toolkit jar created above. (automatedml_2.11-((version)).jar)
+* If using the PySpark API for the toolkit, the [.whl file](python/docs/APIDOCs.md#Setup) for the PySpark API.
 
 ## Getting Started
 
@@ -121,14 +131,16 @@ import org.apache.spark.ml.PipelineModel
 
 val data = spark.table("ben_demo.adult_data")
 val overrides = Map(
-  "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
-  "scalingFlag" -> true, "oneHotEncodeFlag" -> true,
+  "labelCol" -> "label", 
+  "mlFlowLoggingFlag" -> false,
+  "scalingFlag" -> true, 
+  "oneHotEncodeFlag" -> true,
   "pipelineDebugFlag" -> true
 )
 val randomForestConfig = ConfigurationGenerator
   .generateConfigFromMap("RandomForest", "classifier", overrides)
-val runner = FamilyRunner(data, Array(randomForestConfig))
-  .executeWithPipeline()
+
+val runner = FamilyRunner(data, Array(randomForestConfig)).executeWithPipeline()
 
 runner.bestPipelineModel("RandomForest").transform(data)
 
@@ -157,6 +169,7 @@ Have a great idea that you want to add?  Fork the repo and submit a PR!
 This software is provided as-is and is not officially supported by Databricks.  Please see the [legal agreement](LICENSE.txt) and understand that issues with the use of this code will not be answered or investigated by Databricks Support.  
 
 ## Core Contribution team
-* Lead Developer: Ben Wilson, Sr. RSA, Databricks
+* Lead Developer: Ben Wilson, Practice Leader, Databricks
 * Developer: Daniel Tomes, RSA Practice Leader, Databricks
-* Developer: Jas Bali, Solutions Consultant, Databricks
+* Developer: Jas Bali, Sr. Solutions Consultant, Databricks
+* Developer: Mary Grace Moesta, Customer Success Engineer, Databricks
