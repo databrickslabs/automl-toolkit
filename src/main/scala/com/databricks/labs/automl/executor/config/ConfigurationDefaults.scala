@@ -388,7 +388,7 @@ trait ConfigurationDefaults {
     val covarianceFilterFlag = false
     val oheFlag = oneHotEncodeFlag(family)
     val scaleFlag = scalingFlag(family)
-    val dataPrepCachingFlag = true
+    val dataPrepCachingFlag = false
     val autoStoppingFlag = false
     val pipelineDebugFlag = false
     val featureInteractionFlag = false
@@ -633,7 +633,7 @@ trait ConfigurationDefaults {
       InitDbUtils.getMlFlowLoggingConfig(mlFlowLoggingFlag)
     val mlFlowLoggingMode = "full"
     val mlFlowBestSuffix = "_best"
-    val inferenceSaveLocation = "/inference/"
+    val inferenceSaveLocation = "dbfs:/tmp/automl/inference/"
     val mlFlowCustomRunTags = Map[String, String]()
 
     LoggingConfig(
@@ -666,6 +666,10 @@ trait ConfigurationDefaults {
       loggingConfig()
     )
   }
+
+  def getDefaultConfig(modelFamily: String,
+                       predictionType: String): InstanceConfig =
+    instanceConfig(modelFamily, predictionType)
 
   private[config] def defaultConfigMap(
     modelFamily: String,

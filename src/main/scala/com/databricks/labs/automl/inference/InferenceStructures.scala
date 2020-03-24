@@ -67,6 +67,7 @@ case class InferenceMainConfig(
 )
 
 case class InferenceJsonReturn(compactJson: String, prettyJson: String)
+case class MainJsonReturn(compactJson: String, prettyJson: String)
 
 trait InferenceBaseConstructor {
   def data: DataFrame

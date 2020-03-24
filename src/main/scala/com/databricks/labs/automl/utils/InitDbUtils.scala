@@ -29,7 +29,7 @@ object InitDbUtils {
         getTrackingURI,
         Paths.get(InitDbUtils.getNotebookDirectory + "/MLFlowLogs" ).toString,
         InitDbUtils.getAPIToken,
-        Paths.get(InitDbUtils.getNotebookDirectory + "/AutoML_Artifacts").toString
+        Paths.get("dbfs:/tmp/automl/AutoML_Artifacts").toString
       )
     } else {
       LogggingConfigType("http://localhost:5000/", "/tmp/local_mlflow_exp", "", "/tmp/local_mlflow_exp/artifacts")

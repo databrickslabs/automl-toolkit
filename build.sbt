@@ -16,7 +16,7 @@ libraryDependencies += "ml.dmlc" % "xgboost4j" % "0.90"
 libraryDependencies += "ml.dmlc" % "xgboost4j-spark" % "0.90"
 libraryDependencies += "junit" % "junit" % "4.8.1" % "test"
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "3.0.6"
-libraryDependencies += "com.databricks" % "dbutils-api_2.11" % "0.0.3"
+libraryDependencies += "com.databricks" % "dbutils-api_2.11" % "0.0.4" % Provided
 libraryDependencies += "ml.combust.mleap" %% "mleap-runtime" % "0.14.0"
 libraryDependencies += "ml.combust.mleap" %% "mleap-spark" % "0.14.0"
 libraryDependencies += "com.microsoft.ml.spark" %% "mmlspark" % "0.18.1"
@@ -44,6 +44,7 @@ assemblyExcludedJars in assembly := {
     f.data.getName.contains("spark-mllib") ||
     f.data.getName.contains("spark-sql") ||
     f.data.getName.contains("com.databricks.backend") ||
-    f.data.getName.contains("com.microsoft.ml.spark")
+    f.data.getName.contains("com.microsoft.ml.spark") ||
+      f.data.getName.contains("com.databricks.dbutils-api_2.11")
   }
 }

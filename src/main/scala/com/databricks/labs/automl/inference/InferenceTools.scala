@@ -1,6 +1,10 @@
 package com.databricks.labs.automl.inference
 
+import com.databricks.labs.automl.executor.config.InstanceConfig
+import com.databricks.labs.automl.params.MainConfig
 import com.databricks.labs.automl.utils.SparkSessionWrapper
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.json4s._
@@ -58,6 +62,17 @@ trait InferenceTools extends SparkSessionWrapper {
     InferenceJsonReturn(
       compactJson = compact,
       prettyJson = pretty
+    )
+  }
+
+  def convertMainConfigToJson(config: MainConfig): MainJsonReturn = {
+
+    val objectMapper = new ObjectMapper()
+    objectMapper.registerModule(DefaultScalaModule)
+
+    MainJsonReturn(
+      compactJson = objectMapper.writeValueAsString(config),
+      prettyJson = objectMapper.writerWithDefaultPrettyPrinter.writeValueAsString(config)
     )
   }
 

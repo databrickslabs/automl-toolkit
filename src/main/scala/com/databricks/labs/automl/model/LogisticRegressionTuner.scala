@@ -348,6 +348,8 @@ class LogisticRegressionTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
 
+    logger.log(Level.DEBUG, debugSettings)
+
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
     )
@@ -503,6 +505,8 @@ class LogisticRegressionTuner(df: DataFrame,
   def evolveParameters(): Array[LogisticRegressionModelsWithResults] = {
 
     setClassificationMetrics(resetClassificationMetrics)
+
+    logger.log(Level.DEBUG, debugSettings)
 
     var generation = 1
     // Record of all generations results

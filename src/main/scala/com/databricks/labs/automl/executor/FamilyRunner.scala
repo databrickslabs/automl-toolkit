@@ -2,22 +2,13 @@ package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.exceptions.PipelineExecutionException
-import com.databricks.labs.automl.executor.config.{
-  ConfigurationGenerator,
-  InstanceConfig
-}
+import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
 import com.databricks.labs.automl.model.tools.ModelUtils
+import com.databricks.labs.automl.model.tools.split.PerformanceSettings
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline._
-import com.databricks.labs.automl.tracking.{
-  MLFlowReportStructure,
-  MLFlowTracker
-}
-import com.databricks.labs.automl.utils.{
-  AutoMlPipelineMlFlowUtils,
-  PipelineMlFlowTagKeys,
-  SparkSessionWrapper
-}
+import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowTracker}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, SparkSessionWrapper}
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
@@ -68,6 +59,18 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
     dataFrame.withColumn("model", lit(modelType))
 
+  }
+
+  /**
+    * TODO All other tuner requirements should be called from here as well to enable fail fast
+    * Enable fail fast for poorly configured environment
+    * @param _parallelism Tuner Parallelism from Main Config
+    * @throws java.lang.IllegalArgumentException if Invalid environment config
+    */
+  @throws(classOf[IllegalArgumentException])
+  private def validatePerformanceSettings(_parallelism: Int, modelFamily: String): Unit = {
+    if (modelFamily == "XGBoost") {PerformanceSettings.xgbWorkers(_parallelism)}
+      else PerformanceSettings.optimalJVMModelPartitions(_parallelism)
   }
 
   /**
@@ -179,7 +182,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     addMainConfigToPipelineCache(mainConfig)
     if (mainConfig.mlFlowLoggingFlag) {
       val mlFlowRunId =
-        MLFlowTracker(mainConfig.mlFlowConfig).generateMlFlowRunId()
+        MLFlowTracker(mainConfig).generateMlFlowRunId()
       PipelineStateCache
         .addToPipelineCache(
           mainConfig.pipelineId,
@@ -207,12 +210,14 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     */
   def executeWithPipeline(): FamilyFinalOutputWithPipeline = {
 
+
     val outputBuffer = ArrayBuffer[FamilyOutput]()
 
     val pipelineConfigMap = scala.collection.mutable
       .Map[String, (FeatureEngineeringOutput, MainConfig)]()
     configs.foreach { x =>
       val mainConfiguration = ConfigurationGenerator.generateMainConfig(x)
+      validatePerformanceSettings(mainConfiguration.geneticConfig.parallelism, mainConfiguration.modelFamily)
       val runner = new AutomationRunner(data).setMainConfig(mainConfiguration)
 
       // Perform cardinality check if the model type is a tree-based family and update the

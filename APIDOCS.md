@@ -406,7 +406,7 @@ val runner = new AutomationRunner(train)
     val mlFlowAPIToken = "default"
     val mlFlowModelSaveDirectory = "/mlflow/experiments/"
     val mlFlowLoggingMode = "full"
-    val mlFlowBestSuffix = "_best"
+    val mlFlowBestSuffix = "best"
     val inferenceSaveLocation = "/inference/"
   }
 ```
