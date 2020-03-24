@@ -107,8 +107,46 @@ as well as troubleshooting.
   And one of the transformations in a pipeline
    ![Alt text](images/mlflow-2.png) 
 </details>
- 
-#### Example:
+
+#### Example (As of 0.7.1)
+##### Model Pipeline MUST be trained/tuned using 0.7.1+ 
+As of 0.7.1, the API ensures that data scientists can very easily send model to data engineering for production with
+only an MLFlow Run ID. This is made possible by the addition of the full main config tracked in MLFlow. 
+This greatly simplifies the Inference Pipeline but it also enables config tracking and verification much easier.
+When `mlFlowLoggingFlag` is `true` the config is tracked on every model tracked as per 
+[mlFlowLoggingMode](APIDOCS.md#mlflow-logging-mode).
+![Alt text](images/MLFLow_Config_Tracking.png)
+
+Most teams follow the process:
+* Data Science
+    * Iterative training, testing, validation, review, tracking
+    * Identification of model to move to production
+    * Submit ticket to Data Engineering with MLFlow RunID to productionize model
+    
+* Data Engineering
+    * Productionize Model
+
+Below is a full pipeline example
+```scala
+// Data Science
+val data = spark.table("my_database.myTrain_Data")
+val overrides = Map(
+  "labelCol" -> "label", "mlFlowLoggingFlag" -> true,
+  "scalingFlag" -> true, "oneHotEncodeFlag" -> true
+)
+val randomForestConfig = ConfigurationGenerator.generateConfigFromMap("RandomForest", "classifier", overrides)
+val runner = FamilyRunner(data, Array(randomForestConfig)).executeWithPipeline()
+
+// Data Engineering
+val pipelineBest = PipelineModelInference.getPipelineModelByMlFlowRunId("111825a540544443b9db14e5b9a6006b")
+val prediction = pipelineBest.transform(spark.read.format("delta").load("dbfs:/.../myDataForInference"))
+  .withColumn("priceReal", exp(col("price"))).withColumn("prediction", exp(col("prediction")))
+prediction.write.format("delta").saveAsTable("my_database.newestPredictions")
+```
+
+MLFLow_Config_Tracking.png 
+
+#### Example (Deprecated as of 0.7.1):
 ```scala
 import com.databricks.labs.automl.executor.config.ConfigurationGenerator
 import com.databricks.labs.automl.executor.FamilyRunner
@@ -117,7 +155,7 @@ import com.databricks.labs.automl.pipeline.inference.PipelineModelInference
 
 val data = spark.table("ben_demo.adult_data")
 val overrides = Map(
-  "labelCol" -> "label", "mlFlowLoggingFlag" -> false,
+  "labelCol" -> "label", "mlFlowLoggingFlag" -> true,
   "scalingFlag" -> true, "oneHotEncodeFlag" -> true,
   "pipelineDebugFlag" -> true
 )
