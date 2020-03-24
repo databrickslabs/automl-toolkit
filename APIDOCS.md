@@ -667,7 +667,7 @@ Any column names that are supplied to this setter will not be used for row filte
 >> Typical use cases for this
 
 
-#### Pearson Filter Statistic (pearson_filter_statistic)
+#### [pearson_filter_statistic](Pearson Filter Statistic)
 
 Setter: `.pearsonFilterStatistic(<String>)`  Map Name: `'pearsonFilterStatistic'`
 
