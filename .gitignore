@@ -10,4 +10,6 @@ project/target/
 ./testData
 *.DS_Store
 /dependency-reduced-pom.xml
-/localdata/
+/bin/
+/python/dist/
+/python/pyAutoML.egg-info/
