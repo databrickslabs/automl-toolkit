@@ -91,16 +91,16 @@ case class GroupedModelReturn(modelFamily: String,
                               metrics: Map[String, Double],
                               generation: Int)
 ```
-* generationReport -> A Spark Dataframe representation of the Generational Average Scores, consisting of 2 columns: 
-    * `Generation[Int]` 
+* generationReport -> A Spark Dataframe representation of the Generational Average Scores, consisting of 2 columns:
+    * `Generation[Int]`
     * `Score[Double]`
 
-* modelReportDataFrame -> A Spark Dataframe representation of the Generational Run Results, consisting of 5 columns: 
+* modelReportDataFrame -> A Spark Dataframe representation of the Generational Run Results, consisting of 5 columns:
 
     * model_family[String]
     * model_type[String]
-    * generation[Int] 
-    * generation_mean_score[Double] 
+    * generation[Int]
+    * generation_mean_score[Double]
     * generation_std_dev_score[Double]
 
 * mlFlowReport -> Array[MLFlowReportStructure] that contains the following structures:
@@ -120,7 +120,7 @@ NOTE: If using MLFlow integration, all of this data, in raw format, will be reco
 
 The purpose of the configuration generator is to provide a means of overriding the default values of the automl toolkit.
 The full configuration for the application utilizes a grouped configuration approach, isolating separate similar stage
-configs in groups of similar relevance.  Due to the sheer number of tasks that are being performed, the complexity of 
+configs in groups of similar relevance.  Due to the sheer number of tasks that are being performed, the complexity of
 the internal processes, and the demoralizing idea of setting nested case class configurations, this interface allows for
 a Map to be configured with individual overrides to change this structure internally.
 In the following section, the configuration parameters will be shown and explained.
@@ -136,8 +136,8 @@ Default: "RandomForest"
 Sets the modeling family (Spark Mllib) to be used to train / validate.
 ```
 
-> For model families that support both Regression and Classification, the parameter value 
-`.setModelDistinctThreshold(<Int>)` is used to determine which to use.  Distinct values in the label column, 
+> For model families that support both Regression and Classification, the parameter value
+`.setModelDistinctThreshold(<Int>)` is used to determine which to use.  Distinct values in the label column,
 if below the `modelDistinctThreshold`, will use a Classifier flavor of the Model Family.  Otherwise, it will use the Regression Type.
 
 Currently supported models:
@@ -171,7 +171,7 @@ Setter: `.setLabelCol(<String>)`  Map Name: `'labelCol'`
 Default: "label"
 
 This is the 'predicted value' for use in supervised learning.  
-    If this field does not exist within the dataframe supplied, an assertion exception will be thrown 
+    If this field does not exist within the dataframe supplied, an assertion exception will be thrown
     once a method (other than setters/getters) is called on the AutomationRunner() object.
 ```
 > NOTE : this value should always be defined by the end user.
@@ -183,8 +183,8 @@ Setter: `.setFeaturesCol(<String>)`  Map Name: `'featuresCol'`
 Default: "features"
 
 Purely cosmetic setting that ensures consistency throughout all of the modules within AutoML-Toolkit.  
-    
-[Future Feature] In a future planned release, new accessor methods will make this setting more relevant, 
+
+[Future Feature] In a future planned release, new accessor methods will make this setting more relevant,
     as a validated prediction data set will be returned along with run statistics.
 ```
 
@@ -210,10 +210,10 @@ Setter: `.setFieldsToIgnoreInVector(<Array[String]>)` Map Name `'fieldsToIgnoreI
 ```text
 Default: Array.empty[String]
 
-Provides a means for ignoring specific fields in the Dataframe from being included in any DataPrep feature 
+Provides a means for ignoring specific fields in the Dataframe from being included in any DataPrep feature
 engineering tasks, filtering, and exlusion from the feature vector for model tuning.
 
-This is particularly useful if there is a need to perform follow-on joins to other data sets after model 
+This is particularly useful if there is a need to perform follow-on joins to other data sets after model
 training and prediction is complete.
 ```
 
@@ -299,7 +299,7 @@ Default: OFF
 Turned on via setter .outlierFitlerOn()
 ```
 
-This module allows for detecting outliers from within each field, setting filter thresholds 
+This module allows for detecting outliers from within each field, setting filter thresholds
 (either automatically or manually), and allowing for either tail reduction or two-sided reduction.
 Including outliers in some families of machine learning models will result in dramatic overfitting to those values.  
 
@@ -312,8 +312,8 @@ Including outliers in some families of machine learning models will result in dr
 Default: OFF
 Turned on via setter .pearsonFilterOn()
 ```
-This module will perform validation of each field of the data set (excluding fields that have been added to 
-`.setFieldsToIgnoreInVector(<Array[String]>])` and any fields that have been culled by any previous optional DataPrep 
+This module will perform validation of each field of the data set (excluding fields that have been added to
+`.setFieldsToIgnoreInVector(<Array[String]>])` and any fields that have been culled by any previous optional DataPrep
 feature engineering module) to the label column that has been set (`.setLabelCol()`).
 
 The mechanism for comparison is a ChiSquareTest that utilizes one of three currently supported modes (listed below)
@@ -322,15 +322,18 @@ The mechanism for comparison is a ChiSquareTest that utilizes one of three curre
 
 [Pearson's Chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test)
 
+#### Available Overrides
+[Pearson Filter Statistic](pearson_filter_statistic)
+
 ### Covariance Filtering (covarianceFilterFlag)
 ```text
 Default: OFF
 Turned on via setter .covarianceFilterOn()
 ```
 
-Covariance Filtering is a Data Prep module that iterates through each element of the feature space 
-(fields that are intended to be part of the feature vector), calculates the pearson correlation coefficient between each 
-feature to every other feature, and provides for the ability to filter out highly positive or negatively correlated 
+Covariance Filtering is a Data Prep module that iterates through each element of the feature space
+(fields that are intended to be part of the feature vector), calculates the pearson correlation coefficient between each
+feature to every other feature, and provides for the ability to filter out highly positive or negatively correlated
 features to prevent fitting errors.
 
 Further Reading: [Pearson Correlation Coefficient](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient)
@@ -349,30 +352,30 @@ Given a data set:
 | A 	| B 	| C 	| D 	| label |
 |:----:	|:----:	|:----:	|:----:	|:----: |
 |   1  	|  94 	|   5  	|   10 	|   1   |
-|   2  	|   1  	|   4  	|   20 	|   0   | 
+|   2  	|   1  	|   4  	|   20 	|   0   |
 |   3  	|  22 	|   3  	|   30 	|   1   |
 |   4  	|   5  	|   2  	|   40 	|   0   |
 |   5  	|   5  	|   1  	|   50 	|   0   |
 
 Each of the fields A:B:C:D would be compared to one another, the pearson value would be calculated, and a filter will occur.
 
-* A->B 
-* A->C 
-* A->D 
-* B->C 
-* B->D 
+* A->B
+* A->C
+* A->D
+* B->C
+* B->D
 * C->D
 
-There is a perfect linear negative correlation present between A->C, a perfect postitive linear correlation between 
+There is a perfect linear negative correlation present between A->C, a perfect postitive linear correlation between
 A->D, and a perfect linear negative correlation between C->D.
-However, evaluation of C->D will not occur, as both C and D will be filtered out due to the correlation coefficient 
+However, evaluation of C->D will not occur, as both C and D will be filtered out due to the correlation coefficient
 threshold.
-The resultant data set from this module would be, after filtering: 
+The resultant data set from this module would be, after filtering:
 
 | A 	| B 	| label |
 |:----:	|:----:	|:----: |
 |   1  	|  94 	|   1   |
-|   2  	|   1  	|   0   | 
+|   2  	|   1  	|   0   |
 |   3  	|  22 	|   1   |
 |   4  	|   5  	|   0   |
 |   5  	|   5  	|   0   |
@@ -382,12 +385,12 @@ The resultant data set from this module would be, after filtering:
 Default: OFF
 Turned on via setter .oneHotEncodingOn()
 ```
-Useful for all non-tree-based models (e.g. LinearRegression) for converting categorical features into a vector boolean 
+Useful for all non-tree-based models (e.g. LinearRegression) for converting categorical features into a vector boolean
 space.
 
 Details: [OneHotEncoderEstimator](http://spark.apache.org/docs/latest/ml-features.html#onehotencoderestimator)
 
-Implementation here follows the general recommendation: Categorical (text) fields will be StringIndexed first, then 
+Implementation here follows the general recommendation: Categorical (text) fields will be StringIndexed first, then
 OneHotEncoded.
 
 > There are no options for this setting.  It either encodes the categorical features, or leaves them StringIndexed.
@@ -397,7 +400,7 @@ OneHotEncoded.
 
 The Scaling Module provides for an automated way to set scaling on the feature vector prior to modeling.  
 There are a number of ML algorithms that dramatically benefit from scaling of the features to prevent overfitting.  
-Although tree-based algorithms are generally resilient to this issue, if using any other family of model, it is 
+Although tree-based algorithms are generally resilient to this issue, if using any other family of model, it is
 **highly recommended** to use some form of scaling.
 
 The available scaling modes are:
@@ -405,7 +408,7 @@ The available scaling modes are:
    * Scales the feature vector to the specified min and max.  
    * Creates a Dense Vector.
 * [standard](http://spark.apache.org/docs/latest/ml-features.html#standardscaler)
-    * Scales the feature vector to the unit standard deviation of the feature (has options for centering around mean) 
+    * Scales the feature vector to the unit standard deviation of the feature (has options for centering around mean)
     * If centering around mean, creates a Dense Vector.  Otherwise, it can maintain sparsity.
 * [normalize](http://spark.apache.org/docs/latest/ml-features.html#normalizer)
     * Scales the feature vector to a p-norm normalization value.
@@ -416,12 +419,12 @@ The available scaling modes are:
 ### Feature Interaction (featureInteractionFlag)
 
 The Feature Interaction module allows for creation of pair-wise products (Interactions) between feature fields.
-The default mode (optimistic) will calculate [Information Gain](https://en.wikipedia.org/wiki/Information_gain_in_decision_trees) 
+The default mode (optimistic) will calculate [Information Gain](https://en.wikipedia.org/wiki/Information_gain_in_decision_trees)
 from Entropy and Differential Entropy calculations done on the parents of each interaction candidate, the offspring candidate,
 and make a decision to keep or discard based on the relative ratio of the interacted child to its parents.
 There are 4 main modes here:
 flag off - no interactions (default)
-flag on - 'all' - all potential children candidates will be created with no Information Gain calculations being done 
+flag on - 'all' - all potential children candidates will be created with no Information Gain calculations being done
 (fastest, but potentially risky as some interactions may create a poorly fit model)
 flag on - 'optimistic' - potential children are interacted, but only retained in the final feature vector if the resulting
 child's information gain metric is at least n% of at least one parent.  See below sections for the setters / map value to get
@@ -436,14 +439,14 @@ DEFAULT: OFF
 ### DataPrepCachingFlag
 
 This setting will determine whether caching of the feature engineering stages happen prior to splitting.  It can be
-useful for performance aspects of extremely large data sets or moderate size data sets with high numbers of columns in 
+useful for performance aspects of extremely large data sets or moderate size data sets with high numbers of columns in
 the feature set.  
 
 Default: OFF
 
 ### Auto Stopping Flag
 
-If set to on, when coupled with a stopping criteria score, will stop initializing new Futures and once all async 
+If set to on, when coupled with a stopping criteria score, will stop initializing new Futures and once all async
 currently running models are complete, will stop the tuning phase.
 
 > NOTE: this feature WILL NOT TERMINATE CURRENTLY RUNNING TASKS.  Each model is run asynchronously, and once committed
@@ -513,12 +516,12 @@ Setter: `.setDataPrepParallelism(<Int>)`  Map Name: `'dataPrepParallelism'`
 Default: 10
 ```
 
-This setting is used to set the maximum number of asynchronous Futures that are utilized for several stages within the 
-Data Preparation modules for feature vector creation.  Some of the checks and validations that are performed are 
+This setting is used to set the maximum number of asynchronous Futures that are utilized for several stages within the
+Data Preparation modules for feature vector creation.  Some of the checks and validations that are performed are
 inherently parallelizable, and as such, the cluster can be utilized to asynchronously process these calculations.
 
-> NOTE - WARNING - setting this value to too high of a value based on a cluster not large enough to handle the GC 
-> involved in multiple copies of individual field data series may introduce instability or long pauses while the Heap 
+> NOTE - WARNING - setting this value to too high of a value based on a cluster not large enough to handle the GC
+> involved in multiple copies of individual field data series may introduce instability or long pauses while the Heap
 > is cleared.  Perform testing on your data set to determine if  the cluster being used
 > for the tuning run is sufficiently large to support overriding this value in a higher direction.
 
@@ -527,14 +530,14 @@ inherently parallelizable, and as such, the cluster can be utilized to asynchron
 
 Setter: `.setFillConfigNumericFillStat(<String>)`  Map Name: `'fillConfigNumericFillStat'`
 
-```text 
+```text
 Specifies the behavior of the naFill algorithm for numeric (continuous) fields.
 Values that are generated as potential fill candidates are set according to the available statistics that are
 calculated from a df.summary() method.
 Default: "mean"
 ```
 * For all numeric types (or date/time types that have been cast to numeric types)
-* Allowable fill statistics: 
+* Allowable fill statistics:
 1. <b>"min"</b> - minimum sorted value from all distinct values of the field
 2. <b>"25p"</b> - 25th percentile (Q1 / Lower IQR value) of the ascending sorted data field
 3. <b>"mean"</b> - the mean (average) value of the data field
@@ -546,7 +549,7 @@ Default: "mean"
 
 Setter: `.setFillConfigCharacterFillStat(<String>)`  Map Name: `'fillConfigCharacterFillStat'`
 
-```text 
+```text
 Specifies the behavior of the naFill algorithm for character (String, Char, Boolean, Byte, etc.) fields.
 Generated through a df.summary() method
 Available options are:
@@ -561,7 +564,7 @@ Default: "max"
 
 Setter: `.setFillConfigModelSelectionDistinctThreshold`  Map Name: `'fillConfigModelSelectionDistinctThreshold'`
 
-```text 
+```text
 Default: 50
 ```
 The threshold value that is used to detect, based on the supplied labelCol, the cardinality of the label through
@@ -625,7 +628,7 @@ Default: 0.01
 Determines the level of precision in the calculation of the N-tile values of each field.  
 Setting this number to a lower value will result in additional shuffling and computation.
 The algorithm that uses the filter precision is `approx_count_distinct(columnName: String, rsd: Double)`.  
-The lower that this value is set, the more accurate it is (setting it to 0.0 will be an exact count), but the more 
+The lower that this value is set, the more accurate it is (setting it to 0.0 will be an exact count), but the more
 shuffling (computationally expensive) will be required to calculate the value.
 > NOTE: **Restricted Value** range: 0.0 -> 1.0
 
@@ -648,7 +651,7 @@ Determines an exclusion filter of unique values that will be ignored if the uniq
 |   1  	|   1  	|   0  	|   0  	|   1  	|
 
 > In this example data set, if the continuousDataThreshold value were to be set at 4, the ignored fields would be: Col1, Col3, Col4, and Col5.
-> > Col2, having 5 unique entries, would be evaluated by the outlier filtering methodology and, provided that upper range filtering is being done, Row #3 (value entry 9999) would be filtered out with an UpperFilterNTile setting of 0.8 or lower. 
+> > Col2, having 5 unique entries, would be evaluated by the outlier filtering methodology and, provided that upper range filtering is being done, Row #3 (value entry 9999) would be filtered out with an UpperFilterNTile setting of 0.8 or lower.
 
 #### Outlier Fields To Ignore
 
@@ -661,10 +664,10 @@ Optional configuration that allows certain fields to be exempt (ignored) by the 
 Any column names that are supplied to this setter will not be used for row filtering.
 
 > NOTE: it is **highly advised** to populate this to control for 'blind filtering' of too much data.  
->> Typical use cases for this 
+>> Typical use cases for this
 
 
-#### Pearson Filter Statistic
+#### Pearson Filter Statistic (pearson_filter_statistic)
 
 Setter: `.pearsonFilterStatistic(<String>)`  Map Name: `'pearsonFilterStatistic'`
 
@@ -677,17 +680,17 @@ allowable values: "pvalue", "pearsonStat", or "degreesFreedom"
 Correlation Detection between a feature value and the label value is capable of 3 supported modes:
 * [Pearson Correlation](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient) ("pearsonStat")
 > > Calculates the Pearson Correlation Coefficient in range of {-1.0, 1.0}
-* [Degrees Freedom](https://en.wikipedia.org/wiki/Degrees_of_freedom_(statistics)#In_analysis_of_variance_(ANOVA)) ("degreesFreedom") 
+* [Degrees Freedom](https://en.wikipedia.org/wiki/Degrees_of_freedom_(statistics)#In_analysis_of_variance_(ANOVA)) ("degreesFreedom")
 
-    Additional Reading: 
+    Additional Reading:
 
     [Reduced Chi-squared statistic](https://en.wikipedia.org/wiki/Reduced_chi-squared_statistic)
 
     [Generalized Chi-squared distribution](https://en.wikipedia.org/wiki/Generalized_chi-squared_distribution)
-    
+
     [Degrees Of Freedom](https://en.wikipedia.org/wiki/Degrees_of_freedom_(statistics)#Of_random_vectors)
-  
-> > Calculates the Degrees of Freedom of the underlying linear subspace, in unbounded range {0, n} 
+
+> > Calculates the Degrees of Freedom of the underlying linear subspace, in unbounded range {0, n}
 > > where n is the feature vector size.
 
 *Before Overriding this value, ensure that a thorough understanding of this statistic is achieved.*
@@ -720,10 +723,10 @@ Default: 0.0
 
 Allows for manually filtering based on a hard-defined limit.
 
-Example: with .setPearsonFilterMode("manual") and .setPearsonFilterDirection("greater") 
+Example: with .setPearsonFilterMode("manual") and .setPearsonFilterDirection("greater")
 the removal of fields (columns) that have a pearson correlation coefficient result above this value will be dropped from the feature vector for modeling runs.
 
-> Note: if using "manual" mode on this module, it is *imperative* to provide a valid value through this setter, as the Default placeholder value will 
+> Note: if using "manual" mode on this module, it is *imperative* to provide a valid value through this setter, as the Default placeholder value will
 > provide poor results and it is intended to, as such, flag the user that a valid value be provided.
 
 #### Pearson Filter Mode
@@ -735,11 +738,11 @@ Default: "auto"
 
 allowable values: "auto" or "manual"
 ```
-Determines whether a manual filter value is used as a threshold, or whether a quantile-based approach (automated) 
+Determines whether a manual filter value is used as a threshold, or whether a quantile-based approach (automated)
 based on the distribution of Chi-squared test results will be used to determine the threshold.
 
-> The automated approach (using a specified NTile) will adapt to more general problems and is recommended for getting 
-measures of modeling feasibility (exploratory phase of modeling).  However, if utilizing the high-level API with a 
+> The automated approach (using a specified NTile) will adapt to more general problems and is recommended for getting
+measures of modeling feasibility (exploratory phase of modeling).  However, if utilizing the high-level API with a
 well-understood data set, it is recommended to override the mode, setting it to manual, and utilizing a known
 acceptable threshold value for the test that is deemed acceptable based on analysis of the feature fields and the predictor (label) column.
 
@@ -758,7 +761,7 @@ be removed, depending on the distribution of pearson statistics from all feature
 ([Q3 / Upper IQR value](https://en.wikipedia.org/wiki/Interquartile_range))
 
 
-When in "auto" mode, this will reduce the feature vector by 75% of its total size, retaining only the 25% most 
+When in "auto" mode, this will reduce the feature vector by 75% of its total size, retaining only the 25% most
 important predictive-power features of the vector.
 
 #### Correlation (Covariance) Cutoff Low
@@ -770,7 +773,7 @@ Default: -0.8
 
 Value must be set > -1.0
 ```
-The setting at below which the right-hand comparison field will be filtered out of the data set, provided that the 
+The setting at below which the right-hand comparison field will be filtered out of the data set, provided that the
 pearson correlation coefficient between left->right fields is below this threshold.
 
 > NOTE: Max supported value for `.setCovarianceCutoffLow` is -1.0
@@ -810,7 +813,7 @@ Default: 0.0
 Only used in "minMax" mode
 ```
 
-Used to set the scaling lower threshold for MinMax Scaler 
+Used to set the scaling lower threshold for MinMax Scaler
 (normalizes all features in the vector to set the minimum post-processed value specified in this setter)
 
 #### Scaler Max
@@ -929,7 +932,7 @@ included in the final feature vector.
 Setter: `.setFeatureImportanceCutoffType(<String>)`  Map Name: `'featureImportanceCutoffType'`
 
 ```text
-Setting for determining where to limit the feature vector after completing a feature importances run in order to return 
+Setting for determining where to limit the feature vector after completing a feature importances run in order to return
 either the top n most important features, or the top features above a specific relevance score cutoff.
 
 modes: 'none', 'value', or 'count'
@@ -942,11 +945,11 @@ Default: 'count'
 Setter: `.setFeatureImportanceCutoffValue(<Double>)`  Map Name: `'featureImportanceCutoffValue'`
 
 ```text
-Restrictive filtering limit on either counts of fields (if feature importance cutoff type is in 'count' mode) ranked, 
+Restrictive filtering limit on either counts of fields (if feature importance cutoff type is in 'count' mode) ranked,
 or direct value of feature importance.
 
 WARNING: depending on the algorithm used to calculate feature importances, operating in 'value' mode is different for
-XGBoost vs. RandomForest since their scoring methodologies are different.  Please see respective API docs for 
+XGBoost vs. RandomForest since their scoring methodologies are different.  Please see respective API docs for
 XGBoost and Spark RandomForest to get an understanding of how these are calculated before attempting 'value' mode.
 ```
 
@@ -971,7 +974,7 @@ Setter: `.setFillConfigCardinalitySwitch(<Boolean>)`  Map Name: `'fillConfigCard
 ```text
 Toggles the checking for whether to treat a field as nominal or continuous based on the distinct counts.
 This is important for nominal data that, even though numeric, should be handles as a categorical-like value.
-Fields that fall below the cardinality limit will be handled in the same way as StringType fields 
+Fields that fall below the cardinality limit will be handled in the same way as StringType fields
 (utilizing max or min fill rather than mean or quantile fill)
 
 Default: true (on)
@@ -993,7 +996,7 @@ Configuration for how cardinality is calculated, either 'approx' or 'exact'
 Setter: `.setFillConfigCardinalityLimit(<Int>)`  Map Name: `'fillConfigCardinalityLimit'`
 
 ```text
-The cardinality threshold for use if the fill config cardinality switch is turned on - this is the value that distinct 
+The cardinality threshold for use if the fill config cardinality switch is turned on - this is the value that distinct
 counts below which will be considered to be 'nominal' and handled as a categorical fill value.
 ```
 
@@ -1050,7 +1053,7 @@ Default: Empty Map
 Setter: `.setFillConfigNumericNAFillMap(<Map[String, Double]>)`  Map Name: `'fillConfigNumericNAFillMap'`
 
 ```text
-A means of directly controlling at a column-level distinct overrides to columns for na fill for numeric Type columns 
+A means of directly controlling at a column-level distinct overrides to columns for na fill for numeric Type columns
 (all columns get cast to DoubleType throughout modeling anyway). The structure is of
 Column Name -> fill value
 This will function only numeric value type columns and the data will be cast as a Double, regardless of the input
@@ -1196,7 +1199,7 @@ NOTE: There is a global limit of 32767 threads on the JVM, as well.
 However, in practice, running too many models in parallel will likely OOM the workers anyway.  
 
 > NOTE: highly recommended to override this value as the default value is simply a placeholder.
-> NOTE values set above 30 will receive a WARNING stating that the number of concurrent tasks is likely beyond an efficient ratio of 
+> NOTE values set above 30 will receive a WARNING stating that the number of concurrent tasks is likely beyond an efficient ratio of
 >avalable cluster resources and the benefits of asynchronous tuning.
 > NOTE: different models have different characteristics and behavior.  It is recommended that tree-based (non XGBoost) use a relatively low value here
 > (~4-6), while linear models can run at much higher levels and benefit from the higher concurrency.
@@ -1206,9 +1209,9 @@ However, in practice, running too many models in parallel will likely OOM the wo
 Setter: `.setTunerKFold(<Int>)`  Map Name: `'tunerKFold'`
 
 ```text
-Sets the number of different splits that are happening on the pre-modeled data set for train and test, allowing for 
+Sets the number of different splits that are happening on the pre-modeled data set for train and test, allowing for
 testing of different splits of data to ensure that the hyper parameters under test are being evaluated for different mixes of the data.
-This value dictates the number of copies of the data that will exist either cached, persisted, or written to temporary delta tables during the 
+This value dictates the number of copies of the data that will exist either cached, persisted, or written to temporary delta tables during the
 modeling phase.
 
 Default: 5
@@ -1222,7 +1225,7 @@ Default: 5
 Setter: `.setTunerTrainPortion(<Double>)`  Map Name: `'tunerTrainPortion'`
 
 ```text
-Sets the proportion of the input DataFrame to be used for Train (the value of this variable) and Test 
+Sets the proportion of the input DataFrame to be used for Train (the value of this variable) and Test
 (1 - the value of this variable)
 
 Default: 0.8
@@ -1263,7 +1266,7 @@ Stratified Mode
 - Stratified mode will balance all of the values present in the label column of a classification algorithm so that there
 is adequate coverage of all available labels in both train and test for each kfold split step.
 
-***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column and there is a need for 
+***It is HIGHLY RECOMMENDED to use this mode if there is a large skew in your label column and there is a need for
 training on the full, unmanipulated data set.***
 
 UnderSampling Mode
@@ -1275,15 +1278,15 @@ to target the row count of the smallest class. (Only recommended for moderate sk
 
 OverSampling Mode
 
-- Over sampling will evaluate the class with the highest count of entries and during splitting, will replicate all 
-other classes' data to *generally match* the counts of the most frequent class. (**this is not exact and can vary from 
+- Over sampling will evaluate the class with the highest count of entries and during splitting, will replicate all
+other classes' data to *generally match* the counts of the most frequent class. (**this is not exact and can vary from
 run to run**)
 
 ***WARNING*** - using this mode will dramatically increase the training and test data set sizes.  
 ***Small count classes' data will be copied multiple times to eliminate skew***
 
 KSampling Mode
-- Uses a distributed implementation of [SMOTE](https://en.wikipedia.org/wiki/Oversampling_and_undersampling_in_data_analysis#SMOTE) applied to 
+- Uses a distributed implementation of [SMOTE](https://en.wikipedia.org/wiki/Oversampling_and_undersampling_in_data_analysis#SMOTE) applied to
 the minority class(es) for the training split only (test is not augmented).  
 
 > NOTE: as this is an ML-based augmentation system, there is considerable time and resources involved in creating 'intelligent'
@@ -1340,7 +1343,7 @@ See [DOC](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.sp
 Setter: `.setTunerKSampleKMeansDistanceMeasurement(<String>)`  Map Name: `'tunerKSampleKMeansDistanceMeasurement'`
 
 ```text
-Which distance measurement to use for generation of synthetic data. 
+Which distance measurement to use for generation of synthetic data.
 
 Either 'euclidean' or 'cosine'
 
@@ -1443,7 +1446,7 @@ Defines the method of mixing of the Vector positions selected to the centroid po
 Available modes:
 "weighted" - uses weighted averaging to scale the euclidean distance between the centroid vector and mutation candidate vectors
 "random" - randomly selects a position on the euclidean vector between the centroid vector and the candidate mutation vectors
-"ratio" - uses a ratio between the values of the centroid vector and the mutation vector 
+"ratio" - uses a ratio between the values of the centroid vector and the mutation vector
 
 Default: 'weighted'
 ```
@@ -1484,7 +1487,7 @@ or left as a continuous data point
 Default: 20
 ```
 
-#### Tuner KSample 
+#### Tuner KSample
 
 Setter: `.setTunerKSampleNumericRatio(<Double>)`  Map Name: `'tunerKSampleNumericRatio'`
 
@@ -1496,7 +1499,7 @@ Default: 0.2
 ```
 > NOTE: must be between 0 and 1 (recommend setting this based on analysis of the class imbalance and the total data size)
 
-#### Tuner KSample 
+#### Tuner KSample
 
 Setter: `.setTunerKSampleNumericTarget(<Int>)`  Map Name: `'tunerKSampleNumericTarget'`
 
@@ -1527,7 +1530,7 @@ Validation will occur when modeling begins (post data-prep) to ensure that this 
 
 #### Train Split Chronological Random Percentage
 
-Due to the fact that a Chronological split, when done by a sort and percentage 'take' of the DataFrame, each k-fold 
+Due to the fact that a Chronological split, when done by a sort and percentage 'take' of the DataFrame, each k-fold
 generation would extract an identical train and test data set each iteration if the split were left static.  This
 setting allows for a 'jitter' to the train / test boundary to ensure that k-fold validation provides more useful results.
 
@@ -1540,8 +1543,8 @@ Default: 0.0
 
 This is a placeholder value.
 ```
-> [WARNING] Failing to override this value if using "chronological" mode on `.setTunerTrainSplitMethod()` is equivalent to setting 
-`.setTunerKFold(1)` for efficacy purposes, and will simply waste resources by fitting multiple copies of the same hyper 
+> [WARNING] Failing to override this value if using "chronological" mode on `.setTunerTrainSplitMethod()` is equivalent to setting
+`.setTunerKFold(1)` for efficacy purposes, and will simply waste resources by fitting multiple copies of the same hyper
 parameters on the exact same data set.
 
 #### Tuner Seed
@@ -1549,7 +1552,7 @@ parameters on the exact same data set.
 Setter: `.setTunerSeed(<Long>)`  Map Name: `'tunerSeed'`
 
 ```text
-Sets the seed for both random selection generation for the initial random pool of values, as well as initializing 
+Sets the seed for both random selection generation for the initial random pool of values, as well as initializing
 another randomizer for random train/test splits.
 
 Default: 42L
@@ -1561,7 +1564,7 @@ Setter: `.setTunerFirstGenerationGenePool(<Int>)`  Map Name: `'tunerFirstGenerat
 
 ```text
 Determines the random search seed pool for the genetic algorithm to operate from.  
-There are space constraints on numeric hyper parameters, character, and boolean that are distinct for each modeling 
+There are space constraints on numeric hyper parameters, character, and boolean that are distinct for each modeling
 family and model type.
 Setting this value higher increases the chances of minimizing convergence, at the expense of a longer run time.
 
@@ -1576,7 +1579,7 @@ Setter: `.setTunerNumberOfGenerations(<Int>)`  Map Name: `'tunerNumberOfGenerati
 ```text
 This setting, applied only to batch processing mode, sets the number of mutation generations that will occur.
 
-The higher this number, the better the exploration of the hyper parameter space will occur, although it comes at the 
+The higher this number, the better the exploration of the hyper parameter space will occur, although it comes at the
 expense of longer run-time.  This is a *sequential blocking* setting.  Parallelism does not effect this.
 
 Default: 10
@@ -1594,7 +1597,7 @@ using these result's configuration to mutate the next generation of attempts.
 Default: 3
 ```
 
-> NOTE: The higher this setting, the more 'space exploration' that will occur.  However, it may slow the possibility of 
+> NOTE: The higher this setting, the more 'space exploration' that will occur.  However, it may slow the possibility of
         converging to an optimal condition.
 
 
@@ -1615,7 +1618,7 @@ what is set by `.setTunerParallelism()`, it will add to the run-time.
 Setter: `.setTunerGeneticMixing(<Double>)`  Map Name: `'tunerGeneticMixing'`
 
 ```text
-This setting defines the ratio of impact that the 'best parent' that is used to mutate with a new randomly generated 
+This setting defines the ratio of impact that the 'best parent' that is used to mutate with a new randomly generated
 child will have upon the mixed-inheritance hyper parameter.  The higher this number, the more effect from the parent the parameter will have.
 
 Default: 0.7
@@ -1636,12 +1639,12 @@ Provides for one of two modes:
 * Linear
 > This mode will decrease the number of selected hyper parameters that will be mutated each generation.
 It is set to utilize the fixed mutation value as a decrement reducer.
-        
-        Example: 
-        
+
+        Example:
+
         A model family is selected that has 10 total hyper parameters.
-        
-        In "linear" mode for the generational mutation strategy, with a fixed mutation value of 1, 
+
+        In "linear" mode for the generational mutation strategy, with a fixed mutation value of 1,
         the number of available mutation parameters for the first mutation generation would be
         set to a maximum value of 9 (randomly selected in range of {1, 9}).
         At generation #2, the maximum mutation count for hyper parameters in the vector space
@@ -1683,14 +1686,14 @@ This setting determines the number of hyper parameter values that will be mutate
 There are two modes:
 * "random"
 
-> In random mode, the setting of `.setGenerationalMutationStrategy()` is used, in conjunction with 
+> In random mode, the setting of `.setGenerationalMutationStrategy()` is used, in conjunction with
 the current generation count, to provide a bounded restriction on the number of hyper parameters
 per model configuration that will be mutated.  A Random number of indeces will be selected for
 mutation in this range.
 
 * "fixed"
 
-> In fixed mode, a constant count of hyper parameters will be mutated, used in conjunction with 
+> In fixed mode, a constant count of hyper parameters will be mutated, used in conjunction with
 the setting of .`setGenerationalMutationStrategy()`.
 >> i.e. With fixed mode, and a generational mutation strategy of "fixed", each mutation generation
 would be static (e.g. fixedMutationValue of 3 would mean that each model of each generation would
@@ -1707,13 +1710,13 @@ Available options: "fixed" or "random"
 Setter: `.setTunerEvolutionStrategy(<String>)`  Map Name: `'tunerEvolutionStrategy'`
 
 ```text
-Determining the mode (batch vs. continuous) 
+Determining the mode (batch vs. continuous)
 
 In batch mode, the hyper parameter space is explored with an initial seed pool (based on Random Search with constraints).
 
 After this initial pool is evaluated (in parallel), the best n parents from this seed generation are used to 'sire' a new generation.
 
-This continues for as many generations are specified through the config `.setTunerNumberOfGenerations(<Int>)`, 
+This continues for as many generations are specified through the config `.setTunerNumberOfGenerations(<Int>)`,
 *or until a stopping threshold is reached at the conclusion of a concurrent generation batch run.*
 
 
@@ -1778,8 +1781,8 @@ Default -10
 Setter: `.setTunerContinuousEvolutionMaxIterations(<Int>)`  Map Name: `'tunerContinuousEvolutionMaxIterations'`
 
 ```text
-This parameter sets the total maximum cap on the number of hyper parameter tuning models that are 
-created and set to run.  The higher the value, the better the chances for convergence to optimum 
+This parameter sets the total maximum cap on the number of hyper parameter tuning models that are
+created and set to run.  The higher the value, the better the chances for convergence to optimum
 tuning criteria, at the expense of runtime.
 
 
@@ -1803,7 +1806,7 @@ Default: 1.0
 
 This is a placeholder value.  Ensure it is overriden for early stopping to function in classification problems.
 ```
-> NOTE: The asynchronous nature of this algorithm will have additional results potentially return after a stopping 
+> NOTE: The asynchronous nature of this algorithm will have additional results potentially return after a stopping
 criteria is met, since Futures may have been submitted before the result of a 'winning' run has returned.  
 > > This is intentional by design and does not constitute a bug.
 
@@ -1818,7 +1821,7 @@ more like a batch mode operation.
 
 Default: 4
 ```
-> TIP: **Recommended value range is {2, 5}** to see the greatest exploration benefit of the n-dimensional hyper 
+> TIP: **Recommended value range is {2, 5}** to see the greatest exploration benefit of the n-dimensional hyper
 parameter space, with the benefit of run-time optimization by parallel async execution.
 
 
@@ -1827,13 +1830,13 @@ parameter space, with the benefit of run-time optimization by parallel async exe
 Setter: `.setTunerContinousEvolutionMutationAggressiveness(<Int>)`  Map Name: `'tunerContinuousEvolutionMutationAggressiveness'`
 
 ```text
-Similar to the batch mode setting `.setFixedMutationValue()`; however, there is no concept of a 'linear' vs 'fixed' 
+Similar to the batch mode setting `.setFixedMutationValue()`; however, there is no concept of a 'linear' vs 'fixed'
 setting.  There is only a fixed mode for continuous processing.  This sets the number of hyper parameters that will
 be mutated during each async model execution.
 
 Default: 3
 ```
-> The higher the setting of this value, the more the feature space will be explored; however, the longer it may take to 
+> The higher the setting of this value, the more the feature space will be explored; however, the longer it may take to
 converge to a 'best' tuned parameter set.
 
 > The recommendation is, for **exploration of a modeling task**, to set this value ***higher***.  If trying to fine-tune a model,
@@ -1868,14 +1871,14 @@ Default: 20
 Setters: `.setTunerModelSeed(<Map[String, Any]>)`  Map Name: `'tunerModelSeed'`
 
 ```text
-Allows for 'jump-starting' a model tuning run, primarily for the purpose of 
+Allows for 'jump-starting' a model tuning run, primarily for the purpose of
 fine-tuning after a previous run, or for retraining a previously trained model.
 
-Provides a forced hyper parameter configuration for resumption of tuning, or to re-evaluate a model that has already 
-been tuned prior.  Useful in production use cases where a solid baseline exists, but updated training data may 
+Provides a forced hyper parameter configuration for resumption of tuning, or to re-evaluate a model that has already
+been tuned prior.  Useful in production use cases where a solid baseline exists, but updated training data may
 make a better model.
 ```
-> ***CAUTION*** : using a model Seed from an initial starting point on a data set (during exploratory phase) **may** 
+> ***CAUTION*** : using a model Seed from an initial starting point on a data set (during exploratory phase) **may**
 result in poor hyper parameter tuning performance.  *It is always best to not seed a new model when exploring new use cases*.
 
 #### Tuner Hyper Space Inference Flag
@@ -1927,10 +1930,10 @@ Setters: `.setTunerInitialGenerationMode(<String>)`  Map Name: `'tunerInitialGen
 Whether to use a random search (default) or a permutations-based search space.
 Options: 'random' or 'permutations'
 
-Default: 'random' 
+Default: 'random'
 ```
 > the 'permutations' mode is recommended to ensure that full search is conducted throughout the algorithm.  However,
->it generates guaranteed bad results, and as such, is not turned on by default until users become familiar with 
+>it generates guaranteed bad results, and as such, is not turned on by default until users become familiar with
 >the performance of the toolkit.
 
 #### Tuner Initial Generation Permutation Count
@@ -2079,7 +2082,7 @@ def _rfDefaultNumBoundaries: Map[String, (Double, Double)] = Map(
     "loss" -> List("squaredError", "huber")
   )
 ```
-#### Logistic Regression 
+#### Logistic Regression
 
 ###### Default Numeric Boundaries
 ```scala
@@ -2350,27 +2353,27 @@ case class InstanceConfig(
 )
 ```
 
-# Inference 
+# Inference
 
 ### Pipeline API
 To use pipeline API, check [here](PIPELINE_API_DOCS.md) for an example usage.
 
 ## Batch Inference Mode [DEPRECATED API, Pipeline API is now the official main access paradigm]
 
-Batch Inference Mode is a feature that allows for a particular run's settings to be preserved, recalled, and used to 
-apply the precise feature engineering actions that occured during a model training run.  This is useful in order to 
-utilize the built model for batch inference, or to understand how to write real-time transformation logic in order to 
+Batch Inference Mode is a feature that allows for a particular run's settings to be preserved, recalled, and used to
+apply the precise feature engineering actions that occured during a model training run.  This is useful in order to
+utilize the built model for batch inference, or to understand how to write real-time transformation logic in order to
 create a feature vector that can be sent through a model in a model-as-a-service mode.
 
 ***This mode REQUIRES MLFlow in order to function***
 
 Each individual model will get two forms of the configuration:
-1. A compact JSON data structure that is logged as a tagged element to the mlflow run that can be copied and 
+1. A compact JSON data structure that is logged as a tagged element to the mlflow run that can be copied and
 pasted (or retrieved through the mlflow API) for any particular run that would be used to do batch inference
 2. A specified location that a Dataframe has been saved that contains the same location.
 
-There are two primary entry points for an inference run.  One simply requires the path of the DataFrame (preferred), 
-while the other requires the json string itself.  Everything needed to execute the inference prediction is 
+There are two primary entry points for an inference run.  One simply requires the path of the DataFrame (preferred),
+while the other requires the json string itself.  Everything needed to execute the inference prediction is
 contained within this data structure (either the json or the Dataframe)
 
 
