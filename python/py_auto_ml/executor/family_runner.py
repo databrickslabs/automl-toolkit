@@ -68,7 +68,7 @@ class FamilyRunner:
                                   model_family: str,
                                   prediction_type: str,
                                   dataframe: DataFrame,
-                                  configs = [],
+                                  configs = {},
                                   label_col='label'):
         """
 
