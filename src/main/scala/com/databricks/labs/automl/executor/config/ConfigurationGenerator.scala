@@ -3,9 +3,12 @@ package com.databricks.labs.automl.executor.config
 import com.databricks.labs.automl.exploration.structures.FeatureImportanceConfig
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline.PipelineStateCache
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.{read, writePretty}
 import org.json4s.{Formats, FullTypeHints, NoTypeHints}
+import org.json4s.jackson.JsonMethods
 
 import scala.collection.mutable.ListBuffer
 
@@ -1403,11 +1406,6 @@ class ConfigurationGenerator(modelFamily: String,
   }
 
   def setTunerKFold(value: Int): this.type = {
-    if (value < 2)
-      println(
-        "WARNING - Setting KFold < 2 may result in a poorly generalized tuning run due to " +
-          "over-fitting within a particular train/test split."
-      )
     _instanceConfig.tunerConfig.tunerKFold = value
     this
   }
@@ -2090,7 +2088,12 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setMlFlowModelSaveDirectory(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Model save directory must be written to dbfs:/."
+    )
     _instanceConfig.loggingConfig.mlFlowModelSaveDirectory = value
     this
   }
@@ -2106,7 +2109,12 @@ class ConfigurationGenerator(modelFamily: String,
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setInferenceConfigSaveLocation(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Inference save location must be on dbfs:/."
+    )
     _instanceConfig.loggingConfig.inferenceConfigSaveLocation = value
     this
   }
@@ -2632,6 +2640,18 @@ object ConfigurationGenerator extends ConfigurationDefaults {
     read[InstanceConfig](json)
   }
 
+  def generateMainConfigFromJson(json: String): MainConfig = {
+    val objectMapper = new ObjectMapper()
+    objectMapper.registerModule(DefaultScalaModule)
+    objectMapper.readValue(json, classOf[MainConfig])
+  }
+
+  def jsonStrToMap(jsonStr: String): Map[String, Any] = {
+    implicit val formats = org.json4s.DefaultFormats
+
+    JsonMethods.parse(jsonStr).extract[Map[String, Any]]
+  }
+
   private def validateMapConfig(defaultMap: Map[String, Any],
                                 submittedMap: Map[String, Any]): Unit = {
 
@@ -2658,8 +2678,6 @@ object ConfigurationGenerator extends ConfigurationDefaults {
     }
 
   }
-
-
 
   /**
     *

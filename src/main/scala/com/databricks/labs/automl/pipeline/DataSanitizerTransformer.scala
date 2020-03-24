@@ -9,6 +9,7 @@ import org.apache.spark.ml.util.{
   DefaultParamsWritable,
   Identifiable
 }
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
@@ -270,7 +271,10 @@ class DataSanitizerTransformer(override val uid: String)
       setDecideModel(detectedModelType)
     }
 
-    naFilledDataFrame.toDF()
+    naFilledDataFrame
+      .toDF()
+      .filter(col($(labelColumn)).isNotNull)
+      .filter(!col($(labelColumn)).isNaN)
   }
 
   private def buildNaConfig(): Option[NaFillConfig] = {

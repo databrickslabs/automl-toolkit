@@ -26,7 +26,13 @@ class DecisionTreeSplits(data: DataFrame,
       featConfig.labelCol,
       featConfig.geneticConfig.deltaCacheBackingDirectory,
       featConfig.geneticConfig.splitCachingStrategy,
-      featConfig.modelFamily
+      featConfig.modelFamily,
+      featConfig.geneticConfig.parallelism,
+      featConfig.geneticConfig.trainPortion,
+      featConfig.geneticConfig.kSampleConfig.syntheticCol,
+      featConfig.geneticConfig.trainSplitChronologicalColumn,
+      featConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      featConfig.dataReductionFactor
     )
 
     val (modelResults, modelStats) = new DecisionTreeTuner(

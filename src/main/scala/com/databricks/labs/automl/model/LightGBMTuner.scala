@@ -635,6 +635,8 @@ class LightGBMTuner(df: DataFrame,
     setClassificationMetrics(resetClassificationMetrics)
     validateGBMClassificationSetting()
 
+    logger.log(Level.DEBUG, debugSettings)
+
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
     )
@@ -788,6 +790,8 @@ class LightGBMTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
     validateGBMClassificationSetting()
+
+    logger.log(Level.DEBUG, debugSettings)
 
     var generation = 1
 

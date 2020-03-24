@@ -1,13 +1,14 @@
 package com.databricks.labs.automl.pyspark
 
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.spark.ml.PipelineModel
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.DataFrame
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig}
-import org.apache.spark.sql.SparkSession
+import com.databricks.labs.automl.executor.config.{
+  ConfigurationGenerator,
+  InstanceConfig
+}
 import com.databricks.labs.automl.exploration.FeatureImportances
+import com.databricks.labs.automl.pyspark.utils.Utils
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import org.apache.spark.sql.DataFrame
 
 object FeatureImportanceUtil {
   lazy val objectMapper = new ObjectMapper()
@@ -20,14 +21,14 @@ object FeatureImportanceUtil {
                            cutoffValue: Float,
                            defaultFlag: String): Unit = {
 
+    val fiConfig =
+      defaultConfigFlag(defaultFlag, configJson, modelFamily, predictionType)
 
-    val fiConfig  = defaultConfigFlag(defaultFlag,
-      configJson,
-      modelFamily,
-      predictionType)
-
-    val mainConfig = ConfigurationGenerator.generateFeatureImportanceConfig(fiConfig)
-    val fImportances = FeatureImportances(df, mainConfig, cutoffType, cutoffValue).generateFeatureImportances()
+    val mainConfig =
+      ConfigurationGenerator.generateFeatureImportanceConfig(fiConfig)
+    val fImportances =
+      FeatureImportances(df, mainConfig, cutoffType, cutoffValue)
+        .generateFeatureImportances()
 
     //create temp importances df and top fields to get them later in python
     fImportances.importances.createOrReplaceTempView("importances")
@@ -38,16 +39,21 @@ object FeatureImportanceUtil {
                         configJson: String,
                         modelFamily: String,
                         predictionType: String): InstanceConfig = {
-    if (defaultFlag == "true"){
+    if (defaultFlag == "true") {
       // Generate default config if default flag is true
-      val fiConfig = ConfigurationGenerator.generateDefaultConfig(modelFamily, predictionType)
+      val fiConfig = ConfigurationGenerator.generateDefaultConfig(
+        modelFamily,
+        predictionType
+      )
       return fiConfig
-    }
-    else{
+    } else {
       // Generating config from the map of overrides if default configs aren't being used
-      val overrides = jsonToMap(configJson)
-      val fiConfig = ConfigurationGenerator.generateConfigFromMap(modelFamily,predictionType,overrides)
-      return fiConfig
+      val overrides = Utils.cleansNestedTypes(jsonToMap(configJson))
+      ConfigurationGenerator.generateConfigFromMap(
+        modelFamily,
+        predictionType,
+        overrides
+      )
     }
   }
 

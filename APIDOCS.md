@@ -250,6 +250,7 @@ For Classifer modeling, the default is [f1](https://en.wikipedia.org/wiki/F1_sco
 
 > NOTE: although f1 score is a valid metric for binary classification problems, it is highly advised to use a Binary Classification scoring method that is more accurate for these problems (areaUnderROC, areaUnderPR)
 
+
 #### Scoring Optimization Strategy
 
 Setter: `.setScoringOptimizationStrategy(<String>)`  

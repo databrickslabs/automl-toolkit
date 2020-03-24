@@ -365,6 +365,8 @@ class LinearRegressionTuner(df: DataFrame,
   private def continuousEvolution()
     : Array[LinearRegressionModelsWithResults] = {
 
+    logger.log(Level.DEBUG, debugSettings)
+
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
     )
@@ -519,6 +521,8 @@ class LinearRegressionTuner(df: DataFrame,
   }
 
   def evolveParameters(): Array[LinearRegressionModelsWithResults] = {
+
+    logger.log(Level.DEBUG, debugSettings)
 
     var generation = 1
     // Record of all generations results
