@@ -35,6 +35,13 @@ object DataSplitCustodial {
 
   }
 
+  /**
+    * Method for cleaning up the cached instances based on a FeatureImportance config object.
+    * @param splitData reference collection to the cached, persisted, or written-out delta tables
+    * @param config feature importances config, containing configuration references for how to handle the split data
+    * @since 0.7.1
+    * @author Ben Wilson, Databricks
+    */
   def cleanCachedInstances(splitData: Array[TrainSplitReferences],
                            config: FeatureImportanceConfig): Unit = {
 
