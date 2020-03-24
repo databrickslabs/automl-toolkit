@@ -1120,11 +1120,10 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setParallelism(value: Integer): this.type = {
-    //TODO: FIND OUT WHAT THIS RESTRICTION NEEDS TO BE FOR PARALLELISM.
+  def setParallelism(value: Int): this.type = {
     require(
-      _parallelism < 10000,
-      s"Parallelism above 10000 will result in cluster instability."
+      _parallelism < 100,
+      s"Parallelism above 100 will result in cluster instability."
     )
     _parallelism = value
     setGeneticConfig()
@@ -1132,7 +1131,7 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
-  def setKFold(value: Integer): this.type = {
+  def setKFold(value: Int): this.type = {
     _kFold = value
     setGeneticConfig()
     setConfigs()
@@ -1790,7 +1789,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setMlFlowModelSaveDirectory(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Model save directory must be written to dbfs:/."
+    )
     _mlFlowModelSaveDirectory = value
     setMlFlowConfig()
     setConfigs()
@@ -2019,7 +2023,12 @@ trait AutomationConfig extends Defaults with SanitizerDefaults {
     this
   }
 
+  @throws(classOf[IllegalArgumentException])
   def setInferenceConfigSaveLocation(value: String): this.type = {
+    require(
+      value.take(6) == "dbfs:/",
+      s"Inference save location must be on dbfs:/."
+    )
     _inferenceConfigSaveLocation = value
     setConfigs()
     this

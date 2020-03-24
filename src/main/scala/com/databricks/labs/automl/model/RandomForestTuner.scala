@@ -28,7 +28,7 @@ class RandomForestTuner(df: DataFrame,
     with Evolution
     with Defaults {
 
-  private val logger: Logger = Logger.getLogger(this.getClass)
+  @transient private val logger: Logger = Logger.getLogger(this.getClass)
 
   // Instantiate the default scoring metric
   private var _scoringMetric = modelSelection match {
@@ -469,6 +469,8 @@ class RandomForestTuner(df: DataFrame,
     setClassificationMetrics(resetClassificationMetrics)
     if (!isPipeline) resetNumericBoundaries
 
+    logger.log(Level.DEBUG, debugSettings)
+
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
     )
@@ -626,6 +628,8 @@ class RandomForestTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
     if (!isPipeline) resetNumericBoundaries
+
+    logger.log(Level.DEBUG, debugSettings)
 
     var generation = 1
     // Record of all generations results

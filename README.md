@@ -3,6 +3,7 @@
 [Python API Docs](python/docs/APIDOCs.md) |
 [Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl)
 [Developer Docs](APIDOCS.md) |
+[Python Docs](python/docs/APIDOCs.md) |
 [Demo](demos) |
 [Release Artifacts](bin) |
 [Contributors](#core-contribution-team)
@@ -171,5 +172,9 @@ This software is provided as-is and is not officially supported by Databricks.  
 ## Core Contribution team
 * Lead Developer: Ben Wilson, Practice Leader, Databricks
 * Developer: Daniel Tomes, RSA Practice Leader, Databricks
+<<<<<<< HEAD
 * Developer: Jas Bali, Sr. Solutions Consultant, Databricks
+=======
+* Developer: Jas Bali, Solutions Consultant, Databricks
+>>>>>>> f03b692ebcdcb918c31b75f9451d8d2a7d34fbad
 * Developer: Mary Grace Moesta, Customer Success Engineer, Databricks

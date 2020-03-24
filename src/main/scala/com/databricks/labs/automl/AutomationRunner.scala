@@ -72,7 +72,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     val initialize = new RandomForestTuner(
@@ -280,7 +286,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     val initialize = new LightGBMTuner(
@@ -488,7 +500,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     val initialize = new XGBoostTuner(
@@ -694,7 +712,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     payload.modelType match {
@@ -921,7 +945,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     val initialize = new GBTreesTuner(
@@ -1131,7 +1161,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     payload.modelType match {
@@ -1362,7 +1398,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     payload.modelType match {
@@ -1592,7 +1634,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     payload.modelType match {
@@ -1816,7 +1864,13 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       _mainConfig.labelCol,
       _mainConfig.geneticConfig.deltaCacheBackingDirectory,
       _mainConfig.geneticConfig.splitCachingStrategy,
-      _mainConfig.modelFamily
+      _mainConfig.modelFamily,
+      _mainConfig.geneticConfig.parallelism,
+      _mainConfig.geneticConfig.trainPortion,
+      _mainConfig.geneticConfig.kSampleConfig.syntheticCol,
+      _mainConfig.geneticConfig.trainSplitChronologicalColumn,
+      _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage,
+      _mainConfig.dataReductionFactor
     )
 
     val initialize = new DecisionTreeTuner(
@@ -2006,7 +2060,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
                                  modelFamily: String,
                                  modelType: String): MLFlowReportStructure = {
 
-    val mlFlowLogger = MLFlowTracker(_mainConfig.mlFlowConfig)
+    val mlFlowLogger = MLFlowTracker(_mainConfig)
 
     if (_mainConfig.mlFlowLogArtifactsFlag) mlFlowLogger.logArtifactsOn()
     else mlFlowLogger.logArtifactsOff()
@@ -2026,7 +2080,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     modelType: String
   ): MLFlowReportStructure = {
 
-    val mlFlowLogger = MLFlowTracker(_mainConfig.mlFlowConfig)
+    val mlFlowLogger = MLFlowTracker(_mainConfig)
     mlFlowLogger.logMlFlowForPipeline(
       AutoMlPipelineMlFlowUtils
         .getMainConfigByPipelineId(_mainConfig.pipelineId)
@@ -2044,6 +2098,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
   ): TunerOutput = {
 
     val genericResults = new ArrayBuffer[GenericModelReturn]
+    logger.log(Level.INFO, convertMainConfigToJson(_mainConfig))
 
     val (resultArray, modelStats, modelSelection, dataframe) =
       _mainConfig.modelFamily match {
@@ -2257,9 +2312,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     msg: String
   ): Option[MLFlowReportStructure] = {
     try {
-      val genTracker = MLFlowTracker(_mainConfig.mlFlowConfig)
+      val genTracker = MLFlowTracker(_mainConfig)
       val dummyLog = MLFlowReturn(
-        genTracker.createHostedMlFlowClient(),
+        genTracker.getMLFlowClient,
         msg,
         Array((msg, 0.0))
       )
