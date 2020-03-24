@@ -427,7 +427,7 @@ trait ConfigurationDefaults {
     val outlierFilterPrecision = 0.01
     val outlierContinuousDataThreshold = 50
     val outlierFieldsToIgnore = Array.empty[String]
-    val pearsonFilterStatistic = "pValue"
+    val pearsonFilterStatistic = "pvalue"
     val pearsonFilterDirection = "greater"
     val pearsonFilterManualValue = 0.0
     val pearsonFilterMode = "auto"

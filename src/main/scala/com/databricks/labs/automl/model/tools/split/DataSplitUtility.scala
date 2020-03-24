@@ -18,7 +18,7 @@ class DataSplitUtility(mainDataset: DataFrame,
 
   final val uniqueLabels = mainDataset.select(labelColumn).distinct().collect()
 
-  def trainSplitPersist: Array[TrainSplitReferences] = {
+    def trainSplitPersist: Array[TrainSplitReferences] = {
 
     val optimalParts = modelFamily match {
       case "XGBoost" => xgbWorkers
