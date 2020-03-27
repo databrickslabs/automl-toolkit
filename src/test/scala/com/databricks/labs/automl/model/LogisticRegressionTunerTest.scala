@@ -19,7 +19,13 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "LogisticRegression"
+        "LogisticRegression",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new LogisticRegressionTuner(null, trainSplits).evolveBest()
@@ -38,7 +44,13 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "LogisticRegression"
+        "LogisticRegression",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new LogisticRegressionTuner(
@@ -64,7 +76,13 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
       _mainConfig.labelCol,
       "dbfs:/test",
       "cache",
-      "LogisticRegression"
+      "LogisticRegression",
+      1,
+      0.8,
+      "synthCol",
+      "datetime",
+      0.01,
+      0.9
     )
 
     val logisticRegressionModelsWithResults

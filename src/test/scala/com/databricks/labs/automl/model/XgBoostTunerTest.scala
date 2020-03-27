@@ -21,7 +21,13 @@ class XgBoostTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "XGBoost"
+        "XGBoost",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new XGBoostTuner(null, splitData, null).evolveBest()
@@ -37,7 +43,13 @@ class XgBoostTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "XGBoost"
+        "XGBoost",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new XGBoostTuner(AutomationUnitTestsUtil.getAdultDf(), splitData, "err")
@@ -59,7 +71,13 @@ class XgBoostTunerTest extends AbstractUnitSpec {
       _mainConfig.labelCol,
       "dbfs:/test",
       "cache",
-      "XGBoost"
+      "XGBoost",
+      1,
+      0.8,
+      "synthCol",
+      "datetime",
+      0.01,
+      0.9
     )
 
     val xGBoostModelsWithResults: XGBoostModelsWithResults =
@@ -182,7 +200,13 @@ class XgBoostTunerTest extends AbstractUnitSpec {
       _mainConfig.labelCol,
       "dbfs:/test",
       "cache",
-      "XGBoost"
+      "XGBoost",
+      1,
+      0.8,
+      "synthCol",
+      "datetime",
+      0.01,
+      0.9
     )
 
     val xGBoostModelsWithResults: XGBoostModelsWithResults =
@@ -305,7 +329,13 @@ class XgBoostTunerTest extends AbstractUnitSpec {
       _mainConfig.labelCol,
       "dbfs:/test",
       "cache",
-      "XGBoost"
+      "XGBoost",
+      1,
+      0.8,
+      "synthCol",
+      "datetime",
+      0.01,
+      0.9
     )
     val xGBoostModelsWithResults: XGBoostModelsWithResults =
       new XGBoostTuner(data, trainSplits, "regressor")

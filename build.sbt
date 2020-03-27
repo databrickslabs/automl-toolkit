@@ -2,7 +2,7 @@ name := "AutomatedML"
 
 organization := "com.databricks"
 
-version := "0.7.1"
+version := "0.7.2"
 
 scalaVersion := "2.11.12"
 scalacOptions ++= Seq("-Xmax-classfile-name", "78")
@@ -23,7 +23,7 @@ libraryDependencies += "com.microsoft.ml.spark" %% "mmlspark" % "0.18.1"
 libraryDependencies += "org.vegas-viz" %% "vegas" % "0.3.11"
 
 lazy val commonSettings = Seq(
-  version := "0.7.1",
+  version := "0.7.2",
   organization := "com.databricks",
   scalaVersion := "2.11.12"
 )
@@ -45,6 +45,6 @@ assemblyExcludedJars in assembly := {
     f.data.getName.contains("spark-sql") ||
     f.data.getName.contains("com.databricks.backend") ||
     f.data.getName.contains("com.microsoft.ml.spark") ||
-      f.data.getName.contains("com.databricks.dbutils-api_2.11")
+    f.data.getName.contains("com.databricks.dbutils-api_2.11")
   }
 }

@@ -27,7 +27,13 @@ class MLPCTunerTest extends AbstractUnitSpec {
         "label",
         "dbfs:/test",
         "cache",
-        "MLPC"
+        "MLPC",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new MLPCTuner(null, trainSplits).evolveBest()
@@ -48,7 +54,13 @@ class MLPCTunerTest extends AbstractUnitSpec {
         "label",
         "dbfs:/test",
         "cache",
-        "MLPC"
+        "MLPC",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new MLPCTuner(
@@ -75,7 +87,13 @@ class MLPCTunerTest extends AbstractUnitSpec {
       "income",
       "dbfs:/test",
       "cache",
-      "MLPC"
+      "MLPC",
+      1,
+      0.8,
+      "synthCol",
+      "datetime",
+      0.01,
+      0.9
     )
 
     val logisticRegressionModelsWithResults: MLPCModelsWithResults =
