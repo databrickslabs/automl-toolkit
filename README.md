@@ -34,6 +34,8 @@ This package utilizes Apache Spark ML and currently supports the following model
 * Support Vector Machines
 * XGBoost (Regressor and Classifier)
 
+> NOTE: LightGBM support is built-in, but is in Experimental mode and canoot be accessed from the FamilyRunner API 
+> while we are undergoing testing and evaluation of thread concurrency issues with the LightGBM code base.
 
 ## Documentation
 
@@ -61,7 +63,7 @@ mvn clean install -DskipTests
 ```sbtshell
 sbt package
 ```
-If there is any StackOverflowError during the build, adjust the stack size on a JVM, example:
+If there is any StackOverflowError during the build, adjust the stack size on your computer's JVM. Example:
 ```sbtshell
 #For Maven
 export MAVEN_OPTS=-Xss2m
@@ -80,16 +82,17 @@ Once the artifact has been built, attach to the Databricks Shard through either 
 ```text
 NOTE: It is not recommended to attach this libarary to all clusters on the account.  
 
-Use of an ML Runtime is highly advised to ensure that custom management of dependent 
+Use of an ML Runtime cluster configuration is highly advised to ensure that custom management of dependent 
 libraries and configurations are provided 'out of the box'
 
 ```
 
 Attach the following libraries to the cluster:
-* PyPi:  mlflow==1.3.0
-* Maven: org.mlflow:mlflow-client:1.3.0
 * The automl toolkit jar created above. (automatedml_2.11-((version)).jar)
 * If using the PySpark API for the toolkit, the [.whl file](python/docs/APIDOCs.md#Setup) for the PySpark API.
+
+> IMPORTANT NOTE: as of release 0.7.1, the mlflow libraries in pypi and Maven are NO LONGER NEEDED.  Attaching them
+> to your cluster WILL prevent the run from logging and will throw an exception.  DO NOT ATTACH EITHER OF THEM.
 
 ## Getting Started
 
@@ -167,7 +170,9 @@ Feel free to file an issue.
 Have a great idea that you want to add?  Fork the repo and submit a PR!
 
 ## Legal Information
-This software is provided as-is and is not officially supported by Databricks.  Please see the [legal agreement](LICENSE.txt) and understand that issues with the use of this code will not be answered or investigated by Databricks Support.  
+This software is provided as-is and is not officially supported by Databricks through customer technical support channels.
+Support, questions, and feature requests can be communicated via email -> benjamin.wilson@databricks.com or through the Issues page of this repo.
+Please see the [legal agreement](LICENSE.txt) and understand that issues with the use of this code will not be answered or investigated by Databricks Support.  
 
 ## Core Contribution team
 * Lead Developer: Ben Wilson, Practice Leader, Databricks
