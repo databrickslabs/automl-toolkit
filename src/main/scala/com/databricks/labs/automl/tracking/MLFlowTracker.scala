@@ -134,9 +134,10 @@ class MLFlowTracker extends InferenceTools {
     * @param client: MlflowClient to get access to the mlflow service agent
     * @return the experiment id from either an existing run or the newly created one.
     */
-  private def getOrCreateExperimentId(client: MlflowClient,
-                                      experimentName: String =
-                                        _mlFlowExperimentName): String = {
+  def getOrCreateExperimentId(
+    client: MlflowClient,
+    experimentName: String = _mlFlowExperimentName
+  ): String = {
 
     val experiment = client.getExperimentByName(experimentName)
     if (experiment.isPresent) experiment.get().getExperimentId
@@ -514,7 +515,7 @@ class MLFlowTracker extends InferenceTools {
     val baseDirectory = Paths.get(s"${_modelSaveDirectory}/BestRun").toString
     val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
     val configPath = saveConfig(runId, configDir)
-//    mlflowLoggingClient.logArtifact(runId, new File(configPath))
+    mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
     // Log custom tags if present
     if (_mlFlowCustomRunTags.nonEmpty) {
@@ -596,7 +597,7 @@ class MLFlowTracker extends InferenceTools {
     // Save main config to MLFlow
     val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
     val configPath = saveConfig(runId, configDir)
-//    mlflowLoggingClient.logArtifact(runId, new File(configPath))
+    mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
     // Log custom tags if present
     if (_mlFlowCustomRunTags.nonEmpty) {
@@ -739,7 +740,7 @@ class MLFlowTracker extends InferenceTools {
         val baseDirectory = Paths.get(s"${_modelSaveDirectory}").toString
         val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
         val configPath = saveConfig(runId, configDir)
-//        mlflowLoggingClient.logArtifact(runId, new File(configPath))
+        mlflowLoggingClient.logArtifact(runId, new File(configPath))
         mlflowLoggingClient.logParam(runId, "modelType", modelDescriptor)
 
         // log the generation
@@ -859,7 +860,7 @@ class MLFlowTracker extends InferenceTools {
         // Save the Config and add to MLFlow artifacts
         val configDir = s"${baseDirectory}/${modelDescriptor}_${runId}/config"
         val configPath = saveConfig(runId, configDir)
-//        mlflowLoggingClient.logArtifact(runId, new File(configPath))
+        mlflowLoggingClient.logArtifact(runId, new File(configPath))
 
         // Log custom tags if present
         if (_mlFlowCustomRunTags.nonEmpty) {

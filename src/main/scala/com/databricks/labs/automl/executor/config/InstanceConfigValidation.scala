@@ -14,6 +14,10 @@ class InstanceConfigValidation(modelFamily: String,
     "to a model that fits erroneously to values that are of larger scaled magnitude that is not intended to influence" +
     "the model.  "
 
+  //Scoring Metric test
+
+  //
+
   final val MODEL_FAMILY = familyTypeEvaluator(modelFamily)
 
   private def warningPrint(settingName: String,
