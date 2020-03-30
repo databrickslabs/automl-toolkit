@@ -1,0 +1,1001 @@
+term,home_ownership,purpose,addr_state,verification_status,application_type,loan_amnt,emp_length,annual_inc,dti,delinq_2yrs,revol_util,total_acc,credit_length_in_years,label,int_rate,net,issue_year
+ 36 months,MORTGAGE,debt_consolidation,NC,Not Verified,INDIVIDUAL,10000,3,60000,16.18,0,88.7,12,9,tru,18.75,-4580.83,2012
+ 36 months,MORTGAGE,debt_consolidation,VA,Verified,INDIVIDUAL,8000,3,40950,23.92,0,60.4,13,15,fals,7.62,813.72,2012
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,3200,null,10728,19.91,0,91,5,9,tru,24.99,-2441.12,2016
+ 36 months,RENT,debt_consolidation,VA,Verified,INDIVIDUAL,27000,8,100000,12.53,0,85.9,37,20,fals,13.65,6045.97,2014
+ 36 months,RENT,credit_card,NC,Not Verified,INDIVIDUAL,6000,0,40000,33.57,0,28.6,33,6,fals,9.16,400.09,2016
+ 36 months,RENT,debt_consolidation,MO,Verified,INDIVIDUAL,12000,10,80000,22.38,1,65.8,25,11,tru,11.99,-5170.3,2014
+ 36 months,MORTGAGE,credit_card,MA,Verified,INDIVIDUAL,18000,10,65000,14.57,1,55.3,20,13,fals,11.47,1923.34,2016
+ 36 months,RENT,debt_consolidation,NC,Verified,INDIVIDUAL,7900,7,22000,30.66,0,94.8,12,14,fals,14.46,1087.14,2016
+ 60 months,MORTGAGE,debt_consolidation,IN,Verified,INDIVIDUAL,22975,10,125000,15.26,0,42,42,19,tru,14.65,-13542.43,2015
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,20000,0,121656,13.11,13,42,47,21,fals,9.99,2191.74,2015
+ 60 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,35000,5,181000,9.87,1,76.2,28,24,fals,15.88,12964.24,2013
+ 36 months,MORTGAGE,major_purchase,TX,Not Verified,INDIVIDUAL,12000,10,110000,12.21,0,47.6,32,16,tru,7.62,-828.7,2012
+ 36 months,MORTGAGE,debt_consolidation,NC,Not Verified,INDIVIDUAL,3500,8,32000,20.97,0,71.9,15,17,tru,12.99,-2430.21,2014
+ 60 months,MORTGAGE,home_improvement,NY,Verified,INDIVIDUAL,15800,4,59000,32.81,0,19.1,35,13,fals,15.61,2669.96,2014
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,35000,6,180000,11.87,0,42.1,20,17,fals,9.76,3577.28,2012
+ 36 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,15000,9,55000,25.18,0,80.6,13,13,fals,21.49,2533.81,2016
+ 36 months,RENT,debt_consolidation,HI,Verified,INDIVIDUAL,11200,9,54600,5.8,0,36.9,13,11,fals,12.99,696.86,2015
+ 36 months,MORTGAGE,major_purchase,CA,Verified,INDIVIDUAL,6800,9,70000,19.48,0,28.7,33,29,fals,18.24,1952.11,2014
+ 36 months,MORTGAGE,debt_consolidation,MN,Verified,INDIVIDUAL,35000,10,110000,15,0,44.3,36,25,fals,14.65,6975.62,2015
+ 36 months,MORTGAGE,home_improvement,MO,Verified,INDIVIDUAL,3600,10,110000,21.31,0,86.5,28,16,fals,13.35,516.37,2014
+ 36 months,MORTGAGE,home_improvement,CA,Verified,INDIVIDUAL,15000,6,113000,5.21,0,35,31,30,tru,10.99,-13526.97,2014
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,21000,6,85000,21.59,0,46.1,26,16,fals,8.18,897.43,2015
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,7500,9,55000,27.65,0,46.3,36,11,tru,16.59,-2332.48,2014
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,15600,6,70000,6.79,1,59.8,5,9,fals,16.2,2769.44,2013
+ 36 months,RENT,credit_card,NY,Verified,INDIVIDUAL,20000,3,65000,10.51,1,48.1,24,9,fals,10.99,2215.59,2015
+ 60 months,MORTGAGE,debt_consolidation,VA,Verified,INDIVIDUAL,22000,null,49000,19.05,0,69.5,28,14,tru,17.77,2870.05,2013
+ 60 months,MORTGAGE,credit_card,UT,Not Verified,INDIVIDUAL,14000,1,80000,25.64,0,82.2,24,11,fals,10.49,2921.16,2014
+ 60 months,RENT,major_purchase,GA,Verified,INDIVIDUAL,5900,3,144000,1.24,0,26.8,29,15,fals,15.61,1180.95,2014
+ 36 months,RENT,other,CA,Verified,INDIVIDUAL,7025,2,30000,0,0,0,7,4,fals,18.99,1678.46,2014
+ 60 months,MORTGAGE,debt_consolidation,PA,Verified,INDIVIDUAL,21000,0,215000,13.04,0,94.2,50,17,fals,18.99,4634.81,2015
+ 36 months,RENT,credit_card,CA,Verified,INDIVIDUAL,25000,2,60000,9.76,0,72,7,7,fals,7.39,107.08,2016
+ 36 months,RENT,debt_consolidation,NY,Not Verified,INDIVIDUAL,10050,8,30000,14.96,0,45.1,8,8,fals,9.71,1575.06,2013
+ 36 months,MORTGAGE,debt_consolidation,TN,Verified,INDIVIDUAL,35000,10,80000,21.18,0,27.4,29,12,tru,15.61,-15492.3,2015
+ 36 months,MORTGAGE,debt_consolidation,NV,Not Verified,INDIVIDUAL,2000,0,40000,15.03,0,51.8,21,16,fals,14.31,284.97,2015
+ 60 months,RENT,credit_card,OR,Verified,INDIVIDUAL,16675,9,65000,1.88,0,15.4,27,22,fals,15.61,216.92,2014
+ 36 months,MORTGAGE,credit_card,RI,Not Verified,INDIVIDUAL,15000,3,75000,27.15,0,84.6,39,13,tru,13.98,-8204.47,2014
+ 36 months,MORTGAGE,credit_card,CO,Verified,INDIVIDUAL,24000,2,80000,14.45,0,67.4,18,13,fals,6.99,2450.02,2014
+ 60 months,MORTGAGE,home_improvement,FL,Verified,INDIVIDUAL,25000,2,170000,9.37,0,33.7,48,13,fals,14.47,3491.63,2014
+ 36 months,MORTGAGE,credit_card,GA,Not Verified,INDIVIDUAL,6700,8,33000,13.27,0,52.7,20,10,fals,9.67,1045.49,2013
+ 60 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,27575,10,80880,29.35,1,40,45,33,tru,14.99,-12952.57,2015
+ 36 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,18000,10,100000,7.91,0,44,20,14,tru,7.26,-13543.74,2015
+ 60 months,MORTGAGE,debt_consolidation,NM,Verified,INDIVIDUAL,35000,10,110357.14,18.95,0,86.8,34,21,tru,13.99,-19106.16,2015
+ 36 months,RENT,debt_consolidation,PA,Not Verified,INDIVIDUAL,5000,2,52000,14.81,2,55.2,12,28,fals,12.49,1021.26,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,15000,4,71000,22.01,0,64.8,15,12,tru,6.39,-8125.8,2015
+ 36 months,RENT,debt_consolidation,VA,Verified,INDIVIDUAL,10000,10,78000,20.69,0,99.6,18,20,fals,12.39,812.24,2014
+ 36 months,RENT,credit_card,AL,Verified,INDIVIDUAL,16500,null,42445,20.07,0,96.6,6,20,fals,11.67,3094.75,2014
+ 36 months,RENT,debt_consolidation,PA,Verified,INDIVIDUAL,6000,10,78000,26.15,0,9.9,43,25,fals,12.29,958.73,2015
+ 60 months,MORTGAGE,debt_consolidation,ME,Verified,INDIVIDUAL,35000,0,93000,22.04,0,63.2,18,13,fals,18.55,2923.93,2015
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,20000,10,55000,26.78,1,61.8,39,17,fals,13.11,2997.82,2013
+ 36 months,RENT,credit_card,NV,Verified,INDIVIDUAL,12000,10,53000,14.1,0,81.6,36,16,fals,9.76,1864.82,2012
+ 60 months,RENT,credit_card,MD,Verified,INDIVIDUAL,24000,0,60000,18.28,1,67.7,28,18,fals,9.17,3550.64,2015
+ 36 months,OWN,credit_card,WY,Verified,INDIVIDUAL,5400,3,55000,24,0,22,30,20,fals,8.9,775.36,2014
+ 36 months,MORTGAGE,major_purchase,TX,Verified,INDIVIDUAL,1500,10,63000,21.18,0,35.3,48,25,fals,14.98,369.77,2014
+ 36 months,MORTGAGE,home_improvement,IN,Not Verified,INDIVIDUAL,4500,4,61847,19.41,0,21.6,39,18,fals,7.12,517.1,2014
+ 36 months,OWN,credit_card,NY,Verified,INDIVIDUAL,8000,10,73000,8.3,0,60.5,29,27,fals,11.14,1447.79,2013
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,22000,7,55000,6.95,0,24.3,23,12,fals,9.17,1316.6,2015
+ 36 months,RENT,debt_consolidation,OH,Not Verified,INDIVIDUAL,5000,2,38500,21.79,0,62.5,20,19,tru,14.64,551.61,2014
+ 36 months,RENT,medical,TN,Verified,INDIVIDUAL,2000,9,40000,11.97,2,64.9,16,14,fals,9.49,86.22,2016
+ 36 months,MORTGAGE,debt_consolidation,OK,Not Verified,INDIVIDUAL,8000,1,41000,6.5,6,79.6,17,13,fals,8.19,912.34,2015
+ 36 months,MORTGAGE,debt_consolidation,MI,Verified,INDIVIDUAL,12000,2,111000,9.37,1,39.6,17,10,fals,9.17,924.43,2015
+ 36 months,RENT,debt_consolidation,OH,Not Verified,INDIVIDUAL,10000,10,40000,30.48,1,24.7,40,16,tru,8.18,-6234.14,2015
+ 36 months,MORTGAGE,small_business,MD,Verified,INDIVIDUAL,10000,4,60000,28.04,0,42.1,13,7,fals,17.57,2937.24,2014
+ 36 months,RENT,debt_consolidation,WA,Not Verified,INDIVIDUAL,1600,3,35928,19.86,0,79.5,11,8,fals,17.1,456.4,2013
+ 36 months,MORTGAGE,debt_consolidation,IN,Not Verified,INDIVIDUAL,16000,4,60000,24.78,2,46.6,45,12,fals,18.49,4295.77,2013
+ 36 months,MORTGAGE,other,WI,Verified,INDIVIDUAL,24500,7,49000,14.6,1,54.3,31,24,tru,14.65,-8462.85,2015
+ 36 months,RENT,major_purchase,PA,Verified,INDIVIDUAL,9000,10,89000,10.53,0,62.5,51,14,tru,18.99,-954,2014
+ 36 months,RENT,medical,NY,Verified,INDIVIDUAL,4000,1,58000,26.06,0,1.3,30,16,tru,10.78,-2305.38,2016
+ 36 months,MORTGAGE,debt_consolidation,IN,Verified,INDIVIDUAL,18400,2,50000,6.81,0,22.9,18,11,fals,13.99,1777.07,2015
+ 36 months,RENT,other,NY,Not Verified,INDIVIDUAL,10400,8,60000,16.44,0,37.7,9,8,fals,7.62,1113.12,2012
+ 36 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,10000,2,78000,13.25,0,29.9,42,25,fals,7.69,767.58,2014
+ 36 months,OWN,home_improvement,NC,Not Verified,INDIVIDUAL,4800,10,29070,24.69,0,33.6,12,10,fals,9.8,442.35,2016
+ 36 months,RENT,credit_card,AL,Verified,INDIVIDUAL,14000,7,52000,22.13,0,68.6,14,17,fals,12.79,1097.23,2016
+ 60 months,OWN,debt_consolidation,KY,Not Verified,INDIVIDUAL,19200,6,75000,6.94,2,5,19,13,fals,7.89,1811.14,2016
+ 36 months,MORTGAGE,credit_card,MI,Not Verified,INDIVIDUAL,11200,8,89000,10.5,1,59.2,22,16,fals,14.33,2434.28,2013
+ 36 months,RENT,debt_consolidation,MO,Not Verified,INDIVIDUAL,2500,5,32000,18.38,0,37.7,27,15,fals,13.35,547.63,2014
+ 60 months,MORTGAGE,debt_consolidation,NC,Verified,INDIVIDUAL,23000,10,55500,12.15,1,59.6,18,37,fals,14.64,1634.83,2014
+ 36 months,RENT,small_business,CA,Verified,INDIVIDUAL,19075,9,77000,20.2,1,68.2,22,9,fals,18.49,5919.91,2013
+ 36 months,RENT,credit_card,FL,Verified,INDIVIDUAL,8225,1,21835,7.94,0,60.7,37,32,fals,17.57,2022.12,2014
+ 36 months,RENT,other,NY,Verified,INDIVIDUAL,7000,10,65000,15.01,0,47.7,18,8,fals,10.74,1219.11,2012
+ 60 months,MORTGAGE,home_improvement,WV,Verified,INDIVIDUAL,12000,5,55000,17.85,2,40.8,20,19,tru,19.52,-5385.66,2014
+ 36 months,MORTGAGE,debt_consolidation,PA,Not Verified,INDIVIDUAL,5500,3,65000,17.3,0,26.2,22,17,fals,8.18,140.76,2015
+ 36 months,OWN,other,NY,Not Verified,INDIVIDUAL,10100,7,33738,10.14,0,59.3,16,4,fals,24.5,4264.12,2014
+ 60 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,24000,10,108000,17.35,0,81.4,25,9,tru,22.47,6118.05,2012
+ 36 months,RENT,moving,CA,Verified,INDIVIDUAL,8100,2,75000,7.74,0,26.5,23,16,fals,18.25,2377.61,2014
+ 36 months,MORTGAGE,car,AZ,Not Verified,INDIVIDUAL,4000,10,52000,23.7,0,52.8,30,16,fals,19.52,1264.16,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,25000,10,110000,21.58,0,70.2,21,17,fals,8.39,2729.4,2014
+ 60 months,RENT,debt_consolidation,TX,Not Verified,INDIVIDUAL,20000,1,48000,32.82,0,30.8,47,10,fals,12.29,2914.98,2015
+ 36 months,RENT,debt_consolidation,LA,Verified,INDIVIDUAL,15000,3,77000,25.45,0,73.2,26,12,fals,15.8,3935.35,2013
+ 36 months,MORTGAGE,home_improvement,MN,Not Verified,INDIVIDUAL,5000,null,60000,25.76,0,8.1,36,27,tru,7.49,-4694.18,2015
+ 36 months,OWN,debt_consolidation,OH,Not Verified,INDIVIDUAL,3625,10,30000,34.48,0,93.7,11,18,tru,18.99,-2002.63,2016
+ 36 months,OWN,credit_card,FL,Not Verified,INDIVIDUAL,10000,10,75858,9.84,0,63,28,11,tru,12.99,-8322.72,2014
+ 36 months,MORTGAGE,credit_card,GA,Verified,INDIVIDUAL,12000,10,37000,22.09,0,49.3,20,19,fals,12.69,2089.45,2015
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,10000,9,51000,11.11,0,73,9,9,tru,19.53,-6870.56,2016
+ 60 months,MORTGAGE,credit_card,CT,Verified,INDIVIDUAL,28800,9,85000,27.49,0,62,30,12,tru,12.49,-19102.98,2014
+ 36 months,OWN,home_improvement,NC,Not Verified,INDIVIDUAL,12000,6,150000,3.51,0,4.6,39,17,fals,6.03,493.06,2014
+ 36 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,25000,10,225000,13.63,3,61,32,18,fals,7.89,2300.94,2015
+ 36 months,OWN,home_improvement,TX,Verified,INDIVIDUAL,8400,5,39000,18.06,0,90,6,16,fals,18.99,2684.83,2014
+ 36 months,OWN,home_improvement,MI,Verified,INDIVIDUAL,7425,2,60000,9.98,0,80.5,42,32,fals,15.31,698.12,2013
+ 60 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,19200,10,74767,29.13,0,47.5,21,21,tru,18.99,-10256.98,2014
+ 60 months,MORTGAGE,debt_consolidation,LA,Verified,INDIVIDUAL,21000,10,92000,33.59,2,79.7,24,14,fals,17.57,5819.49,2015
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,18000,4,48000,31.05,0,66.6,18,29,fals,15.61,3379.48,2014
+ 36 months,MORTGAGE,debt_consolidation,UT,Verified,INDIVIDUAL,15500,10,79000,28.42,3,71.2,39,18,fals,12.12,1397.84,2012
+ 60 months,MORTGAGE,debt_consolidation,TN,Verified,INDIVIDUAL,18000,10,90000,24.72,2,80,35,15,tru,22.2,-46.5,2013
+ 36 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,7000,null,30000,18.88,0,21.8,36,20,fals,6.24,134.26,2015
+ 36 months,RENT,credit_card,TX,Not Verified,INDIVIDUAL,5000,5,70000,10.89,0,37.3,25,15,fals,12.35,102.02,2013
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,17375,9,58000,20.79,0,40.8,27,14,fals,10.99,3100.06,2014
+ 36 months,MORTGAGE,debt_consolidation,NJ,Verified,INDIVIDUAL,27850,4,75000,28.88,0,50.9,48,14,fals,13.98,5014.99,2014
+ 36 months,RENT,debt_consolidation,WI,Verified,INDIVIDUAL,10000,null,39000,21.91,0,22.4,17,30,tru,15.61,-5804.2,2013
+ 60 months,RENT,debt_consolidation,PA,Verified,INDIVIDUAL,14900,3,58000,31.51,0,56.8,48,10,tru,19.52,-5932.21,2014
+ 60 months,MORTGAGE,debt_consolidation,DC,Verified,INDIVIDUAL,18375,5,73000,22.13,0,95.1,30,12,tru,18.54,-8907.08,2015
+ 36 months,MORTGAGE,moving,MI,Not Verified,INDIVIDUAL,5000,10,90000,36.27,0,82.6,46,28,tru,16.29,-4715.87,2014
+ 36 months,RENT,debt_consolidation,NV,Verified,INDIVIDUAL,9600,10,39000,23.72,0,58.1,14,7,tru,10.99,-3739.86,2014
+ 36 months,MORTGAGE,credit_card,MN,Verified,INDIVIDUAL,12200,10,30000,27.8,0,39.2,15,10,fals,7.89,1053.99,2015
+ 36 months,MORTGAGE,debt_consolidation,MD,Not Verified,INDIVIDUAL,4100,1,50000,10.67,0,96.8,15,9,fals,16.99,1161.56,2014
+ 36 months,RENT,credit_card,IL,Verified,INDIVIDUAL,12000,0,70000,27.33,0,45.5,27,10,tru,12.59,-6389.21,2015
+ 36 months,RENT,credit_card,CA,Verified,INDIVIDUAL,10000,10,56000,31.22,0,57.2,16,9,fals,7.26,407.34,2015
+ 36 months,RENT,credit_card,TN,Verified,INDIVIDUAL,5000,1,32000,25.24,0,85.5,40,18,fals,8.19,634.96,2015
+ 36 months,MORTGAGE,car,CO,Verified,INDIVIDUAL,12000,0,75000,18.36,0,28.6,49,18,fals,6.24,950,2015
+ 60 months,MORTGAGE,debt_consolidation,WI,Verified,INDIVIDUAL,27275,10,62000,14.2,1,64.1,45,21,tru,22.99,-23500.97,2015
+ 60 months,RENT,major_purchase,MO,Verified,INDIVIDUAL,12000,10,62000,3.77,0,8.6,13,7,tru,17.57,-5639,2015
+ 36 months,RENT,major_purchase,CA,Not Verified,INDIVIDUAL,9000,10,101000,28.8,1,69.7,19,22,fals,12.99,1924.51,2014
+ 36 months,MORTGAGE,credit_card,KY,Verified,INDIVIDUAL,24000,10,319374,10.91,0,59.8,39,12,fals,7.89,1336.13,2015
+ 60 months,MORTGAGE,credit_card,MD,Verified,INDIVIDUAL,18000,10,71000,7.81,0,75.5,21,26,fals,13.98,5385.81,2014
+ 36 months,MORTGAGE,debt_consolidation,PA,Not Verified,INDIVIDUAL,13500,10,68500,21.67,0,71.1,19,9,fals,15.61,3313.52,2014
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,3000,10,37000,24.91,1,47.1,24,14,fals,18.99,2.94,2016
+ 60 months,MORTGAGE,major_purchase,WA,Verified,INDIVIDUAL,16000,7,45000,7.55,0,16.9,11,8,fals,17.99,944.36,2012
+ 36 months,RENT,debt_consolidation,WA,Not Verified,INDIVIDUAL,12000,3,50000,20.15,0,52.8,9,7,fals,9.99,1396.6,2015
+ 36 months,MORTGAGE,credit_card,OR,Not Verified,INDIVIDUAL,25000,6,58000,11.45,0,51,14,12,fals,7.26,2266.28,2015
+ 36 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,15000,8,59000,26.51,0,38,27,17,fals,9.99,1212.56,2015
+ 60 months,MORTGAGE,debt_consolidation,OR,Verified,INDIVIDUAL,24000,4,60000,14.14,0,57.1,11,11,fals,14.49,5681.66,2014
+ 36 months,MORTGAGE,credit_card,WI,Verified,INDIVIDUAL,10000,10,35000,20.57,0,68.6,26,21,fals,11.55,1879.92,2013
+ 60 months,RENT,debt_consolidation,MD,Verified,INDIVIDUAL,22000,10,55000,14.2,0,50.4,33,15,tru,18.25,-6966.6,2014
+ 36 months,RENT,debt_consolidation,TN,Verified,INDIVIDUAL,19000,1,50000,20.12,0,52.8,11,10,fals,11.44,2698.87,2015
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,10000,2,60000,26.78,0,20.2,37,12,fals,11.53,1210.38,2015
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,28000,10,100000,22.42,0,89.1,30,13,fals,18.85,8719.27,2013
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,17700,9,59200,32.37,0,75.4,29,37,fals,21.99,4426.97,2014
+ 60 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,30000,3,80000,10.79,2,0,20,13,fals,21.99,4752.12,2015
+ 60 months,RENT,debt_consolidation,AL,Verified,INDIVIDUAL,13750,0,41000,19.08,0,93.8,13,18,fals,18.92,4764.01,2014
+ 36 months,MORTGAGE,debt_consolidation,GA,Not Verified,INDIVIDUAL,18900,10,45000,21.42,0,58.6,25,28,fals,12.69,1538.04,2015
+ 36 months,RENT,other,PA,Not Verified,INDIVIDUAL,1000,2,23556,16.35,0,54.3,12,5,fals,18.75,315.07,2013
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,4750,1,26000,8.08,0,31.7,12,4,fals,18.24,387.94,2014
+ 36 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,35000,1,120000,7.39,0,27.4,17,15,fals,11.14,3971.44,2013
+ 60 months,OWN,home_improvement,CA,Not Verified,INDIVIDUAL,25000,2,130000,7.07,1,11.8,42,23,fals,6.49,5.19,2016
+ 36 months,RENT,debt_consolidation,NC,Verified,INDIVIDUAL,15000,2,92000,14.57,1,75.4,23,14,fals,18.85,4438.06,2013
+ 60 months,MORTGAGE,major_purchase,NY,Not Verified,INDIVIDUAL,15000,2,70000,21.16,1,59.2,32,25,fals,14.65,3700.41,2015
+ 36 months,MORTGAGE,credit_card,KS,Not Verified,INDIVIDUAL,16700,10,89000,9.4,0,37.4,25,15,fals,7.62,2042.75,2013
+ 60 months,MORTGAGE,medical,CO,Verified,INDIVIDUAL,11200,0,45000,16,0,43.9,18,7,tru,18.54,-6500.7,2015
+ 36 months,RENT,debt_consolidation,HI,Not Verified,INDIVIDUAL,8400,2,78000,19.34,1,63.5,33,21,fals,12.99,1618.41,2013
+ 60 months,OWN,credit_card,NY,Verified,INDIVIDUAL,35000,7,120000,10.61,0,53.1,48,30,fals,15.31,9627.29,2014
+ 36 months,MORTGAGE,credit_card,MI,Not Verified,INDIVIDUAL,6000,10,50000,13.44,0,50.3,18,17,fals,18.75,1890.41,2013
+ 60 months,MORTGAGE,home_improvement,VA,Not Verified,INDIVIDUAL,14800,10,156800,9.4,0,20.6,28,15,fals,12.29,270.13,2015
+ 60 months,OWN,debt_consolidation,OH,Verified,INDIVIDUAL,29175,9,65000,14.29,0,79.3,17,14,tru,19.72,-5610.6,2013
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,10800,6,80000,5.04,0,39.2,27,35,tru,18.84,-7192.88,2015
+ 60 months,MORTGAGE,home_improvement,NC,Verified,INDIVIDUAL,16150,3,80000,6.44,0,61.3,15,10,fals,19.99,6324.65,2014
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,22500,9,51012,28.3,1,75.6,24,14,fals,22.95,11174.17,2013
+ 36 months,MORTGAGE,credit_card,TX,Not Verified,INDIVIDUAL,6000,10,54000,33.82,0,15.4,28,22,fals,6.89,106.07,2015
+ 36 months,RENT,other,NJ,Not Verified,INDIVIDUAL,8400,2,155000,10.06,0,20.4,49,13,fals,15.31,2128.72,2013
+ 36 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,6000,2,70000,8.21,4,27.3,20,12,fals,9.49,472.91,2016
+ 60 months,RENT,credit_card,TX,Verified,INDIVIDUAL,16000,6,47000,37.31,0,54.9,21,16,fals,13.33,1287.55,2015
+ 36 months,RENT,credit_card,MN,Not Verified,INDIVIDUAL,8000,0,29000,21.52,0,57,24,13,fals,13.65,1794.21,2014
+ 36 months,RENT,credit_card,CA,Verified,INDIVIDUAL,11200,0,47500,16.43,0,12.4,43,10,fals,6.49,778.01,2014
+ 36 months,OWN,debt_consolidation,OR,Verified,INDIVIDUAL,7000,8,50000,19.47,0,65.6,7,6,fals,7.12,757.25,2014
+ 36 months,MORTGAGE,medical,IN,Not Verified,INDIVIDUAL,14300,0,95000,9.11,1,21.6,46,12,fals,15.61,3699.82,2013
+ 36 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,16000,1,78500,16.15,0,87.9,19,10,fals,23.43,1500.17,2014
+ 36 months,MORTGAGE,credit_card,TX,Verified,INDIVIDUAL,16000,null,61576,19.72,0,90.9,19,16,tru,12.99,-5188.08,2014
+ 36 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,35000,10,96012,27.81,0,7.8,21,20,fals,8.9,4543.3,2014
+ 36 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,16000,6,50000,9.19,0,15.9,57,24,fals,6.49,256.8,2016
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,29400,1,220000,18.59,0,96.9,22,16,fals,12.85,9526.63,2014
+ 36 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,15000,2,120000,18.87,0,14.2,33,20,fals,8.67,797.59,2015
+ 60 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,16000,0,52000,29.29,1,77.2,15,7,fals,24.74,2142.55,2016
+ 36 months,RENT,other,NM,Verified,INDIVIDUAL,11325,5,31475,14.8,0,45.9,10,13,tru,16.55,-9033.89,2015
+ 60 months,RENT,debt_consolidation,IN,Verified,INDIVIDUAL,13500,4,31000,31.2,0,46.4,17,5,tru,27.34,-9102.3,2016
+ 60 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,21425,10,89740,8.08,0,35,22,31,tru,17.14,-16124.9,2015
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,5300,2,85000,9.28,2,25.9,28,24,tru,13.67,-1841.96,2013
+ 60 months,OWN,debt_consolidation,OH,Verified,INDIVIDUAL,19200,10,58000,20.11,0,59.7,8,8,fals,20.5,3096.33,2016
+ 36 months,OWN,car,NC,Not Verified,INDIVIDUAL,6000,0,45000,11.41,0,2.5,16,11,fals,7.89,565.32,2015
+ 60 months,MORTGAGE,debt_consolidation,NC,Verified,INDIVIDUAL,20000,0,68000,20.77,0,68.5,29,16,tru,21.98,-10073.74,2012
+ 36 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,21000,4,50000,23.36,0,54.2,30,10,fals,18.55,5491.18,2015
+ 36 months,MORTGAGE,credit_card,NC,Not Verified,INDIVIDUAL,14000,10,72000,20.02,0,83.9,12,41,fals,7.69,1729.74,2014
+ 36 months,RENT,credit_card,NC,Not Verified,INDIVIDUAL,15000,2,80000,9.07,0,24.8,9,24,tru,10.15,-9664.23,2014
+ 60 months,OWN,home_improvement,CA,Verified,INDIVIDUAL,17400,10,66000,26.97,1,19.8,36,23,fals,14.33,2681.52,2012
+ 36 months,RENT,credit_card,TN,Verified,INDIVIDUAL,10750,3,32000,33.56,0,50,27,14,fals,16.29,2628.7,2013
+ 36 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,17000,7,125000,9.83,0,39,45,12,fals,5.32,361.12,2016
+ 60 months,MORTGAGE,debt_consolidation,NJ,Verified,INDIVIDUAL,35000,2,120000,18.12,0,48,23,14,fals,13.35,9889.36,2014
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,24150,10,72000,35.6,0,68,22,17,fals,18.25,4837.18,2015
+ 60 months,OWN,debt_consolidation,FL,Verified,INDIVIDUAL,12000,7,60000,18.28,0,34.4,29,12,tru,24.99,-8847.31,2015
+ 36 months,RENT,credit_card,CO,Verified,INDIVIDUAL,9000,2,30000,24.08,0,71.4,16,7,fals,11.44,1463.55,2015
+ 36 months,MORTGAGE,vacation,TX,Verified,INDIVIDUAL,4000,0,48000,16.73,0,60,18,14,fals,16.59,1091.36,2014
+ 36 months,OWN,debt_consolidation,NY,Not Verified,INDIVIDUAL,24000,7,180000,12,0,25.4,45,29,fals,7.59,1354.15,2016
+ 60 months,MORTGAGE,debt_consolidation,VA,Verified,INDIVIDUAL,35000,8,130000,22.49,0,74.3,36,11,tru,23.99,-26947.38,2015
+ 36 months,RENT,vacation,NY,Not Verified,INDIVIDUAL,10000,3,74000,8.09,0,20.8,5,10,fals,9.76,1310.07,2012
+ 36 months,RENT,home_improvement,CA,Verified,INDIVIDUAL,8000,4,54000,28.39,0,33.4,37,11,fals,10.15,1282.44,2014
+ 36 months,MORTGAGE,credit_card,OH,Verified,INDIVIDUAL,14000,10,55000,15.3,0,60,16,24,fals,6.49,974.16,2014
+ 36 months,MORTGAGE,debt_consolidation,KY,Not Verified,INDIVIDUAL,7200,10,98000,16.04,0,93,20,21,fals,12.69,115.7,2015
+ 60 months,MORTGAGE,debt_consolidation,NC,Verified,INDIVIDUAL,21000,10,42000,23.57,0,74.2,23,18,tru,18.49,-14414.8,2015
+ 36 months,RENT,debt_consolidation,MI,Not Verified,INDIVIDUAL,10000,0,48000,22.09,0,48.1,22,25,tru,12.99,-2803.1,2014
+ 60 months,RENT,debt_consolidation,CT,Verified,INDIVIDUAL,25000,10,57987,31.89,1,47.3,31,18,tru,18.25,-16044.77,2015
+ 60 months,MORTGAGE,debt_consolidation,KY,Verified,INDIVIDUAL,9925,10,28874,15.71,1,35.4,22,23,fals,16.29,3667.39,2013
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,6000,3,22000,35.84,0,62.8,8,4,fals,14.46,512.31,2016
+ 36 months,OWN,small_business,MN,Verified,INDIVIDUAL,24000,4,71000,13.02,0,43.7,10,15,tru,17.27,-22328.25,2016
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,13700,2,79000,20.22,0,39.3,51,11,fals,12.12,4147.44,2012
+ 36 months,OWN,vacation,TX,Verified,INDIVIDUAL,12000,10,65000,13.9,0,19.7,50,17,fals,9.67,419.71,2014
+ 36 months,RENT,medical,NV,Verified,INDIVIDUAL,17000,0,122000,13.89,0,37.9,52,24,fals,15.31,1968.29,2014
+ 36 months,OWN,debt_consolidation,MN,Not Verified,INDIVIDUAL,17100,1,96000,34.23,0,63.4,20,20,tru,25.44,-12679.04,2016
+ 36 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,8125,7,36000,21.51,0,39.5,13,12,fals,14.49,1945.25,2014
+ 60 months,RENT,credit_card,TX,Verified,INDIVIDUAL,23500,2,55000,30.92,0,68,18,11,tru,14.65,-10085.03,2015
+ 36 months,OWN,debt_consolidation,MA,Verified,INDIVIDUAL,6250,null,32000,16.17,0,36.5,21,19,fals,10.99,843.34,2014
+ 36 months,RENT,debt_consolidation,VA,Not Verified,INDIVIDUAL,10000,4,45000,22.29,0,62.3,12,15,tru,13.68,-6257.47,2013
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,35000,2,107000,1.17,0,15.3,33,17,fals,9.49,1888.3,2016
+ 36 months,OWN,debt_consolidation,AL,Not Verified,INDIVIDUAL,7800,10,48000,20.03,0,28.6,24,13,fals,6.39,438.45,2015
+ 36 months,MORTGAGE,debt_consolidation,UT,Verified,INDIVIDUAL,11500,7,119000,15.6,1,31.3,29,21,fals,10.99,2051.81,2014
+ 36 months,MORTGAGE,debt_consolidation,MA,Verified,INDIVIDUAL,10000,4,68000,10.71,1,86.2,21,33,fals,14.09,2319.63,2013
+ 36 months,RENT,debt_consolidation,AL,Verified,INDIVIDUAL,24000,3,150000,12.05,1,54.1,52,21,fals,6.39,2089.21,2015
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,1850,8,28000,10.33,0,70.8,10,13,fals,11.14,82.08,2012
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,30000,2,200000,23.24,0,99.2,28,45,fals,19.72,8833.98,2013
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,8450,10,28200,38.17,2,38.7,20,11,fals,18.25,1451.05,2016
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,12000,5,100000,17.84,0,35.5,29,14,fals,14.64,291.13,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,14675,9,66000,28.08,1,48.8,41,23,tru,18.25,-12500.85,2015
+ 36 months,RENT,moving,NY,Not Verified,INDIVIDUAL,6000,5,62000,20.72,0,75.2,25,13,fals,18.25,1836.01,2013
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,11300,10,40000,26.79,0,92.5,17,16,tru,17.57,-8441.87,2015
+ 60 months,MORTGAGE,debt_consolidation,IN,Verified,INDIVIDUAL,35000,10,150000,18.04,0,46.3,54,27,fals,17.57,1310.28,2014
+ 36 months,RENT,debt_consolidation,CT,Not Verified,INDIVIDUAL,9000,7,65200,17.14,0,42.2,12,5,fals,10.99,880.6,2015
+ 36 months,RENT,credit_card,WI,Verified,INDIVIDUAL,4000,null,24220,9.34,0,43.6,18,15,fals,10.64,639.15,2013
+ 36 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,5875,7,25300,24.52,0,35.3,10,10,fals,10.99,1048.19,2013
+ 36 months,MORTGAGE,debt_consolidation,PA,Not Verified,INDIVIDUAL,10500,10,48000,13.55,0,49.8,27,17,fals,10.99,1874.89,2014
+ 36 months,MORTGAGE,debt_consolidation,MA,Not Verified,INDIVIDUAL,10000,1,82000,3.81,0,64.2,21,25,fals,11.67,1603.49,2014
+ 60 months,OWN,debt_consolidation,WV,Verified,INDIVIDUAL,30000,6,70000,27.07,0,29.9,15,19,tru,21.6,-22501.38,2013
+ 36 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,9000,8,42500,31.37,0,28.7,40,15,fals,16.99,1110.73,2016
+ 60 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,15000,10,58000,16.38,2,78,26,14,fals,17.57,3708.56,2014
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,20000,5,57000,15.79,0,60.3,15,10,tru,12.99,-11173.33,2016
+ 36 months,MORTGAGE,home_improvement,CA,Verified,INDIVIDUAL,6000,1,73000,19.6,0,19.1,45,14,fals,14.46,503,2016
+ 36 months,MORTGAGE,home_improvement,VA,Verified,INDIVIDUAL,14300,4,38000,12.28,0,52.7,26,12,fals,13.11,1148.25,2013
+ 60 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,25000,10,98000,14.39,1,76.1,16,20,fals,11.53,911.43,2015
+ 36 months,MORTGAGE,debt_consolidation,NC,Not Verified,INDIVIDUAL,5000,10,85000,6.58,0,59.2,17,9,fals,10.49,352.31,2016
+ 36 months,MORTGAGE,small_business,GA,Verified,INDIVIDUAL,5000,2,70000,19.85,0,80.2,17,12,fals,13.49,271.02,2016
+ 36 months,RENT,debt_consolidation,IL,Not Verified,INDIVIDUAL,6000,8,70000,17.95,0,47.5,28,12,fals,7.12,280.36,2014
+ 36 months,RENT,other,NY,Verified,INDIVIDUAL,4800,0,95000,0.54,0,51,5,11,fals,20.2,1487.23,2013
+ 36 months,MORTGAGE,medical,OH,Verified,INDIVIDUAL,4200,10,74839.91,19.91,0,89.2,34,37,fals,21.6,856.81,2013
+ 36 months,RENT,other,CA,Not Verified,INDIVIDUAL,1450,10,52400,15.3,0,74.3,16,14,fals,18.25,61.88,2015
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,21250,10,74000,9.2,0,49.3,26,10,fals,23.4,7363.56,2013
+ 36 months,MORTGAGE,debt_consolidation,MI,Verified,INDIVIDUAL,20000,2,96000,15.82,0,68.3,22,15,fals,12.35,3726.11,2013
+ 36 months,OWN,other,FL,Verified,INDIVIDUAL,5000,9,70000,14.74,1,34.8,15,11,tru,11.49,-4485.07,2016
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,23550,10,65000,13.79,0,40.3,27,12,tru,16.99,-21231.59,2015
+ 36 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,24000,0,110000,24.06,0,73.1,53,26,fals,10.49,3514.29,2015
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,33425,5,75000,16.27,0,72.1,11,11,fals,15.8,8760.7,2013
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,24000,10,115000,20.23,1,81.2,48,10,fals,9.49,374.42,2014
+ 60 months,MORTGAGE,major_purchase,CA,Verified,INDIVIDUAL,21000,2,144000,18.35,0,90,33,16,fals,15.8,550.18,2013
+ 36 months,MORTGAGE,debt_consolidation,NJ,Not Verified,INDIVIDUAL,18000,5,87500,11.34,0,27.9,31,12,fals,6.62,1895.95,2013
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,8400,2,65000,10.43,0,31.1,49,14,fals,8.39,605.35,2016
+ 36 months,MORTGAGE,debt_consolidation,VA,Verified,INDIVIDUAL,11300,2,47500,27.01,0,66.2,22,12,fals,22.99,1280.89,2015
+ 36 months,RENT,credit_card,NV,Not Verified,INDIVIDUAL,3000,null,24000,25.15,0,45.8,17,19,fals,9.49,154.28,2016
+ 36 months,RENT,debt_consolidation,OH,Verified,INDIVIDUAL,20000,10,72000,13.47,1,23.9,29,21,fals,13.49,845.32,2016
+ 36 months,RENT,debt_consolidation,NY,Not Verified,INDIVIDUAL,10000,7,102700,14.43,0,22,27,17,fals,11.99,1627.7,2014
+ 36 months,RENT,moving,TX,Not Verified,INDIVIDUAL,1450,2,24000,22.5,0,3.8,13,7,fals,14.65,311.96,2015
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,28000,10,89207,17.01,1,62.3,31,14,fals,26.3,1499.1,2017
+ 60 months,MORTGAGE,credit_card,KY,Verified,INDIVIDUAL,30000,10,300000,14.6,0,83.8,51,24,fals,18.84,8207.86,2015
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,20700,10,45000,16.45,2,0.4,17,18,fals,19.99,4127.64,2015
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,4000,10,92000,22.67,0,77.7,19,15,fals,10.99,449.89,2015
+ 36 months,RENT,debt_consolidation,CO,Verified,INDIVIDUAL,14400,3,60000,13.36,0,35.3,10,10,fals,9.17,1565.84,2014
+ 60 months,MORTGAGE,credit_card,IL,Verified,INDIVIDUAL,14400,2,55000,14.82,0,62.9,13,13,tru,15.61,-3213.99,2014
+ 36 months,MORTGAGE,credit_card,CA,Not Verified,INDIVIDUAL,10000,10,90000,15.45,0,40.1,33,18,fals,5.32,126.62,2016
+ 60 months,MORTGAGE,debt_consolidation,NV,Verified,INDIVIDUAL,20000,10,79000,20.27,0,82.3,35,16,fals,13.99,3336.13,2016
+ 36 months,RENT,other,NJ,Verified,INDIVIDUAL,7000,7,190000,4.5,0,75.1,14,13,fals,12.39,1150.58,2015
+ 36 months,RENT,credit_card,FL,Verified,INDIVIDUAL,2100,0,34200,24.11,0,21.6,19,8,fals,7.62,255.79,2013
+ 36 months,RENT,credit_card,AZ,Verified,INDIVIDUAL,14400,3,150000,6.49,1,96.6,16,15,fals,8.18,1501.27,2015
+ 36 months,RENT,debt_consolidation,AZ,Verified,INDIVIDUAL,7475,6,57000,33.45,0,30,24,8,fals,21.18,1879.91,2014
+ 60 months,RENT,debt_consolidation,KS,Verified,INDIVIDUAL,16300,2,45300,31.26,0,75.6,28,19,fals,18.75,7898.23,2012
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,20000,9,58000,20.09,0,65,20,20,tru,13.67,-13483.46,2016
+ 60 months,MORTGAGE,debt_consolidation,TX,Not Verified,INDIVIDUAL,24500,10,80000,22.71,0,45.6,28,13,fals,15.61,5225.29,2015
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,7200,null,62000,32.64,0,46.4,40,34,fals,13.49,336.65,2016
+ 36 months,RENT,debt_consolidation,LA,Verified,INDIVIDUAL,5300,10,39187,25.21,0,68.4,13,20,tru,16.29,-1138.98,2014
+ 60 months,RENT,debt_consolidation,IL,Verified,INDIVIDUAL,15000,10,59600,17.18,0,76.6,41,26,fals,19.97,5961.35,2014
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,10000,0,48200,22.31,0,42.1,15,8,fals,11.49,480.67,2016
+ 36 months,MORTGAGE,home_improvement,OH,Not Verified,INDIVIDUAL,15000,10,107000,28.81,0,14.6,37,31,fals,8.99,282.48,2016
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,19300,4,46000,26.4,0,42.4,11,6,fals,17.57,1917.22,2015
+ 60 months,MORTGAGE,debt_consolidation,MS,Verified,INDIVIDUAL,19250,10,45838,26.68,0,96.5,26,15,fals,22.99,6632.72,2015
+ 60 months,MORTGAGE,credit_card,MI,Not Verified,INDIVIDUAL,10200,10,44000,22.34,0,36,49,17,tru,16.29,-5580.88,2014
+ 36 months,RENT,car,PA,Not Verified,INDIVIDUAL,3500,10,42000,12.43,0,36.4,29,10,fals,19.52,1151.83,2014
+ 36 months,MORTGAGE,credit_card,TX,Verified,INDIVIDUAL,11000,6,34300,16.67,1,26,18,12,fals,10.16,1807.55,2013
+ 36 months,MORTGAGE,other,NY,Not Verified,INDIVIDUAL,4000,6,65488,20.94,0,80.7,35,13,fals,18.85,1267.44,2013
+ 36 months,MORTGAGE,credit_card,PA,Not Verified,INDIVIDUAL,7500,10,42000,18.91,0,85,18,23,fals,14.09,1365.57,2013
+ 60 months,RENT,debt_consolidation,PA,Verified,INDIVIDUAL,21600,9,54000,36.22,0,65,44,11,tru,22.99,-11145,2015
+ 60 months,OWN,major_purchase,WA,Not Verified,INDIVIDUAL,22500,10,45000,22.61,0,8,16,20,fals,24.99,2120.11,2016
+ 60 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,18000,6,75000,22.96,0,91.2,20,18,fals,10.99,637.99,2016
+ 36 months,OWN,credit_card,TX,Verified,INDIVIDUAL,10000,1,25000,29.67,0,42.3,26,12,fals,8.9,1431.12,2014
+ 36 months,RENT,debt_consolidation,NY,Not Verified,INDIVIDUAL,3500,0,32000,7.58,0,28.1,12,7,fals,6.62,368.64,2012
+ 36 months,RENT,debt_consolidation,CT,Not Verified,INDIVIDUAL,4500,8,31000,25.63,0,76.4,14,5,fals,12.12,889.95,2012
+ 36 months,MORTGAGE,debt_consolidation,MI,Verified,INDIVIDUAL,7550,10,26520,18.33,0,78.8,13,12,fals,14.33,1069.4,2013
+ 60 months,RENT,debt_consolidation,VA,Verified,INDIVIDUAL,17000,7,51150,22.64,0,62.9,14,8,fals,17.57,7599.8,2014
+ 36 months,MORTGAGE,credit_card,CA,Not Verified,INDIVIDUAL,28000,0,130000,5.2,0,48.6,16,12,fals,6.89,2474.69,2015
+ 36 months,OWN,other,PA,Verified,INDIVIDUAL,1500,4,65000,12.72,0,61.4,28,26,fals,8.18,120.69,2015
+ 36 months,RENT,debt_consolidation,TN,Verified,INDIVIDUAL,16000,2,82000,18.48,0,38.8,33,21,tru,12.59,-6186.66,2015
+ 36 months,MORTGAGE,debt_consolidation,NC,Not Verified,INDIVIDUAL,3500,10,86000,3.03,0,4.2,36,13,fals,6.62,360.64,2013
+ 60 months,RENT,credit_card,IL,Verified,INDIVIDUAL,10000,3,42000,18.17,0,57.4,21,13,fals,17.76,1668.57,2013
+ 36 months,RENT,other,MA,Not Verified,INDIVIDUAL,8000,4,46000,17.4,0,54.9,24,11,fals,9.76,885.7,2012
+ 36 months,MORTGAGE,debt_consolidation,NC,Not Verified,INDIVIDUAL,15000,10,42000,22.2,1,29.2,29,15,tru,10.49,-4988.93,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,11800,9,104288,24.39,0,64.3,23,11,fals,18.49,3662.09,2012
+ 36 months,MORTGAGE,debt_consolidation,NY,Not Verified,INDIVIDUAL,16000,4,70000,17.61,0,16.7,25,20,fals,11.22,1509.32,2015
+ 60 months,MORTGAGE,credit_card,MI,Not Verified,INDIVIDUAL,18250,9,41600,14.8,0,81.7,16,13,fals,15.61,6560.81,2014
+ 36 months,RENT,debt_consolidation,FL,Not Verified,INDIVIDUAL,20000,4,194000,13.6,0,71.4,10,28,fals,5.32,827.36,2016
+ 60 months,RENT,house,CA,Verified,INDIVIDUAL,26050,8,102000,8.4,1,49.1,28,15,fals,25.89,542.83,2015
+ 36 months,RENT,debt_consolidation,MT,Not Verified,INDIVIDUAL,24000,1,60000,32.13,1,86.4,31,38,tru,18.25,-21528.26,2016
+ 36 months,OWN,medical,FL,Verified,INDIVIDUAL,3550,null,29604,25.01,0,74.4,47,64,tru,21.99,-1298.05,2015
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,10400,9,90000,24.21,0,49.1,21,10,tru,16.29,-6250.78,2016
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,16000,0,130000,16.42,1,83.4,13,10,tru,18.2,-10248.79,2015
+ 60 months,OWN,credit_card,NY,Verified,INDIVIDUAL,12000,2,45000,8.5,0,32.8,32,11,fals,10.64,610.81,2015
+ 36 months,RENT,debt_consolidation,TX,Not Verified,INDIVIDUAL,2500,8,36000,16.03,0,85.3,24,8,tru,9.49,-419.24,2015
+ 36 months,OWN,credit_card,FL,Verified,INDIVIDUAL,20000,3,126000,7.05,0,72.4,14,8,fals,13.99,4554.38,2012
+ 60 months,OWN,credit_card,NJ,Verified,INDIVIDUAL,19200,10,71400,12.05,0,21,52,16,tru,8.67,-13276.75,2014
+ 36 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,9425,8,30000,27.48,0,51.3,18,10,tru,15.77,-6556.85,2015
+ 36 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,10000,10,50000,0.74,0,4.4,14,8,fals,7.26,717.51,2015
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,10000,9,38000,6.73,2,97.8,8,9,fals,10.49,979.02,2015
+ 36 months,MORTGAGE,debt_consolidation,PA,Verified,INDIVIDUAL,25375,4,67000,18.95,1,96.9,15,19,fals,18.25,7282.77,2015
+ 36 months,MORTGAGE,debt_consolidation,OR,Verified,INDIVIDUAL,9800,7,42000,31,0,59.4,29,18,fals,18.25,976.32,2013
+ 60 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,18000,null,68000,15.04,0,37.1,16,12,fals,15.99,1081.98,2017
+ 60 months,OWN,debt_consolidation,GA,Verified,INDIVIDUAL,15125,2,50000,10.87,0,60.3,10,7,tru,24.99,-8327.56,2015
+ 36 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,20000,10,50000,12.82,0,90.9,11,15,fals,8.39,2691.91,2014
+ 60 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,33000,0,92000,21.99,0,66.1,40,8,tru,15.61,-8333.92,2014
+ 36 months,OWN,credit_card,PA,Verified,INDIVIDUAL,6700,0,29760,21.9,0,16.2,21,6,fals,12.74,500.6,2016
+ 60 months,RENT,other,UT,Verified,INDIVIDUAL,18000,10,180000,35.18,0,76,44,15,tru,22.45,-16539.62,2016
+ 36 months,OWN,credit_card,NV,Verified,INDIVIDUAL,9000,null,33156,10.39,0,85.2,11,15,fals,13.11,1933.96,2012
+ 36 months,MORTGAGE,credit_card,OH,Verified,INDIVIDUAL,22750,10,85000,15.47,0,65.7,22,16,fals,8.9,3021.19,2012
+ 36 months,OWN,vacation,WA,Not Verified,INDIVIDUAL,6000,10,52000,11.69,4,37.7,21,23,fals,19.72,289.7,2013
+ 36 months,MORTGAGE,credit_card,NY,Not Verified,INDIVIDUAL,8000,10,60000,12.56,0,66.6,21,19,fals,15.31,2027.38,2013
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,6000,5,55000,8.18,0,58.3,9,6,fals,12.12,1095.39,2012
+ 36 months,RENT,debt_consolidation,FL,Not Verified,INDIVIDUAL,25000,0,110000,22.8,0,45.7,21,34,fals,10.78,2797.02,2016
+ 60 months,MORTGAGE,credit_card,UT,Verified,INDIVIDUAL,30000,1,120000,24.54,0,87.5,29,27,fals,14.65,3313.26,2015
+ 60 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,20000,1,51250,25.69,0,47.4,25,8,tru,19.52,-4961.92,2014
+ 60 months,RENT,debt_consolidation,CO,Not Verified,INDIVIDUAL,10500,9,127000,15.05,0,39.1,39,13,fals,17.57,4188.24,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,15000,3,112000,18.96,0,94.1,19,12,fals,11.49,388.37,2017
+ 36 months,MORTGAGE,debt_consolidation,LA,Not Verified,INDIVIDUAL,10000,2,68000,11.6,1,45.8,14,14,fals,12.99,2070.48,2014
+ 36 months,MORTGAGE,home_improvement,NY,Verified,INDIVIDUAL,17600,10,149000,13.24,2,67.4,36,26,fals,12.49,3425.6,2014
+ 60 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,35000,1,137000,11.89,0,14,23,15,fals,12.99,7089.1,2015
+ 36 months,RENT,debt_consolidation,KY,Verified,INDIVIDUAL,6825,8,19000,33.89,0,91,35,16,fals,16.99,1139.29,2015
+ 60 months,RENT,other,TX,Verified,INDIVIDUAL,12800,10,85000,17.13,0,33.3,27,11,fals,16.55,3258.26,2015
+ 60 months,RENT,debt_consolidation,MD,Verified,INDIVIDUAL,32350,6,73000,16.69,0,90.2,19,15,fals,21.15,18237.24,2013
+ 36 months,RENT,credit_card,NY,Not Verified,INDIVIDUAL,12000,5,80000,9.8,0,55.6,19,23,fals,7.9,1517.36,2013
+ 36 months,MORTGAGE,home_improvement,NC,Verified,INDIVIDUAL,5000,8,15600,6.46,0,29.1,11,10,fals,12.29,746.84,2015
+ 36 months,RENT,debt_consolidation,TN,Not Verified,INDIVIDUAL,4000,0,40000,12.3,0,12.2,8,5,fals,6.89,359.01,2015
+ 36 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,4000,10,50000,14.57,0,28.8,11,13,fals,18.99,179.68,2016
+ 60 months,MORTGAGE,credit_card,FL,Verified,INDIVIDUAL,35000,8,270000,7.1,0,73,20,19,tru,12.99,-29174.83,2016
+ 36 months,RENT,debt_consolidation,CT,Not Verified,INDIVIDUAL,7750,1,50000,14.64,3,54,14,25,tru,11.53,-4180.41,2015
+ 36 months,MORTGAGE,credit_card,TX,Verified,INDIVIDUAL,7000,10,39000,17.57,2,34.6,20,19,fals,13.33,730.92,2015
+ 60 months,RENT,credit_card,IL,Verified,INDIVIDUAL,35000,10,104999,32.04,1,21.6,26,16,tru,18.49,-22498.09,2016
+ 36 months,RENT,other,IL,Not Verified,INDIVIDUAL,7125,3,26000,24.52,0,1.4,63,11,fals,16.55,546.85,2015
+ 60 months,RENT,debt_consolidation,NY,Not Verified,INDIVIDUAL,25000,9,50000,5.09,1,31.4,16,11,fals,13.33,4652.41,2015
+ 60 months,RENT,debt_consolidation,NC,Verified,INDIVIDUAL,10225,2,38900,16.01,0,25.7,46,12,fals,14.99,3400.57,2014
+ 36 months,RENT,credit_card,MI,Not Verified,INDIVIDUAL,4500,2,35000,23.35,0,32.5,8,4,fals,12.99,957.57,2014
+ 36 months,MORTGAGE,credit_card,OK,Verified,INDIVIDUAL,14675,5,70000,32.61,0,80.4,58,19,fals,15.22,3695.62,2013
+ 36 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,9000,10,180000,7.13,0,65.5,24,10,tru,13.65,88.43,2014
+ 60 months,MORTGAGE,home_improvement,OH,Not Verified,INDIVIDUAL,35000,10,185000,17.7,0,69.3,29,33,fals,22.35,5157.3,2016
+ 60 months,MORTGAGE,credit_card,GA,Verified,INDIVIDUAL,10000,5,67000,16.64,0,55.1,30,13,tru,13.33,-5193.58,2015
+ 36 months,RENT,debt_consolidation,MN,Not Verified,INDIVIDUAL,1700,7,24000,37.6,3,19.3,37,22,fals,13.33,203.96,2015
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,12000,10,30000,19.44,0,25.6,39,20,fals,18.99,557.77,2014
+ 36 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,30000,10,128000,21.7,0,58.1,32,14,fals,8.18,3089.87,2015
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,15000,1,95000,14.59,0,74.7,25,10,fals,15.99,9.47,2016
+ 36 months,MORTGAGE,debt_consolidation,AZ,Verified,INDIVIDUAL,5000,9,58000,11.05,0,33.9,13,11,fals,9.67,763.7,2014
+ 36 months,RENT,major_purchase,OH,Verified,INDIVIDUAL,17000,5,50000,10.15,0,22.1,11,10,fals,7.69,1894.97,2014
+ 36 months,MORTGAGE,credit_card,IL,Not Verified,INDIVIDUAL,8000,10,57000,7.28,0,71,28,24,fals,11.67,685.75,2014
+ 36 months,OWN,home_improvement,NY,Verified,INDIVIDUAL,8000,10,156000,15.46,0,99.1,28,19,fals,11.47,314.7,2016
+ 36 months,RENT,credit_card,NY,Not Verified,INDIVIDUAL,4800,7,42000,21.03,0,34.1,13,10,fals,12.99,507.72,2014
+ 36 months,RENT,major_purchase,NY,Not Verified,INDIVIDUAL,8500,2,45500,12.19,0,37.9,30,10,tru,9.75,-6318.36,2016
+ 36 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,18500,3,127000,14.77,0,48.4,45,14,fals,9.71,2342.93,2013
+ 36 months,RENT,debt_consolidation,GA,Verified,INDIVIDUAL,20500,9,62000,11.46,0,54.5,37,14,fals,12.39,2935.32,2015
+ 60 months,OWN,debt_consolidation,MO,Verified,INDIVIDUAL,14400,10,37000,5.38,0,25.2,32,11,fals,14.31,1888.71,2015
+ 36 months,RENT,other,CA,Verified,INDIVIDUAL,1000,10,34000,2.29,0,49,3,21,fals,17.77,297.3,2012
+ 60 months,MORTGAGE,debt_consolidation,NC,Verified,INDIVIDUAL,19425,5,44000,5.35,0,46.4,12,9,fals,16.29,8694.79,2013
+ 36 months,RENT,debt_consolidation,NY,Not Verified,INDIVIDUAL,12000,5,120000,25.06,0,37.9,23,14,fals,10.15,1854.06,2014
+ 36 months,MORTGAGE,debt_consolidation,VA,Verified,INDIVIDUAL,7975,0,24960,12.55,0,81.5,14,18,fals,18.99,780.64,2016
+ 36 months,MORTGAGE,debt_consolidation,IN,Verified,INDIVIDUAL,16000,10,50000,30.36,1,95.4,34,18,tru,13.33,-5220.65,2015
+ 36 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,12000,6,73000,15.96,0,83.6,26,20,fals,10.75,1372.16,2016
+ 60 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,21500,5,62000,29.97,1,64.4,55,18,fals,17.14,5690.5,2015
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,17850,10,44695,23.52,0,71.1,9,13,tru,15.61,-5888.35,2015
+ 60 months,MORTGAGE,debt_consolidation,NV,Verified,INDIVIDUAL,35000,2,175000,23.44,0,8.2,21,14,fals,13.98,11315.24,2014
+ 60 months,RENT,other,NY,Not Verified,INDIVIDUAL,15775,2,157000,28.88,0,32.8,44,19,fals,12.29,2931.99,2015
+ 60 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,18000,1,58000,14.71,1,68.6,18,10,fals,15.61,6901.25,2013
+ 36 months,MORTGAGE,home_improvement,PA,Verified,INDIVIDUAL,4700,10,48000,23.68,0,41.6,15,28,fals,16.55,620.64,2015
+ 36 months,RENT,credit_card,MO,Not Verified,INDIVIDUAL,5000,7,70902,14.4,0,47,46,17,fals,5.32,268.63,2016
+ 60 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,12800,0,72500,22.73,0,36,20,12,tru,12.59,-12240.79,2015
+ 36 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,15000,2,58000,20.57,0,74.1,15,13,fals,15.61,3953.92,2014
+ 60 months,OWN,debt_consolidation,FL,Verified,INDIVIDUAL,25000,2,90000,10.72,1,58.3,20,17,fals,17.57,728.24,2014
+ 36 months,MORTGAGE,debt_consolidation,NV,Verified,INDIVIDUAL,6150,5,35000,16.5,1,27.8,19,21,fals,12.99,257.1,2014
+ 36 months,MORTGAGE,home_improvement,NM,Verified,INDIVIDUAL,5000,4,98000,8.76,0,98.2,14,19,fals,17.76,1268.4,2013
+ 36 months,MORTGAGE,debt_consolidation,WY,Verified,INDIVIDUAL,27375,6,78000,29.4,4,62.5,56,15,fals,19.52,4268.02,2015
+ 36 months,MORTGAGE,debt_consolidation,MO,Verified,INDIVIDUAL,15000,10,62500,24.48,1,66.9,15,18,fals,16.2,3897.55,2013
+ 36 months,MORTGAGE,house,FL,Verified,INDIVIDUAL,24250,0,55000,12.33,0,37.7,22,19,fals,11.14,2006.92,2013
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,12000,2,29000,39.9,0,41.6,25,12,fals,21.97,1285.11,2016
+ 36 months,RENT,credit_card,NV,Verified,INDIVIDUAL,11800,7,46225,6.67,0,36.2,12,13,fals,15.31,854.25,2013
+ 60 months,MORTGAGE,debt_consolidation,CT,Verified,INDIVIDUAL,30000,10,75000,11.84,0,35.7,13,10,tru,14.47,-8838.6,2014
+ 36 months,RENT,debt_consolidation,MD,Not Verified,INDIVIDUAL,15000,0,67000,3.87,3,87,51,20,tru,14.77,-8253.77,2016
+ 36 months,OWN,debt_consolidation,TX,Verified,INDIVIDUAL,6250,10,24000,26.2,0,14.6,35,18,fals,7.91,563.45,2016
+ 36 months,RENT,other,MA,Verified,INDIVIDUAL,35000,10,400000,6.66,0,65.6,25,15,fals,19.72,11575.77,2012
+ 36 months,MORTGAGE,home_improvement,AZ,Verified,INDIVIDUAL,28000,0,110000,8.07,1,13,33,11,fals,7.62,3070.47,2013
+ 36 months,RENT,debt_consolidation,MD,Verified,INDIVIDUAL,9600,10,56862,11.65,0,52.9,19,13,fals,7.89,917.03,2015
+ 36 months,MORTGAGE,debt_consolidation,AZ,Verified,INDIVIDUAL,21000,3,50028,8.88,0,46.5,7,4,tru,12.29,-12536.72,2015
+ 36 months,MORTGAGE,credit_card,MA,Verified,INDIVIDUAL,24000,3,62000,22.09,0,71.6,21,24,fals,13.53,5332.59,2014
+ 36 months,RENT,credit_card,TX,Verified,INDIVIDUAL,29975,3,75000,29.9,3,58.3,32,29,fals,14.64,4413.16,2014
+ 36 months,RENT,other,FL,Not Verified,INDIVIDUAL,2500,2,120000,6.91,1,54.7,34,12,fals,10.49,86.78,2015
+ 36 months,RENT,credit_card,MD,Verified,INDIVIDUAL,10000,4,72000,14.53,0,39.5,14,6,fals,9.49,533.57,2015
+ 36 months,RENT,debt_consolidation,MN,Verified,INDIVIDUAL,20000,10,75000,31.34,0,62.3,42,22,fals,13.33,2043.51,2015
+ 60 months,MORTGAGE,debt_consolidation,PA,Verified,INDIVIDUAL,22125,10,75000,21.76,0,55,32,20,tru,12.69,-11413.4,2015
+ 60 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,16175,4,100000,15,0,64.5,14,10,tru,19.99,-14925.58,2016
+ 60 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,10450,null,38168,38.65,5,59.4,48,17,tru,17.86,-6824.59,2015
+ 60 months,RENT,credit_card,CO,Verified,INDIVIDUAL,19200,4,70000,18.67,0,64.7,23,13,fals,15.8,3891.66,2013
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,25325,9,137500,16.19,4,3.2,24,14,tru,19.99,-2399.92,2014
+ 36 months,MORTGAGE,credit_card,MD,Verified,INDIVIDUAL,15000,0,56270,26.85,1,65.7,30,14,tru,10.99,1203.33,2014
+ 60 months,RENT,other,PA,Not Verified,INDIVIDUAL,23800,6,70000,5.78,1,49,27,8,tru,25.83,-14125.42,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,4500,10,53000,22.62,0,78.6,22,9,fals,15.31,516.39,2012
+ 36 months,RENT,debt_consolidation,WA,Verified,INDIVIDUAL,20000,1,95000,22.64,0,48.1,32,14,fals,8.39,1749.15,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,25000,0,75000,34.62,0,30.1,40,16,fals,14.99,6036.62,2014
+ 36 months,MORTGAGE,debt_consolidation,PA,Not Verified,INDIVIDUAL,7500,7,25000,25.01,0,82.8,31,18,fals,14.47,1186.44,2014
+ 36 months,MORTGAGE,credit_card,AL,Not Verified,INDIVIDUAL,28000,10,125000,28.98,0,47.2,23,14,fals,8.18,1562.8,2015
+ 36 months,MORTGAGE,debt_consolidation,MA,Verified,INDIVIDUAL,12800,4,54000,15.09,0,66.4,16,13,fals,12.12,1610.62,2012
+ 60 months,RENT,debt_consolidation,NV,Verified,INDIVIDUAL,10850,3,37000,25.11,0,9.6,17,7,tru,19.52,-5129.73,2014
+ 60 months,MORTGAGE,credit_card,TN,Verified,INDIVIDUAL,35000,7,96600,8.86,0,54,11,10,fals,11.53,5486.08,2015
+ 36 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,5800,10,23000,29.28,0,42.5,13,11,fals,13.65,1187.06,2014
+ 36 months,MORTGAGE,home_improvement,VA,Not Verified,INDIVIDUAL,4000,1,81000,31.18,2,87.1,39,20,fals,12.99,837.69,2014
+ 36 months,RENT,other,CA,Not Verified,INDIVIDUAL,10000,1,90000,9.89,0,31.8,11,7,fals,11.53,265.93,2015
+ 36 months,MORTGAGE,debt_consolidation,AR,Verified,INDIVIDUAL,12500,8,40000,7.98,0,38.9,10,14,fals,9.75,836.17,2016
+ 60 months,MORTGAGE,debt_consolidation,WA,Not Verified,INDIVIDUAL,18000,10,50000,16.99,0,63.1,14,11,fals,13.66,3816.36,2015
+ 36 months,RENT,credit_card,CA,Verified,INDIVIDUAL,8400,1,67000,17.48,1,35.4,17,16,fals,7.62,1023.18,2012
+ 36 months,RENT,debt_consolidation,CT,Verified,INDIVIDUAL,4800,8,150000,11.01,3,75.3,20,10,fals,9.49,256.37,2016
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,14400,2,265000,17.4,1,46.2,26,15,fals,8.24,418.81,2017
+ 36 months,RENT,major_purchase,CO,Verified,INDIVIDUAL,2600,10,87000,17.81,0,62.9,24,24,fals,12.79,219.61,2016
+ 36 months,OWN,other,CA,Verified,INDIVIDUAL,10000,10,48000,10.9,0,96.8,10,10,tru,14.65,-8429.07,2012
+ 36 months,MORTGAGE,debt_consolidation,TX,Not Verified,INDIVIDUAL,4150,1,36500,18.04,2,32.7,27,12,fals,12.99,488.09,2015
+ 36 months,MORTGAGE,home_improvement,FL,Verified,INDIVIDUAL,26850,5,515000,8.94,0,76.5,33,19,fals,11.67,4324.1,2014
+ 60 months,MORTGAGE,credit_card,UT,Verified,INDIVIDUAL,12000,8,110000,11.65,0,72.8,39,13,fals,13.67,137.92,2013
+ 36 months,MORTGAGE,home_improvement,FL,Verified,INDIVIDUAL,21000,null,120000,3.47,0,35.4,32,35,fals,15.1,5184.13,2013
+ 60 months,RENT,debt_consolidation,MN,Verified,INDIVIDUAL,23275,10,74200,14.17,0,67,15,15,fals,14.09,8125.62,2012
+ 60 months,MORTGAGE,debt_consolidation,RI,Not Verified,INDIVIDUAL,25000,7,72000,33.95,0,51.5,44,14,tru,15.31,-18455.4,2016
+ 36 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,8000,10,73000,9.3,0,75.2,48,39,fals,10.99,1245.07,2014
+ 60 months,OWN,debt_consolidation,AZ,Verified,INDIVIDUAL,35000,10,80000,20.79,0,11.3,34,14,tru,12.99,-20403.53,2014
+ 36 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,15000,7,75000,17.42,0,56.8,32,16,fals,13.11,2248.36,2013
+ 60 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,28000,6,83000,26.27,0,57.5,26,22,fals,15.31,11494.89,2013
+ 36 months,MORTGAGE,debt_consolidation,NJ,Not Verified,INDIVIDUAL,15000,4,80000,13.56,0,44.4,16,12,fals,13.11,2598.86,2012
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,25000,1,80000,30.41,0,32.8,61,14,fals,17.27,4140.22,2016
+ 36 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,25000,8,90000,11.97,0,90.4,18,12,fals,10.99,3218.92,2014
+ 60 months,RENT,credit_card,CA,Verified,INDIVIDUAL,12000,null,38000,16.99,1,88,13,20,fals,16.55,527.72,2015
+ 36 months,RENT,debt_consolidation,MA,Verified,INDIVIDUAL,19200,2,200000,5.33,0,51.7,34,13,fals,10.15,2124.95,2014
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,3000,null,11000,14.18,0,49.5,9,19,fals,13.05,641.5,2013
+ 60 months,MORTGAGE,debt_consolidation,MA,Verified,INDIVIDUAL,15875,10,65904,35.54,0,53.9,14,6,fals,19.99,3453.99,2015
+ 60 months,MORTGAGE,credit_card,NJ,Verified,INDIVIDUAL,29000,null,58000,22.62,0,83.5,26,28,fals,20.99,7827.1,2015
+ 36 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,16800,10,97000,19.37,0,95,18,12,tru,9.99,-11692.27,2015
+ 36 months,RENT,debt_consolidation,OK,Not Verified,INDIVIDUAL,16000,3,82680,21.36,0,87.1,30,17,fals,12.12,3151.84,2013
+ 60 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,17975,0,60000,11.67,0,51.4,20,11,fals,20.2,6565.63,2014
+ 36 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,10000,null,31776,11.03,1,27.2,44,20,fals,17.99,764.19,2016
+ 36 months,MORTGAGE,debt_consolidation,AL,Not Verified,INDIVIDUAL,3750,5,53000,24.08,0,92.9,28,42,fals,7.9,473.42,2012
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,10000,7,58000,24.25,3,55.1,16,16,tru,14.46,-8335.53,2016
+ 36 months,RENT,credit_card,NY,Verified,INDIVIDUAL,27350,10,60000,13.02,0,85.1,14,7,fals,15.41,1159.88,2015
+ 36 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,10000,10,70000,12.24,1,38.8,46,15,fals,12.79,849.06,2016
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,15000,10,70000,16.66,0,17.5,54,20,fals,12.29,2531.18,2015
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,8000,10,45000,13.6,4,65.4,26,13,fals,12.99,965.55,2015
+ 36 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,13150,10,68052,16.45,3,24.8,31,17,tru,12.49,-7616.91,2014
+ 36 months,MORTGAGE,other,IL,Verified,INDIVIDUAL,1000,10,69000,30.44,0,17.4,50,22,fals,13.99,37.39,2016
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,10000,3,75000,15.23,0,39.8,11,9,tru,20.99,-6507.08,2015
+ 36 months,RENT,debt_consolidation,UT,Not Verified,INDIVIDUAL,5075,0,60000,2.6,0,47.2,8,4,tru,13.65,-4384.6,2014
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,24000,1,80000,17.54,0,54.2,36,14,fals,8.9,3434.76,2013
+ 36 months,MORTGAGE,home_improvement,CA,Verified,INDIVIDUAL,16000,4,100000,13.69,0,89,10,7,fals,11.99,3140.95,2014
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,11975,3,72000,10.83,0,61.1,12,5,fals,16.99,1258.63,2015
+ 60 months,MORTGAGE,debt_consolidation,MI,Verified,INDIVIDUAL,22250,6,50000,25.4,0,81.6,27,14,tru,15.31,-5291.88,2012
+ 36 months,RENT,credit_card,FL,Not Verified,INDIVIDUAL,14700,10,42000,27.6,0,63,30,11,tru,11.99,-2882.97,2014
+ 36 months,RENT,other,PA,Verified,INDIVIDUAL,5000,10,52000,16.8,0,0,18,14,fals,16.29,526.47,2014
+ 36 months,MORTGAGE,debt_consolidation,NC,Verified,INDIVIDUAL,12400,0,48000,12.5,0,17.9,34,16,fals,6.03,1186.39,2013
+ 60 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,35000,10,90000,34.37,0,95.5,43,20,fals,18.25,2177.85,2015
+ 36 months,RENT,credit_card,PA,Verified,INDIVIDUAL,20000,10,59000,37.49,0,47.9,39,14,fals,13.66,2927.38,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,35000,10,116000,12.45,0,66.5,35,17,fals,14.46,1000.01,2016
+ 60 months,RENT,other,MA,Verified,INDIVIDUAL,10000,10,60000,20.9,0,71.9,20,9,tru,18.99,-4631.61,2014
+ 36 months,RENT,other,CA,Verified,INDIVIDUAL,6000,6,39000,16.74,0,80.3,9,28,fals,8.9,858.7,2012
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,7000,10,67000,24.04,0,74,28,22,fals,9.99,742.13,2015
+ 36 months,RENT,debt_consolidation,AL,Verified,INDIVIDUAL,6500,3,38000,16.93,0,46.9,7,11,fals,10.99,762.77,2015
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,10500,10,75000,8.4,0,97.2,15,23,fals,21,3741.15,2013
+ 36 months,RENT,debt_consolidation,NV,Verified,INDIVIDUAL,6500,10,36000,18.3,1,50.4,14,15,tru,17.27,-2209.33,2013
+ 36 months,OWN,debt_consolidation,MI,Not Verified,INDIVIDUAL,10000,10,52000,14.63,0,54.3,10,12,fals,10.64,1724.63,2013
+ 36 months,RENT,other,CA,Verified,INDIVIDUAL,35000,10,120000,15.48,0,85.7,27,15,fals,18.99,10498.86,2014
+ 60 months,MORTGAGE,debt_consolidation,KS,Verified,INDIVIDUAL,22250,1,50000,21.65,0,59.7,14,6,tru,20.2,-12329.19,2013
+ 36 months,RENT,other,CA,Not Verified,INDIVIDUAL,7000,5,32000,22.01,0,27.6,20,26,fals,18.55,2179.99,2013
+ 36 months,RENT,moving,RI,Verified,INDIVIDUAL,5000,7,24000,6.45,0,56.3,11,8,fals,13.99,806.73,2015
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,15000,0,40000,9.45,0,47.4,19,11,tru,14.09,88.15,2013
+ 36 months,OWN,debt_consolidation,MI,Not Verified,INDIVIDUAL,10000,1,68000,16.25,0,31.3,24,23,tru,8.19,-1212.38,2014
+ 60 months,MORTGAGE,debt_consolidation,PA,Not Verified,INDIVIDUAL,26400,8,102913,15.94,0,31.4,37,13,fals,9.17,1167.92,2015
+ 60 months,MORTGAGE,other,NY,Verified,INDIVIDUAL,24000,8,180000,7.39,0,38.1,38,19,fals,25.8,16484.11,2013
+ 60 months,MORTGAGE,home_improvement,IL,Verified,INDIVIDUAL,16000,7,41600,10.99,0,55,15,7,fals,21.98,10294.58,2012
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,20000,6,115000,17.39,0,73.5,26,10,fals,12.39,764.24,2014
+ 36 months,RENT,credit_card,UT,Not Verified,INDIVIDUAL,9600,3,41364,14.27,0,92.3,9,9,tru,13.98,-705.78,2013
+ 60 months,RENT,debt_consolidation,OH,Verified,INDIVIDUAL,10000,10,52000,19.92,1,47.7,34,15,tru,15.31,-7905.91,2014
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,5500,10,20000,21.25,0,87.2,12,30,fals,14.47,432.49,2013
+ 36 months,MORTGAGE,debt_consolidation,IN,Not Verified,INDIVIDUAL,4000,8,42000,23.89,0,50.7,28,13,fals,18.24,410,2014
+ 36 months,MORTGAGE,credit_card,MD,Verified,INDIVIDUAL,13000,3,75000,13.01,0,81,25,15,fals,7.49,419.88,2016
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,13850,6,45000,34.21,0,22.5,40,29,fals,6.03,70.48,2012
+ 36 months,OWN,other,OH,Verified,INDIVIDUAL,5000,2,70695,15.04,0,39.3,11,5,fals,13.49,2.22,2016
+ 36 months,OWN,credit_card,CA,Not Verified,INDIVIDUAL,12000,0,36000,11.67,0,29.1,20,17,tru,7.26,-12000,2015
+ 36 months,MORTGAGE,credit_card,IL,Verified,INDIVIDUAL,10000,9,45000,28.59,0,41.2,47,18,fals,6.89,759.46,2015
+ 60 months,OWN,debt_consolidation,FL,Verified,INDIVIDUAL,35000,6,88000,21.7,0,54.9,37,11,fals,19.19,8643.97,2015
+ 36 months,RENT,debt_consolidation,DE,Verified,INDIVIDUAL,24000,10,115000,24.64,0,73.7,19,27,tru,12.69,-7046.66,2015
+ 60 months,MORTGAGE,home_improvement,MI,Verified,INDIVIDUAL,15000,8,35000,15.71,0,59.6,28,14,fals,17.14,3531.9,2014
+ 36 months,OWN,debt_consolidation,NJ,Verified,INDIVIDUAL,35000,null,150000,20.58,0,42.2,53,17,fals,14.46,2204.48,2016
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,3000,10,108000,7.12,3,49.7,24,14,fals,17.1,694.11,2013
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,15950,7,137000,10.63,0,32.7,44,13,fals,6.03,929.33,2014
+ 60 months,MORTGAGE,credit_card,CT,Verified,INDIVIDUAL,18600,4,40000,16.71,0,97.6,11,7,fals,20.99,11585.18,2012
+ 36 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,15200,2,50000,16.39,0,72.4,26,15,fals,11.99,2972.22,2013
+ 36 months,MORTGAGE,debt_consolidation,NJ,Not Verified,INDIVIDUAL,12000,10,108000,15.36,0,58.8,30,28,fals,6.49,1237.85,2014
+ 60 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,10500,3,45000,11.04,0,19.2,16,27,tru,18.84,-5081.79,2015
+ 36 months,OWN,credit_card,TX,Verified,INDIVIDUAL,15000,6,65000,18.49,0,65,21,15,fals,11.48,1417.25,2016
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,19200,10,250000,2.25,1,53.3,31,39,fals,8.9,2728.72,2013
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,6000,5,65000,8.25,0,21.1,12,12,fals,13.33,1101.78,2015
+ 36 months,MORTGAGE,car,OK,Not Verified,INDIVIDUAL,6000,0,48000,9.74,0,2.1,8,9,fals,6.03,404.24,2014
+ 36 months,MORTGAGE,debt_consolidation,MO,Verified,INDIVIDUAL,20000,9,52000,18.07,0,49.1,25,11,fals,10.75,1377.43,2016
+ 36 months,RENT,credit_card,OR,Not Verified,INDIVIDUAL,7500,1,32000,27.61,0,91.8,25,11,fals,10.99,1295.99,2013
+ 36 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,31000,10,115000,25.21,0,70.5,26,17,fals,14.16,6578.98,2014
+ 36 months,OWN,credit_card,CA,Verified,INDIVIDUAL,15000,3,45000,14.09,0,39.5,13,8,fals,10.49,579.91,2017
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,10800,0,55000,38.14,0,62.1,32,21,tru,10.99,-5156.71,2015
+ 36 months,RENT,credit_card,NJ,Verified,INDIVIDUAL,15000,2,46675,23.89,0,60.3,24,9,fals,13.33,2239.52,2015
+ 60 months,MORTGAGE,credit_card,MO,Not Verified,INDIVIDUAL,18000,1,70054,26.01,0,62.8,40,16,fals,17.57,3614.96,2015
+ 36 months,MORTGAGE,debt_consolidation,NV,Verified,INDIVIDUAL,15000,9,34000,23.9,0,77.6,11,10,fals,16.29,767.8,2014
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,25000,4,65200,24.94,0,57.5,28,19,fals,12.85,4900.65,2014
+ 36 months,MORTGAGE,debt_consolidation,WV,Verified,INDIVIDUAL,12000,10,120000,22.34,0,59.8,40,9,fals,11.67,1855.92,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,6250,9,35655,23.58,2,55.4,15,6,tru,14.3,-1583.26,2013
+ 36 months,MORTGAGE,debt_consolidation,GA,Not Verified,INDIVIDUAL,10000,10,51000,20.05,0,37.1,20,12,fals,14.99,1974.25,2014
+ 36 months,MORTGAGE,credit_card,KS,Verified,INDIVIDUAL,28000,10,120000,20.98,0,99,18,16,fals,7.26,2868.86,2015
+ 36 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,11000,10,40000,23.52,0,63.1,20,14,fals,9.17,1624.04,2014
+ 36 months,MORTGAGE,debt_consolidation,MD,Not Verified,INDIVIDUAL,11000,3,42000,21.17,0,82,49,25,fals,15.59,2160.27,2015
+ 36 months,MORTGAGE,debt_consolidation,MT,Not Verified,INDIVIDUAL,25000,10,94000,19.65,0,47.4,31,29,fals,7.62,2053.04,2013
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,2500,null,70000,23.97,0,78.8,18,25,fals,15.61,284.88,2015
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,12000,6,250000,8.49,0,62.5,26,20,fals,6.99,949.52,2014
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,3000,null,21000,17.71,0,54,16,15,fals,11.14,542.91,2012
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,31200,10,99000,21.88,0,62.1,23,11,tru,18.55,-16171.6,2015
+ 60 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,35000,7,150000,14.76,0,83.4,38,11,fals,24.5,18017.77,2014
+ 36 months,MORTGAGE,debt_consolidation,AZ,Verified,INDIVIDUAL,28000,7,115000,3.11,0,22,22,12,fals,7.12,143.99,2014
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,7700,10,124000,13.42,0,33.1,29,12,fals,14.99,791.54,2016
+ 36 months,MORTGAGE,debt_consolidation,OH,Not Verified,INDIVIDUAL,10200,2,60000,19.78,0,56,31,12,fals,13.49,528.97,2017
+ 36 months,OWN,other,CA,Verified,INDIVIDUAL,5000,0,90000,9.98,0,52,29,19,fals,18.25,1522.18,2013
+ 36 months,RENT,debt_consolidation,MA,Not Verified,INDIVIDUAL,7175,4,30000,20.8,0,49.7,12,5,fals,20.5,122.58,2014
+ 36 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,20000,10,79364,33.63,0,94.2,16,19,tru,14.46,-12184.47,2016
+ 36 months,OWN,debt_consolidation,TX,Verified,INDIVIDUAL,11500,null,35000,32.81,0,78,16,29,fals,15.22,2895.35,2013
+ 36 months,RENT,debt_consolidation,SC,Verified,INDIVIDUAL,20000,10,64000,15.19,0,80.4,30,23,fals,13.11,3978.86,2012
+ 36 months,MORTGAGE,credit_card,MT,Not Verified,INDIVIDUAL,10000,10,108000,8.16,1,49,23,17,fals,15.61,130.08,2014
+ 36 months,RENT,house,WA,Verified,INDIVIDUAL,15000,10,108000,4.4,1,31.9,22,13,fals,17.27,3255.3,2012
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,18000,10,100000,5.85,0,6.3,25,16,fals,7.26,761.53,2015
+ 36 months,MORTGAGE,credit_card,PA,Not Verified,INDIVIDUAL,14000,2,98750,9.32,1,44.3,35,10,tru,10.99,-5462.53,2014
+ 36 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,20675,4,74620,9.01,1,54.3,20,19,fals,15.99,3105.14,2014
+ 36 months,RENT,credit_card,CA,Verified,INDIVIDUAL,10000,0,50000,31.5,0,36.8,32,11,fals,7.89,548.27,2015
+ 36 months,OWN,debt_consolidation,TX,Not Verified,INDIVIDUAL,13000,1,58000,17.28,5,71.7,26,8,fals,17.77,3668.96,2013
+ 36 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,7800,10,72000,7.9,2,48.5,28,11,tru,20.2,-4242.58,2014
+ 36 months,MORTGAGE,debt_consolidation,NE,Verified,INDIVIDUAL,8000,6,108000,25.11,2,75.9,16,21,fals,11.49,235.55,2017
+ 36 months,MORTGAGE,credit_card,CA,Not Verified,INDIVIDUAL,8000,10,35000,13.51,1,34,49,21,fals,10.99,357.67,2015
+ 36 months,MORTGAGE,debt_consolidation,TN,Verified,INDIVIDUAL,32500,4,90012,24.6,1,74.1,18,11,fals,12.69,5162.03,2015
+ 36 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,14000,8,83000,21.3,1,53.6,26,33,fals,10.99,2307.24,2014
+ 36 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,12000,10,93384,29.27,0,65.9,35,18,fals,8.67,1491.81,2014
+ 36 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,7525,10,82000,18.47,0,73.2,21,15,fals,13.33,1011.23,2015
+ 36 months,MORTGAGE,credit_card,PA,Verified,INDIVIDUAL,30000,8,73165,13.01,0,52.2,18,16,fals,12.49,4297.3,2014
+ 36 months,RENT,credit_card,LA,Not Verified,INDIVIDUAL,5775,10,49400,18.68,0,46.2,47,20,fals,17.1,1660.4,2013
+ 36 months,OWN,debt_consolidation,NY,Verified,INDIVIDUAL,20000,0,75000,17.39,0,54.8,29,13,fals,19.05,6314.07,2013
+ 60 months,MORTGAGE,debt_consolidation,MN,Verified,INDIVIDUAL,15250,10,55000,21.62,0,66.5,21,17,fals,10.64,4112.71,2013
+ 36 months,MORTGAGE,credit_card,NY,Verified,INDIVIDUAL,7200,10,40000,15.72,0,88.5,18,15,fals,12.49,828.96,2014
+ 36 months,MORTGAGE,other,FL,Verified,INDIVIDUAL,40000,10,102000,9.87,0,90.8,28,28,fals,8.24,1046.09,2017
+ 36 months,RENT,other,NJ,Verified,INDIVIDUAL,12000,10,100000,10.29,4,20.5,36,17,fals,11.47,103.15,2016
+ 36 months,MORTGAGE,other,MI,Verified,INDIVIDUAL,3500,null,42000,24.11,0,67,29,42,fals,17.57,1028.07,2014
+ 36 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,7000,5,750000,2.87,1,59,15,20,fals,9.49,254.1,2016
+ 36 months,OWN,credit_card,CO,Verified,INDIVIDUAL,9600,10,34000,33.18,1,30.6,17,21,fals,12.99,2042.93,2014
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,17000,4,60000,16.21,0,49.4,16,8,tru,14.49,-9401.9,2014
+ 36 months,RENT,credit_card,NV,Verified,INDIVIDUAL,35000,0,100000,11.31,0,65,22,16,fals,14.46,2372.94,2016
+ 36 months,RENT,debt_consolidation,SC,Not Verified,INDIVIDUAL,6000,8,64000,4.5,1,66.4,22,13,fals,15.61,582.69,2015
+ 36 months,MORTGAGE,debt_consolidation,IN,Verified,INDIVIDUAL,8400,2,55000,31.38,0,46,22,11,fals,8.18,1054.12,2015
+ 36 months,RENT,debt_consolidation,IL,Verified,INDIVIDUAL,35000,1,116000,16.55,0,72.1,28,16,fals,12.69,1255.24,2015
+ 60 months,RENT,debt_consolidation,VA,Verified,INDIVIDUAL,18825,4,51000,24.8,0,36.3,23,15,tru,22.99,-17258.93,2015
+ 36 months,RENT,debt_consolidation,HI,Verified,INDIVIDUAL,35000,10,110000,15.36,0,46.8,17,20,tru,11.99,-10353.47,2013
+ 60 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,20100,5,130000,33.23,0,59,37,20,fals,18.99,3811.08,2016
+ 36 months,MORTGAGE,major_purchase,CA,Verified,INDIVIDUAL,3600,null,47000,26.38,5,10.6,41,22,fals,8.18,258.61,2015
+ 36 months,MORTGAGE,credit_card,FL,Not Verified,INDIVIDUAL,5000,4,32000,5.96,0,47.8,15,11,fals,10.99,892.12,2013
+ 60 months,MORTGAGE,debt_consolidation,ND,Not Verified,INDIVIDUAL,10000,7,50000,16.92,0,18.9,30,20,fals,12.74,172.42,2017
+ 60 months,MORTGAGE,credit_card,MN,Verified,INDIVIDUAL,35000,5,267000,16.96,1,67.1,59,19,tru,23.5,-24035.75,2013
+ 60 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,25000,2,76000,28.61,0,81.4,18,16,fals,14.09,8092.92,2012
+ 36 months,MORTGAGE,credit_card,NC,Verified,INDIVIDUAL,33100,0,72000,26.45,0,76.1,29,16,tru,16.99,-29522.64,2016
+ 36 months,RENT,other,OH,Not Verified,INDIVIDUAL,16000,5,65000,29.71,0,52.1,28,10,fals,16.2,4346.94,2013
+ 60 months,MORTGAGE,home_improvement,MI,Not Verified,INDIVIDUAL,18000,10,66000,16.15,0,62.8,28,32,tru,19.99,-1312.35,2014
+ 36 months,MORTGAGE,credit_card,WA,Verified,INDIVIDUAL,18000,8,48000,12.88,0,83,16,14,fals,10.99,930.09,2014
+ 36 months,RENT,debt_consolidation,UT,Verified,INDIVIDUAL,5000,1,30000,25.08,0,91,10,6,fals,10.99,662.78,2015
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,10000,8,40000,1.5,0,2,16,18,fals,11.99,1955.4,2014
+ 36 months,MORTGAGE,debt_consolidation,CT,Verified,INDIVIDUAL,35000,10,85000,22.47,0,30.5,39,25,fals,10.64,6036.29,2013
+ 36 months,RENT,other,SC,Verified,INDIVIDUAL,6075,5,89000,9.76,0,78.2,9,11,fals,17.77,1802.03,2012
+ 36 months,RENT,debt_consolidation,KY,Verified,INDIVIDUAL,16000,10,65000,11.74,0,50.3,43,20,fals,15.1,3690.56,2013
+ 60 months,MORTGAGE,debt_consolidation,OH,Not Verified,INDIVIDUAL,29775,8,84000,29.7,0,24,33,14,fals,13.18,4070.8,2015
+ 36 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,30000,10,100000,18.66,0,92.7,35,26,fals,12.49,1205.53,2014
+ 36 months,RENT,debt_consolidation,WA,Not Verified,INDIVIDUAL,19475,8,100000,20.76,0,59.7,32,9,tru,12.12,-12347.33,2012
+ 60 months,MORTGAGE,debt_consolidation,MO,Verified,INDIVIDUAL,15000,5,65000,29.01,2,21.4,52,11,tru,11.49,-12801.35,2016
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,16200,2,45000,15.65,1,51.9,21,20,tru,13.99,-7290.75,2015
+ 36 months,RENT,major_purchase,WA,Not Verified,INDIVIDUAL,15000,3,80000,0.75,0,12.9,6,7,fals,12.69,1539.04,2015
+ 36 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,12950,2,70000,13.1,2,20.8,31,11,fals,14.99,1975.15,2014
+ 60 months,RENT,debt_consolidation,AZ,Verified,INDIVIDUAL,12600,4,35000,33.92,0,22.7,14,9,fals,18.99,1399.55,2015
+ 36 months,RENT,other,CA,Not Verified,INDIVIDUAL,1000,0,60000,25.18,0,101.9,9,10,fals,18.24,274.54,2014
+ 60 months,MORTGAGE,debt_consolidation,SC,Verified,INDIVIDUAL,19050,10,65000,16.73,0,86.9,11,16,tru,24.99,-966.09,2014
+ 36 months,MORTGAGE,debt_consolidation,NV,Not Verified,INDIVIDUAL,17500,10,48000,37.67,1,50.8,42,20,fals,16.29,4670.53,2014
+ 36 months,RENT,other,NC,Verified,INDIVIDUAL,2400,null,62000,7.16,0,85.4,15,15,fals,17.1,688.77,2013
+ 60 months,MORTGAGE,debt_consolidation,AR,Verified,INDIVIDUAL,30800,9,80000,21.19,1,41.5,51,30,fals,12.29,5190.06,2015
+ 60 months,MORTGAGE,medical,VT,Verified,INDIVIDUAL,20000,10,75000,12.37,0,88.8,26,11,fals,20.99,5095.29,2015
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,1000,null,11856,24.39,0,57.9,39,20,fals,18.25,305.98,2013
+ 60 months,OWN,home_improvement,ME,Verified,INDIVIDUAL,32000,4,169000,16.74,0,51.1,32,15,fals,19.99,390.92,2016
+ 36 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,16000,10,65000,20.77,0,66.8,21,14,tru,6.03,-4626.34,2014
+ 60 months,RENT,debt_consolidation,GA,Verified,INDIVIDUAL,35000,1,133000,16.77,2,49.2,50,19,tru,21.99,-26344.53,2015
+ 36 months,RENT,other,CA,Verified,INDIVIDUAL,5000,3,90688,13.75,0,95.9,26,14,fals,14.49,1043.69,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,16000,8,53000,13.72,0,51.8,29,20,fals,6.49,1019.06,2016
+ 36 months,MORTGAGE,debt_consolidation,VA,Verified,INDIVIDUAL,28100,10,74000,23.94,0,28.8,44,15,fals,19.24,6071.89,2015
+ 36 months,MORTGAGE,other,FL,Verified,INDIVIDUAL,6000,10,40594,6.45,0,62.1,7,10,fals,11.99,182.47,2016
+ 36 months,RENT,debt_consolidation,CT,Not Verified,INDIVIDUAL,3000,2,92000,13.66,1,16.2,20,8,fals,6.99,140.76,2016
+ 36 months,MORTGAGE,credit_card,KY,Verified,INDIVIDUAL,7000,10,80000,29.57,2,77,48,18,fals,11.53,748.59,2015
+ 36 months,RENT,credit_card,NJ,Not Verified,INDIVIDUAL,24000,0,120000,27.24,0,21.8,13,5,fals,11.49,1195.95,2016
+ 36 months,MORTGAGE,debt_consolidation,AL,Verified,INDIVIDUAL,8000,10,65000,17.02,0,32.5,45,15,fals,13.68,1461.76,2013
+ 60 months,OWN,debt_consolidation,KY,Verified,INDIVIDUAL,19650,2,65000,13.96,0,38,36,14,fals,10.16,3853.1,2013
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,4650,3,71000,28.28,0,72.3,42,26,fals,14.64,166.38,2014
+ 60 months,OWN,debt_consolidation,FL,Verified,INDIVIDUAL,30000,10,72000,18.13,0,49.7,21,19,fals,14.99,2668.05,2014
+ 36 months,MORTGAGE,debt_consolidation,MS,Verified,INDIVIDUAL,12000,1,55500,23.83,0,53.9,25,15,tru,9.75,-8521.51,2016
+ 60 months,MORTGAGE,debt_consolidation,UT,Verified,INDIVIDUAL,35000,4,105000,16.94,0,84.2,28,14,fals,25.8,13001.09,2015
+ 36 months,MORTGAGE,credit_card,PA,Not Verified,INDIVIDUAL,6000,6,60000,20.38,2,48.8,25,9,fals,12.99,477.11,2013
+ 36 months,MORTGAGE,debt_consolidation,NV,Verified,INDIVIDUAL,30400,6,186000,14.72,0,72,36,24,fals,20.99,10189.44,2014
+ 36 months,OWN,debt_consolidation,MS,Not Verified,INDIVIDUAL,12000,4,33560,29.72,0,51,17,7,fals,7.69,1341.9,2014
+ 60 months,MORTGAGE,debt_consolidation,RI,Verified,INDIVIDUAL,16000,10,79500,22.22,0,74.4,37,15,tru,15.8,-2807.96,2013
+ 36 months,MORTGAGE,debt_consolidation,WY,Verified,INDIVIDUAL,10000,null,72000,27.83,2,68.7,37,22,fals,13.53,1220.48,2013
+ 36 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,5000,8,38000,19.33,0,69.6,13,12,fals,9.67,721.11,2013
+ 36 months,MORTGAGE,debt_consolidation,TX,Not Verified,INDIVIDUAL,16000,5,95000,18.85,3,65.5,27,26,fals,11.99,1455.35,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,12800,10,85000,5.56,0,95.2,7,16,fals,13.53,2844.05,2014
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,12000,0,30000,18,0,67.1,11,7,fals,14.85,2198.81,2015
+ 60 months,MORTGAGE,credit_card,WA,Verified,INDIVIDUAL,18950,10,53000,28.66,0,43.3,21,12,fals,21,331.95,2013
+ 36 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,25000,1,60000,11.94,0,11.4,35,14,fals,13.33,4206.64,2015
+ 60 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,32000,5,175000,27.45,0,84.1,32,15,tru,18.99,-21278.43,2015
+ 36 months,RENT,credit_card,TX,Not Verified,INDIVIDUAL,10000,8,45000,23.58,0,62.8,19,8,fals,14.99,1004.94,2015
+ 60 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,17625,10,110000,5.88,0,41.6,27,14,fals,18.25,3038.01,2013
+ 36 months,RENT,debt_consolidation,FL,Not Verified,INDIVIDUAL,10000,10,32000,13.35,2,40.7,13,12,fals,15.31,2377.11,2012
+ 60 months,MORTGAGE,debt_consolidation,MA,Verified,INDIVIDUAL,17325,9,76000,15.11,0,97.1,22,18,tru,25.57,-12188.24,2015
+ 36 months,RENT,credit_card,MO,Not Verified,INDIVIDUAL,20000,10,40000,30.63,0,56.7,44,8,tru,10.99,-10082.88,2015
+ 60 months,MORTGAGE,debt_consolidation,KY,Verified,INDIVIDUAL,25000,5,135456,31.45,0,35.7,50,25,tru,13.66,-13195.91,2015
+ 36 months,OWN,credit_card,CA,Verified,INDIVIDUAL,27500,2,55000,23.14,0,62.8,19,15,fals,7.89,2575.88,2015
+ 36 months,MORTGAGE,debt_consolidation,MD,Not Verified,INDIVIDUAL,10000,null,49000,24.2,0,30.8,29,11,fals,9.17,1024.71,2015
+ 36 months,MORTGAGE,debt_consolidation,KY,Verified,INDIVIDUAL,9950,2,30000,12.4,0,32.8,16,8,fals,8.9,957.96,2013
+ 36 months,MORTGAGE,credit_card,PA,Not Verified,INDIVIDUAL,4500,5,35000,12.62,4,30.7,25,12,fals,11.55,845.96,2013
+ 36 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,12275,4,60000,18.98,0,1.4,33,20,fals,12.99,1508.4,2014
+ 36 months,MORTGAGE,debt_consolidation,MI,Not Verified,INDIVIDUAL,12000,10,75000,18.72,1,75.2,23,18,fals,13.67,2695.52,2012
+ 60 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,21000,10,80000,20.09,0,60,9,24,fals,14.99,2130.68,2016
+ 36 months,OWN,debt_consolidation,NJ,Verified,INDIVIDUAL,6800,3,20000,26.53,0,58.1,14,5,tru,17.99,-5086.13,2016
+ 36 months,OWN,debt_consolidation,PA,Verified,INDIVIDUAL,9000,10,39000,18.15,0,43.9,17,11,fals,10.99,471.72,2015
+ 60 months,MORTGAGE,credit_card,GA,Verified,INDIVIDUAL,32000,10,325000,10.44,0,59.9,38,20,fals,17.56,3171.84,2013
+ 36 months,OWN,debt_consolidation,AZ,Verified,INDIVIDUAL,13250,1,60000,14.76,1,57.6,31,14,fals,19.52,3413.43,2013
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,20000,3,75000,29.33,0,34,43,13,fals,11.44,2242.45,2015
+ 36 months,RENT,debt_consolidation,MI,Not Verified,INDIVIDUAL,3825,6,38000,13.48,0,75,7,15,fals,18.85,842.7,2013
+ 36 months,RENT,credit_card,GA,Verified,INDIVIDUAL,10075,6,35000,28.37,0,87.1,19,12,fals,17.77,2998.78,2012
+ 60 months,MORTGAGE,other,IN,Verified,INDIVIDUAL,14275,7,42000,21.23,0,54.5,25,13,tru,28.99,-6495.88,2015
+ 60 months,MORTGAGE,debt_consolidation,CT,Verified,INDIVIDUAL,18000,10,72000,13.63,0,45.8,30,14,fals,16.99,3319.61,2014
+ 36 months,MORTGAGE,credit_card,CA,Not Verified,INDIVIDUAL,20000,9,96000,20.88,0,44.8,29,17,tru,15.31,-13738.27,2016
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,15000,6,185000,10.1,0,28.7,33,15,fals,10.64,1516.94,2015
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,27325,7,72000,19.35,0,81.1,21,13,fals,19.47,6823.38,2014
+ 60 months,MORTGAGE,credit_card,IL,Verified,INDIVIDUAL,21600,8,71000,12.2,0,81.9,15,8,tru,17.57,-1479.61,2014
+ 36 months,RENT,vacation,GA,Verified,INDIVIDUAL,4225,10,82000,19.05,0,55.1,28,30,fals,14.99,361.49,2016
+ 36 months,RENT,debt_consolidation,MI,Not Verified,INDIVIDUAL,3000,2,30000,9.24,0,37,38,24,fals,17.57,872.18,2014
+ 60 months,RENT,debt_consolidation,UT,Verified,INDIVIDUAL,22750,7,58000,30.63,0,92,24,22,tru,21.49,5902.54,2012
+ 60 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,16000,2,37558,15.08,1,28.4,37,16,fals,11.55,4796.89,2013
+ 36 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,35000,10,200000,8.23,1,35.8,17,27,fals,17.86,5099.06,2015
+ 36 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,6000,0,40000,15.06,0,38.3,19,9,fals,9.67,521.6,2014
+ 36 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,3000,3,18000,13.87,0,18.4,16,8,fals,10.99,516.93,2014
+ 36 months,RENT,major_purchase,MO,Not Verified,INDIVIDUAL,30000,5,400000,16.78,0,38.5,48,15,fals,19.99,714.06,2016
+ 60 months,MORTGAGE,credit_card,MI,Not Verified,INDIVIDUAL,15000,2,40000,6.54,0,72.1,17,16,tru,12.99,-7814.27,2015
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,14825,9,92000,23.79,0,45.7,24,13,fals,16.29,1648.55,2014
+ 60 months,MORTGAGE,credit_card,MI,Verified,INDIVIDUAL,12000,10,96200,19,0,111.1,29,20,fals,13.99,1161.51,2015
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,15750,7,35000,12.77,1,26.6,23,12,fals,20.49,2345.41,2015
+ 36 months,MORTGAGE,debt_consolidation,AZ,Verified,INDIVIDUAL,3000,10,95000,17.96,0,51,22,11,fals,11.49,101.14,2017
+ 36 months,OWN,credit_card,NY,Not Verified,INDIVIDUAL,8925,1,40000,21.33,6,65.8,22,11,fals,7.69,323.09,2014
+ 36 months,MORTGAGE,debt_consolidation,MI,Verified,INDIVIDUAL,20000,6,100000,29.26,0,81.4,43,23,fals,14.33,2064.01,2013
+ 36 months,OWN,debt_consolidation,SD,Verified,INDIVIDUAL,8000,2,30000,36.4,1,80.6,33,24,fals,12.99,430.16,2016
+ 36 months,OWN,credit_card,CA,Verified,INDIVIDUAL,9500,3,60000,14.62,0,84.5,9,13,fals,10.78,1251.11,2016
+ 36 months,MORTGAGE,credit_card,IN,Not Verified,INDIVIDUAL,9500,2,66000,17.02,0,4.2,33,12,tru,6.03,-9210.86,2014
+ 60 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,31350,2,145000,9.57,1,26.5,35,17,fals,17.57,6955.16,2015
+ 60 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,20000,10,85000,14.47,0,68.1,29,14,fals,12.49,4380.99,2014
+ 36 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,15000,10,50000,13.08,0,54.9,25,15,fals,11.99,2794.91,2014
+ 36 months,RENT,debt_consolidation,SC,Not Verified,INDIVIDUAL,7000,10,30000,10.96,0,76.2,10,12,fals,13.35,1460.69,2014
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,5000,3,45000,15.18,3,30.2,33,13,fals,7.69,614.83,2014
+ 60 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,30000,10,114200,7.85,0,84.4,20,30,fals,14.65,6868.08,2015
+ 36 months,RENT,debt_consolidation,OR,Verified,INDIVIDUAL,12800,10,65000,29.6,0,42.5,49,11,tru,13.99,-3132,2015
+ 36 months,MORTGAGE,home_improvement,VA,Verified,INDIVIDUAL,7450,2,99599,19.8,0,44.9,39,12,fals,12.74,168.46,2017
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,7625,1,58000,18.17,0,57,31,6,fals,16.99,2034.99,2014
+ 36 months,MORTGAGE,debt_consolidation,PA,Verified,INDIVIDUAL,5600,6,60000,19.2,0,88,15,14,fals,13.99,726.17,2015
+ 36 months,OWN,debt_consolidation,VA,Verified,INDIVIDUAL,4000,null,20000,6.84,0,30,9,23,fals,7.9,505.76,2013
+ 36 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,5000,0,24000,28.9,0,54.3,20,11,fals,14.16,1041.88,2014
+ 36 months,MORTGAGE,home_improvement,FL,Not Verified,INDIVIDUAL,5000,6,64000,8.63,0,25.1,18,11,fals,9.49,129.76,2016
+ 36 months,OWN,debt_consolidation,TX,Not Verified,INDIVIDUAL,6350,10,40000,17.22,0,3.8,17,10,fals,12.12,709.44,2012
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,9000,0,60000,27.26,0,94.8,25,17,tru,12.29,-4722.9,2015
+ 60 months,RENT,major_purchase,TX,Verified,INDIVIDUAL,35000,5,75000,11.35,0,4,14,15,tru,21.97,-26686.83,2016
+ 60 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,15000,7,51500,26.59,0,56,43,13,tru,22.7,2651.76,2013
+ 36 months,MORTGAGE,debt_consolidation,NY,Not Verified,INDIVIDUAL,10125,10,50000,15.41,0,67.1,15,14,tru,15.59,-5895.5,2015
+ 36 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,25000,10,73000,24.12,0,57.1,42,16,fals,15.1,6242.87,2013
+ 36 months,RENT,credit_card,IL,Verified,INDIVIDUAL,30000,9,80000,33.25,1,51.2,27,10,tru,15.61,-12412.38,2015
+ 36 months,MORTGAGE,credit_card,WI,Not Verified,INDIVIDUAL,9000,10,112801,11.05,0,29.8,27,32,fals,6.92,610.74,2015
+ 36 months,OWN,debt_consolidation,MI,Verified,INDIVIDUAL,6400,null,16000,33.61,0,25.6,26,15,fals,11.99,1115.22,2015
+ 36 months,RENT,debt_consolidation,NY,Not Verified,INDIVIDUAL,16000,2,43000,13.76,0,53.5,34,12,fals,12.12,3164.45,2013
+ 36 months,RENT,debt_consolidation,FL,Not Verified,INDIVIDUAL,7000,3,47000,15.6,0,17.3,18,8,fals,6.03,254.2,2014
+ 36 months,MORTGAGE,debt_consolidation,LA,Verified,INDIVIDUAL,35000,4,170000,21.26,0,62,42,20,fals,11.53,5272.58,2015
+ 36 months,MORTGAGE,home_improvement,MI,Verified,INDIVIDUAL,9500,10,66000,7.92,0,22,30,17,fals,9.17,1181.95,2015
+ 60 months,MORTGAGE,debt_consolidation,WV,Verified,INDIVIDUAL,20000,6,98800,24.43,0,81.6,44,19,fals,10.99,4799.45,2014
+ 60 months,OWN,debt_consolidation,TX,Verified,INDIVIDUAL,13000,0,36000,27.57,0,78.6,24,13,fals,12.39,3139.57,2015
+ 36 months,MORTGAGE,debt_consolidation,SC,Not Verified,INDIVIDUAL,10000,6,40000,9.39,0,45.8,25,16,fals,10.15,541.85,2014
+ 36 months,MORTGAGE,other,WA,Verified,INDIVIDUAL,6800,3,20000,24.07,0,28.2,23,10,fals,19.19,791.28,2015
+ 60 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,11200,10,115000,15.8,0,61.4,70,19,fals,20.49,2877.52,2015
+ 36 months,MORTGAGE,credit_card,RI,Verified,INDIVIDUAL,28000,8,94000,18.6,0,75.3,36,23,fals,12.99,5958.62,2013
+ 36 months,MORTGAGE,debt_consolidation,IL,Not Verified,INDIVIDUAL,10700,3,32160,16.12,0,56.7,24,11,fals,11.47,710.73,2016
+ 36 months,MORTGAGE,credit_card,NY,Not Verified,INDIVIDUAL,8000,10,50000,37.06,0,21.9,25,12,fals,7.26,533.96,2015
+ 60 months,MORTGAGE,credit_card,CA,Not Verified,INDIVIDUAL,16800,9,42000,19.37,0,67.1,23,21,tru,12.59,-12939.01,2015
+ 60 months,MORTGAGE,other,NV,Verified,INDIVIDUAL,35000,2,100000,23.48,0,75.1,21,13,fals,21.99,4623.84,2014
+ 36 months,MORTGAGE,other,IN,Verified,INDIVIDUAL,4200,9,92000,18.16,0,97.6,12,12,fals,16.55,776.66,2015
+ 36 months,MORTGAGE,debt_consolidation,UT,Not Verified,INDIVIDUAL,12150,8,69192,11.9,0,65,40,18,fals,13.98,2794.96,2014
+ 60 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,35000,0,163000,22.88,3,67,49,26,fals,18.25,597.45,2015
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,22800,10,60000,25.49,0,64.8,12,20,fals,14.85,1893.98,2016
+ 36 months,RENT,debt_consolidation,HI,Verified,INDIVIDUAL,8000,6,67000,25.78,0,56.4,17,11,fals,11.99,698.9,2016
+ 36 months,MORTGAGE,credit_card,NY,Not Verified,INDIVIDUAL,28000,7,122000,15.13,0,17.2,58,20,fals,5.32,1529.92,2015
+ 36 months,MORTGAGE,credit_card,MN,Not Verified,INDIVIDUAL,15200,10,68000,18.04,0,53.4,27,17,fals,7.12,1651.14,2014
+ 36 months,RENT,other,LA,Verified,INDIVIDUAL,7500,10,45000,5.11,0,38.2,6,23,fals,18.24,2323.03,2014
+ 60 months,MORTGAGE,debt_consolidation,NH,Verified,INDIVIDUAL,27300,10,70000,18.05,0,82.4,29,12,tru,21.98,-11279.36,2012
+ 36 months,MORTGAGE,credit_card,IL,Not Verified,INDIVIDUAL,10400,2,55000,33.84,6,89,31,11,fals,6.24,874.12,2015
+ 36 months,MORTGAGE,debt_consolidation,GA,Not Verified,INDIVIDUAL,16000,10,98000,9.53,0,70.8,14,27,fals,10.99,429.2,2014
+ 60 months,RENT,credit_card,CA,Verified,INDIVIDUAL,20000,10,70000,24.16,0,51,16,12,fals,10.99,814.39,2015
+ 36 months,MORTGAGE,credit_card,NM,Verified,INDIVIDUAL,8000,10,36000,22.5,0,30.2,19,16,fals,8.18,641.32,2015
+ 36 months,MORTGAGE,credit_card,WI,Verified,INDIVIDUAL,10000,10,59101,31.47,1,3.2,30,13,fals,9.17,1001.29,2014
+ 36 months,MORTGAGE,debt_consolidation,SC,Not Verified,INDIVIDUAL,18000,4,85000,13.65,0,56.7,27,14,fals,13.99,607.75,2015
+ 36 months,RENT,debt_consolidation,IL,Verified,INDIVIDUAL,12000,5,38000,11.56,0,41.4,11,10,fals,13.99,804.88,2016
+ 60 months,RENT,debt_consolidation,CO,Verified,INDIVIDUAL,19950,10,50000,17.52,0,60.2,14,14,tru,17.57,-10331.06,2015
+ 60 months,MORTGAGE,debt_consolidation,OH,Not Verified,INDIVIDUAL,18000,7,50000,21.29,1,40.7,36,16,tru,18.84,-13870.35,2015
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,16700,10,67392,22.49,0,84.6,12,12,tru,19.99,-12700.14,2012
+ 36 months,OWN,credit_card,CA,Not Verified,INDIVIDUAL,13625,5,36000,27.34,0,46.5,9,4,tru,13.98,-12399.8,2014
+ 36 months,MORTGAGE,other,PA,Not Verified,INDIVIDUAL,7600,10,73580,17.37,0,37.7,29,15,fals,11.99,905.79,2016
+ 36 months,RENT,debt_consolidation,WI,Verified,INDIVIDUAL,25000,6,160000,15.61,0,40.4,31,11,fals,6.49,1726.14,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,35000,10,170000,8.32,0,51,38,45,fals,9.17,979.87,2015
+ 60 months,MORTGAGE,debt_consolidation,MO,Verified,INDIVIDUAL,20000,3,73000,18.63,1,72.3,26,16,tru,15.61,-10007.39,2015
+ 36 months,RENT,credit_card,TX,Verified,INDIVIDUAL,6000,null,24000,21.95,0,36.6,21,31,fals,8.18,647.98,2015
+ 36 months,MORTGAGE,debt_consolidation,MI,Verified,INDIVIDUAL,28000,10,189895,15.04,0,8.5,29,16,fals,5.93,2141.09,2015
+ 36 months,RENT,credit_card,TX,Verified,INDIVIDUAL,24000,1,110000,10.82,0,58.7,31,12,fals,8.9,3434.76,2014
+ 36 months,MORTGAGE,debt_consolidation,TN,Not Verified,INDIVIDUAL,11000,6,64000,17.96,0,5.3,39,15,fals,9.49,523.04,2015
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,5000,10,37000,26.34,0,38.4,24,19,fals,13.99,199.62,2017
+ 36 months,RENT,debt_consolidation,MO,Verified,INDIVIDUAL,6250,4,25000,28.08,0,75.7,17,6,fals,15.8,1630.34,2012
+ 60 months,OWN,credit_card,PA,Verified,INDIVIDUAL,24000,9,66900,31.2,0,82.9,43,15,fals,12.49,6347.57,2014
+ 36 months,MORTGAGE,credit_card,IL,Not Verified,INDIVIDUAL,9600,1,50000,13.9,2,48,34,12,fals,13.11,1757.69,2013
+ 36 months,MORTGAGE,debt_consolidation,WA,Verified,INDIVIDUAL,6400,2,40000,18.21,0,68.5,22,11,tru,16.77,-4807.85,2012
+ 36 months,MORTGAGE,debt_consolidation,TX,Not Verified,INDIVIDUAL,12000,4,105000,19.41,0,71,28,18,fals,12.12,2373.35,2012
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,14000,10,123000,13.61,0,12.7,35,15,fals,10.99,3570.49,2014
+ 36 months,MORTGAGE,debt_consolidation,MN,Verified,INDIVIDUAL,21750,0,110000,27.7,0,79.2,27,21,fals,18.25,209.5,2016
+ 36 months,RENT,major_purchase,MN,Verified,INDIVIDUAL,15000,10,45240,25.17,0,83,15,11,fals,13.67,1938.36,2016
+ 60 months,MORTGAGE,credit_card,MT,Verified,INDIVIDUAL,25000,10,75000,21.68,0,56.8,34,17,fals,14.49,2999.66,2014
+ 36 months,RENT,debt_consolidation,NM,Not Verified,INDIVIDUAL,18050,3,85000,12.93,0,32,21,12,tru,13.49,-14503.81,2016
+ 36 months,MORTGAGE,credit_card,MN,Not Verified,INDIVIDUAL,20000,3,115000,14.08,0,63.7,40,18,fals,7.62,127.46,2013
+ 36 months,MORTGAGE,credit_card,IL,Verified,INDIVIDUAL,19950,10,41600,33.73,0,51.3,22,11,fals,15.99,1047.77,2016
+ 60 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,25200,5,60000,7.78,1,58.4,5,5,tru,21.18,-16983.83,2016
+ 60 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,18325,10,115000,22.6,0,33.5,32,10,fals,30.84,1600.83,2016
+ 36 months,OWN,home_improvement,NY,Verified,INDIVIDUAL,28000,10,205000,21.47,0,21,32,14,fals,15.99,410.41,2016
+ 36 months,RENT,credit_card,UT,Verified,INDIVIDUAL,6000,7,40000,20.4,0,50,26,30,fals,7.69,330.41,2014
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,15000,null,64000,9.43,0,63.1,9,11,fals,12.85,161.41,2014
+ 36 months,RENT,credit_card,TX,Verified,INDIVIDUAL,8725,null,23000,17.95,0,74.4,28,47,tru,16.99,-2193.37,2014
+ 36 months,RENT,debt_consolidation,AZ,Verified,INDIVIDUAL,5000,8,58000,29.3,0,33.3,21,10,fals,10.49,317.77,2014
+ 36 months,MORTGAGE,debt_consolidation,MD,Verified,INDIVIDUAL,7000,2,132000,8.77,0,84.8,33,22,tru,12.74,-6752.61,2016
+ 36 months,MORTGAGE,other,OR,Verified,INDIVIDUAL,3000,6,35000,32.47,1,29.2,26,11,tru,20.31,-1505.16,2013
+ 60 months,OWN,debt_consolidation,KY,Verified,INDIVIDUAL,30000,8,225000,7.42,0,29.6,36,31,fals,7.39,1798.2,2016
+ 36 months,OWN,medical,NJ,Verified,INDIVIDUAL,2000,10,65000,8.49,0,70.3,36,27,fals,11.44,0.88,2016
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,5500,10,42000,21.63,2,47.3,24,26,fals,10.64,29.27,2015
+ 60 months,MORTGAGE,medical,FL,Verified,INDIVIDUAL,17000,9,65712,26.13,0,54.6,22,12,tru,23.63,962.34,2013
+ 36 months,MORTGAGE,debt_consolidation,MD,Verified,INDIVIDUAL,5000,10,80000,9.17,3,97.4,30,24,fals,18.25,1470.13,2013
+ 36 months,MORTGAGE,credit_card,AR,Not Verified,INDIVIDUAL,17000,5,90000,14.69,0,57.7,39,17,fals,14.49,1042.04,2016
+ 36 months,RENT,debt_consolidation,MA,Verified,INDIVIDUAL,8000,4,75000,15.1,1,11.9,18,8,fals,13.99,313.17,2016
+ 60 months,MORTGAGE,debt_consolidation,NJ,Verified,INDIVIDUAL,11000,8,47000,15.5,0,43.7,23,8,fals,20.99,1337.37,2015
+ 36 months,MORTGAGE,credit_card,TN,Verified,INDIVIDUAL,13200,10,65000,26.2,0,93.9,18,11,fals,9.17,1379.05,2015
+ 36 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,10000,3,64000,23.18,0,48.6,25,10,fals,11.39,431.12,2016
+ 60 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,18600,6,78000,29.02,0,49,17,5,fals,19.48,311.71,2016
+ 36 months,MORTGAGE,credit_card,MO,Verified,INDIVIDUAL,24000,10,84200,18.8,0,40.9,13,24,fals,7.26,2075.59,2015
+ 36 months,RENT,credit_card,NY,Not Verified,INDIVIDUAL,7000,6,60000,9.42,0,23.7,14,20,fals,8.9,1001.77,2013
+ 36 months,MORTGAGE,other,OK,Not Verified,INDIVIDUAL,2750,1,90260,9.09,0,88.8,26,27,fals,11.53,451.3,2015
+ 36 months,RENT,debt_consolidation,UT,Verified,INDIVIDUAL,7800,0,23000,18.94,0,77.9,28,11,fals,15.99,168.63,2017
+ 36 months,MORTGAGE,home_improvement,IL,Not Verified,INDIVIDUAL,9000,0,99400,17.07,0,38.8,34,36,fals,14.64,1623.09,2014
+ 36 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,30000,8,150000,5.35,0,62.5,29,12,tru,11.49,-26003.66,2016
+ 36 months,RENT,moving,FL,Not Verified,INDIVIDUAL,7175,10,40000,18.72,0,54,10,10,tru,24.5,-5474.66,2014
+ 36 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,16000,5,48800,13.92,0,51.3,30,11,fals,7.89,1092.43,2016
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,30000,0,86000,24.28,2,69.8,46,21,fals,16.99,3787.08,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,25000,3,140000,10.26,0,16.8,22,4,fals,9.17,2860.5,2015
+ 60 months,RENT,debt_consolidation,MA,Verified,INDIVIDUAL,14000,2,60000,12.34,0,67.6,8,8,fals,13.33,953.31,2015
+ 36 months,OWN,debt_consolidation,IL,Not Verified,INDIVIDUAL,3000,10,30000,26.12,0,63.6,25,8,tru,16.29,-1329.63,2012
+ 36 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,15000,1,48000,14.53,0,41.9,16,9,fals,12.69,2390.7,2015
+ 60 months,RENT,debt_consolidation,TN,Verified,INDIVIDUAL,18700,1,52000,12.69,0,28.9,14,17,fals,21.99,4853.19,2014
+ 36 months,OWN,credit_card,MI,Verified,INDIVIDUAL,17625,2,39187,31.38,0,71.6,9,9,fals,13.98,4054.54,2014
+ 36 months,MORTGAGE,debt_consolidation,IL,Not Verified,INDIVIDUAL,6000,8,52000,13.85,0,63.2,26,13,fals,11.55,1127.95,2013
+ 60 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,10600,10,103586,4.12,0,37.4,42,21,fals,16.99,3498.01,2013
+ 36 months,MORTGAGE,credit_card,MA,Not Verified,INDIVIDUAL,14000,8,71000,13.56,0,66,16,16,fals,11.44,2507.46,2015
+ 36 months,RENT,debt_consolidation,OR,Not Verified,INDIVIDUAL,16750,10,70000,17.88,1,85.6,40,13,fals,18.25,4643.65,2013
+ 36 months,MORTGAGE,debt_consolidation,NC,Not Verified,INDIVIDUAL,25000,null,100000,5.35,0,23.8,29,24,fals,5.32,14.93,2016
+ 36 months,RENT,credit_card,VA,Verified,INDIVIDUAL,5000,4,180000,11.39,1,60.8,12,18,fals,11.49,250.18,2017
+ 36 months,MORTGAGE,home_improvement,MD,Verified,INDIVIDUAL,2500,10,58700,7.99,0,1.8,60,21,fals,14.46,20.09,2016
+ 36 months,RENT,debt_consolidation,TX,Not Verified,INDIVIDUAL,19000,4,38000,21.38,0,28,39,10,fals,16.29,1910.95,2016
+ 36 months,RENT,debt_consolidation,AZ,Verified,INDIVIDUAL,16000,1,50000,31.04,0,24.1,22,10,fals,8.18,1094.68,2015
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,13500,6,65300,12.44,3,45.2,36,37,tru,14.16,-8509.39,2014
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,12000,10,127000,16.69,0,63.7,30,16,fals,7.89,717.97,2015
+ 36 months,OWN,debt_consolidation,SC,Verified,INDIVIDUAL,35000,7,100000,13.61,1,75.6,31,16,tru,12.99,-27587.58,2015
+ 60 months,RENT,debt_consolidation,OK,Verified,INDIVIDUAL,20000,10,58000,18.36,1,52.1,17,14,tru,18.54,-13997.53,2015
+ 36 months,OWN,home_improvement,CA,Verified,INDIVIDUAL,30000,10,211000,7.3,0,42.8,25,13,fals,14.99,7556.22,2014
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,30000,10,125000,7.9,0,43.8,31,19,fals,14.3,3739.73,2013
+ 36 months,MORTGAGE,credit_card,PA,Verified,INDIVIDUAL,4800,6,65000,22.88,0,63.8,15,7,fals,13.33,733.48,2015
+ 36 months,MORTGAGE,credit_card,AL,Verified,INDIVIDUAL,25000,10,75000,25.38,0,59.8,36,14,fals,13.05,5074.38,2013
+ 36 months,RENT,credit_card,SC,Not Verified,INDIVIDUAL,7000,2,45000,27.73,1,49,17,6,fals,10.15,756.11,2014
+ 36 months,RENT,credit_card,IN,Not Verified,INDIVIDUAL,15000,1,52000,24.16,0,74.8,15,21,fals,18.75,4726.02,2013
+ 36 months,RENT,small_business,NY,Verified,INDIVIDUAL,3075,2,30000,2,0,17.5,5,5,fals,15.1,155.19,2013
+ 60 months,RENT,small_business,AZ,Verified,INDIVIDUAL,12000,2,110000,8.79,0,41.3,20,14,tru,21.67,-953.67,2015
+ 36 months,OWN,debt_consolidation,NC,Verified,INDIVIDUAL,30000,4,105000,8.16,0,9.9,23,20,fals,7.99,1551.09,2016
+ 36 months,RENT,other,FL,Verified,INDIVIDUAL,2000,4,40000,15.6,0,56.3,12,8,tru,21.97,-1426.1,2016
+ 60 months,MORTGAGE,debt_consolidation,MI,Verified,INDIVIDUAL,15000,9,33000,2.98,0,35.3,13,8,fals,22.74,826,2017
+ 60 months,RENT,debt_consolidation,CO,Verified,INDIVIDUAL,28000,10,148000,13.06,0,83,25,9,tru,24.08,-332.24,2014
+ 36 months,MORTGAGE,credit_card,CO,Verified,INDIVIDUAL,20000,0,105000,7.67,0,65,24,18,fals,7.9,2528.97,2014
+ 36 months,OWN,debt_consolidation,AL,Verified,INDIVIDUAL,5600,10,27342,38.85,0,38.5,26,10,fals,11.22,440.88,2015
+ 36 months,MORTGAGE,debt_consolidation,MA,Not Verified,INDIVIDUAL,10000,10,50000,23.07,1,40.5,30,21,fals,9.75,1034.47,2016
+ 36 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,13725,10,97800,17.14,0,64,34,17,fals,8.9,1876.83,2012
+ 36 months,RENT,debt_consolidation,MO,Verified,INDIVIDUAL,11850,10,35000,18.45,0,46.7,17,13,fals,19.52,3901.19,2014
+ 36 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,6000,10,96000,11.46,0,44.4,23,21,fals,5.32,328.9,2016
+ 60 months,MORTGAGE,debt_consolidation,NV,Verified,INDIVIDUAL,10375,4,45600,31.89,0,67.3,24,12,tru,17.86,-7927.74,2015
+ 36 months,RENT,debt_consolidation,NC,Not Verified,INDIVIDUAL,10000,0,61000,27.86,0,85.4,28,22,tru,22.2,-7137.41,2013
+ 36 months,RENT,debt_consolidation,OH,Verified,INDIVIDUAL,10000,0,105000,12.71,3,77.8,50,14,fals,16.99,1047.18,2016
+ 36 months,MORTGAGE,debt_consolidation,NJ,Verified,INDIVIDUAL,18225,10,52000,28.45,0,77.5,18,15,tru,12.99,808.69,2013
+ 60 months,MORTGAGE,major_purchase,NH,Verified,INDIVIDUAL,36000,10,92000,20.3,0,19.8,27,16,fals,13.99,2477.79,2016
+ 36 months,MORTGAGE,debt_consolidation,TX,Not Verified,INDIVIDUAL,15000,8,95000,15.3,0,38.7,44,17,fals,7.9,1677.16,2014
+ 60 months,MORTGAGE,debt_consolidation,TN,Verified,INDIVIDUAL,21200,2,75000,24.21,2,68.2,28,16,fals,15.41,4823.97,2015
+ 36 months,RENT,credit_card,TX,Verified,INDIVIDUAL,7400,1,56000,10.82,0,87.5,12,7,fals,9.17,828.96,2015
+ 36 months,RENT,house,NJ,Verified,INDIVIDUAL,4575,10,65000,3.19,0,24.5,13,7,fals,12.99,962.89,2013
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,30225,8,128000,18.09,0,26,24,11,tru,16.29,-20588.96,2016
+ 36 months,MORTGAGE,debt_consolidation,OR,Not Verified,INDIVIDUAL,13925,10,46000,27.92,0,58.2,27,21,fals,12.29,2675.65,2015
+ 60 months,OWN,credit_card,FL,Verified,INDIVIDUAL,15000,10,65000,21.82,0,36.9,28,10,fals,14.49,1509.65,2014
+ 36 months,OWN,debt_consolidation,CO,Verified,INDIVIDUAL,18000,10,126000,14.43,0,21.8,31,29,fals,7.12,1562.26,2014
+ 60 months,MORTGAGE,debt_consolidation,CO,Verified,INDIVIDUAL,12950,10,36000,18,0,71.4,17,13,tru,20.99,-10810.63,2015
+ 36 months,OWN,credit_card,NC,Verified,INDIVIDUAL,10000,10,48000,15.38,0,53.6,17,24,fals,10.64,1724.63,2013
+ 36 months,MORTGAGE,debt_consolidation,NC,Verified,INDIVIDUAL,20000,4,75000,14.38,0,48.4,25,16,fals,10.74,2244.4,2012
+ 36 months,MORTGAGE,debt_consolidation,NV,Verified,INDIVIDUAL,24000,2,110000,15.87,3,50.8,38,18,tru,14.33,-13183.01,2013
+ 36 months,RENT,medical,CA,Not Verified,INDIVIDUAL,2100,1,36000,4.4,0,4.8,4,6,tru,23.5,-1100.28,2013
+ 36 months,OWN,credit_card,MN,Not Verified,INDIVIDUAL,8100,7,45000,28.75,0,77,46,19,fals,11.44,849.23,2015
+ 36 months,RENT,small_business,VA,Verified,INDIVIDUAL,9500,0,55000,14.84,2,33,14,7,fals,22.95,3565.05,2013
+ 60 months,MORTGAGE,other,NJ,Not Verified,INDIVIDUAL,10000,10,130000,17.08,0,35.1,30,13,fals,13.35,1826.01,2014
+ 36 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,5000,0,24000,25.15,0,55.3,10,6,fals,6.49,481.36,2014
+ 60 months,RENT,debt_consolidation,TX,Verified,INDIVIDUAL,35000,5,75000,30.01,0,14,42,20,fals,20.75,8360.95,2016
+ 36 months,RENT,credit_card,OH,Verified,INDIVIDUAL,11875,10,34000,17.23,0,69.8,19,13,fals,14.64,2043.48,2014
+ 60 months,MORTGAGE,home_improvement,CA,Verified,INDIVIDUAL,15125,10,45000,35.95,0,80.9,14,10,fals,21.97,631.64,2016
+ 36 months,MORTGAGE,home_improvement,TX,Not Verified,INDIVIDUAL,8000,2,128000,2.38,0,5.9,30,14,fals,15.31,1803.95,2013
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,35000,null,90000,24.76,0,75.6,33,32,tru,25.29,-25270.39,2016
+ 36 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,24000,null,73000,18.79,0,63.5,32,39,fals,8.39,2240.08,2014
+ 36 months,RENT,debt_consolidation,WA,Not Verified,INDIVIDUAL,15000,8,90000,8.4,1,34.1,11,13,fals,8.59,875.29,2016
+ 36 months,OWN,other,VA,Verified,INDIVIDUAL,20000,null,52384,10.29,1,73.6,17,47,tru,17.56,-15688.1,2013
+ 36 months,MORTGAGE,debt_consolidation,PA,Not Verified,INDIVIDUAL,16000,4,92000,14.92,0,69.3,42,18,tru,17.27,-13709.6,2012
+ 36 months,RENT,debt_consolidation,CO,Verified,INDIVIDUAL,12000,5,90000,12.85,0,23.6,9,6,fals,7.9,1422.66,2013
+ 60 months,MORTGAGE,debt_consolidation,PA,Verified,INDIVIDUAL,23400,4,93000,19.81,0,25,26,17,fals,9.75,762.94,2016
+ 36 months,OWN,other,CA,Not Verified,INDIVIDUAL,10000,4,60000,34.34,0,19.2,37,14,fals,6.89,829.57,2015
+ 60 months,RENT,debt_consolidation,MI,Verified,INDIVIDUAL,12600,2,35000,31.93,0,67,14,7,tru,19.99,-7444.31,2015
+ 36 months,MORTGAGE,credit_card,UT,Verified,INDIVIDUAL,10000,0,58000,9.41,0,82.2,9,8,fals,12.12,1977.77,2013
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,7900,3,22000,37.32,0,80,13,11,fals,17.57,2097.61,2015
+ 36 months,RENT,credit_card,GA,Verified,INDIVIDUAL,8400,5,66000,12.3,0,48,9,8,fals,8.9,1040.03,2014
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,10000,10,85000,28.8,0,27.4,29,14,tru,6.39,-4170.82,2015
+ 36 months,MORTGAGE,debt_consolidation,GA,Not Verified,INDIVIDUAL,10625,2,31157.85,16.87,0,83.7,10,11,fals,13.05,2272.11,2013
+ 36 months,OWN,debt_consolidation,TX,Verified,INDIVIDUAL,2950,10,30000,19.76,0,10.6,9,7,fals,17.86,542.23,2015
+ 60 months,RENT,credit_card,DE,Verified,INDIVIDUAL,17600,3,65000,5.39,0,43.3,4,3,fals,18.55,4542.08,2015
+ 60 months,MORTGAGE,credit_card,NC,Verified,INDIVIDUAL,28000,10,210000,15.78,0,36.6,52,23,fals,13.11,7906.01,2013
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,20000,5,89000,17.5,3,68.4,39,17,fals,15.88,5285.42,2013
+ 36 months,MORTGAGE,debt_consolidation,KS,Not Verified,INDIVIDUAL,8000,10,120000,30.98,0,85.2,21,22,tru,12.49,-512.75,2014
+ 36 months,RENT,house,TX,Not Verified,INDIVIDUAL,14400,10,54000,18.02,9,43.6,33,20,fals,17.57,3082.6,2015
+ 60 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,14000,10,43000,11.86,0,78.7,10,21,fals,15.61,4593.15,2014
+ 60 months,MORTGAGE,debt_consolidation,OR,Verified,INDIVIDUAL,27650,1,63000,20.5,0,48.8,17,13,fals,16.99,10952.56,2014
+ 36 months,MORTGAGE,major_purchase,TN,Verified,INDIVIDUAL,8000,null,52476,27.19,0,29.5,33,18,fals,19.99,670.85,2016
+ 36 months,RENT,major_purchase,NY,Verified,INDIVIDUAL,6000,6,200000,3.24,0,77,10,11,tru,11.14,912.3,2013
+ 36 months,MORTGAGE,debt_consolidation,TN,Not Verified,INDIVIDUAL,12500,0,74000,22.77,0,44.9,30,13,fals,7.49,1366.57,2014
+ 36 months,OWN,debt_consolidation,NM,Not Verified,INDIVIDUAL,7450,9,22000,19.47,0,65.1,12,7,fals,7.9,843.57,2012
+ 60 months,RENT,debt_consolidation,FL,Verified,INDIVIDUAL,10625,10,35000,16.91,0,82.7,15,38,tru,20.5,-2090.9,2013
+ 36 months,MORTGAGE,credit_card,IL,Not Verified,INDIVIDUAL,14000,5,62000,9.63,0,50,19,30,fals,15.88,366.79,2013
+ 36 months,OWN,credit_card,MI,Verified,INDIVIDUAL,15000,1,56000,12.69,0,16.5,51,15,fals,7.89,127.32,2015
+ 36 months,MORTGAGE,car,MI,Verified,INDIVIDUAL,24500,null,64000,3.99,0,20.3,19,37,fals,6.03,243.1,2013
+ 36 months,MORTGAGE,other,CO,Verified,INDIVIDUAL,2000,2,40000,24.72,0,80.4,27,10,fals,12.79,135.41,2016
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,9600,9,27000,26.58,0,82.3,11,8,tru,13.99,-5992.93,2015
+ 36 months,RENT,credit_card,NY,Verified,INDIVIDUAL,20050,3,45000,30.35,0,64.4,32,4,fals,19.05,6100.05,2013
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,12000,6,135000,11.34,0,39.1,28,18,fals,10.49,806.18,2014
+ 36 months,OWN,debt_consolidation,CT,Verified,INDIVIDUAL,4000,6,60000,14.06,1,56.4,9,21,fals,13.49,85.91,2017
+ 36 months,RENT,credit_card,WA,Verified,INDIVIDUAL,19500,8,70000,20.45,0,70.7,13,8,fals,10.16,3204.31,2013
+ 60 months,MORTGAGE,small_business,CA,Verified,INDIVIDUAL,26000,7,190000,12.96,0,46.4,32,23,fals,11.14,6458.1,2012
+ 36 months,OWN,credit_card,SC,Verified,INDIVIDUAL,2800,9,32000,14.1,0,23.3,18,10,fals,9.16,156.34,2016
+ 36 months,MORTGAGE,car,NY,Not Verified,INDIVIDUAL,7000,8,87000,7.74,0,7.7,24,12,fals,13.99,3.22,2016
+ 60 months,OWN,major_purchase,PA,Verified,INDIVIDUAL,18000,10,97000,8.41,0,48.8,20,15,fals,17.27,1019.56,2013
+ 36 months,MORTGAGE,credit_card,CT,Verified,INDIVIDUAL,10200,null,28751,11.98,1,81.5,33,16,tru,8.39,-5994.26,2014
+ 36 months,RENT,credit_card,NY,Not Verified,INDIVIDUAL,17000,10,95000,6.42,2,19.5,41,19,fals,10.16,358.39,2013
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,13600,4,38000,11.92,1,94.4,10,7,fals,19.47,4463.34,2014
+ 36 months,MORTGAGE,debt_consolidation,PA,Verified,INDIVIDUAL,5000,10,78000,9.05,0,15.3,38,22,fals,9.16,427.92,2016
+ 36 months,RENT,debt_consolidation,WA,Verified,INDIVIDUAL,7200,2,60000,25.74,0,51.2,37,10,fals,9.99,1162.44,2013
+ 36 months,MORTGAGE,debt_consolidation,AR,Not Verified,INDIVIDUAL,18000,6,61000,18.67,0,60.5,41,19,fals,8.18,2079.43,2015
+ 36 months,OWN,credit_card,NC,Verified,INDIVIDUAL,35000,10,220000,11.92,0,53.6,38,20,fals,9.17,3863,2015
+ 36 months,MORTGAGE,debt_consolidation,OH,Not Verified,INDIVIDUAL,7200,10,87000,4.41,0,18.8,9,15,fals,14.33,1700.88,2012
+ 36 months,RENT,debt_consolidation,IL,Not Verified,INDIVIDUAL,6000,1,28000,13.16,0,59.9,19,7,fals,12.85,758.28,2014
+ 36 months,OWN,credit_card,NC,Not Verified,INDIVIDUAL,7000,10,50000,29.91,0,89.6,37,29,fals,10.15,606.47,2014
+ 36 months,MORTGAGE,debt_consolidation,OH,Not Verified,INDIVIDUAL,8000,10,62000,21.85,0,17.9,39,16,fals,5.32,178.18,2016
+ 36 months,MORTGAGE,debt_consolidation,IN,Not Verified,INDIVIDUAL,12575,9,35000,27.78,0,59.9,30,11,tru,16.99,-3621.27,2014
+ 36 months,OWN,debt_consolidation,NY,Verified,INDIVIDUAL,30000,3,85000,22.29,1,37.2,41,12,tru,16.99,-27889.44,2016
+ 60 months,OWN,debt_consolidation,TX,Verified,INDIVIDUAL,12000,2,29000,37.87,0,48.3,24,20,tru,14.33,-9460.59,2015
+ 36 months,RENT,credit_card,FL,Verified,INDIVIDUAL,5600,4,47000,16.37,0,29.3,6,4,tru,18.75,-4075.08,2012
+ 60 months,MORTGAGE,debt_consolidation,LA,Verified,INDIVIDUAL,14000,10,82000,20.04,0,55.2,31,24,tru,20.5,-8217.84,2016
+ 36 months,OWN,home_improvement,IL,Verified,INDIVIDUAL,30000,10,100000,2.45,0,1.1,32,33,fals,6.92,69.21,2015
+ 60 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,12000,10,90000,7.35,0,57.9,28,17,fals,16.99,2478.64,2015
+ 36 months,MORTGAGE,debt_consolidation,WA,Not Verified,INDIVIDUAL,4000,5,80000,12.2,0,96.7,14,11,fals,11.14,37.5,2013
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,30000,9,96000,17.65,0,21,26,14,fals,18.55,4672.03,2015
+ 60 months,RENT,debt_consolidation,NJ,Verified,INDIVIDUAL,21925,10,56000,15.56,0,17.6,29,16,tru,18.92,-16081.63,2014
+ 36 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,6600,1,40000,20.13,0,41.7,18,14,fals,8.39,888.34,2014
+ 36 months,MORTGAGE,home_improvement,OH,Not Verified,INDIVIDUAL,5600,3,78000,13.03,0,37.4,16,15,fals,5.32,407.55,2015
+ 36 months,MORTGAGE,debt_consolidation,TN,Verified,INDIVIDUAL,8000,10,67000,22.41,0,85.8,32,12,fals,16.55,1519.25,2015
+ 36 months,MORTGAGE,credit_card,NJ,Verified,INDIVIDUAL,9000,5,109000,4.8,1,46,24,29,fals,8.39,460.82,2016
+ 36 months,OWN,debt_consolidation,NY,Verified,INDIVIDUAL,12000,10,71000,16.35,0,91.5,9,17,tru,13.53,-3857.46,2014
+ 36 months,RENT,debt_consolidation,KS,Not Verified,INDIVIDUAL,6000,0,40000,26.01,0,68.2,19,8,tru,9.99,-2181.33,2015
+ 60 months,RENT,credit_card,GA,Verified,INDIVIDUAL,10000,0,51000,4.52,0,63.2,8,6,tru,13.66,-5771.76,2014
+ 36 months,RENT,debt_consolidation,LA,Verified,INDIVIDUAL,5000,3,36000,17.83,0,53.8,24,13,fals,11.99,668.75,2015
+ 36 months,RENT,credit_card,CA,Verified,INDIVIDUAL,25000,3,100000,12.7,0,58.6,9,5,fals,18.55,7785.92,2013
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,8000,2,49000,12.22,0,63.3,16,28,fals,15.61,1123.26,2014
+ 36 months,RENT,debt_consolidation,TX,Not Verified,INDIVIDUAL,8000,10,56805,6.78,2,24,25,13,fals,13.53,1759.5,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,8000,3,30000,22.88,1,75.2,18,11,fals,14.64,1931.09,2014
+ 36 months,MORTGAGE,credit_card,TN,Verified,INDIVIDUAL,21000,10,95000,23.82,0,77.5,32,13,fals,14.09,3391.8,2013
+ 36 months,RENT,debt_consolidation,VA,Not Verified,INDIVIDUAL,10000,1,60000,18.74,0,53.2,35,8,fals,9.8,1153.17,2016
+ 36 months,MORTGAGE,debt_consolidation,FL,Not Verified,INDIVIDUAL,19350,7,55000,35.48,0,32.4,40,23,fals,12.99,1390.68,2016
+ 36 months,MORTGAGE,credit_card,CT,Not Verified,INDIVIDUAL,15725,10,54000,18.91,0,18.4,38,37,fals,7.89,1724.58,2015
+ 36 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,10000,2,52215,7.47,0,79.5,18,9,fals,13.67,325.26,2016
+ 36 months,MORTGAGE,home_improvement,MO,Verified,INDIVIDUAL,3000,3,105000,33.48,0,53.7,32,19,fals,8.9,429.35,2014
+ 36 months,RENT,debt_consolidation,PA,Not Verified,INDIVIDUAL,15000,10,45000,19.18,0,58,14,14,fals,9.71,2350.84,2013
+ 36 months,RENT,credit_card,IL,Verified,INDIVIDUAL,6000,2,90000,8.31,0,79.1,27,15,fals,9.17,399.08,2015
+ 36 months,RENT,home_improvement,RI,Verified,INDIVIDUAL,4000,7,40000,25.8,0,22.5,27,13,fals,15.8,695.42,2013
+ 36 months,RENT,medical,NJ,Verified,INDIVIDUAL,9000,10,41600,28.3,0,31.6,17,12,fals,6.62,805.99,2012
+ 60 months,MORTGAGE,debt_consolidation,CA,Not Verified,INDIVIDUAL,35000,3,400000,18.85,1,85.3,41,33,tru,14.99,-24922.37,2014
+ 36 months,RENT,credit_card,NJ,Not Verified,INDIVIDUAL,9000,7,51000,5.51,0,41.3,21,16,fals,6.24,633.32,2015
+ 36 months,MORTGAGE,debt_consolidation,TX,Verified,INDIVIDUAL,12000,10,75000,18.37,1,49.1,63,14,fals,9.99,1596.8,2015
+ 60 months,MORTGAGE,home_improvement,AZ,Verified,INDIVIDUAL,10900,10,67000,11.52,1,35.7,15,10,tru,21.48,-4990.8,2016
+ 36 months,RENT,credit_card,IL,Verified,INDIVIDUAL,8000,5,43000,6.81,0,64.8,10,10,fals,6.62,831.97,2012
+ 60 months,MORTGAGE,debt_consolidation,MA,Verified,INDIVIDUAL,21000,3,146086,10.68,2,71.7,27,13,fals,13.99,1642.74,2015
+ 60 months,RENT,debt_consolidation,WA,Verified,INDIVIDUAL,12000,3,48000,8.35,0,81.6,8,6,fals,15.61,305.15,2014
+ 60 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,30700,1,80800,26.41,0,69.8,31,16,tru,25.99,-18591,2015
+ 60 months,RENT,medical,AZ,Verified,INDIVIDUAL,12000,0,96000,26.56,1,80.2,45,21,tru,18.25,-8285.87,2015
+ 36 months,RENT,debt_consolidation,VA,Verified,INDIVIDUAL,4675,10,40000,19.11,0,31.7,11,11,fals,22.35,556.28,2016
+ 36 months,MORTGAGE,debt_consolidation,GA,Verified,INDIVIDUAL,30000,5,115000,10.16,0,41.8,35,11,fals,11.99,41.47,2017
+ 36 months,MORTGAGE,medical,NC,Not Verified,INDIVIDUAL,8000,10,125000,10.12,0,29.8,39,28,fals,7.89,713.33,2015
+ 36 months,OWN,debt_consolidation,NY,Verified,INDIVIDUAL,7925,10,40000,22.29,0,34.5,11,14,fals,11.44,22.66,2017
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,3000,3,72000,12.08,1,32.8,34,25,fals,12.49,600.62,2014
+ 36 months,MORTGAGE,debt_consolidation,AL,Not Verified,INDIVIDUAL,4000,6,74000,23.89,0,39.5,26,14,fals,14.3,942.54,2013
+ 36 months,MORTGAGE,other,NY,Verified,INDIVIDUAL,5000,null,55000,19.03,0,54.2,34,13,tru,12.49,-1891.46,2014
+ 36 months,MORTGAGE,credit_card,MD,Not Verified,INDIVIDUAL,7000,10,80000,18.9,0,83.5,23,17,fals,6.68,701.49,2015
+ 36 months,OWN,debt_consolidation,HI,Verified,INDIVIDUAL,21000,1,50000,12.55,0,76.4,15,11,tru,15.31,-11647.39,2016
+ 60 months,RENT,credit_card,AZ,Verified,INDIVIDUAL,22000,10,50000,24.48,0,78,31,7,tru,22.4,-15342.13,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,12200,10,88000,16.46,0,72.6,17,17,fals,7.89,1106.47,2015
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,2400,9,115000,10.75,0,17.6,26,24,fals,8.9,343.47,2014
+ 36 months,RENT,other,CO,Verified,INDIVIDUAL,5000,0,25000,34.85,0,65.4,26,7,tru,17.86,-4102.86,2015
+ 36 months,MORTGAGE,debt_consolidation,IL,Verified,INDIVIDUAL,10000,4,40000,22.02,0,43.6,28,29,fals,12.74,4.6,2017
+ 36 months,MORTGAGE,vacation,WV,Not Verified,INDIVIDUAL,7500,10,95000,9.16,1,57,43,23,fals,16.29,1799.28,2014
+ 36 months,RENT,debt_consolidation,VA,Verified,INDIVIDUAL,18250,null,42100,25.1,0,41.2,28,20,fals,9.99,2946.4,2013
+ 36 months,MORTGAGE,debt_consolidation,CA,Verified,INDIVIDUAL,7000,10,130720,10.49,0,17.6,30,15,fals,6.92,705.41,2015
+ 60 months,MORTGAGE,credit_card,CA,Verified,INDIVIDUAL,18000,1,64541,17.85,1,20,25,12,fals,22.74,159.18,2017
+ 36 months,MORTGAGE,credit_card,NC,Verified,INDIVIDUAL,6000,5,32000,16.84,0,48.9,10,11,fals,12.69,906.42,2015
+ 36 months,RENT,debt_consolidation,NY,Verified,INDIVIDUAL,30000,9,142660,13.42,0,92.5,25,24,tru,14.33,-10946.94,2013
+ 36 months,RENT,other,CO,Verified,INDIVIDUAL,5000,0,38000,28.58,0,36.8,80,24,tru,7.49,-1425.13,2015
+ 36 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,6000,0,20000,17.89,0,6,32,14,fals,8.18,453.04,2015
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,6325,6,43000,7.76,0,74.7,13,5,fals,12.12,468.94,2012
+ 36 months,MORTGAGE,home_improvement,TX,Verified,INDIVIDUAL,20700,10,46000,14.64,0,46.1,40,28,fals,13.35,4534.54,2014
+ 36 months,MORTGAGE,other,TX,Verified,INDIVIDUAL,4000,2,58000,15.33,0,4.4,25,13,fals,12.99,232.93,2016
+ 60 months,MORTGAGE,credit_card,IN,Verified,INDIVIDUAL,14900,null,35500,11.12,0,62.8,14,12,fals,18.25,4704.72,2015
+ 36 months,MORTGAGE,debt_consolidation,NJ,Verified,INDIVIDUAL,24500,10,179200,12.16,0,52.9,25,17,fals,7.69,2989.41,2014
+ 60 months,MORTGAGE,debt_consolidation,TN,Verified,INDIVIDUAL,19800,2,91000,27.55,0,86.2,25,15,tru,21.49,-12062.04,2013
+ 36 months,MORTGAGE,debt_consolidation,AZ,Verified,INDIVIDUAL,9000,0,50000,38.07,0,46.8,31,14,fals,9.16,512.35,2016
+ 36 months,RENT,credit_card,KS,Verified,INDIVIDUAL,35000,8,200000,6.48,0,16.5,34,22,fals,7.39,2449.99,2016
+ 60 months,MORTGAGE,debt_consolidation,GA,Not Verified,INDIVIDUAL,13325,10,104000,26.03,0,14.3,35,22,tru,7.89,-8782.65,2015
+ 60 months,MORTGAGE,debt_consolidation,IN,Verified,INDIVIDUAL,18000,1,110000,10.81,0,82.1,49,16,fals,19.52,5820.02,2014
+ 36 months,MORTGAGE,vacation,TX,Not Verified,INDIVIDUAL,10000,10,55000,2.23,0,26.6,10,15,tru,13.44,-8233.93,2015
+ 36 months,RENT,debt_consolidation,CA,Not Verified,INDIVIDUAL,9600,1,51000,27.84,1,73.8,14,8,tru,15.31,-241,2013
+ 36 months,RENT,debt_consolidation,VA,Verified,INDIVIDUAL,6450,10,43576,25.27,0,41.6,29,13,fals,16.55,1437.95,2015
+ 36 months,MORTGAGE,debt_consolidation,TN,Verified,INDIVIDUAL,10000,10,74400,24.18,0,61,56,27,fals,9.99,863.75,2013
+ 36 months,RENT,other,OH,Verified,INDIVIDUAL,4500,9,44000,33.14,0,49.7,23,11,fals,17.57,63.65,2015
+ 60 months,MORTGAGE,major_purchase,MI,Verified,INDIVIDUAL,15000,10,63000,21.3,2,36.5,42,18,tru,16.29,-9797.57,2013
+ 36 months,MORTGAGE,credit_card,NY,Verified,INDIVIDUAL,13000,1,75000,23.36,4,38.8,65,11,tru,14.65,-8619.75,2015
+ 36 months,MORTGAGE,debt_consolidation,NY,Verified,INDIVIDUAL,7500,10,79000,2.26,0,5,37,22,fals,13.65,1480.3,2014
+ 36 months,RENT,credit_card,CA,Not Verified,INDIVIDUAL,7500,6,42720,16.52,0,45.5,18,12,fals,12.12,1450.39,2013
+ 36 months,MORTGAGE,home_improvement,AL,Verified,INDIVIDUAL,15000,2,48000,12.03,0,35,47,28,fals,9.67,2340.72,2014
+ 60 months,MORTGAGE,credit_card,RI,Not Verified,INDIVIDUAL,21600,10,140000,23.48,0,69,33,25,fals,11.99,2915.34,2016
+ 36 months,MORTGAGE,home_improvement,MA,Not Verified,INDIVIDUAL,10000,3,127000,9.13,0,66.1,13,14,fals,10.99,1492.1,2014
+ 36 months,OWN,credit_card,CA,Verified,INDIVIDUAL,20000,8,100000,13.59,0,69.2,26,17,fals,12.69,3416.27,2015
+ 36 months,RENT,other,FL,Verified,INDIVIDUAL,23400,1,65000,13.11,0,39,35,14,fals,20.99,8010,2015
+ 60 months,MORTGAGE,major_purchase,NC,Verified,INDIVIDUAL,20000,8,62000,9.74,0,19,13,12,tru,22.99,-15406.72,2015
+ 36 months,MORTGAGE,home_improvement,FL,Verified,INDIVIDUAL,3950,10,52000,13.8,0,96.2,28,11,fals,21.18,341.59,2016
+ 60 months,MORTGAGE,debt_consolidation,FL,Verified,INDIVIDUAL,16000,7,60000,6.63,0,86.1,20,21,fals,25.57,3715.25,2014
+ 60 months,RENT,credit_card,FL,Verified,INDIVIDUAL,12000,3,48000,33.9,0,70.2,16,15,fals,12.69,1510.36,2015
+ 36 months,MORTGAGE,debt_consolidation,OH,Verified,INDIVIDUAL,25000,4,105000,3.84,0,47.9,30,12,fals,7.89,1056.01,2015
+ 60 months,RENT,debt_consolidation,IL,Verified,INDIVIDUAL,13250,4,55000,19.66,0,74,18,18,fals,18.25,5145.01,2014
+ 36 months,RENT,debt_consolidation,CO,Verified,INDIVIDUAL,20000,8,75000,14.11,0,60.3,32,13,fals,15.8,5015.9,2012
+ 36 months,MORTGAGE,credit_card,MO,Verified,INDIVIDUAL,10000,null,50000,29.94,0,16.7,37,33,fals,7.69,1229.66,2014
+ 36 months,MORTGAGE,other,MO,Verified,INDIVIDUAL,3500,null,72000,7.97,0,8,42,19,fals,6.03,334.86,2012
+ 36 months,RENT,debt_consolidation,FL,Not Verified,INDIVIDUAL,8500,7,45000,16.43,0,36.4,30,8,fals,10.99,725.14,2014
+ 60 months,OWN,debt_consolidation,CA,Verified,INDIVIDUAL,10000,6,65000,21.95,0,49.3,27,13,fals,13.99,3073.97,2012
+ 36 months,MORTGAGE,home_improvement,MD,Not Verified,INDIVIDUAL,4800,4,65000,12.39,0,17.1,9,18,fals,9.99,600,2015
+ 36 months,RENT,debt_consolidation,WI,Verified,INDIVIDUAL,7825,1,30000,18.24,0,45.8,11,5,tru,18.84,-5098.89,2015
+ 60 months,RENT,debt_consolidation,PA,Verified,INDIVIDUAL,35000,10,85000,29.61,0,49,37,16,fals,17.57,3327.54,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,3450,4,36000,4.97,0,43.6,7,11,fals,15.31,629.34,2016
+ 36 months,OWN,debt_consolidation,CA,Not Verified,INDIVIDUAL,21000,2,64000,29.35,0,22.5,19,16,fals,7.89,2178.98,2015
+ 36 months,MORTGAGE,credit_card,MO,Verified,INDIVIDUAL,15000,10,118450,11.22,1,91.9,21,44,fals,9.67,2305.07,2014
+ 36 months,RENT,other,AZ,Verified,INDIVIDUAL,12700,5,56000,4.11,0,58.4,15,22,tru,17.14,-5918.99,2015
+ 60 months,MORTGAGE,credit_card,NM,Verified,INDIVIDUAL,11050,10,68000,3.92,1,48.5,8,32,tru,14.65,-7916.47,2015
+ 36 months,MORTGAGE,debt_consolidation,WI,Not Verified,INDIVIDUAL,4000,3,56000,11.44,0,11.5,20,13,fals,6.03,234.82,2012
+ 60 months,MORTGAGE,debt_consolidation,OR,Not Verified,INDIVIDUAL,10000,9,58000,36.23,2,56.1,29,11,fals,17.57,2676.35,2015
+ 36 months,OWN,debt_consolidation,OR,Verified,INDIVIDUAL,24450,10,49000,11.38,2,7.8,27,19,fals,7.12,1814.75,2014
+ 36 months,MORTGAGE,credit_card,GA,Not Verified,INDIVIDUAL,15000,5,140000,8.4,0,35.8,26,24,fals,6.99,1501.16,2014
+ 36 months,RENT,debt_consolidation,CA,Verified,INDIVIDUAL,17475,9,53778,16.74,1,89.8,25,11,tru,18.75,-7477.57,2013

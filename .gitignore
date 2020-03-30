@@ -1,0 +1,15 @@
+#intellij
+.idea/
+*.iml
+#local spark context data from unit tests
+spark-warehouse/
+#Build dirctory for maven/sbt
+target/
+project/project/
+project/target/
+./testData
+*.DS_Store
+/dependency-reduced-pom.xml
+/bin/
+/python/dist/
+/python/pyAutoML.egg-info/
