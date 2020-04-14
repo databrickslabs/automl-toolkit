@@ -21,7 +21,13 @@ class GBTreesTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "GBT"
+        "GBT",
+        1,
+        0.7,
+        "synth",
+        "datetime",
+        0.02,
+        0.6
       )
 
       new GBTreesTuner(null, splitData, null).evolveBest()
@@ -37,7 +43,13 @@ class GBTreesTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "GBT"
+        "GBT",
+        1,
+        0.7,
+        "synth",
+        "datetime",
+        0.02,
+        0.6
       )
 
       new GBTreesTuner(AutomationUnitTestsUtil.getAdultDf(), splitData, "err")
@@ -60,7 +72,13 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       "income",
       "dbfs:/test",
       "cache",
-      "GBT"
+      "GBT",
+      1,
+      0.7,
+      "synth",
+      "datetime",
+      0.02,
+      0.6
     )
     val gbtModelsWithResults: GBTModelsWithResults =
       new GBTreesTuner(data, splitData, "classifier")
@@ -186,7 +204,13 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       "income",
       "dbfs:/test",
       "cache",
-      "GBT"
+      "GBT",
+      1,
+      0.7,
+      "synth",
+      "datetime",
+      0.02,
+      0.6
     )
 
     val gbtModelsWithResults: GBTreesTuner =
@@ -299,7 +323,13 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       "income",
       "dbfs:/test",
       "cache",
-      "GBT"
+      "GBT",
+      1,
+      0.7,
+      "synth",
+      "datetime",
+      0.02,
+      0.6
     )
 
     val gbtModelsWithResults: GBTModelsWithResults =

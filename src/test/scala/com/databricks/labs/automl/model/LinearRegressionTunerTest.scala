@@ -16,7 +16,13 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "LinearRegression"
+        "LinearRegression",
+        1,
+        0.7,
+        "synth",
+        "datetime",
+        0.02,
+        0.6
       )
 
       new LinearRegressionTuner(null, splitData).evolveBest()
@@ -32,7 +38,13 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "LinearRegression"
+        "LinearRegression",
+        1,
+        0.7,
+        "synth",
+        "datetime",
+        0.02,
+        0.6
       )
 
       new LinearRegressionTuner(
@@ -58,7 +70,13 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
       "income",
       "dbfs:/test",
       "cache",
-      "LinearRegression"
+      "LinearRegression",
+      1,
+      0.7,
+      "synth",
+      "datetime",
+      0.02,
+      0.6
     )
 
     val linearRegressionModelsWithResults: LinearRegressionModelsWithResults =
