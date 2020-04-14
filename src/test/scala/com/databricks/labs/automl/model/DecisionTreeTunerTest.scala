@@ -345,11 +345,11 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       "cache",
       "Trees",
       1,
-      0.7,
-      "synth",
+      0.8,
+      "synthCol",
       "datetime",
-      0.02,
-      0.6
+      0.01,
+      0.9
     )
 
     val treesModelsWithResults: TreesModelsWithResults = new DecisionTreeTuner(
