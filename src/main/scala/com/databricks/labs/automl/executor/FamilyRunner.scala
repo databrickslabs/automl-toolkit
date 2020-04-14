@@ -4,7 +4,8 @@ import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.exceptions.PipelineExecutionException
 import com.databricks.labs.automl.executor.config.{
   ConfigurationGenerator,
-  InstanceConfig
+  InstanceConfig,
+  InstanceConfigValidation
 }
 import com.databricks.labs.automl.model.tools.ModelUtils
 import com.databricks.labs.automl.model.tools.split.PerformanceSettings
@@ -161,6 +162,10 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   @Deprecated
   def execute(): FamilyFinalOutput = {
 
+    configs.foreach { x =>
+      InstanceConfigValidation(x).validate()
+    }
+
     val outputBuffer = ArrayBuffer[FamilyOutput]()
 
     configs.foreach { x =>
@@ -221,6 +226,10 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     *         based on optimization strategy settings
     */
   def executeWithPipeline(): FamilyFinalOutputWithPipeline = {
+
+    configs.foreach { x =>
+      InstanceConfigValidation(x).validate()
+    }
 
     val outputBuffer = ArrayBuffer[FamilyOutput]()
 
@@ -296,6 +305,11 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   def generateFeatureEngineeredPipeline(
     verbose: Boolean = false
   ): Map[String, PipelineModel] = {
+
+    configs.foreach { x =>
+      InstanceConfigValidation(x).validate()
+    }
+
     val featureEngineeredMap =
       scala.collection.mutable.Map[String, PipelineModel]()
     configs.foreach { x =>
@@ -325,6 +339,11 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     configs: Array[InstanceConfig],
     pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)]
   ): FamilyFinalOutputWithPipeline = {
+
+    configs.foreach { x =>
+      InstanceConfigValidation(x).validate()
+    }
+
     val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
     val bestMlFlowRunIds = scala.collection.mutable.Map[String, String]()
     configs.foreach(config => {

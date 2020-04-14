@@ -14,7 +14,13 @@ class SVMTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "SVM"
+        "SVM",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new SVMTuner(null, splitData).evolveBest()
@@ -30,7 +36,13 @@ class SVMTunerTest extends AbstractUnitSpec {
         "income",
         "dbfs:/test",
         "cache",
-        "SVM"
+        "SVM",
+        1,
+        0.8,
+        "synthCol",
+        "datetime",
+        0.01,
+        0.9
       )
 
       new SVMTuner(

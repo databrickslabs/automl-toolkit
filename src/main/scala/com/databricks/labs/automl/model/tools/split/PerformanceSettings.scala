@@ -28,6 +28,7 @@ object PerformanceSettings extends SparkSessionWrapper {
 
   private lazy val preCalcParTasks: Int =
     scala.math.floor(totalCores / coresPerTask).toInt
+
   lazy val parTasks: Int = if (preCalcParTasks < 1) 1 else preCalcParTasks
 
   def envString: String =
@@ -47,30 +48,54 @@ object PerformanceSettings extends SparkSessionWrapper {
       environmentVars("num_workers").toString.toInt
     } catch {
       case e: java.util.NoSuchElementException =>
-        val workerCount = scala.math.floor(totalCores / coresPerTask / parallelism).toInt
-        require(workerCount >= 1, s"XGBoost requires at least one core per XGB worker. " +
-          s"Current configuration is not compatible with XGBoost. Consider increasing cluster size or " +
-          s"decreasing parallelism or lowering spark.task.cpus. The XGBWorker count is derived: " +
-          s"floor(total Cluster Cores / spark.task.cpus / parallelism).toInt. This number must be >= 1. \n " +
-          s"XGB numWorkers == ${workerCount} \n " +
-          s"Total Cluster Cores == ${totalCores} \n " +
-          s"spark.task.cpu == ${coresPerTask} == nThread" +
-          s"Parallelism == ${parallelism}")
+        val workerCount =
+          scala.math.floor(totalCores / coresPerTask / parallelism).toInt
+        require(
+          workerCount >= 1,
+          s"XGBoost requires at least one core per XGB worker. " +
+            s"Current configuration is not compatible with XGBoost. Consider increasing cluster size or " +
+            s"decreasing parallelism or lowering spark.task.cpus. The XGBWorker count is derived: " +
+            s"floor(total Cluster Cores / spark.task.cpus / parallelism).toInt. This number must be >= 1. \n " +
+            s"XGB numWorkers == ${workerCount} \n " +
+            s"Total Cluster Cores == ${totalCores} \n " +
+            s"spark.task.cpu == ${coresPerTask} == nThread" +
+            s"Parallelism == ${parallelism}"
+        )
         workerCount
     }
   }
 
+  // TODO evaluating a theory
+//  def optimalJVMModelPartitions(parallelism: Int): Int = {
+//    //DEBUG
+//    logger.log(Level.DEBUG, envString)
+//    val jvmParts = scala.math.floor(parTasks / (parallelism / 2)).toInt
+//    val warnMessage = s"WARNING: JVM Model partitions < 10. Consider a larger" +
+//      s"cluster or reducing Parallelism. JVM Model Parallelism is calculated: floor(parTasks / (parallelism / 2)). \n " +
+//      s"JVM Parallelism: ${jvmParts} \n " +
+//      s"parTasks: ${parTasks} \n " +
+//      s"Parallelism: ${parallelism}"
+//    if (jvmParts < 10) logger.log(Level.WARN, warnMessage)
+//    println(warnMessage)
+//    jvmParts
+//  }
+
   def optimalJVMModelPartitions(parallelism: Int): Int = {
-    //DEBUG
+
     logger.log(Level.DEBUG, envString)
-    val jvmParts = scala.math.floor(parTasks / (parallelism / 2)).toInt
+    val jvmPartsPre = scala.math.floor(parTasks / (parallelism / 2)).toInt
+
+    val jvmParts = math.max(jvmPartsPre, numberOfWorkerNodes * 2)
+
     val warnMessage = s"WARNING: JVM Model partitions < 10. Consider a larger" +
       s"cluster or reducing Parallelism. JVM Model Parallelism is calculated: floor(parTasks / (parallelism / 2)). \n " +
       s"JVM Parallelism: ${jvmParts} \n " +
       s"parTasks: ${parTasks} \n " +
       s"Parallelism: ${parallelism}"
-    if (jvmParts < 10) logger.log(Level.WARN, warnMessage)
-    println(warnMessage)
+    if (jvmParts < 10) {
+      logger.log(Level.WARN, warnMessage)
+      println(warnMessage)
+    }
     jvmParts
   }
 
