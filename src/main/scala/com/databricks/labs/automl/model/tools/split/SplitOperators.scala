@@ -52,7 +52,6 @@ object SplitOperators extends SparkSessionWrapper {
 
       val conversionValue = toDoubleType(x(0)).get
 
-      println("DEBUG: performing stratified random split")
       val Array(trainSplit, testSplit) = data
         .filter(col(labelCol) === conversionValue)
         .randomSplit(Array(trainPortion, 1 - trainPortion), seed)
