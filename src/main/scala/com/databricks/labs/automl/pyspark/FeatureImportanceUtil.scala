@@ -41,11 +41,7 @@ object FeatureImportanceUtil {
                         predictionType: String): InstanceConfig = {
     if (defaultFlag == "true") {
       // Generate default config if default flag is true
-      val fiConfig = ConfigurationGenerator.generateDefaultConfig(
-        modelFamily,
-        predictionType
-      )
-      return fiConfig
+      ConfigurationGenerator.generateDefaultConfig(modelFamily, predictionType)
     } else {
       // Generating config from the map of overrides if default configs aren't being used
       val overrides = Utils.cleansNestedTypes(jsonToMap(configJson))

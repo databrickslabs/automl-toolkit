@@ -8,10 +8,16 @@ import java.nio.file.Paths
   */
 object InitDbUtils {
 
-  case class LogggingConfigType(mlFlowTrackingURI: String,
-                                mlFlowExperimentName: String,
-                                mlFlowAPIToken: String,
-                                mlFlowModelSaveDirectory: String)
+  case class LoggingConfigType(mlFlowTrackingURI: String,
+                               mlFlowExperimentName: String,
+                               mlFlowAPIToken: String,
+                               mlFlowModelSaveDirectory: String)
+
+  final private val DEFAULT_REMOTE_LOGGING_PATH: String =
+    "dbfs:/ml/automl/AutoML_Artifacts"
+  final private val DEFAULT_LOCAL_LOGGING_PATH: String =
+    "/tmp/local_mlflow_exp/artifacts"
+  final private val DEFAULT_MLFLOW_LOGGING_LOCATION: String = "/MLFlowLogs"
 
   def getNotebookPath: String = DBUtilsHelper.getNotebookPath
   def getNotebookDirectory: String = DBUtilsHelper.getNotebookDirectory
@@ -36,21 +42,25 @@ object InitDbUtils {
     )
   }
 
-  def getMlFlowLoggingConfig(mlFlowLoggingFlag: Boolean): LogggingConfigType = {
+  def getMlFlowLoggingConfig(mlFlowLoggingFlag: Boolean): LoggingConfigType = {
     if (mlFlowLoggingFlag) {
       validate()
-      LogggingConfigType(
+      LoggingConfigType(
         getTrackingURI,
-        Paths.get(InitDbUtils.getNotebookDirectory + "/MLFlowLogs").toString,
+        Paths
+          .get(
+            InitDbUtils.getNotebookDirectory + DEFAULT_MLFLOW_LOGGING_LOCATION
+          )
+          .toString,
         InitDbUtils.getAPIToken,
-        Paths.get("/dbfs/tmp/automl/AutoML_Artifacts").toString
+        Paths.get(DEFAULT_REMOTE_LOGGING_PATH).toString
       )
     } else {
-      LogggingConfigType(
+      LoggingConfigType(
         "http://localhost:5000/",
         "/tmp/local_mlflow_exp",
         "",
-        "/tmp/local_mlflow_exp/artifacts"
+        DEFAULT_LOCAL_LOGGING_PATH
       )
     }
   }
