@@ -2,9 +2,13 @@ package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
 import org.apache.spark.ml.param._
-import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
+import org.apache.spark.ml.util.{
+  DefaultParamsReadable,
+  DefaultParamsWritable,
+  Identifiable
+}
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{BooleanType, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 import scala.collection.mutable.ArrayBuffer
@@ -15,21 +19,25 @@ import scala.collection.mutable.ArrayBuffer
   * Output: variance filtered DataFrame [[DataFrame]]
   */
 class VarianceFilterTransformer(override val uid: String)
-  extends AbstractTransformer
+    extends AbstractTransformer
     with DefaultParamsWritable
     with HasLabelColumn
     with HasFeatureColumn
     with HasTransformCalculated {
 
-  final val preserveColumns = new StringArrayParam(this, "preserveColumns", "Columns Preserved")
+  final val preserveColumns =
+    new StringArrayParam(this, "preserveColumns", "Columns Preserved")
 
-  final val removedColumns = new StringArrayParam(this, "removedColumns", "Columns Removed")
+  final val removedColumns =
+    new StringArrayParam(this, "removedColumns", "Columns Removed")
 
-  def setPreserveColumns(value: Array[String]): this.type = set(preserveColumns, value)
+  def setPreserveColumns(value: Array[String]): this.type =
+    set(preserveColumns, value)
 
   def getPreserveColumns: Array[String] = $(preserveColumns)
 
-  def setRemovedColumns(value: Array[String]): this.type = set(removedColumns, value)
+  def setRemovedColumns(value: Array[String]): this.type =
+    set(removedColumns, value)
 
   def getRemovedColumns: Array[String] = $(removedColumns)
 
@@ -43,20 +51,35 @@ class VarianceFilterTransformer(override val uid: String)
   }
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    // Get columns without label,  feature column and automl_internal_id columns
-    val colsToIgnoreForVariance = if(dataset.columns.contains(getLabelColumn)) {
-      Array(getLabelColumn, getFeatureCol, getAutomlInternalId)
-    } else {
-      Array(getFeatureCol, getAutomlInternalId)
-    }
 
-    if(!getTransformCalculated) {
-      val fields = dataset.columns.filterNot(field => colsToIgnoreForVariance.contains(field))
+    // get any Boolean fields and ignore them from calculations
+    val booleanCols = dataset.schema.collect {
+      case x if x.dataType == BooleanType => x.name
+    }.toArray
+
+    // Get columns without label,  feature column and automl_internal_id columns
+    val colsToIgnoreForVariance =
+      if (dataset.columns.contains(getLabelColumn)) {
+        Array(getLabelColumn, getFeatureCol, getAutomlInternalId) ++ booleanCols
+      } else {
+        Array(getFeatureCol, getAutomlInternalId) ++ booleanCols
+      }
+
+    if (!getTransformCalculated) {
+      val fields = dataset.columns.filterNot(
+        field => colsToIgnoreForVariance.contains(field)
+      )
 
       val dfParts = dataset.rdd.partitions.length.toDouble
-      val summaryParts = Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
-      val stddevInformation = dataset.coalesce(summaryParts).summary("stddev")
-        .select(fields map col: _*).collect()(0).toSeq.toArray
+      val summaryParts =
+        Math.max(32, Math.min(Math.ceil(dfParts / 20.0).toInt, 200))
+      val stddevInformation = dataset
+        .coalesce(summaryParts)
+        .summary("stddev")
+        .select(fields map col: _*)
+        .collect()(0)
+        .toSeq
+        .toArray
 
       val stddevData = fields.zip(stddevInformation)
 
@@ -64,7 +87,7 @@ class VarianceFilterTransformer(override val uid: String)
       val removedColumns = new ArrayBuffer[String]
 
       stddevData.foreach { x =>
-        if (x._2.toString.toDouble != 0.0){
+        if (x._2.toString.toDouble != 0.0) {
           preserveColumns.append(x._1)
         } else {
           removedColumns.append(x._1)
@@ -76,28 +99,33 @@ class VarianceFilterTransformer(override val uid: String)
       setTransformCalculated(true)
 
       val finalFields = getPreserveColumns ++ colsToIgnoreForVariance
-      return dataset.select(finalFields map col:_*).toDF()
+      return dataset.select(finalFields map col: _*).toDF()
     } else {
-        if(SchemaUtils.isNotEmpty(getPreserveColumns.toList)) {
-          val selectFields = getPreserveColumns ++ colsToIgnoreForVariance
-          return dataset.select(selectFields map col:_*).toDF()
-        }
+      if (SchemaUtils.isNotEmpty(getPreserveColumns.toList)) {
+        val selectFields = getPreserveColumns ++ colsToIgnoreForVariance
+        return dataset.select(selectFields map col: _*).toDF()
+      }
     }
-    dataset.drop(getRemovedColumns:_*)
+    dataset.drop(getRemovedColumns: _*)
   }
 
   override def transformSchemaInternal(schema: StructType): StructType = {
-    if(schema.fieldNames.contains(getLabelColumn)) {
+    if (schema.fieldNames.contains(getLabelColumn)) {
       if (SchemaUtils.isNotEmpty(getRemovedColumns.toList)) {
-        return StructType(schema.fields.filterNot(field => getRemovedColumns.contains(field.name)))
+        return StructType(
+          schema.fields
+            .filterNot(field => getRemovedColumns.contains(field.name))
+        )
       }
     }
     schema
   }
 
-  override def copy(extra: ParamMap): VarianceFilterTransformer = defaultCopy(extra)
+  override def copy(extra: ParamMap): VarianceFilterTransformer =
+    defaultCopy(extra)
 }
 
-object VarianceFilterTransformer extends DefaultParamsReadable[VarianceFilterTransformer] {
+object VarianceFilterTransformer
+    extends DefaultParamsReadable[VarianceFilterTransformer] {
   override def load(path: String): VarianceFilterTransformer = super.load(path)
 }

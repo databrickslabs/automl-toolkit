@@ -50,9 +50,7 @@ object AutoMlPipelineMlFlowUtils {
     val mlFlowRunIdAndConfig =
       AutoMlPipelineMlFlowUtils.getMainConfigByPipelineId(pipelineId)
     if (mlFlowRunIdAndConfig.mainConfig.mlFlowLoggingFlag) {
-      val mlflowTracker = MLFlowTracker(
-        mlFlowRunIdAndConfig.mainConfig
-      )
+      val mlflowTracker = MLFlowTracker(mlFlowRunIdAndConfig.mainConfig)
       val client = mlflowTracker.getMLFlowClient
       // Delete a tag first
       try {
@@ -73,13 +71,18 @@ object AutoMlPipelineMlFlowUtils {
     }
   }
 
-  def getMlFlowTagByKey(client: MlflowClient, runId: String, tag: String): String = {
-    client.getRun(runId)
-      .getData.getTagsList
+  def getMlFlowTagByKey(client: MlflowClient,
+                        runId: String,
+                        tag: String): String = {
+    client
+      .getRun(runId)
+      .getData
+      .getTagsList
       .toArray()
       .map(item => item.asInstanceOf[Service.RunTag])
       .filter(item => item.getKey.equals(tag))
-      .head.getValue
+      .head
+      .getValue
   }
 
   def getPipelinePathByRunId(runId: String,
@@ -87,25 +90,37 @@ object AutoMlPipelineMlFlowUtils {
                              mainConfig: Option[MainConfig] = None): String = {
     try {
       if (loggingConfig.isDefined) {
-        val client = MLFlowTracker(MLFlowConfig(
-          loggingConfig.get.mlFlowTrackingURI,
-          loggingConfig.get.mlFlowExperimentName,
-          loggingConfig.get.mlFlowAPIToken,
-          loggingConfig.get.mlFlowModelSaveDirectory,
-          loggingConfig.get.mlFlowLoggingMode,
-          loggingConfig.get.mlFlowBestSuffix,
-          loggingConfig.get.mlFlowCustomRunTags
-        )).getMLFlowClient
-        getMlFlowTagByKey(client, runId, PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY)
+        val client = MLFlowTracker(
+          MLFlowConfig(
+            loggingConfig.get.mlFlowTrackingURI,
+            loggingConfig.get.mlFlowExperimentName,
+            loggingConfig.get.mlFlowAPIToken,
+            loggingConfig.get.mlFlowModelSaveDirectory,
+            loggingConfig.get.mlFlowLoggingMode,
+            loggingConfig.get.mlFlowBestSuffix,
+            loggingConfig.get.mlFlowCustomRunTags
+          )
+        ).getMLFlowClient
+        getMlFlowTagByKey(
+          client,
+          runId,
+          PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY
+        )
       }
       if (mainConfig.isDefined) {
-        val client = MLFlowTracker(mainConfig.get)
-          .getMLFlowClient
-        getMlFlowTagByKey(client, runId, PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY)
+        val client = MLFlowTracker(mainConfig.get).getMLFlowClient
+        getMlFlowTagByKey(
+          client,
+          runId,
+          PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY
+        )
       } else {
-        val client = MLFlowTracker(runId)
-          .getMLFlowClient
-        getMlFlowTagByKey(client, runId, PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY)
+        val client = MLFlowTracker(runId).getMLFlowClient
+        getMlFlowTagByKey(
+          client,
+          runId,
+          PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY
+        )
       }
     } catch {
       case e: Exception => {
@@ -135,7 +150,7 @@ object AutoMlPipelineMlFlowUtils {
       val modelDescriptor = s"$decidedModel" + "_" + s"$modelFamily"
       val baseDirectory = Paths.get(s"$mlFlowModelSaveDirectory/BestRun/")
       val pipelineDir =
-        s"$baseDirectory${modelDescriptor}_${mlFlowRunIdAndConfig.mlFlowRunId}/BestPipeline/"
+        s"$baseDirectory/${modelDescriptor}_${mlFlowRunIdAndConfig.mlFlowRunId}/BestPipeline/"
       val finalPipelineSavePath = Paths.get(pipelineDir).toString
       logger.info(
         s"Saving pipeline id $pipelineId to path $finalPipelineSavePath"
@@ -152,9 +167,9 @@ object AutoMlPipelineMlFlowUtils {
       )
       // Save TrainingDf and log to MlFlow
       val trainDfBaseDirectory =
-        Paths.get(s"$mlFlowModelSaveDirectory/FeatureEngineeredDataset/")
+        Paths.get(s"$mlFlowModelSaveDirectory/FeatureEngineeredDataset")
       val trainDfDir =
-        s"$trainDfBaseDirectory${modelDescriptor}_${mlFlowRunIdAndConfig.mlFlowRunId}/data/"
+        s"$trainDfBaseDirectory/${modelDescriptor}_${mlFlowRunIdAndConfig.mlFlowRunId}/data/"
       val finalFeatEngDfPath = Paths.get(trainDfDir).toString
       finalPipelineModel
         .transform(originalDf)

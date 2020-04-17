@@ -23,11 +23,11 @@ class RandomForestTunerTest extends AbstractUnitSpec {
         "cache",
         "RandomForest",
         1,
-        0.8,
-        "synthCol",
+        0.7,
+        "synth",
         "datetime",
-        0.01,
-        0.9
+        0.02,
+        0.6
       )
 
       new RandomForestTuner(null, splitData, null).evolveBest()
@@ -45,11 +45,11 @@ class RandomForestTunerTest extends AbstractUnitSpec {
         "cache",
         "RandomForest",
         1,
-        0.8,
-        "synthCol",
+        0.7,
+        "synth",
         "datetime",
-        0.01,
-        0.9
+        0.02,
+        0.6
       )
 
       new RandomForestTuner(
@@ -76,11 +76,11 @@ class RandomForestTunerTest extends AbstractUnitSpec {
       "cache",
       "RandomForest",
       1,
-      0.8,
-      "synthCol",
+      0.7,
+      "synth",
       "datetime",
-      0.01,
-      0.9
+      0.02,
+      0.6
     )
 
     val randomForestModelsWithResults: RandomForestModelsWithResults =
@@ -206,11 +206,11 @@ class RandomForestTunerTest extends AbstractUnitSpec {
       "cache",
       "RandomForest",
       1,
-      0.8,
-      "synthCol",
+      0.7,
+      "synth",
       "datetime",
-      0.01,
-      0.9
+      0.02,
+      0.6
     )
 
     val randomForestModelsWithResults: RandomForestModelsWithResults =
@@ -336,11 +336,11 @@ class RandomForestTunerTest extends AbstractUnitSpec {
       "cache",
       "RandomForest",
       1,
-      0.8,
-      "synthCol",
+      0.7,
+      "synth",
       "datetime",
-      0.01,
-      0.9
+      0.02,
+      0.6
     )
 
     val randomForestModelsWithResults: RandomForestModelsWithResults =

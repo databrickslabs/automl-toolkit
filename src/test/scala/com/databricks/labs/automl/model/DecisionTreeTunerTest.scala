@@ -23,11 +23,11 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
         "cache",
         "Trees",
         1,
-        0.8,
-        "synthCol",
+        0.7,
+        "synth",
         "datetime",
-        0.01,
-        0.9
+        0.02,
+        0.6
       )
 
       new DecisionTreeTuner(null, splitData, null).evolveBest()
@@ -45,11 +45,11 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
         "cache",
         "Trees",
         1,
-        0.8,
-        "synthCol",
+        0.7,
+        "synth",
         "datetime",
-        0.01,
-        0.9
+        0.02,
+        0.6
       )
       new DecisionTreeTuner(
         AutomationUnitTestsUtil.getAdultDf(),
@@ -78,11 +78,11 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       "cache",
       "Trees",
       1,
-      0.8,
-      "synthCol",
+      0.7,
+      "synth",
       "datetime",
-      0.01,
-      0.9
+      0.02,
+      0.6
     )
 
     val treesModelsWithResults: TreesModelsWithResults = new DecisionTreeTuner(
@@ -211,11 +211,11 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       "cache",
       "Trees",
       1,
-      0.8,
-      "synthCol",
+      0.7,
+      "synth",
       "datetime",
-      0.01,
-      0.9
+      0.02,
+      0.6
     )
 
     val treesModelsWithResults: TreesModelsWithResults = new DecisionTreeTuner(

@@ -3,6 +3,7 @@ package com.databricks.labs.automl.exploration.tools
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction
 import org.apache.commons.math3.distribution.RealDistribution
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
+import org.apache.spark.sql.DataFrame
 
 case class SummaryStats(count: Long,
                         min: Double,
@@ -108,3 +109,12 @@ case class CorrelationTestResult(covariance: Double,
 case class PairedTestResult(correlationTestData: CorrelationTestResult,
                             tTestData: TTestData,
                             kolmogorovSmirnovData: KSTestResult)
+
+case class PCAReducerResult(data: DataFrame,
+                            explainedVariances: Array[Double],
+                            pcMatrix: Array[PCACEigenResult],
+                            pcEigenDataFrame: DataFrame)
+
+case class PCACEigenResult(column: String,
+                           PCA1EigenVector: Double,
+                           PCA2EigenVector: Double)

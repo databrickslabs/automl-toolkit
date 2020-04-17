@@ -246,7 +246,7 @@ xg_boost_overrides = {
   "mlFlowAPIToken": api_token,
   "mlFlowLoggingMode": "bestOnly",
   "mlFlowBestSuffix": "_best",
-  "mlFlowModelSaveDirectory": "/dbfs/tmp/mgm/ml",
+  "mlFlowModelSaveDirectory": "dbfs:/tmp/mgm/ml",
   "pipelineDebugFlag": True
 }
 
@@ -278,7 +278,7 @@ logisticRegOverrides = {
   "mlFlowAPIToken": api_token,
   "mlFlowLoggingMode": "bestOnly",
   "mlFlowBestSuffix" : "_best",
-  "mlFlowModelSaveDirectory": "/dbfs/tmp/mgm/ml",
+  "mlFlowModelSaveDirectory": "dbfs:/tmp/mgm/ml",
   "pipelineDebugFlag": True
 }
 # Import the family runner
