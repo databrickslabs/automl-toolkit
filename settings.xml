@@ -2,8 +2,8 @@
     <servers>
         <server>
             <id>ossrh</id>
-            <username>${OSSRH_USER}</username>
-            <password>${OSSRH_PASS}</password>
+            <username>${ossrh_user}</username>
+            <password>${ossrh_pass}</password>
         </server>
     </servers>
 <!--    Use the below when we have an automated ci/cd-->
