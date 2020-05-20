@@ -2,9 +2,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.databricks</groupId>
-    <artifactId>automatedml</artifactId>
+    <artifactId>automatedml_2.11</artifactId>
     <packaging>jar</packaging>
-    <version>2_11-0.7.2</version>
+    <version>0.7.2</version>
     <properties>
         <scala.version>2.11.12</scala.version>
         <spark.version>2.4.0</spark.version>
@@ -109,11 +109,6 @@
             <artifactId>mleap-spark_2.11</artifactId>
             <version>0.14.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.vegas-viz</groupId>
-            <artifactId>vegas_2.11</artifactId>
-            <version>0.3.11</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -128,7 +123,7 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>4.4.0</version>
                 <executions>
                     <execution>
                         <id>scala-compile-first</id>
@@ -151,51 +146,10 @@
                             <goal>doc-jar</goal>
                         </goals>
                     </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>1.7.1</version>
-                <configuration>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
-                <executions>
                     <execution>
-                        <phase>package</phase>
                         <goals>
-                            <goal>shade</goal>
+                            <goal>add-source</goal>
                         </goals>
-                        <configuration>
-                            <filters>
-                                <filter>
-                                    <artifact>${groupId}:${artifactId}</artifact>
-                                    <excludes>
-                                        <exclude>
-                                            com/databricks/backend/common/rpc/**
-                                        </exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                <!-- Some care is required: http://doc.akka.io/docs/akka/snapshot/general/configuration.html -->
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>reference.conf</resource>
-                                </transformer>
-                            </transformers>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -226,7 +180,7 @@
                     <artifactItems>
                         <artifactItem>
                             <groupId>com.databricks</groupId>
-                            <artifactId>automatedml</artifactId>
+                            <artifactId>${project.artifactId}</artifactId>
                             <version>${version}</version>
                             <type>jar</type>
                             <overWrite>true</overWrite>
@@ -241,6 +195,206 @@
                     <overWriteSnapshots>true</overWriteSnapshots>
                 </configuration>
             </plugin>
+            <!-- Below plugins needed to sign artifacts to publish to maven central  -->
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>gpg-sign-deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.7</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <!-- Set this to true and the release will automatically proceed and sync to Central Repository will follow  -->
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>uber-shaded-jar</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>1.7.1</version>
+                        <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <relocations>
+                                        <relocation>
+                                            <pattern>org.json4s</pattern>
+                                            <shadedPattern>shadeio.@1</shadedPattern>
+                                        </relocation>
+                                    </relocations>
+                                    <filters>
+                                        <filter>
+                                            <artifact>${groupId}:${artifactId}</artifact>
+                                            <incldues>
+                                                <include></include>
+                                            </incldues>
+                                            <excludes>
+                                                <exclude>com/databricks/backend/common/rpc/**</exclude>
+                                                <exclude>org.apache.spark:*</exclude>
+                                            </excludes>
+                                        </filter>
+                                    </filters>
+                                    <transformers>
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                        <!-- Some care is required: http://doc.akka.io/docs/akka/snapshot/general/configuration.html -->
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                            <resource>reference.conf</resource>
+                                        </transformer>
+                                    </transformers>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+
+
+    <!-- All below tags are needed for pushing to maven central  -->
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Databricks Labs AutoML toolkit</description>
+    <url>https://github.com/databrickslabs/automl-toolkit</url>
+
+    <organization>
+        <name>com.databricks</name>
+        <url>https://github.com/databrickslabs/automl-toolkit</url>
+    </organization>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/databrickslabs/automl-toolkit/issues</url>
+    </issueManagement>
+    <licenses>
+        <license>
+            <name>Databricks Labs</name>
+            <url>https://github.com/databrickslabs/automl-toolkit/blob/master/LICENSE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>https://github.com/databrickslabs/automl-toolkit</url>
+        <connection>
+            scm:git:git://github.com/databrickslabs/automl-toolkit.git
+        </connection>
+        <developerConnection>
+            scm:git:ssh://git@github.com:databrickslabs/automl-toolkit.git
+        </developerConnection>
+    </scm>
+    <developers>
+        <developer>
+            <id>benwilson</id>
+            <name>Ben Wilson</name>
+        </developer>
+        <developer>
+            <id>jasbali</id>
+            <name>Jas Bali</name>
+        </developer>
+        <developer>
+            <id>marygracemoesta</id>
+            <name>Mary Grace Moesta</name>
+        </developer>
+        <developer>
+            <id>danieltomes</id>
+            <name>Daniel Tomes</name>
+        </developer>
+    </developers>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
 </project>
