@@ -1,0 +1,21 @@
+<settings>
+    <servers>
+        <server>
+            <id>ossrh</id>
+            <username>${ossrh_user}</username>
+            <password>${ossrh_pass}</password>
+        </server>
+    </servers>
+<!--    Use the below when we have an automated ci/cd-->
+<!--    <profiles>-->
+<!--        <profile>-->
+<!--            <activation>-->
+<!--                <activeByDefault>true</activeByDefault>-->
+<!--            </activation>-->
+<!--            <properties>-->
+<!--                <gpg.keyname>${env.GPG_KEY}</gpg.keyname>-->
+<!--                <gpg.passphrase>${env.GPG_PWD}</gpg.passphrase>-->
+<!--            </properties>-->
+<!--        </profile>-->
+<!--    </profiles>-->
+</settings>

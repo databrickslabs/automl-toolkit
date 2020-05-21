@@ -1,6 +1,8 @@
 package com.databricks.labs.automl.pipeline
 import java.util.UUID
 
+import org.apache.log4j.Logger
+
 import scala.collection.mutable
 
 /**
@@ -11,6 +13,8 @@ import scala.collection.mutable
   */
 object PipelineStateCache {
 
+  @transient lazy private val logger: Logger = Logger.getLogger(this.getClass)
+
   lazy private val pipelineStateCache = mutable.WeakHashMap[String, mutable.Map[String, Any]]()
 
   def addToPipelineCache(pipelineId: String, key: String, value: Any): Unit = {
@@ -18,6 +22,11 @@ object PipelineStateCache {
       pipelineStateCache += pipelineId -> mutable.Map.empty
     }
     pipelineStateCache += pipelineId -> (pipelineStateCache(pipelineId) += (key -> value))
+    if(logger.isTraceEnabled) {
+      logger.trace(
+        s"""Added ($key, $value
+           |) pair to Pipeline cache with ID: $pipelineId""".stripMargin)
+    }
   }
 
   def getFromPipelineByIdAndKey(pipelineId: String, key: String): Any = {
