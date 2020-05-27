@@ -54,7 +54,7 @@ class CardinalityLimitColumnPrunerTransformerTest extends AbstractUnitSpec {
     val configurationOverrides = Map(
       "labelCol" -> "class",
       "dataPrepCachingFlag" -> true,
-      "tunerParallelism" -> 1,
+      "tunerParallelism" -> 4,
       "tunerKFold" -> 1,
       "tunerTrainSplitMethod" -> "kSample",
       "featureInteractionFlag" -> false,
