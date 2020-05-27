@@ -1,9 +1,12 @@
 package com.databricks.labs.automl.pipeline
 
+import com.databricks.labs.automl.AutomationUnitTestsUtil.getClass
+import com.databricks.labs.automl.executor.FamilyRunner
+import com.databricks.labs.automl.executor.config.ConfigurationGenerator
 import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
-import com.databricks.labs.automl.{AbstractUnitSpec, PipelineTestUtils}
+import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil, PipelineTestUtils}
 import org.apache.spark.ml.PipelineStage
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -41,6 +44,40 @@ class CardinalityLimitColumnPrunerTransformerTest extends AbstractUnitSpec {
         .exists(item => Array("sex_trimmed", "label").contains(item)),
       "CardinalityLimitColumnPrunerTransformer should have retained columns with a defined cardinality"
     )
+  }
+
+
+  "Categorical fields" should "work consistently for trees with cardinality transformer" in {
+
+    val wineDf = AutomationUnitTestsUtil.convertCsvToDf("/ml_wine.csv")
+
+    val configurationOverrides = Map(
+      "labelCol" -> "class",
+      "dataPrepCachingFlag" -> true,
+      "tunerParallelism" -> 2,
+      "tunerKFold" -> 2,
+      "tunerTrainSplitMethod" -> "kSample",
+      "featureInteractionFlag" -> false,
+      "scoringMetric" -> "f1",
+      "featureInteractionRetentionMode" -> "all",
+      "tunerNumberOfGenerations" -> 3, //10
+      "tunerNumberOfMutationsPerGeneration" -> 3, //50
+      "tunerInitialGenerationMode" -> "permutations",
+      "tunerInitialGenerationPermutationCount" -> 8,
+      "tunerFirstGenerationGenePool" -> 8,
+      "pipelineDebugFlag" -> true,
+      "fillConfigCardinalityLimit" -> 10,
+      "mlFlowLoggingFlag" -> false
+    )
+
+    val configsPayload = Array(ConfigurationGenerator.generateConfigFromMap("Trees", "classifier", configurationOverrides))
+
+    val runnerBinaryPipeline = FamilyRunner(wineDf.repartition(4), configsPayload).executeWithPipeline()
+
+    PipelineTestUtils.saveAndLoadPipelineModel(
+      runnerBinaryPipeline.bestPipelineModel("Trees"),
+      wineDf,
+    "ml_wine_pipeline")
   }
 
 }

@@ -262,7 +262,8 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
       // Setup MLflow Run
       addMlFlowConfigForPipelineUse(mainConfiguration)
-      try {
+      // Pipeline failure aware function
+      withPipelineFailedException(mainConfiguration) {
         //Get feature engineering pipeline and transform it to get feature engineered dataset
         val featureEngOutput = FeatureEngineeringPipelineContext
           .generatePipelineModel(data, mainConfiguration)
@@ -278,15 +279,6 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
         outputBuffer += getNewFamilyOutPut(output, x)
         pipelineConfigMap += x.modelFamily -> (featureEngOutput, mainConfiguration)
-      } catch {
-        case ex: Exception => {
-          println(ex.printStackTrace())
-          PipelineMlFlowProgressReporter.failed(
-            mainConfiguration.pipelineId,
-            ex.getMessage
-          )
-          throw PipelineExecutionException(mainConfiguration.pipelineId, ex)
-        }
       }
     }
     withPipelineInferenceModel(
@@ -294,6 +286,21 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
       configs,
       pipelineConfigMap.toMap
     )
+  }
+
+  private def withPipelineFailedException(mainConfig: MainConfig)(pipelineCode: => Unit): Unit = {
+    try {
+      pipelineCode
+    } catch {
+      case ex: Exception => {
+        println(ex.printStackTrace())
+        PipelineMlFlowProgressReporter.failed(
+          mainConfig.pipelineId,
+          ex.getMessage
+        )
+        throw PipelineExecutionException(mainConfig.pipelineId, ex)
+      }
+    }
   }
 
   /**
@@ -347,21 +354,25 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
     val bestMlFlowRunIds = scala.collection.mutable.Map[String, String]()
     configs.foreach(config => {
+      val mainConfiguration = ConfigurationGenerator.generateMainConfig(config)
       val modelReport = familyFinalOutput.modelReport.filter(
         item => item.modelFamily.equals(config.modelFamily)
       )
-      pipelineModels += config.modelFamily -> FeatureEngineeringPipelineContext
-        .buildFullPredictPipeline(
-          pipelineConfigs(config.modelFamily)._1,
-          modelReport,
-          pipelineConfigs(config.modelFamily)._2,
-          data
-        )
-      bestMlFlowRunIds += config.modelFamily -> familyFinalOutput
-        .mlFlowReport(0)
-        .bestLog
-        .runIdPayload(0)
-        ._1
+      // Pipeline failure aware function
+      withPipelineFailedException(mainConfiguration) {
+        pipelineModels += config.modelFamily -> FeatureEngineeringPipelineContext
+          .buildFullPredictPipeline(
+            pipelineConfigs(config.modelFamily)._1,
+            modelReport,
+            pipelineConfigs(config.modelFamily)._2,
+            data
+          )
+        bestMlFlowRunIds += config.modelFamily -> familyFinalOutput
+          .mlFlowReport(0)
+          .bestLog
+          .runIdPayload(0)
+          ._1
+      }
     })
     FamilyFinalOutputWithPipeline(
       familyFinalOutput,

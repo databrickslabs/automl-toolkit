@@ -237,7 +237,7 @@ class InstanceConfigValidation(config: InstanceConfig)
   def validate(): Unit = {
 
     validateSwitchConfigs()
-    checkConfigurationPaths()
+    if(config.loggingConfig.mlFlowLoggingFlag) checkConfigurationPaths()
     validateTunerConfigs()
 
   }

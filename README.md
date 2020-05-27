@@ -43,6 +43,16 @@ Scala API documentation can be found [here](APIDOCS.md)
 
 Python API documentation can be found [here](python/docs/APIDOCs.md) 
 
+## Installing
+Darabricks Labs AutoML can be pulled from maven central with the following coordinates.
+To install 0.7.2 AutoML:
+```
+<dependency>
+  <groupId>com.databricks</groupId>
+  <artifactId>automatedml_2.11</artifactId>
+  <version>0.7.2</version>
+</dependency>
+```
 
 ## Building
 

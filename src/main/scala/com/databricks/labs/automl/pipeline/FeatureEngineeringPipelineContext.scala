@@ -317,8 +317,7 @@ object FeatureEngineeringPipelineContext {
     // get Feature eng. pipeline model
     pipelineModelStages += featureEngOutput.pipelineModel
 
-    val bestModel =
-      getBestModel(modelReport, mainConfiguration.scoringOptimizationStrategy)
+    val bestModel = getBestModel(modelReport, mainConfiguration.scoringOptimizationStrategy)
     val mlPipelineModel = SparkUtil.createPipelineModel(
       Array(bestModel.model.asInstanceOf[Model[_]])
     )

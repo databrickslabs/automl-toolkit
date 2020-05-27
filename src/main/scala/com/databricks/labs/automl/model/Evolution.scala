@@ -803,16 +803,23 @@ trait Evolution
   def getDataReductionFactor: Double = _dataReduce
 
   // DEBUG for logging purposes of configurations.
-  def debugSettings: String = {
 
+  def debugXgBoostSettings: String = {
     s"DEBUG: \n Evolution.scala --> xgbWorkers: ${PerformanceSettings.xgbWorkers(_parallelism)} \n " +
-      s"Evolution.scala --> totalCores: ${PerformanceSettings.totalCores} \n " +
+    debugSettingsInternal
+  }
+
+  private def debugSettingsInternal: String = {
+    s"DEBUG: Evolution.scala --> totalCores: ${PerformanceSettings.totalCores} \n " +
       s"Evolution.scala --> _parallelism: ${_parallelism} \n " +
       s"Evolution.scala --> getParallelism: ${getParallelism} \n " +
       s"Evolution.scala --> optimalJVMModelPartitions: ${PerformanceSettings
         .optimalJVMModelPartitions(_parallelism)} \n " +
       s"Evolution.scala --> parTasks: ${PerformanceSettings.parTasks}"
+  }
 
+  def debugSettings: String = {
+      debugSettingsInternal
   }
 
   /**
