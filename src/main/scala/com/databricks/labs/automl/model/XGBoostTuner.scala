@@ -518,7 +518,7 @@ class XGBoostTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
 
-    logger.log(Level.DEBUG, debugSettings)
+    logger.log(Level.DEBUG, debugXgBoostSettings)
 
     val taskSupport = new ForkJoinTaskSupport(
       new ForkJoinPool(_continuousEvolutionParallelism)
@@ -674,7 +674,7 @@ class XGBoostTuner(df: DataFrame,
 
     setClassificationMetrics(resetClassificationMetrics)
 
-    logger.log(Level.DEBUG, debugSettings)
+    logger.log(Level.DEBUG, debugXgBoostSettings)
 
     var generation = 1
     // Record of all generations results

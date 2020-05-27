@@ -34,7 +34,7 @@ class CardinalityLimitColumnPrunerTransformer(override val uid: String)
     setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setCardinalityLimit(500)
     setTransformCalculated(false)
-    setPrunedColumns(null)
+    setPrunedColumns(Array.empty[String])
     setDebugEnabled(false)
   }
 

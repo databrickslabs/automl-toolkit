@@ -2,26 +2,15 @@ package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.exceptions.PipelineExecutionException
-import com.databricks.labs.automl.executor.config.{
-  ConfigurationGenerator,
-  InstanceConfig,
-  InstanceConfigValidation
-}
+import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig, InstanceConfigValidation}
 import com.databricks.labs.automl.model.tools.ModelUtils
 import com.databricks.labs.automl.model.tools.split.PerformanceSettings
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline._
-import com.databricks.labs.automl.tracking.{
-  MLFlowReportStructure,
-  MLFlowTracker
-}
-import com.databricks.labs.automl.utils.{
-  AutoMlPipelineMlFlowUtils,
-  PipelineMlFlowTagKeys,
-  SparkSessionWrapper
-}
+import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowTracker}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, SparkSessionWrapper}
 import org.apache.spark.ml.PipelineModel
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
@@ -81,9 +70,11 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   @throws(classOf[IllegalArgumentException])
   private def validatePerformanceSettings(_parallelism: Int,
                                           modelFamily: String): Unit = {
-    if (modelFamily == "XGBoost") {
-      PerformanceSettings.xgbWorkers(_parallelism)
-    } else PerformanceSettings.optimalJVMModelPartitions(_parallelism)
+    if(!SparkSession.builder().getOrCreate().sparkContext.isLocal) {
+      if (modelFamily == "XGBoost") {
+        PerformanceSettings.xgbWorkers(_parallelism)
+      } else PerformanceSettings.optimalJVMModelPartitions(_parallelism)
+    }
   }
 
   /**
@@ -262,7 +253,8 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
       // Setup MLflow Run
       addMlFlowConfigForPipelineUse(mainConfiguration)
-      try {
+      // Pipeline failure aware function
+      withPipelineFailedException(mainConfiguration) {
         //Get feature engineering pipeline and transform it to get feature engineered dataset
         val featureEngOutput = FeatureEngineeringPipelineContext
           .generatePipelineModel(data, mainConfiguration)
@@ -278,15 +270,6 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
 
         outputBuffer += getNewFamilyOutPut(output, x)
         pipelineConfigMap += x.modelFamily -> (featureEngOutput, mainConfiguration)
-      } catch {
-        case ex: Exception => {
-          println(ex.printStackTrace())
-          PipelineMlFlowProgressReporter.failed(
-            mainConfiguration.pipelineId,
-            ex.getMessage
-          )
-          throw PipelineExecutionException(mainConfiguration.pipelineId, ex)
-        }
       }
     }
     withPipelineInferenceModel(
@@ -294,6 +277,21 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
       configs,
       pipelineConfigMap.toMap
     )
+  }
+
+  private def withPipelineFailedException(mainConfig: MainConfig)(pipelineCode: => Unit): Unit = {
+    try {
+      pipelineCode
+    } catch {
+      case ex: Exception => {
+        println(ex.printStackTrace())
+        PipelineMlFlowProgressReporter.failed(
+          mainConfig.pipelineId,
+          ex.getMessage
+        )
+        throw PipelineExecutionException(mainConfig.pipelineId, ex)
+      }
+    }
   }
 
   /**
@@ -347,21 +345,27 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
     val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
     val bestMlFlowRunIds = scala.collection.mutable.Map[String, String]()
     configs.foreach(config => {
+      val mainConfiguration = ConfigurationGenerator.generateMainConfig(config)
       val modelReport = familyFinalOutput.modelReport.filter(
         item => item.modelFamily.equals(config.modelFamily)
       )
-      pipelineModels += config.modelFamily -> FeatureEngineeringPipelineContext
-        .buildFullPredictPipeline(
-          pipelineConfigs(config.modelFamily)._1,
-          modelReport,
-          pipelineConfigs(config.modelFamily)._2,
-          data
-        )
-      bestMlFlowRunIds += config.modelFamily -> familyFinalOutput
-        .mlFlowReport(0)
-        .bestLog
-        .runIdPayload(0)
-        ._1
+      // Pipeline failure aware function
+      withPipelineFailedException(mainConfiguration) {
+        pipelineModels += config.modelFamily -> FeatureEngineeringPipelineContext
+          .buildFullPredictPipeline(
+            pipelineConfigs(config.modelFamily)._1,
+            modelReport,
+            pipelineConfigs(config.modelFamily)._2,
+            data
+          )
+        if(mainConfiguration.mlFlowLoggingFlag) {
+          bestMlFlowRunIds += config.modelFamily -> familyFinalOutput
+            .mlFlowReport(0)
+            .bestLog
+            .runIdPayload(0)
+            ._1
+        }
+      }
     })
     FamilyFinalOutputWithPipeline(
       familyFinalOutput,
