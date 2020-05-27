@@ -358,11 +358,13 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
             pipelineConfigs(config.modelFamily)._2,
             data
           )
-        bestMlFlowRunIds += config.modelFamily -> familyFinalOutput
-          .mlFlowReport(0)
-          .bestLog
-          .runIdPayload(0)
-          ._1
+        if(mainConfiguration.mlFlowLoggingFlag) {
+          bestMlFlowRunIds += config.modelFamily -> familyFinalOutput
+            .mlFlowReport(0)
+            .bestLog
+            .runIdPayload(0)
+            ._1
+        }
       }
     })
     FamilyFinalOutputWithPipeline(
