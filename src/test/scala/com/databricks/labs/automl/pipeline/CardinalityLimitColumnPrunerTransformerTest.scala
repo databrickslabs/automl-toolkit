@@ -54,8 +54,8 @@ class CardinalityLimitColumnPrunerTransformerTest extends AbstractUnitSpec {
     val configurationOverrides = Map(
       "labelCol" -> "class",
       "dataPrepCachingFlag" -> true,
-      "tunerParallelism" -> 2,
-      "tunerKFold" -> 2,
+      "tunerParallelism" -> 1,
+      "tunerKFold" -> 1,
       "tunerTrainSplitMethod" -> "kSample",
       "featureInteractionFlag" -> false,
       "scoringMetric" -> "f1",
@@ -70,12 +70,12 @@ class CardinalityLimitColumnPrunerTransformerTest extends AbstractUnitSpec {
       "mlFlowLoggingFlag" -> false
     )
 
-    val configsPayload = Array(ConfigurationGenerator.generateConfigFromMap("Trees", "classifier", configurationOverrides))
+    val configsPayload = Array(ConfigurationGenerator.generateConfigFromMap("LogisticRegression", "classifier", configurationOverrides))
 
     val runnerBinaryPipeline = FamilyRunner(wineDf.repartition(4), configsPayload).executeWithPipeline()
 
     PipelineTestUtils.saveAndLoadPipelineModel(
-      runnerBinaryPipeline.bestPipelineModel("Trees"),
+      runnerBinaryPipeline.bestPipelineModel("LogisticRegression"),
       wineDf,
     "ml_wine_pipeline")
   }

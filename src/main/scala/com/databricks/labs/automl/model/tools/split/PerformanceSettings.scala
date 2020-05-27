@@ -2,6 +2,7 @@ package com.databricks.labs.automl.model.tools.split
 
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters._
 
@@ -11,13 +12,21 @@ object PerformanceSettings extends SparkSessionWrapper {
 
   final val environmentVars: Map[String, String] = System.getenv().asScala.toMap
 
-  lazy val coresPerWorker: Int = sc
-    .parallelize("1", 1)
-    .map(_ => java.lang.Runtime.getRuntime.availableProcessors)
-    .collect()(0)
+  lazy val coresPerWorker: Int = if(!sc.isLocal) {
+    sc
+      .parallelize("1", 1)
+      .map(_ => java.lang.Runtime.getRuntime.availableProcessors)
+      .collect()(0)
+  } else {
+    4
+  }
 
   lazy val numberOfWorkerNodes
-    : Int = sc.statusTracker.getExecutorInfos.length - 1
+    : Int = if(!sc.isLocal) {
+    sc.statusTracker.getExecutorInfos.length - 1
+  } else {
+    1
+  }
 
   lazy val totalCores: Int = coresPerWorker * numberOfWorkerNodes
 
@@ -50,17 +59,19 @@ object PerformanceSettings extends SparkSessionWrapper {
       case e: java.util.NoSuchElementException =>
         val workerCount =
           scala.math.floor(totalCores / coresPerTask / parallelism).toInt
-        require(
-          workerCount >= 1,
-          s"XGBoost requires at least one core per XGB worker. " +
-            s"Current configuration is not compatible with XGBoost. Consider increasing cluster size or " +
-            s"decreasing parallelism or lowering spark.task.cpus. The XGBWorker count is derived: " +
-            s"floor(total Cluster Cores / spark.task.cpus / parallelism).toInt. This number must be >= 1. \n " +
-            s"XGB numWorkers == ${workerCount} \n " +
-            s"Total Cluster Cores == ${totalCores} \n " +
-            s"spark.task.cpu == ${coresPerTask} == nThread" +
-            s"Parallelism == ${parallelism}"
-        )
+        if(!SparkSession.builder().getOrCreate().sparkContext.isLocal) {
+          require(
+            workerCount >= 1,
+            s"XGBoost requires at least one core per XGB worker. " +
+              s"Current configuration is not compatible with XGBoost. Consider increasing cluster size or " +
+              s"decreasing parallelism or lowering spark.task.cpus. The XGBWorker count is derived: " +
+              s"floor(total Cluster Cores / spark.task.cpus / parallelism).toInt. This number must be >= 1. \n " +
+              s"XGB numWorkers == ${workerCount} \n " +
+              s"Total Cluster Cores == ${totalCores} \n " +
+              s"spark.task.cpu == ${coresPerTask} == nThread" +
+              s"Parallelism == ${parallelism}"
+          )
+        }
         workerCount
     }
   }

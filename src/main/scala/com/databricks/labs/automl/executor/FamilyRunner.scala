@@ -2,26 +2,15 @@ package com.databricks.labs.automl.executor
 
 import com.databricks.labs.automl.AutomationRunner
 import com.databricks.labs.automl.exceptions.PipelineExecutionException
-import com.databricks.labs.automl.executor.config.{
-  ConfigurationGenerator,
-  InstanceConfig,
-  InstanceConfigValidation
-}
+import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, InstanceConfig, InstanceConfigValidation}
 import com.databricks.labs.automl.model.tools.ModelUtils
 import com.databricks.labs.automl.model.tools.split.PerformanceSettings
 import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline._
-import com.databricks.labs.automl.tracking.{
-  MLFlowReportStructure,
-  MLFlowTracker
-}
-import com.databricks.labs.automl.utils.{
-  AutoMlPipelineMlFlowUtils,
-  PipelineMlFlowTagKeys,
-  SparkSessionWrapper
-}
+import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowTracker}
+import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, PipelineMlFlowTagKeys, SparkSessionWrapper}
 import org.apache.spark.ml.PipelineModel
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ArrayBuffer
@@ -81,9 +70,11 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   @throws(classOf[IllegalArgumentException])
   private def validatePerformanceSettings(_parallelism: Int,
                                           modelFamily: String): Unit = {
-    if (modelFamily == "XGBoost") {
-      PerformanceSettings.xgbWorkers(_parallelism)
-    } else PerformanceSettings.optimalJVMModelPartitions(_parallelism)
+    if(!SparkSession.builder().getOrCreate().sparkContext.isLocal) {
+      if (modelFamily == "XGBoost") {
+        PerformanceSettings.xgbWorkers(_parallelism)
+      } else PerformanceSettings.optimalJVMModelPartitions(_parallelism)
+    }
   }
 
   /**
