@@ -85,6 +85,35 @@ object AutoMlPipelineMlFlowUtils {
       .getValue
   }
 
+  def getPipelinePathByRunId(runId: String, mlFlowConfig: MLFlowConfig): String = {
+    try {
+      MLFlowTracker(mlFlowConfig)
+        .createHostedMlFlowClient()
+        .getRun(runId)
+        .getData
+        .getTagsList
+        .toArray
+        .map(item => item.asInstanceOf[Service.RunTag])
+        .filter(item => item.getKey.equals(PipelineMlFlowTagKeys.PIPELINE_MODEL_SAVE_PATH_KEY))
+        .head
+        .getValue
+    } catch {
+      case e: Exception => {
+        throw new RuntimeException(s"Exception in fetching Pipeline model path by MlFlow Run ID $runId", e)
+      }
+    }
+  }
+
+
+  /**
+    * * @deprecated Use [[getPipelinePathByRunId(runId: String, mlFlowConfig: MLFlowConfig)]] instead
+    *
+    * @param runId
+    * @param loggingConfig
+    * @param mainConfig
+    * @return
+    */
+  @deprecated
   def getPipelinePathByRunId(runId: String,
                              loggingConfig: Option[LoggingConfig] = None,
                              mainConfig: Option[MainConfig] = None): String = {

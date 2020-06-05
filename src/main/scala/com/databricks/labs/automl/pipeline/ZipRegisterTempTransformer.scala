@@ -1,19 +1,10 @@
 package com.databricks.labs.automl.pipeline
 
 import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
-import org.apache.spark.ml.param.{Param, ParamMap}
-import org.apache.spark.ml.util.{
-  DefaultParamsReadable,
-  DefaultParamsWritable,
-  Identifiable
-}
+import org.apache.spark.ml.param.{BooleanParam, Param, ParamMap}
+import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{
-  LongType,
-  StringType,
-  StructField,
-  StructType
-}
+import org.apache.spark.sql.types.{LongType, StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 /**
@@ -42,7 +33,14 @@ class ZipRegisterTempTransformer(override val uid: String)
   def setTempViewOriginalDatasetName(value: String): this.type =
     set(tempViewOriginalDatasetName, value)
 
+  final val dataPrepCachingFlag: BooleanParam =
+    new BooleanParam(this, "dataPrepCachingFlag", "data prep stage caching flag")
+
   def getTempViewOriginalDatasetName: String = $(tempViewOriginalDatasetName)
+
+  def setDataPrepCachingFlag(value: Boolean): this.type = set(dataPrepCachingFlag, value)
+
+  def getDataPrepCachingFlag: Boolean = $(dataPrepCachingFlag)
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
     val dfWithId = dataset
