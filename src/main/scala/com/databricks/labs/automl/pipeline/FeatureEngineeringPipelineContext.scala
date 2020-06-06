@@ -529,6 +529,7 @@ object FeatureEngineeringPipelineContext {
       .setFeatureColumns(inputFeatures)
       .setDebugEnabled(mainConfig.pipelineDebugFlag)
       .setPipelineId(mainConfig.pipelineId)
+      .setDataPrepCachingFlag(mainConfig.dataPrepCachingFlag)
 
     val mlFlowLoggingValidationStageTransformer =
       new MlFlowLoggingValidationStageTransformer()

@@ -40,11 +40,8 @@ trait HasDebug extends Params {
           .get(this.getParam("pipelineId"))
           .get
       ).asInstanceOf[String]
-      val mainConfig = PipelineStateCache
-        .getFromPipelineByIdAndKey(pipelineId, PipelineVars.MAIN_CONFIG.key)
-        .asInstanceOf[MainConfig]
       //Log Dfs counts
-      val countLog = if (mainConfig.dataPrepCachingFlag) {
+      val countLog = if (getDebugEnabled) {
         s"Input dataset count: ${inputDataset.count()} \n " +
           s"Output dataset count: ${outputDataset.count()} \n "
       } else {
@@ -93,11 +90,15 @@ trait HasDebug extends Params {
   }
 
   private def paramsAsString(params: Array[Param[_]]): String = {
-    params
-      .map { param =>
-        s"\t${param.name}: ${paramValueAsString(this.extractParamMap().get(param).get)}"
-      }
-      .mkString("{\n", ",\n", "\n}")
+    try {
+      params
+        .map { param =>
+          s"\t${param.name}: ${paramValueAsString(this.extractParamMap().get(param).get)}"
+        }
+        .mkString("{\n", ",\n", "\n}")
+    } catch {
+      case nsee: java.util.NoSuchElementException => ""
+    }
   }
 
   private def paramValueAsString(value: Any): Any = {

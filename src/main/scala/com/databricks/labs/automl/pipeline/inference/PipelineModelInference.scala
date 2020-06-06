@@ -13,18 +13,26 @@ import org.apache.spark.ml.PipelineModel
 object PipelineModelInference {
 
 
-  /**
+ /**
+    * Overidden method for running inference using LoggingConfig
     *
-    * @param runId String of MLFlow runId to be used for Inference
-    * @param loggingConfig Deprecated -- logging config for older pipelines
+    * @param runId
+    * @param loggingConfig
     * @return
     */
-  @deprecated("Only for legacy pipelines without main config tracked by MLFlow. Use " +
-    "signature (runId: String, mainConfig: mainConfig: MainConfig) or " +
-    "(runId: String)", "0.7.1")
-  def getPipelineModelByMlFlowRunId(runId: String, loggingConfig: LoggingConfig): PipelineModel = {
-    PipelineModel.load(AutoMlPipelineMlFlowUtils.getPipelinePathByRunId(runId, loggingConfig=Some(loggingConfig)))
-  }
+ def getPipelineModelByMlFlowRunId(runId: String, loggingConfig: LoggingConfig): PipelineModel = {
+   PipelineModel.load(AutoMlPipelineMlFlowUtils.getPipelinePathByRunId(
+     runId,
+     MLFlowConfig(
+       loggingConfig.mlFlowTrackingURI,
+       loggingConfig.mlFlowExperimentName,
+       loggingConfig.mlFlowAPIToken,
+       loggingConfig.mlFlowModelSaveDirectory,
+       loggingConfig.mlFlowLoggingMode,
+       loggingConfig.mlFlowBestSuffix,
+       loggingConfig.mlFlowCustomRunTags
+     )))
+ }
 
   /***
     * String of MLFlow runId to be used for Inference
@@ -32,6 +40,8 @@ object PipelineModelInference {
     * @param mainConfig
     * @return
     */
+  @deprecated("Only for legacy pipelines without main config tracked by MLFlow. Use " +
+    "signature (runId: String, mlFlowConfig: MLFlowConfig)", "0.7.2")
   def getPipelineModelByMlFlowRunId(runId: String, mainConfig: MainConfig): PipelineModel = {
     PipelineModel.load(AutoMlPipelineMlFlowUtils.getPipelinePathByRunId(runId, mainConfig=Some(mainConfig)))
   }

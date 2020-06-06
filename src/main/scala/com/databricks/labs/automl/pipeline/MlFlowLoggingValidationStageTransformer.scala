@@ -17,12 +17,14 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 class MlFlowLoggingValidationStageTransformer(override val uid: String)
   extends AbstractTransformer
   with DefaultParamsWritable
-  with WithNoopsStage {
+  with WithNoopsStage
+  with HasTransformCalculated {
 
   def this() = {
     this(Identifiable.randomUID("MlFlowLoggingValidationStageTransformer"))
     setAutomlInternalId(AutoMlPipelineMlFlowUtils.AUTOML_INTERNAL_ID_COL)
     setDebugEnabled(false)
+    setTransformCalculated(false)
   }
 
   final val mlFlowLoggingFlag: BooleanParam = new BooleanParam(this, "mlFlowLoggingFlag", "whether to log to MlFlow or not")
@@ -50,7 +52,7 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String)
   def getMlFlowExperimentName: String = $(mlFlowExperimentName)
 
   override def transformInternal(dataset: Dataset[_]): DataFrame = {
-    if (getMlFlowLoggingFlag) {
+    if (getMlFlowLoggingFlag && !getTransformCalculated) {
       try {
         val dirValidate = WorkspaceDirectoryValidation(
           getMlFlowTrackingURI,
@@ -68,6 +70,9 @@ class MlFlowLoggingValidationStageTransformer(override val uid: String)
         }
       } catch {
         case exception: Exception => throw MlFlowValidationException("Failed to validate MLflow configuration", exception)
+      } finally {
+        setMlFlowAPIToken("[REDACTED]")
+        setTransformCalculated(true)
       }
     }
     dataset.toDF()
