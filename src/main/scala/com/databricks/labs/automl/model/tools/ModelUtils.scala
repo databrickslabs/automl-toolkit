@@ -90,7 +90,7 @@ object ModelUtils {
 
       case (a, x) =>
         math.max(a, getExactFieldCardinality(df, x))
-    } + 1
+    } + 2
 
     val maxBinsTuple = numericMap("maxBins")
 
