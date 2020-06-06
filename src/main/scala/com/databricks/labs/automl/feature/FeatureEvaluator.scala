@@ -2,7 +2,7 @@ package com.databricks.labs.automl.feature
 
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, lit, log2, sum, variance}
+import org.apache.spark.sql.functions.{col, lit, log2, sum, variance, broadcast}
 import com.databricks.labs.automl.feature.structures._
 import org.apache.spark.sql.types.StructType
 
@@ -31,7 +31,7 @@ object FeatureEvaluator extends FeatureInteractionBase {
       .withColumnRenamed(COUNT_COLUMN, AGGREGATE_COLUMN)
 
     val mergeCounts = groupedData
-      .join(fieldCounts, Seq(fieldToTest), "left")
+      .join(broadcast(fieldCounts), Seq(fieldToTest), "left")
       .withColumn(RATIO_COLUMN, col(COUNT_COLUMN) / col(AGGREGATE_COLUMN))
       .withColumn(
         ENTROPY_COLUMN,
@@ -50,7 +50,7 @@ object FeatureEvaluator extends FeatureInteractionBase {
       .agg(sum(ENTROPY_COLUMN).alias(ENTROPY_COLUMN))
 
     val joinedEntropy = mergedEntropy
-      .join(distinctValues, Seq(fieldToTest))
+      .join(broadcast(distinctValues), Seq(fieldToTest))
       .withColumn(
         FIELD_ENTROPY_COLUMN,
         col(ENTROPY_COLUMN) * col(TOTAL_RATIO_COLUMN)
