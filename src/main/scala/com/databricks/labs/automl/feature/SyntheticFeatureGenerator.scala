@@ -212,6 +212,9 @@ class SyntheticFeatureGenerator(data: DataFrame)
 
   def upSample(): DataFrame = {
 
+    // Get the original partition count
+    val sourcePartitions = data.rdd.partitions.length
+
     // Get the label statistics
     val labelPayload = determineRatios()
 
@@ -240,7 +243,11 @@ class SyntheticFeatureGenerator(data: DataFrame)
     )
 
     // Merge the original DataFrame with the synthetic data
-    data.withColumn(_syntheticCol, lit(false)).unionByName(syntheticData)
+    val mergedDF = data.withColumn(_syntheticCol, lit(false)).unionByName(syntheticData)
+
+    // Ensure no empty partitions
+    if (sourcePartitions == 1) mergedDF.coalesce(sourcePartitions)
+    else mergedDF.repartition(sourcePartitions)
 
   }
 
