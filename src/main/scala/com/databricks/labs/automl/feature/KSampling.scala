@@ -752,7 +752,7 @@ class KSampling(df: DataFrame) extends KSamplingBase {
     val kModelData = kModel.transform(scaled)
 
     // Get the original partition count
-    val sourcePartitions = df.rdd.partitions.length
+    // val sourcePartitions = df.rdd.partitions.length Tomes - Wrong Spot Moving up to Calling func (Upsample())
 
     val returnfinalDf = labelValues
       .map { x =>
@@ -786,7 +786,6 @@ class KSampling(df: DataFrame) extends KSamplingBase {
       }
       .reduce(_.unionByName(_))
       .toDF()
-      .repartition(sourcePartitions)
 
     addDummyDataForIgnoredColumns(returnfinalDf, ignoredFieldsTypes)
       .select(origSchema map col: _*)
