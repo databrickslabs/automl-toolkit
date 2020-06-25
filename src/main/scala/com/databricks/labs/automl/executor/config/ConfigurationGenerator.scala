@@ -2596,7 +2596,8 @@ object ConfigurationGenerator extends ConfigurationDefaults {
     */
   def generatePrettyJsonInstanceConfig(config: InstanceConfig): String = {
 
-    implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
+    implicit val formats: Formats =
+      Serialization.formats(hints = FullTypeHints(List(config.getClass)))
     writePretty(config)
   }
 
