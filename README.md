@@ -1,7 +1,7 @@
 # Databricks Labs AutoML
 [Release Notes](RELEASE_NOTES.md) |
 [Python API Docs](python/docs/APIDOCs.md) |
-[Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl)
+[Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl) |
 [Developer Docs](APIDOCS.md) |
 [Python Docs](python/docs/APIDOCs.md) |
 [Demo](demos) |
@@ -34,7 +34,7 @@ This package utilizes Apache Spark ML and currently supports the following model
 * Support Vector Machines
 * XGBoost (Regressor and Classifier)
 
-> NOTE: LightGBM support is built-in, but is in Experimental mode and canoot be accessed from the FamilyRunner API 
+> NOTE: LightGBM support is built-in, but is in Experimental mode and canot be accessed from the FamilyRunner API 
 > while we are undergoing testing and evaluation of thread concurrency issues with the LightGBM code base.
 
 ## Documentation
@@ -46,7 +46,7 @@ Python API documentation can be found [here](python/docs/APIDOCs.md)
 
 ## Building
 
-Databricks Labs AutoML can be build with either [SBT](https://www.scala-sbt.org/) or [Maven](https://maven.apache.org/).
+Databricks Labs AutoML can be built with either [SBT](https://www.scala-sbt.org/) or [Maven](https://maven.apache.org/).
 
 ```text
 This package requires Java 1.8.x  and scala 2.11.x to be installed on your system prior to building.
