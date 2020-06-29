@@ -1,7 +1,7 @@
 # Databricks Labs AutoML
 [Release Notes](RELEASE_NOTES.md) |
 [Python API Docs](python/docs/APIDOCs.md) |
-[Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl)
+[Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl) |
 [Developer Docs](APIDOCS.md) |
 [Python Docs](python/docs/APIDOCs.md) |
 [Demo](demos) |
