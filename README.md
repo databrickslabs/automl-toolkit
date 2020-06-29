@@ -34,7 +34,7 @@ This package utilizes Apache Spark ML and currently supports the following model
 * Support Vector Machines
 * XGBoost (Regressor and Classifier)
 
-> NOTE: LightGBM support is built-in, but is in Experimental mode and canoot be accessed from the FamilyRunner API 
+> NOTE: LightGBM support is built-in, but is in Experimental mode and canot be accessed from the FamilyRunner API 
 > while we are undergoing testing and evaluation of thread concurrency issues with the LightGBM code base.
 
 ## Documentation
