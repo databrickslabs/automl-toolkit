@@ -46,7 +46,7 @@ Python API documentation can be found [here](python/docs/APIDOCs.md)
 
 ## Building
 
-Databricks Labs AutoML can be build with either [SBT](https://www.scala-sbt.org/) or [Maven](https://maven.apache.org/).
+Databricks Labs AutoML can be built with either [SBT](https://www.scala-sbt.org/) or [Maven](https://maven.apache.org/).
 
 ```text
 This package requires Java 1.8.x  and scala 2.11.x to be installed on your system prior to building.
