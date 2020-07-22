@@ -5,10 +5,9 @@ import com.databricks.labs.automl.params._
 import com.databricks.labs.automl.pipeline.PipelineStateCache
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.json4s.jackson.Serialization
-import org.json4s.jackson.Serialization.{read, writePretty}
-import org.json4s.{Formats, FullTypeHints, NoTypeHints}
-import org.json4s.jackson.JsonMethods
+import org.json4s.jackson.{JsonMethods, Serialization}
+import org.json4s.jackson.Serialization.writePretty
+import org.json4s.{Formats, FullTypeHints}
 
 import scala.collection.mutable.ListBuffer
 
@@ -2631,14 +2630,104 @@ object ConfigurationGenerator extends ConfigurationDefaults {
     )
   }
 
+//  /**
+//    *
+//    * @param json
+//    * @return
+//    */
+//  def generateInstanceConfigFromJson(json: String): InstanceConfig = {
+//    implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
+//    read[InstanceConfig](json)
+//  }
+
   /**
-    *
-    * @param json
-    * @return
+    * Conversion method for renaming of fields and handling jackson default inference types from Java
+    * @param json json serailization of the InstanceConfig class as generated
+    * @return Map of the override values needed for direct conversion back into the InstanceConfig structure
+    * @author Ben Wilson, Databricks
+    * @since 0.7.2
+    */
+  private def convertJsonToInstanceConfigMap(json: String): Map[String, Any] = {
+
+    val mappedJsonData = jsonStrToMap(json)
+
+    val featureEngineeringMap = mappedJsonData("featureEngineeringConfig")
+      .asInstanceOf[Map[String, Any]]
+      .map {
+        case (k, v) =>
+          k match {
+            case "numericNAFillMap"  => ("fillConfigNumericNAFillMap" -> v)
+            case "numericFillStat"   => ("fillConfigNumericFillStat" -> v)
+            case "characterFillStat" => ("fillConfigCharacterFillStat" -> v)
+            case "cardinalityType"   => ("fillConfigCardinalityType" -> v)
+            case "covarianceCorrelationCutoffLow" =>
+              ("covarianceCutoffLow" -> v)
+            case "filterPrecision"  => ("fillConfigFilterPrecision" -> v)
+            case "naFillMode"       => ("fillConfigNAFillMode" -> v)
+            case "cardinalityLimit" => ("fillConfigCardinalityLimit" -> v)
+            case "cardinalityCheckMode" =>
+              ("fillConfigCardinalityCheckMode" -> v)
+            case "numericNABlanketFillValue" =>
+              ("fillConfigNumericNABlanketFillValue" -> v)
+            case "cardinalitySwitch" => ("fillConfigCardinalitySwitch" -> v)
+            case "covarianceCorrelationCutoffHigh" =>
+              ("covarianceCutoffHigh" -> v)
+            case "characterNABlanketFillValue" =>
+              ("fillConfigCharacterNABlanketFillValue" -> v)
+            case "cardinalityPrecision" =>
+              ("fillConfigCardinalityPrecision" -> v)
+            case "modelSelectionDistinctThreshold" =>
+              ("fillConfigModelSelectionDistinctThreshold" -> v)
+            case "categoricalNAFillMap" =>
+              ("fillConfigCategoricalNAFillMap" -> v)
+            case _ => (k -> v)
+          }
+      }
+
+    val tunerMap =
+      mappedJsonData("tunerConfig").asInstanceOf[Map[String, Any]].map {
+        case (k, v) =>
+          k match {
+
+            case "tunerHyperSpaceInference" =>
+              ("tunerHyperSpaceInferenceFlag" -> v)
+            case "tunerContinuousEvolutionRollingImprovingCount" =>
+              ("tunerContinuousEvolutionRollingImprovementCount" -> v)
+            case _ => (k -> v)
+          }
+      }
+
+    mappedJsonData("switchConfig")
+      .asInstanceOf[Map[String, Any]] ++ mappedJsonData("genericConfig")
+      .asInstanceOf[Map[String, Any]] ++ featureEngineeringMap ++ mappedJsonData(
+      "algorithmConfig"
+    ).asInstanceOf[Map[String, Any]] ++ tunerMap ++ mappedJsonData(
+      "loggingConfig"
+    ).asInstanceOf[Map[String, Any]]
+
+  }
+
+  /**
+    * Updated method for converting a json configuration string to an Instance Config
+    * @note This is updated to eliminate the chances of conversion issues with jackson
+    *       so that serialized case classes with Map[] values will convert correctly
+    * @param json json serialization of the InstanceConfig class
+    * @author Ben Wilson, Databricks
+    * @since 0.7.2
+    * @return InstanceConfig for the run
     */
   def generateInstanceConfigFromJson(json: String): InstanceConfig = {
-    implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
-    read[InstanceConfig](json)
+
+    val rawJsonMap = jsonStrToMap(json)
+
+    val mappedJsonData = convertJsonToInstanceConfigMap(json)
+
+    generateConfigFromMap(
+      rawJsonMap("modelFamily").toString,
+      rawJsonMap("predictionType").toString,
+      mappedJsonData
+    )
+
   }
 
   def generateMainConfigFromJson(json: String): MainConfig = {
@@ -2711,14 +2800,23 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           )
           .toString
       )
-      .setFieldsToIgnoreInVector(
+      .setFieldsToIgnoreInVector(try {
         config
           .getOrElse(
             "fieldsToIgnoreInVector",
-            defaultMap("fieldsToIgnoreInVector")
+            defaultMap("fieldsToIgnoreInVector").asInstanceOf[List[String]]
           )
-          .asInstanceOf[Array[String]]
-      )
+          .asInstanceOf[List[String]]
+          .toArray
+      } catch {
+        case _: java.lang.ClassCastException =>
+          config
+            .getOrElse(
+              "fieldsToIgnoreInVector",
+              defaultMap("fieldsToIgnoreInVector")
+            )
+            .asInstanceOf[Array[String]]
+      })
       .setScoringMetric(
         config.getOrElse("scoringMetric", defaultMap("scoringMetric")).toString
       )
@@ -2966,14 +3064,23 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           .toString
           .toInt
       )
-      .setOutlierFieldsToIgnore(
+      .setOutlierFieldsToIgnore(try {
         config
           .getOrElse(
             "outlierFieldsToIgnore",
-            defaultMap("outlierFieldsToIgnore")
+            defaultMap("outlierFieldsToIgnore").asInstanceOf[List[String]]
           )
-          .asInstanceOf[Array[String]]
-      )
+          .asInstanceOf[List[String]]
+          .toArray
+      } catch {
+        case _: java.lang.ClassCastException =>
+          config
+            .getOrElse(
+              "outlierFieldsToIgnore",
+              defaultMap("outlierFieldsToIgnore")
+            )
+            .asInstanceOf[Array[String]]
+      })
       .setPearsonFilterStatistic(
         config
           .getOrElse(
@@ -3124,11 +3231,21 @@ object ConfigurationGenerator extends ConfigurationDefaults {
           .getOrElse("stringBoundaries", defaultMap("stringBoundaries"))
           .asInstanceOf[Map[String, List[String]]]
       )
-      .setNumericBoundaries(
+      .setNumericBoundaries(try {
         config
           .getOrElse("numericBoundaries", defaultMap("numericBoundaries"))
-          .asInstanceOf[Map[String, (Double, Double)]]
-      )
+          .asInstanceOf[Map[String, Any]]
+          .map {
+            case (k, v) =>
+              val tupleVals = v.asInstanceOf[Map[Double, Double]].values
+              (k -> (tupleVals.head, tupleVals.tail.head))
+          }
+      } catch {
+        case _: java.lang.ClassCastException =>
+          config
+            .getOrElse("numericBoundaries", defaultMap("numericBoundaries"))
+            .asInstanceOf[Map[String, (Double, Double)]]
+      })
       .setTunerAutoStoppingScore(
         config
           .getOrElse(
