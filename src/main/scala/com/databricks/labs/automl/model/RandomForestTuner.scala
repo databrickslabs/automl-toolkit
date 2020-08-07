@@ -492,7 +492,7 @@ class RandomForestTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[RandomForestConfig]
           val startingModelSeed = generateRandomForestConfig(_modelSeed)
           genArray += startingModelSeed

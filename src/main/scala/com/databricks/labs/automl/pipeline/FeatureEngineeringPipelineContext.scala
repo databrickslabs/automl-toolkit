@@ -2,11 +2,7 @@ package com.databricks.labs.automl.pipeline
 
 import java.util.UUID
 
-import com.databricks.labs.automl.exceptions.{
-  DateFeatureConversionException,
-  FeatureConversionException,
-  TimeFeatureConversionException
-}
+import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, TimeFeatureConversionException}
 import com.databricks.labs.automl.feature.FeatureInteraction
 import com.databricks.labs.automl.params.{GroupedModelReturn, MainConfig}
 import com.databricks.labs.automl.pipeline.PipelineVars._
@@ -18,6 +14,7 @@ import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Model, Pipeline, PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
+import com.databricks.labs.automl.pipeline.PipelineInternalUtils._
 
 /**
   * @author Jas Bali
@@ -323,10 +320,8 @@ object FeatureEngineeringPipelineContext {
     )
 
     pipelineModelStages += mlPipelineModel
-    val pipelinewithMlModel =
-      FeatureEngineeringPipelineContext.mergePipelineModels(pipelineModelStages)
-    val pipelinewithMlModelDf =
-      mlPipelineModel.transform(featureEngOutput.transformedForTrainingDf)
+    val pipelinewithMlModel = mergePipelineModels(pipelineModelStages)
+    val pipelinewithMlModelDf = mlPipelineModel.transform(featureEngOutput.transformedForTrainingDf)
 
     // Add Index To String Stage
     val pipelineModelWithLabelSi = addLabelIndexToString(
@@ -1022,7 +1017,7 @@ object FeatureEngineeringPipelineContext {
     )
   }
 
-  private def mergePipelineModels(
+  private def memergePipelrgePipelineModels(
     pipelineModels: ArrayBuffer[PipelineModel]
   ): PipelineModel = {
     SparkUtil.createPipelineModel(
