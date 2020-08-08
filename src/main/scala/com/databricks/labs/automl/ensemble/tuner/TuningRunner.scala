@@ -11,14 +11,14 @@ object TuningRunner {
 
 
 
-    val generationalData = extractGenerationalScores(
-      genericResultData,
-      _mainConfig.scoringOptimizationStrategy,
-      _mainConfig.modelFamily,
-      modelSelection
-    )
+//    val generationalData = extractGenerationalScores(
+//      genericResultData,
+//      _mainConfig.scoringOptimizationStrategy,
+//      _mainConfig.modelFamily,
+//      modelSelection
+//    )
 
-
+    null
   }
 
 }

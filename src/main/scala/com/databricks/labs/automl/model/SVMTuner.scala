@@ -28,7 +28,8 @@ class SVMTuner(df: DataFrame,
                isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
-    with Defaults {
+    with Defaults
+    with AbstractTuner[SVMConfig, SVMModelsWithResults] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -624,7 +625,7 @@ class SVMTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[SVMConfig]
   ): (Array[SVMModelsWithResults], DataFrame) = {
 

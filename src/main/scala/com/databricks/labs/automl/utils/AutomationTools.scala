@@ -1,15 +1,8 @@
 package com.databricks.labs.automl.utils
 
-import com.databricks.labs.automl.inference.{
-  InferenceDataConfig,
-  InferenceSwitchSettings
-}
-import com.databricks.labs.automl.params.{
-  GenerationalReport,
-  GenericModelReturn,
-  MLPCConfig,
-  MainConfig
-}
+import com.databricks.labs.automl.inference.{InferenceDataConfig, InferenceSwitchSettings}
+import com.databricks.labs.automl.params.{GenerationalReport, GenericModelReturn, MLPCConfig, MainConfig}
+import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowReturn, MLFlowTracker}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
@@ -277,5 +270,37 @@ trait AutomationTools extends SparkSessionWrapper {
     writePretty(config)
       .replaceAll(": \\{", "\\{")
       .replaceAll(":", "->")
+  }
+
+  protected def logPipelineResultsToMlFlow(runData: Array[GenericModelReturn],
+                                 modelFamily: String,
+                                 modelType: String,
+                                 mainConfig: MainConfig): MLFlowReportStructure = {
+
+    val mlFlowLogger = MLFlowTracker(mainConfig)
+    mlFlowLogger.logMlFlowForPipeline(
+      AutoMlPipelineMlFlowUtils
+        .getMainConfigByPipelineId(mainConfig.pipelineId)
+        .mlFlowRunId,
+      runData,
+      modelFamily,
+      modelType,
+      mainConfig.scoringOptimizationStrategy
+    )
+  }
+
+  protected def generateDummyMLFlowReturn(msg: String,
+                                        mainConfig: MainConfig): Option[MLFlowReportStructure] = {
+    try {
+      val genTracker = MLFlowTracker(mainConfig)
+      val dummyLog = MLFlowReturn(
+        genTracker.getMLFlowClient,
+        msg,
+        Array((msg, 0.0))
+      )
+      Some(MLFlowReportStructure(dummyLog, dummyLog))
+    } catch {
+      case ex: Exception => Some(MLFlowReportStructure(null, null))
+    }
   }
 }

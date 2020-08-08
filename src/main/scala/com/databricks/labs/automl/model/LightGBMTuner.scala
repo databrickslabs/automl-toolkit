@@ -28,7 +28,8 @@ class LightGBMTuner(df: DataFrame,
     with SparkSessionWrapper
     with Defaults
     with Serializable
-    with Evolution {
+    with Evolution
+    with AbstractTuner[LightGBMConfig, LightGBMModelsWithResults] {
 
   import GBMTypes._
   import InitialGenerationMode._
@@ -932,7 +933,7 @@ class LightGBMTuner(df: DataFrame,
 
   }
 
-  def evolveWithScoringDF(): (Array[LightGBMModelsWithResults], DataFrame) = {
+  override def evolveWithScoringDF(): (Array[LightGBMModelsWithResults], DataFrame) = {
     val evolutionResults = _evolutionStrategy match {
       case "batch"      => evolveParameters()
       case "continuous" => continuousEvolution()
@@ -940,7 +941,7 @@ class LightGBMTuner(df: DataFrame,
     (evolutionResults, generateScoredDataFrame(evolutionResults))
   }
 
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[LightGBMConfig]
   ): (Array[LightGBMModelsWithResults], DataFrame) = {
     val finalRunResults =

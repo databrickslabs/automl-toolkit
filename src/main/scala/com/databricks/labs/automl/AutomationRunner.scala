@@ -2074,24 +2074,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     )
   }
 
-  private def logPipelineResultsToMlFlow(
-    runData: Array[GenericModelReturn],
-    modelFamily: String,
-    modelType: String
-  ): MLFlowReportStructure = {
-
-    val mlFlowLogger = MLFlowTracker(_mainConfig)
-    mlFlowLogger.logMlFlowForPipeline(
-      AutoMlPipelineMlFlowUtils
-        .getMainConfigByPipelineId(_mainConfig.pipelineId)
-        .mlFlowRunId,
-      runData,
-      modelFamily,
-      modelType,
-      _mainConfig.scoringOptimizationStrategy
-    )
-  }
-
   protected[automl] def executeTuning(
     payload: DataGeneration,
     isPipeline: Boolean = false
@@ -2265,7 +2247,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
               s"\n ${e.getStackTraceString}"
           )
           logger.log(Level.FATAL, e.getStackTraceString)
-          generateDummyMLFlowReturn("error").get
+          generateDummyMLFlowReturn("error", _mainConfig).get
       }
 
       implicit val formats: Formats = Serialization.formats(hints = NoTypeHints)
@@ -2277,10 +2259,11 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
       logPipelineResultsToMlFlow(
         genericResultData,
         _mainConfig.modelFamily,
-        modelSelection
+        modelSelection,
+        _mainConfig
       )
     } else {
-      generateDummyMLFlowReturn("undefined").get
+      generateDummyMLFlowReturn("undefined", _mainConfig).get
     }
 
     val generationalData = extractGenerationalScores(
@@ -2306,22 +2289,6 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
         )
     }
 
-  }
-
-  private def generateDummyMLFlowReturn(
-    msg: String
-  ): Option[MLFlowReportStructure] = {
-    try {
-      val genTracker = MLFlowTracker(_mainConfig)
-      val dummyLog = MLFlowReturn(
-        genTracker.getMLFlowClient,
-        msg,
-        Array((msg, 0.0))
-      )
-      Some(MLFlowReportStructure(dummyLog, dummyLog))
-    } catch {
-      case ex: Exception => Some(MLFlowReportStructure(null, null))
-    }
   }
 
   protected[automl] def predictFromBestModel(

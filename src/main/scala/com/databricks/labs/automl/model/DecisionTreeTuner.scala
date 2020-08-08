@@ -32,7 +32,8 @@ class DecisionTreeTuner(df: DataFrame,
                         isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
-    with Defaults {
+    with Defaults
+    with AbstractTuner[TreesConfig, TreesModelsWithResults] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -768,7 +769,7 @@ class DecisionTreeTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[TreesConfig]
   ): (Array[TreesModelsWithResults], DataFrame) = {
 

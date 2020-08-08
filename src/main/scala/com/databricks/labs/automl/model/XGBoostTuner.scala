@@ -31,7 +31,8 @@ class XGBoostTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Evolution
     with Defaults
-    with Serializable {
+    with Serializable
+    with AbstractTuner[XGBoostConfig, XGBoostModelsWithResults] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -841,7 +842,7 @@ class XGBoostTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[XGBoostConfig]
   ): (Array[XGBoostModelsWithResults], DataFrame) = {
 

@@ -28,7 +28,8 @@ class LinearRegressionTuner(df: DataFrame,
                             isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Defaults
-    with Evolution {
+    with Evolution
+    with AbstractTuner[LinearRegressionConfig, LinearRegressionModelsWithResults] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -693,7 +694,7 @@ class LinearRegressionTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[LinearRegressionConfig]
   ): (Array[LinearRegressionModelsWithResults], DataFrame) = {
 
