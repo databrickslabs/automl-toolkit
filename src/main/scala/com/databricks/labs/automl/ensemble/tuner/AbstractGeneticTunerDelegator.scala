@@ -1,45 +1,95 @@
 package com.databricks.labs.automl.ensemble.tuner
 
 import com.databricks.labs.automl.ensemble.tuner.validate.GeneticTunerValidator
-import com.databricks.labs.automl.model.{AbstractTuner, Evolution, LightGBMTuner}
 import com.databricks.labs.automl.model.tools.PostModelingOptimization
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
+import com.databricks.labs.automl.model.{AbstractTuner, Evolution, XGBoostTuner}
 import com.databricks.labs.automl.params.{TunerConfigBase, TunerOutputWithResults, _}
 import com.databricks.labs.automl.utils.AutomationTools
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
-abstract class GeneticTuner[A <: AbstractTuner[TunerConfigBase, TunerOutputWithResults],
-                            T <: TunerOutputWithResults,
-                            C <: TunerConfigBase](mainConfig: MainConfig,
-                                                        payload: DataGeneration,
-                                                        testTrainSplitData: Array[TrainSplitReferences])
-  extends GeneticTunerValidator with AutomationTools {
+abstract class AbstractGeneticTunerDelegator[A <: AbstractTuner[C, B, D],
+                            B <: TunerOutputWithResults[C, D],
+                            C <: TunerConfigBase,
+                            D](mainConfig: MainConfig,
+                               payload: DataGeneration,
+                               testTrainSplitData: Array[TrainSplitReferences])
+  extends GeneticTunerValidator
+    with AutomationTools
+    with TunerDelegator {
 
-  protected def delegateTuning(tuner: A): TunerOutput
+  override def tune: TunerOutput = {
+    validate(mainConfig)
+    delegateTuning
+  }
 
   protected def initializeTuner: A
 
-  protected def evolve(tuner: A): (Array[T], DataFrame) = {
+  protected def delegateTuning: TunerOutput = {
+    val tuner = initializeTuner
+    val (modelResultsRaw, modelStatsRaw) = evolve(tuner)
+    val resultBuffer = modelResultsRaw.toBuffer
+    val statsBuffer = new ArrayBuffer[DataFrame]()
+    statsBuffer += modelStatsRaw
+
+    val genericResults = modelResultsRaw.map(item => {
+      GenericModelReturn(
+        hyperParams = extractPayload(item.modelHyperParams.asInstanceOf[Product]),
+        model = item.model,
+        score = item.score,
+        metrics = item.evalMetrics,
+        generation = item.generation
+      )
+    }).asInstanceOf[ArrayBuffer[GenericModelReturn]]
+
+    val (resultBuffer1, statsBuffer1) = hyperSpaceInference(tuner, genericResults)
+    statsBuffer ++= statsBuffer1
+    resultBuffer ++= resultBuffer1
+
+    tunerOutput(
+      statsBuffer.reduce(_ union _),
+      payload.modelType,
+      payload.data,
+      genericResults.toArray
+    )
+  }
+
+  protected def evolve(tuner: A): (Array[B], DataFrame) = {
     val evolveResult = tuner.evolveWithScoringDF()
-    (evolveResult._1.asInstanceOf[Array[T]], evolveResult._2)
+    (evolveResult._1.asInstanceOf[Array[B]], evolveResult._2)
   }
 
   protected def hyperSpaceInference(tuner: A,
                                     genericResults: ArrayBuffer[GenericModelReturn]):
-  (ArrayBuffer[T], ArrayBuffer[DataFrame])
+  (ArrayBuffer[B], ArrayBuffer[DataFrame]) = {
+    val resultBuffer = new ArrayBuffer[B]()
+    val statsBuffer = new ArrayBuffer[DataFrame]()
+    if (mainConfig.geneticConfig.hyperSpaceInference) {
+      println("\n\t\tStarting Post Tuning Inference Run.\n")
 
-  protected def postRunModeledHyperParams(tuner: A,
-                                          hyperSpaceRunCandidates: Array[TunerConfigBase]):
-  (Array[T], DataFrame) = {
-    val retTuple = tuner.postRunModeledHyperParams(hyperSpaceRunCandidates)
-    (retTuple._1.asInstanceOf[Array[T]], retTuple._2)
+      val hyperSpaceRunCandidates = modelOptimization(tuner, genericResults)
+
+      val (hyperResults, hyperDataFrame) =  postRunModeledHyperParams(tuner, hyperSpaceRunCandidates)
+
+      hyperResults.foreach { x =>
+        resultBuffer += x
+      }
+      statsBuffer += hyperDataFrame
+    }
+
+    (resultBuffer, statsBuffer)
   }
 
-  def tune: TunerOutput = {
-    validate(mainConfig)
-    delegateTuning(initializeTuner)
+  protected def modelOptimization(tuner: A,
+                                  genericResults: ArrayBuffer[GenericModelReturn]): Array[C]
+
+  protected def postRunModeledHyperParams(tuner: A,
+                                          hyperSpaceRunCandidates: Array[C]):
+  (Array[B], DataFrame) = {
+    val retTuple = tuner.postRunModeledHyperParams(hyperSpaceRunCandidates)
+    (retTuple._1.asInstanceOf[Array[B]], retTuple._2)
   }
 
   def setTunerEvolutionConfig(evolutionConfig: Evolution): Unit = {

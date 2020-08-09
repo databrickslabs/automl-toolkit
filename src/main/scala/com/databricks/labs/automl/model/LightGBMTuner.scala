@@ -29,7 +29,7 @@ class LightGBMTuner(df: DataFrame,
     with Defaults
     with Serializable
     with Evolution
-    with AbstractTuner[LightGBMConfig, LightGBMModelsWithResults] {
+    with AbstractTuner[LightGBMConfig, LightGBMModelsWithResults, Any] {
 
   import GBMTypes._
   import InitialGenerationMode._

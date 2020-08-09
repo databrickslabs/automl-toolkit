@@ -1,20 +1,12 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.model.tools.{
-  GenerationOptimizer,
-  HyperParameterFullSearch,
-  ModelReporting
-}
-import com.databricks.labs.automl.params.{
-  Defaults,
-  MLPCConfig,
-  MLPCModelsWithResults
-}
+import com.databricks.labs.automl.model.tools.{GenerationOptimizer, HyperParameterFullSearch, ModelReporting}
+import com.databricks.labs.automl.params.{Defaults, MLPCConfig, MLPCModelsWithResults}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
+import org.apache.spark.ml.classification.{MultilayerPerceptronClassificationModel, MultilayerPerceptronClassifier}
 import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
@@ -30,7 +22,7 @@ class MLPCTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Evolution
     with Defaults
-    with AbstractTuner[MLPCConfig, MLPCModelsWithResults] {
+    with AbstractTuner[MLPCConfig, MLPCModelsWithResults, MultilayerPerceptronClassificationModel] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 

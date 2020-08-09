@@ -27,7 +27,7 @@ class RandomForestTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Evolution
     with Defaults
-    with AbstractTuner[RandomForestConfig, RandomForestModelsWithResults] {
+    with AbstractTuner[RandomForestConfig, RandomForestModelsWithResults, Any] {
 
   @transient private val logger: Logger = Logger.getLogger(this.getClass)
 

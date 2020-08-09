@@ -1,20 +1,12 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.model.tools.{
-  GenerationOptimizer,
-  HyperParameterFullSearch,
-  ModelReporting
-}
-import com.databricks.labs.automl.params.{
-  Defaults,
-  LogisticRegressionConfig,
-  LogisticRegressionModelsWithResults
-}
+import com.databricks.labs.automl.model.tools.{GenerationOptimizer, HyperParameterFullSearch, ModelReporting}
+import com.databricks.labs.automl.params.{Defaults, LogisticRegressionConfig, LogisticRegressionModelsWithResults}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.classification.{LogisticRegression, LogisticRegressionModel}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
@@ -29,7 +21,7 @@ class LogisticRegressionTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Defaults
     with Evolution
-    with AbstractTuner[LogisticRegressionConfig, LogisticRegressionModelsWithResults] {
+    with AbstractTuner[LogisticRegressionConfig, LogisticRegressionModelsWithResults, LogisticRegressionModel] {
 
   validateInputDataframe(df)
 

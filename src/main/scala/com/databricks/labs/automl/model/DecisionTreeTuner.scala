@@ -33,7 +33,7 @@ class DecisionTreeTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Evolution
     with Defaults
-    with AbstractTuner[TreesConfig, TreesModelsWithResults] {
+    with AbstractTuner[TreesConfig, TreesModelsWithResults, Any] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 

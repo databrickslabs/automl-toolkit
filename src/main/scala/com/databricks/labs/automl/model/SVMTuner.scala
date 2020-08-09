@@ -1,20 +1,12 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.model.tools.{
-  GenerationOptimizer,
-  HyperParameterFullSearch,
-  ModelReporting
-}
-import com.databricks.labs.automl.params.{
-  Defaults,
-  SVMConfig,
-  SVMModelsWithResults
-}
+import com.databricks.labs.automl.model.tools.{GenerationOptimizer, HyperParameterFullSearch, ModelReporting}
+import com.databricks.labs.automl.params.{Defaults, SVMConfig, SVMModelsWithResults}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.ml.classification.LinearSVC
+import org.apache.spark.ml.classification.{LinearSVC, LinearSVCModel}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
@@ -29,7 +21,7 @@ class SVMTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Evolution
     with Defaults
-    with AbstractTuner[SVMConfig, SVMModelsWithResults] {
+    with AbstractTuner[SVMConfig, SVMModelsWithResults, LinearSVCModel] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 

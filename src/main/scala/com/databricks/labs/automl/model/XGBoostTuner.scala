@@ -32,7 +32,7 @@ class XGBoostTuner(df: DataFrame,
     with Evolution
     with Defaults
     with Serializable
-    with AbstractTuner[XGBoostConfig, XGBoostModelsWithResults] {
+    with AbstractTuner[XGBoostConfig, XGBoostModelsWithResults, Any] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 

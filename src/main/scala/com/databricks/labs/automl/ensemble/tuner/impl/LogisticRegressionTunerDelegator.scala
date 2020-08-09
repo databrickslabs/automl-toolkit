@@ -1,17 +1,21 @@
 package com.databricks.labs.automl.ensemble.tuner.impl
 
-import com.databricks.labs.automl.ensemble.tuner.GeneticTuner
+import com.databricks.labs.automl.ensemble.tuner.AbstractGeneticTunerDelegator
 import com.databricks.labs.automl.model.LogisticRegressionTuner
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.params._
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.ml.classification.LogisticRegressionModel
 
 import scala.collection.mutable.ArrayBuffer
 
-class LogisticRegressionTunerDelegator(mainConfig: MainConfig,
+private[tuner] class LogisticRegressionTunerDelegator(mainConfig: MainConfig,
                                        payload: DataGeneration,
                                        testTrainSplitData: Array[TrainSplitReferences])
-  extends GeneticTuner[LogisticRegressionTuner, LogisticRegressionModelsWithResults, LogisticRegressionConfig](mainConfig, payload, testTrainSplitData) {
+  extends AbstractGeneticTunerDelegator
+     [LogisticRegressionTuner,
+      LogisticRegressionModelsWithResults,
+      LogisticRegressionConfig,
+      LogisticRegressionModel](mainConfig, payload, testTrainSplitData) {
 
 
   override protected def initializeTuner: LogisticRegressionTuner = {
@@ -22,10 +26,10 @@ class LogisticRegressionTunerDelegator(mainConfig: MainConfig,
     linearRegressionTuner
   }
 
-  override protected def delegateTuning(tuner: LogisticRegressionTuner): TunerOutput = {
-    val (modelResultsRaw, modelStatsRaw) = payload.modelType match {
+  override protected def delegateTuning: TunerOutput = {
+    payload.modelType match {
       case "classifier" => {
-        evolve(tuner)
+        super.delegateTuning
       }
 
       case _ =>
@@ -33,63 +37,27 @@ class LogisticRegressionTunerDelegator(mainConfig: MainConfig,
           s"Detected Model Type ${payload.modelType} is not supported by Logistic Regression"
         )
     }
-
-    val resultBuffer = modelResultsRaw.toBuffer
-    val statsBuffer = new ArrayBuffer[DataFrame]()
-    statsBuffer += modelStatsRaw
-
-    val genericResults = modelResultsRaw.map(item => {
-      GenericModelReturn(
-        hyperParams = extractPayload(item.modelHyperParams),
-        model = item.model,
-        score = item.score,
-        metrics = item.evalMetrics,
-        generation = item.generation
-      )
-    }).asInstanceOf[ArrayBuffer[GenericModelReturn]]
-
-    val (resultBuffer1, statsBuffer1) = hyperSpaceInference(tuner, genericResults)
-    statsBuffer ++= statsBuffer1
-    resultBuffer ++= resultBuffer1
-
-    tunerOutput(
-      statsBuffer.reduce(_ union _),
-      payload.modelType,
-      payload.data,
-      genericResults.toArray
-    )
-
   }
 
 
-  override protected def hyperSpaceInference(tuner: LogisticRegressionTuner,
-                                                                                genericResults: ArrayBuffer[GenericModelReturn]):
-  (ArrayBuffer[LogisticRegressionModelsWithResults], ArrayBuffer[DataFrame]) = {
-    val resultBuffer = new ArrayBuffer[LogisticRegressionModelsWithResults]()
-    val statsBuffer = new ArrayBuffer[DataFrame]()
-    if (mainConfig.geneticConfig.hyperSpaceInference) {
-      println("\n\t\tStarting Post Tuning Inference Run.\n")
-      val hyperSpaceRunCandidates = postModelingOptimization("LogisticRegression")
-        .setNumericBoundaries(tuner.getLogisticRegressionNumericBoundaries)
-        .setStringBoundaries(mainConfig.stringBoundaries)
-        .logisticRegressionPrediction(
-          genericResults.result.toArray,
-          mainConfig.geneticConfig.hyperSpaceModelType,
-          mainConfig.geneticConfig.hyperSpaceModelCount
-        )
-
-      val (hyperResults, hyperDataFrame) =  postRunModeledHyperParams(tuner, hyperSpaceRunCandidates)
-
-      hyperResults.foreach { x =>
-        resultBuffer += x.asInstanceOf[LogisticRegressionModelsWithResults]
-      }
-      statsBuffer += hyperDataFrame
-    }
-
-    (resultBuffer, statsBuffer)
+  override protected def modelOptimization(tuner: LogisticRegressionTuner,
+                                             genericResults: ArrayBuffer[GenericModelReturn]): Array[LogisticRegressionConfig] = {
+    postModelingOptimization("LogisticRegression")
+      .setNumericBoundaries(tuner.getLogisticRegressionNumericBoundaries)
+      .setStringBoundaries(mainConfig.stringBoundaries)
+      .logisticRegressionPrediction(
+        genericResults.result.toArray,
+        mainConfig.geneticConfig.hyperSpaceModelType,
+        mainConfig.geneticConfig.hyperSpaceModelCount
+      )
   }
 
   override def validate(mainConfig: MainConfig): Unit = {
 
   }
+}
+
+object LogisticRegressionTunerDelegator {
+  def apply(mainConfig: MainConfig, payload: DataGeneration, testTrainSplitData: Array[TrainSplitReferences]):
+    LogisticRegressionTunerDelegator = new LogisticRegressionTunerDelegator(mainConfig, payload, testTrainSplitData)
 }

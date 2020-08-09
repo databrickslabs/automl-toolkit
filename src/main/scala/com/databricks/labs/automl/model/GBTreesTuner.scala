@@ -32,7 +32,7 @@ class GBTreesTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Evolution
     with Defaults
-    with AbstractTuner[GBTConfig, GBTModelsWithResults] {
+    with AbstractTuner[GBTConfig, GBTModelsWithResults, Any] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
