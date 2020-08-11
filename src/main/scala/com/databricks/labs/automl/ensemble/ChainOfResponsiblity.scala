@@ -28,7 +28,7 @@ private[ensemble] class ChainOfResponsibility {
 
   def execChainOfResponsibility(): Unit = {
 
-    tasks.foldLeft()
+//    tasks.foldLeft()
 
 
   }

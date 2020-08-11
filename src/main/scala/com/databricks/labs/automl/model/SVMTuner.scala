@@ -318,7 +318,7 @@ class SVMTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[SVMConfig]
           val startingModelSeed = generateSVMConfig(_modelSeed)
           genArray += startingModelSeed
@@ -460,7 +460,7 @@ class SVMTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[SVMConfig]
           val startingModelSeed = generateSVMConfig(_modelSeed)
           generativeArray += startingModelSeed

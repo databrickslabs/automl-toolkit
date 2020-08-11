@@ -364,7 +364,7 @@ class LogisticRegressionTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[LogisticRegressionConfig]
           val startingModelSeed = generateLogisticRegressionConfig(_modelSeed)
           genArray += startingModelSeed
@@ -510,7 +510,7 @@ class LogisticRegressionTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[LogisticRegressionConfig]
           val startingModelSeed = generateLogisticRegressionConfig(_modelSeed)
           generativeArray += startingModelSeed

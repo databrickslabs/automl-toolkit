@@ -1,21 +1,24 @@
 package com.databricks.labs.automl.ensemble.tuner.impl
 
-import com.databricks.labs.automl.ensemble.tuner.AbstractGeneticTunerDelegator
+import com.databricks.labs.automl.ensemble.tuner.AbstractTreeBinsSearchSpaceReset
 import com.databricks.labs.automl.model.GBTreesTuner
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.params.{GBTModelsWithResults, _}
-import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
 private[tuner] class GbtTunerDelegator(mainConfig: MainConfig,
                         payload: DataGeneration,
                         testTrainSplitData: Array[TrainSplitReferences])
-  extends AbstractGeneticTunerDelegator[GBTreesTuner, GBTModelsWithResults, GBTConfig, Any](mainConfig, payload, testTrainSplitData) {
+  extends AbstractTreeBinsSearchSpaceReset
+     [GBTreesTuner,
+      GBTModelsWithResults,
+      GBTConfig,
+      Any](mainConfig, payload, testTrainSplitData) {
 
   override protected def initializeTuner: GBTreesTuner = {
     val gbTreesTuner = new GBTreesTuner(payload.data, testTrainSplitData, payload.modelType, true)
-      .setGBTNumericBoundaries(mainConfig.numericBoundaries)
+      .setGBTNumericBoundaries(numericBoundaries.get)
       .setGBTStringBoundaries(mainConfig.stringBoundaries)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(gbTreesTuner)
@@ -25,8 +28,8 @@ private[tuner] class GbtTunerDelegator(mainConfig: MainConfig,
   override protected def modelOptimization(tuner: GBTreesTuner,
                                            genericResults: ArrayBuffer[GenericModelReturn]): Array[GBTConfig] = {
     postModelingOptimization(mainConfig.modelFamily)
-      .setNumericBoundaries(tuner.getGBTNumericBoundaries)
-      .setStringBoundaries(tuner.getGBTStringBoundaries)
+      .setNumericBoundaries(numericBoundaries.get)
+      .setStringBoundaries(mainConfig.stringBoundaries)
       .gbtPrediction(
         genericResults.result.toArray,
         mainConfig.geneticConfig.hyperSpaceModelType,

@@ -542,7 +542,7 @@ class XGBoostTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[XGBoostConfig]
           val startingModelSeed = generateXGBoostConfig(_modelSeed)
           genArray += startingModelSeed
@@ -686,7 +686,7 @@ class XGBoostTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[XGBoostConfig]
           val startingModelSeed = generateXGBoostConfig(_modelSeed)
           generativeArray += startingModelSeed

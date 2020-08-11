@@ -1,22 +1,24 @@
 package com.databricks.labs.automl.ensemble.tuner.impl
 
-import com.databricks.labs.automl.ensemble.tuner.AbstractGeneticTunerDelegator
+import com.databricks.labs.automl.ensemble.tuner.AbstractTreeBinsSearchSpaceReset
 import com.databricks.labs.automl.model.XGBoostTuner
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.params._
-import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
 private[tuner] class XGBoostTunerDelegator(mainConfig: MainConfig,
                             payload: DataGeneration,
                             testTrainSplitData: Array[TrainSplitReferences])
-  extends AbstractGeneticTunerDelegator
-    [XGBoostTuner, XGBoostModelsWithResults, XGBoostConfig, Any](mainConfig, payload, testTrainSplitData) {
+  extends AbstractTreeBinsSearchSpaceReset
+     [XGBoostTuner,
+      XGBoostModelsWithResults,
+      XGBoostConfig,
+      Any](mainConfig, payload, testTrainSplitData) {
 
   override protected def initializeTuner: XGBoostTuner = {
     val xgBoostTuner = new XGBoostTuner(payload.data, testTrainSplitData, payload.modelType, true)
-      .setXGBoostNumericBoundaries(mainConfig.numericBoundaries)
+      .setXGBoostNumericBoundaries(numericBoundaries.get)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(xgBoostTuner)
     xgBoostTuner
@@ -26,7 +28,7 @@ private[tuner] class XGBoostTunerDelegator(mainConfig: MainConfig,
                                              genericResults: ArrayBuffer[GenericModelReturn]):
   Array[XGBoostConfig] = {
     postModelingOptimization("XGBoost")
-      .setNumericBoundaries(tuner.getXGBoostNumericBoundaries)
+      .setNumericBoundaries(numericBoundaries.get)
       .setStringBoundaries(mainConfig.stringBoundaries)
       .xgBoostPrediction(
         genericResults.result.toArray,

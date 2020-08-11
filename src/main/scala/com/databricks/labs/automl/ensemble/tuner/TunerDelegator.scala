@@ -7,4 +7,6 @@ trait TunerDelegator extends GeneticTunerValidator {
 
   def tune: TunerOutput
 
+  def numericBoundaries: Option[Map[String, (Double, Double)]] = None
+
 }

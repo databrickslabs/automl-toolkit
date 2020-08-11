@@ -3,8 +3,7 @@ package com.databricks.labs.automl.ensemble.tuner.impl
 import com.databricks.labs.automl.ensemble.tuner.AbstractGeneticTunerDelegator
 import com.databricks.labs.automl.model.LightGBMTuner
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.params.{DataGeneration, GenericModelReturn, LightGBMConfig, LightGBMModelsWithResults, MainConfig, TunerOutput}
-import org.apache.spark.sql.DataFrame
+import com.databricks.labs.automl.params._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -21,7 +20,7 @@ private[tuner] class GbmTunerDelegator(mainConfig: MainConfig,
       payload.modelType,
       mainConfig.modelFamily,
       true
-    ).setLGBMNumericBoundaries(mainConfig.numericBoundaries)
+    ).setLGBMNumericBoundaries(numericBoundaries.get)
       .setLGBMStringBoundaries(mainConfig.stringBoundaries)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(lightGBMTuner)
@@ -31,8 +30,8 @@ private[tuner] class GbmTunerDelegator(mainConfig: MainConfig,
   override protected def modelOptimization(tuner: LightGBMTuner,
                                            genericResults: ArrayBuffer[GenericModelReturn]): Array[LightGBMConfig] = {
     postModelingOptimization(mainConfig.modelFamily)
-      .setNumericBoundaries(tuner.getLightGBMNumericBoundaries)
-      .setStringBoundaries(tuner.getLightGBMStringBoundaries)
+      .setNumericBoundaries(numericBoundaries.get)
+      .setStringBoundaries(mainConfig.stringBoundaries)
       .lightGBMPrediction(
         genericResults.result.toArray,
         mainConfig.geneticConfig.hyperSpaceModelType,

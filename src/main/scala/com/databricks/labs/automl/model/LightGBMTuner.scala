@@ -659,7 +659,7 @@ class LightGBMTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[LightGBMConfig]
           val startingModelSeed = generateLightGBMConfig(_modelSeed)
           genArray += startingModelSeed
@@ -802,7 +802,7 @@ class LightGBMTuner(df: DataFrame,
 
     val primordial = _initialGenMode match {
       case RANDOM =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
 
           val startingModelSeed = generateLightGBMConfig(_modelSeed)
 

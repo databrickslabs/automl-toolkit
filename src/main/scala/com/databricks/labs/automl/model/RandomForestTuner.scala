@@ -641,7 +641,7 @@ class RandomForestTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[RandomForestConfig]
           val startingModelSeed = generateRandomForestConfig(_modelSeed)
           generativeArray += startingModelSeed

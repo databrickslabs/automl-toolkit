@@ -5,10 +5,13 @@ final case class EnsembleInvalidSettingsException(private val propertyName: Stri
   extends EnsembleValidationException(s"$propertyName value $propertyValue is invalid")
 
 class EnsembleValidationException(private val message: String = "",
-                                     private val cause: Exception = None.orNull)
+                                  private val cause: Exception = None.orNull)
   extends RuntimeException(message, cause)
 
 
 object EnsembleValidationExceptions {
+
+  val TRAIN_PORTION_EXCEPTION: EnsembleValidationException =
+    new EnsembleValidationException("Train Split Config must be same for all weak learner configs")
 
 }

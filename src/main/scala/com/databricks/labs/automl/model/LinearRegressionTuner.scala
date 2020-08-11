@@ -381,7 +381,7 @@ class LinearRegressionTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[LinearRegressionConfig]
           val startingModelSeed = generateLinearRegressionConfig(_modelSeed)
           genArray += startingModelSeed
@@ -526,7 +526,7 @@ class LinearRegressionTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[LinearRegressionConfig]
           val startingModelSeed = generateLinearRegressionConfig(_modelSeed)
           generativeArray += startingModelSeed

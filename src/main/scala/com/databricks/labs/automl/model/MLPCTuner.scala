@@ -364,7 +364,7 @@ class MLPCTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[MLPCConfig]
           val startingModelSeed = generateMLPCConfig(_modelSeed)
           genArray += startingModelSeed
@@ -517,7 +517,7 @@ class MLPCTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[MLPCConfig]
           val startingModelSeed = generateMLPCConfig(_modelSeed)
           generativeArray += startingModelSeed

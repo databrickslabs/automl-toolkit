@@ -3,7 +3,7 @@ package com.databricks.labs.automl.ensemble.tuner
 import com.databricks.labs.automl.ensemble.tuner.validate.GeneticTunerValidator
 import com.databricks.labs.automl.model.tools.PostModelingOptimization
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.model.{AbstractTuner, Evolution, XGBoostTuner}
+import com.databricks.labs.automl.model.{AbstractTuner, Evolution}
 import com.databricks.labs.automl.params.{TunerConfigBase, TunerOutputWithResults, _}
 import com.databricks.labs.automl.utils.AutomationTools
 import org.apache.spark.sql.DataFrame
@@ -26,6 +26,10 @@ abstract class AbstractGeneticTunerDelegator[A <: AbstractTuner[C, B, D],
   }
 
   protected def initializeTuner: A
+
+  override def numericBoundaries: Option[Map[String, (Double, Double)]] = {
+    Some(mainConfig.numericBoundaries)
+  }
 
   protected def delegateTuning: TunerOutput = {
     val tuner = initializeTuner

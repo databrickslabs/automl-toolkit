@@ -17,10 +17,9 @@ private[tuner] class MlpcTunerDelegator(mainConfig: MainConfig,
       MLPCConfig,
       MultilayerPerceptronClassificationModel](mainConfig, payload, testTrainSplitData) {
 
-
   override protected def initializeTuner: MLPCTuner = {
     val mlpcTuner = new MLPCTuner(payload.data, testTrainSplitData, true)
-      .setMlpcNumericBoundaries(mainConfig.numericBoundaries)
+      .setMlpcNumericBoundaries(numericBoundaries.get)
       .setMlpcStringBoundaries(mainConfig.stringBoundaries)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(mlpcTuner)

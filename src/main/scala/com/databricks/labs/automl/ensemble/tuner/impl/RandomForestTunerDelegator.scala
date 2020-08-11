@@ -1,23 +1,24 @@
 package com.databricks.labs.automl.ensemble.tuner.impl
 
-import com.databricks.labs.automl.ensemble.tuner.AbstractGeneticTunerDelegator
+import com.databricks.labs.automl.ensemble.tuner.AbstractTreeBinsSearchSpaceReset
 import com.databricks.labs.automl.model.RandomForestTuner
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.params._
-import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
 private[tuner] class RandomForestTunerDelegator(mainConfig: MainConfig,
                                  payload: DataGeneration,
                                  testTrainSplitData: Array[TrainSplitReferences])
-  extends AbstractGeneticTunerDelegator
-    [RandomForestTuner, RandomForestModelsWithResults, RandomForestConfig, Any](mainConfig, payload, testTrainSplitData) {
-
+  extends AbstractTreeBinsSearchSpaceReset
+     [RandomForestTuner,
+      RandomForestModelsWithResults,
+      RandomForestConfig,
+      Any](mainConfig, payload, testTrainSplitData) {
 
   override protected def initializeTuner: RandomForestTuner = {
     val randomForestTuner = new RandomForestTuner(payload.data, testTrainSplitData, payload.modelType, true)
-      .setRandomForestNumericBoundaries(mainConfig.numericBoundaries)
+      .setRandomForestNumericBoundaries(numericBoundaries.get)
       .setRandomForestStringBoundaries(mainConfig.stringBoundaries)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(randomForestTuner)

@@ -1,22 +1,24 @@
 package com.databricks.labs.automl.ensemble.tuner.impl
 
-import com.databricks.labs.automl.ensemble.tuner.AbstractGeneticTunerDelegator
-import com.databricks.labs.automl.model.{DecisionTreeTuner, SVMTuner}
+import com.databricks.labs.automl.ensemble.tuner.AbstractTreeBinsSearchSpaceReset
+import com.databricks.labs.automl.model.DecisionTreeTuner
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.params.{DataGeneration, GenericModelReturn, LightGBMModelsWithResults, MainConfig, TreesConfig, TreesModelsWithResults, TunerOutput}
-import org.apache.spark.sql.DataFrame
+import com.databricks.labs.automl.params._
 
 import scala.collection.mutable.ArrayBuffer
 
 private[tuner] class TreesTunerDelegator(mainConfig: MainConfig,
                           payload: DataGeneration,
                           testTrainSplitData: Array[TrainSplitReferences])
-  extends AbstractGeneticTunerDelegator[DecisionTreeTuner, TreesModelsWithResults, TreesConfig, Any](mainConfig, payload, testTrainSplitData) {
-
+  extends AbstractTreeBinsSearchSpaceReset
+     [DecisionTreeTuner,
+      TreesModelsWithResults,
+      TreesConfig,
+      Any](mainConfig, payload, testTrainSplitData) {
 
   override protected def initializeTuner: DecisionTreeTuner = {
     val decisionTreeTuner = new DecisionTreeTuner(payload.data, testTrainSplitData, payload.modelType, true)
-      .setTreesNumericBoundaries(mainConfig.numericBoundaries)
+      .setTreesNumericBoundaries(numericBoundaries.get)
       .setTreesStringBoundaries(mainConfig.stringBoundaries)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(decisionTreeTuner)

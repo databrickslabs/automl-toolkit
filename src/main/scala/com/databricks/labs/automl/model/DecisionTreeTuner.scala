@@ -462,7 +462,7 @@ class DecisionTreeTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[TreesConfig]
           val startingModelSeed = generateTreesConfig(_modelSeed)
           genArray += startingModelSeed
@@ -610,7 +610,7 @@ class DecisionTreeTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[TreesConfig]
           val startingModelSeed = generateTreesConfig(_modelSeed)
           generativeArray += startingModelSeed

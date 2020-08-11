@@ -11,15 +11,18 @@ import scala.collection.mutable.ArrayBuffer
 private[tuner] class SvmTunerDelegator(mainConfig: MainConfig,
                         payload: DataGeneration,
                         testTrainSplitData: Array[TrainSplitReferences])
-  extends AbstractGeneticTunerDelegator[SVMTuner, SVMModelsWithResults, SVMConfig, LinearSVCModel](mainConfig, payload, testTrainSplitData) {
-
+  extends AbstractGeneticTunerDelegator
+     [SVMTuner,
+      SVMModelsWithResults,
+      SVMConfig,
+      LinearSVCModel](mainConfig, payload, testTrainSplitData) {
 
   override protected def initializeTuner: SVMTuner = {
     val svmTuner = new SVMTuner(
       payload.data,
       testTrainSplitData,
       true)
-      .setSvmNumericBoundaries(mainConfig.numericBoundaries)
+      .setSvmNumericBoundaries(numericBoundaries.get)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(svmTuner)
     svmTuner

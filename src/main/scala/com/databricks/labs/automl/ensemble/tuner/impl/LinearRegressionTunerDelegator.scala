@@ -12,15 +12,17 @@ private[tuner] class LinearRegressionTunerDelegator(mainConfig: MainConfig,
                                      payload: DataGeneration,
                                      testTrainSplitData: Array[TrainSplitReferences])
   extends AbstractGeneticTunerDelegator
-    [LinearRegressionTuner, LinearRegressionModelsWithResults, LinearRegressionConfig, LinearRegressionModel](mainConfig, payload, testTrainSplitData) {
-
+     [LinearRegressionTuner,
+      LinearRegressionModelsWithResults,
+      LinearRegressionConfig,
+      LinearRegressionModel](mainConfig, payload, testTrainSplitData) {
 
   override protected def initializeTuner: LinearRegressionTuner = {
     val linearRegressionTuner = new LinearRegressionTuner(
       payload.data,
       testTrainSplitData,
       true
-    ).setLinearRegressionNumericBoundaries(mainConfig.numericBoundaries)
+    ).setLinearRegressionNumericBoundaries(numericBoundaries.get)
       .setLinearRegressionStringBoundaries(mainConfig.stringBoundaries)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(linearRegressionTuner)

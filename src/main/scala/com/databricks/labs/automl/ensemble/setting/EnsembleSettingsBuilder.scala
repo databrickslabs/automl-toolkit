@@ -7,15 +7,13 @@ trait CoreEnsembleSettings
 
 case class StackingEnsembleSettings(inputData: DataFrame,
                                     weakLearnersConfigs: Array[InstanceConfig],
-                                    metaLearnerModelType: String,
-                                    metaLearnerTuningConfig: Option[TunerConfig]) extends CoreEnsembleSettings
+                                    metaLearnerConfig: InstanceConfig) extends CoreEnsembleSettings
 class EnsembleSettingsBuilder {
 
 
   private var inputData: DataFrame = _
   private var weakLearnersConfigs: Array[InstanceConfig] = _
-  private var metaLearnerModelType: String = _
-  private var metaLearnerTuningConfig: Option[TunerConfig] = None
+  private var metaLearnerConfig: Option[InstanceConfig] = None
 
 
   def inputData(inputData: DataFrame): EnsembleSettingsBuilder = {
@@ -28,13 +26,8 @@ class EnsembleSettingsBuilder {
     this
   }
 
-  def metaLearnerModelType(metaLearnerModelType: String): EnsembleSettingsBuilder = {
-    this.metaLearnerModelType = metaLearnerModelType
-    this
-  }
-
-  def metaLearnerTuningConfig(metaLearnerTuningConfig: Option[TunerConfig]): EnsembleSettingsBuilder = {
-    this.metaLearnerTuningConfig = metaLearnerTuningConfig
+  def metaLearnerConfig(metaLearnerConfig: Option[InstanceConfig]): EnsembleSettingsBuilder = {
+    this.metaLearnerConfig = metaLearnerConfig
     this
   }
 
@@ -42,12 +35,11 @@ class EnsembleSettingsBuilder {
     StackingEnsembleSettings(
       this.inputData,
       this.weakLearnersConfigs,
-      this.metaLearnerModelType,
-      this.metaLearnerTuningConfig)
+      this.metaLearnerConfig.get)
   }
 
 }
 
 object EnsembleSettingsBuilder {
-  def apply(): EnsembleSettingsBuilder = new EnsembleSettingsBuilder()
+  def builder(): EnsembleSettingsBuilder = new EnsembleSettingsBuilder()
 }

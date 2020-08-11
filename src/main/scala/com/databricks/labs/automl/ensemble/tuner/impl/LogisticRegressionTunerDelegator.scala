@@ -17,10 +17,9 @@ private[tuner] class LogisticRegressionTunerDelegator(mainConfig: MainConfig,
       LogisticRegressionConfig,
       LogisticRegressionModel](mainConfig, payload, testTrainSplitData) {
 
-
   override protected def initializeTuner: LogisticRegressionTuner = {
     val linearRegressionTuner = new LogisticRegressionTuner(payload.data, testTrainSplitData, true)
-      .setLogisticRegressionNumericBoundaries(mainConfig.numericBoundaries)
+      .setLogisticRegressionNumericBoundaries(numericBoundaries.get)
       .setScoringMetric(mainConfig.scoringMetric)
     setTunerEvolutionConfig(linearRegressionTuner)
     linearRegressionTuner
