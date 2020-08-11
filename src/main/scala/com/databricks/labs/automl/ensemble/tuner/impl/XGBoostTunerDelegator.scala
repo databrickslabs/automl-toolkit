@@ -28,7 +28,7 @@ private[tuner] class XGBoostTunerDelegator(mainConfig: MainConfig,
                                              genericResults: ArrayBuffer[GenericModelReturn]):
   Array[XGBoostConfig] = {
     postModelingOptimization("XGBoost")
-      .setNumericBoundaries(numericBoundaries.get)
+      .setNumericBoundaries(tuner.getXGBoostNumericBoundaries)
       .setStringBoundaries(mainConfig.stringBoundaries)
       .xgBoostPrediction(
         genericResults.result.toArray,

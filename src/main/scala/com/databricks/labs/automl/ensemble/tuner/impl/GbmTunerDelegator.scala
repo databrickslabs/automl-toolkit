@@ -30,8 +30,8 @@ private[tuner] class GbmTunerDelegator(mainConfig: MainConfig,
   override protected def modelOptimization(tuner: LightGBMTuner,
                                            genericResults: ArrayBuffer[GenericModelReturn]): Array[LightGBMConfig] = {
     postModelingOptimization(mainConfig.modelFamily)
-      .setNumericBoundaries(numericBoundaries.get)
-      .setStringBoundaries(mainConfig.stringBoundaries)
+      .setNumericBoundaries(tuner.getLightGBMNumericBoundaries)
+      .setStringBoundaries(tuner.getLightGBMStringBoundaries)
       .lightGBMPrediction(
         genericResults.result.toArray,
         mainConfig.geneticConfig.hyperSpaceModelType,

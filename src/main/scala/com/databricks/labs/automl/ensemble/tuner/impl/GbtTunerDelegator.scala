@@ -28,8 +28,8 @@ private[tuner] class GbtTunerDelegator(mainConfig: MainConfig,
   override protected def modelOptimization(tuner: GBTreesTuner,
                                            genericResults: ArrayBuffer[GenericModelReturn]): Array[GBTConfig] = {
     postModelingOptimization(mainConfig.modelFamily)
-      .setNumericBoundaries(numericBoundaries.get)
-      .setStringBoundaries(mainConfig.stringBoundaries)
+      .setNumericBoundaries(tuner.getGBTNumericBoundaries)
+      .setStringBoundaries(tuner.getGBTStringBoundaries)
       .gbtPrediction(
         genericResults.result.toArray,
         mainConfig.geneticConfig.hyperSpaceModelType,
