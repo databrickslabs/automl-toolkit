@@ -1,15 +1,16 @@
 # Databricks Labs AutoML
 [Release Notes](RELEASE_NOTES.md) |
 [Python API Docs](python/docs/APIDOCs.md) |
-[Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl)
+[Python Artifact](python/dist/pyAutoML-0.1.0-py3-none-any.whl) |
 [Developer Docs](APIDOCS.md) |
 [Python Docs](python/docs/APIDOCs.md) |
+[Analysis Tools Docs](ANALYSIS_TOOLS_DOCS.md) |
 [Demo](demos) |
 [Release Artifacts](bin) |
 [Contributors](#core-contribution-team)
 
 
-This Databricks Labs project is a non-supported end-to-end supervised learning solution for automating:
+This Databricks Labs project is a non-officially-supported end-to-end supervised learning solution for automating:
 * Feature clean-up 
     * Advanced NA fill, covariance calculations, collinearity determination, outlier filtering, and data casting
 * Feature Importance calculation suite
@@ -43,9 +44,11 @@ Scala API documentation can be found [here](APIDOCS.md)
 
 Python API documentation can be found [here](python/docs/APIDOCs.md) 
 
-## Installing
+Analytics Package API documentation can be found [here](ANALYSIS_TOOLS_DOCS.md)
+
+## Installing - Recommended!
 Darabricks Labs AutoML can be pulled from maven central with the following coordinates.
-To install 0.7.2 AutoML:
+Example - to install 0.7.2 AutoML:
 ```
 <dependency>
   <groupId>com.databricks</groupId>
@@ -174,7 +177,7 @@ For all available pipeline APIs. please see [Developer Docs](PIPELINE_API_DOCS.m
 ## Feedback
 
 Issues with the application?  Found a bug?  Have a great idea for an addition?
-Feel free to file an issue.
+Feel free to file an issue or contact [Ben](mailto:benjamin.wilson@databricks.com)
 
 ## Contributing
 Have a great idea that you want to add?  Fork the repo and submit a PR!

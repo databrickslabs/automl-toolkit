@@ -15,6 +15,10 @@ import org.apache.spark.ml.regression.{
   LinearRegressionModel,
   RandomForestRegressionModel
 }
+import com.databricks.labs.automl.exploration.analysis.common.structures.{
+  NoParam,
+  ParamWrapper
+}
 
 import scala.collection.mutable.ArrayBuffer
 

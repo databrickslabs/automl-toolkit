@@ -6,6 +6,9 @@ import com.databricks.labs.automl.exploration.analysis.common.structures.{
   PipelineNodeData,
   StringIndexerMappings
 }
+
+import com.databricks.labs.automl.exploration.analysis.common.structures.PayloadType._
+
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.writePretty
 import org.json4s.{Formats, FullTypeHints}
