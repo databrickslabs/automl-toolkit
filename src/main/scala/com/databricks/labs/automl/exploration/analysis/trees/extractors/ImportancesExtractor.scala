@@ -19,7 +19,7 @@ import org.apache.spark.ml.regression.{
   RandomForestRegressionModel
 }
 
-object ImportancesExtractor {
+private[analysis] object ImportancesExtractor {
 
   import com.databricks.labs.automl.exploration.analysis.common.structures.PayloadType._
 

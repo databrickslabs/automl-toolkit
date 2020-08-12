@@ -8,7 +8,7 @@ import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.writePretty
 import org.json4s.{Formats, FullTypeHints}
 
-object Converters {
+private[analysis] object Converters {
 
   def mapFieldsToImportances(
     importanceData: FeatureImportanceData

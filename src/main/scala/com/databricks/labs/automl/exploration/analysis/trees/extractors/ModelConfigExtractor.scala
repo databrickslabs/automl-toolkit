@@ -12,7 +12,7 @@ import org.apache.spark.ml.regression.{
   RandomForestRegressionModel
 }
 
-object ModelConfigExtractor {
+private[analysis] object ModelConfigExtractor {
 
   def extractModelData[T](model: T): ModelData = {
 

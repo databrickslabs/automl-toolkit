@@ -19,7 +19,7 @@ import org.apache.spark.ml.regression.{
 }
 import org.apache.spark.ml.tree.Node
 
-class TreeExtractor[T: TreeModelExtractor](model: T) {
+private[analysis] class TreeExtractor[T: TreeModelExtractor](model: T) {
 
   def extractRootNode: Array[Node] = {
 

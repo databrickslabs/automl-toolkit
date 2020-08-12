@@ -1,6 +1,6 @@
 package com.databricks.labs.automl.exploration.analysis.common.structures
 
-trait VisualizationSettings {
+private[analysis] trait VisualizationSettings {
 
   final val ALLOWABLE_MODES: Array[String] =
     Array("static", "dynamic", "lightweight")

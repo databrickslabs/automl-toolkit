@@ -13,7 +13,7 @@ import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.writePretty
 import org.json4s.{Formats, FullTypeHints}
 
-object HierarchicalEncoding {
+private[analysis] object HierarchicalEncoding {
 
   private def withElse[T](
     nodeInfo: NodeData

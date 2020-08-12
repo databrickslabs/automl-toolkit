@@ -3,17 +3,17 @@ package com.databricks.labs.automl.exploration.analysis.common.structures
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.tree.{ContinuousSplit, InternalNode, Node, Split}
 
-object NodeType extends Enumeration {
+private[analysis] object NodeType extends Enumeration {
   type NodeType = Value
   val NODE, LEAF = Value
 }
 
-object SplitType extends Enumeration {
+private[analysis] object SplitType extends Enumeration {
   type SplitType = Value
   val CONTINUOUS, CATEGORICAL = Value
 }
 
-object NodeDetermination {
+private[analysis] object NodeDetermination {
 
   import NodeType._
   import SplitType._
@@ -30,12 +30,12 @@ object NodeDetermination {
 
 }
 
-object PayloadType extends Enumeration {
+private[analysis] object PayloadType extends Enumeration {
   type PayloadType = Value
   val MODEL, PIPELINE = Value
 }
 
-object PayloadDetermination {
+private[analysis] object PayloadDetermination {
 
   import PayloadType._
 

@@ -22,7 +22,7 @@ import com.databricks.labs.automl.exploration.analysis.common.structures.{
 
 import scala.collection.mutable.ArrayBuffer
 
-object AnalysisUtilities {
+private[analysis] object AnalysisUtilities {
   private def parseStringIndexers(
     pipeline: PipelineModel,
     stringIndexerStageValues: ArrayBuffer[StringIndexerMappings] =

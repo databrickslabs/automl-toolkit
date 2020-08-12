@@ -13,7 +13,7 @@ import org.apache.spark.ml.tree.{
   Node
 }
 
-object Extractor {
+private[analysis] object Extractor {
 
   import com.databricks.labs.automl.exploration.analysis.common.structures.NodeType._
   import com.databricks.labs.automl.exploration.analysis.common.structures.PayloadType._

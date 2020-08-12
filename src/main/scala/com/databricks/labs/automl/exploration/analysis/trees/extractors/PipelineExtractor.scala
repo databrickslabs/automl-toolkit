@@ -21,7 +21,7 @@ import org.apache.spark.ml.regression.{
 }
 import org.apache.spark.ml.tree.Node
 
-class PipelineExtractor(pipeline: PipelineModel) {
+private[analysis] class PipelineExtractor(pipeline: PipelineModel) {
 
   private def getStringIndexerLabels(
     pipeline: PipelineModel

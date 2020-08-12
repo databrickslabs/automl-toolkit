@@ -11,8 +11,8 @@ import org.apache.spark.ml.regression.{
   RandomForestRegressionModel
 }
 
-class TreeModelExtractor[T]
-object TreeModelExtractor {
+private[analysis] class TreeModelExtractor[T]
+private[analysis] object TreeModelExtractor {
   implicit object DecisionTreeRegressorExtractor
       extends TreeModelExtractor[DecisionTreeRegressionModel]
   implicit object DecisionTreeClassifierExtractor

@@ -6,6 +6,7 @@ case class ShapOutput(partition: Int,
                       shapValue: Double)
     extends Serializable
 
-case class MutatedVectors(referenceIncluded: org.apache.spark.ml.linalg.Vector,
-                          referenceExcluded: org.apache.spark.ml.linalg.Vector)
-    extends Serializable
+private[analysis] case class MutatedVectors(
+  referenceIncluded: org.apache.spark.ml.linalg.Vector,
+  referenceExcluded: org.apache.spark.ml.linalg.Vector
+) extends Serializable

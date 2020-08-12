@@ -9,7 +9,7 @@ import scala.util.Random
 /**
   * Utility objects for performing SHAP calculations
   */
-object VectorSelectionUtilities extends Serializable {
+private[analysis] object VectorSelectionUtilities extends Serializable {
 
   def extractFeatureCollection(
     partitionData: Array[Row],

@@ -19,7 +19,7 @@ import com.databricks.labs.automl.exploration.analysis.common.structures.{
   ParamWrapper
 }
 
-object ModelDebugStringParser {
+private[analysis] object ModelDebugStringParser {
 
   def modelDebugStringExtractor[T](model: T): String = {
 

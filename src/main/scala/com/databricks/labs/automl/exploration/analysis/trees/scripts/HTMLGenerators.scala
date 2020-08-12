@@ -6,7 +6,7 @@ import com.databricks.labs.automl.exploration.analysis.common.structures.{
   ModelData
 }
 
-object HTMLGenerators {
+private[analysis] object HTMLGenerators {
 
   def buildFeatureImportancesTable(
     importanceData: FeatureImportanceData

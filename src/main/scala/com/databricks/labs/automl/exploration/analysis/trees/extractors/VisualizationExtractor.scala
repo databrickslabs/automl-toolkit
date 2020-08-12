@@ -20,7 +20,7 @@ import org.apache.spark.ml.regression.{
   RandomForestRegressionModel
 }
 
-object VisualizationExtractor {
+private[analysis] object VisualizationExtractor {
 
   def extractModelVisualizationDataFromModel[T](
     model: T,

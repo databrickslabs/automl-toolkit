@@ -10,7 +10,7 @@ import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.writePretty
 import org.json4s.{Formats, FullTypeHints}
 
-object Encoders {
+private[analysis] object Encoders {
 
   import com.databricks.labs.automl.exploration.analysis.common.structures.PayloadType._
 
