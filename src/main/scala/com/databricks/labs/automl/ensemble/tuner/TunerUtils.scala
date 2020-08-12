@@ -10,7 +10,9 @@ import org.apache.spark.storage.StorageLevel
 object TunerUtils {
 
   def buildSplitTrainTestData(mainConfig: MainConfig,
-                              data: DataFrame): Array[TrainSplitReferences] =  {
+                              data: DataFrame,
+                              kFold: Option[Int] = None
+                             ): Array[TrainSplitReferences] =  {
     val cachedData = if (mainConfig.dataPrepCachingFlag) {
     data.persist(StorageLevel.MEMORY_AND_DISK)
     data.foreach(_ => ())
@@ -21,7 +23,7 @@ object TunerUtils {
 
     DataSplitUtility.split(
     cachedData,
-    mainConfig.geneticConfig.kFold,
+      if (kFold.isDefined) kFold.get else mainConfig.geneticConfig.kFold,
     mainConfig.geneticConfig.trainSplitMethod,
     mainConfig.labelCol,
     mainConfig.geneticConfig.deltaCacheBackingDirectory,

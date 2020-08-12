@@ -21,10 +21,10 @@ private[ensemble] class WeakLearnersFamilyRunner
     // Get Train-Test splits to be reused for all weak learners' tunings
     val ensembleTunerSplits = EnsembleTunerSplits()
     val weakLearnersTrainTestSplits = ensembleTunerSplits
-      .getMetaLearnersSplits(StackingEnsembleSettings(
+      .getMetaLearnersSplits(Some(StackingEnsembleSettings(
         feDfWithAllModelFeatures,
         stackingEnsembleSettings.weakLearnersConfigs,
-        stackingEnsembleSettings.metaLearnerConfig))
+        stackingEnsembleSettings.metaLearnerConfig)))
 
     // Run Tuning for all weak learner models
     val (outputBuffer, pipelineConfigMap) = runTuningAndGetOutput(
