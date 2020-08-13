@@ -1,5 +1,22 @@
 ## Auto ML Toolkit Release Notes
 
+### Version 0.8.0
+#### Features
+* Added Distributed Shapley calculation APIs :
+```scala 
+com.databricks.labs.automl.exploration.analysis.shap.ShapleyPipeline
+com.databricks.labs.automl.exploration.analysis.shap.ShapleyModel
+```
+for calcualting shap values for each feature within a trained model (or pipeline)'s feature vector.
+see: [Documentation](ANALYSIS_TOOLS_DOCS.md) for details on the new API.
+
+* Added Tree-based SparkML model and metrics visualizations and extractors:
+```scala
+com.databricks.labs.automl.exploration.analysis.trees.TreeModelVisualization
+com.databricks.labs.automl.exploration.analysis.trees.TreePipelineVisualization
+```
+see [Docs](ANALYSIS_TOOLS_DOCS.md) for API details.
+
 ### Version 0.7.1
 #### Features
 * Complete overhaul of train/test splitting and kFolding.  Prior to this performance scaling improvement, 
