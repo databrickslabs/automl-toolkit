@@ -178,7 +178,9 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
 
     shapDFData
       .groupBy("featureIndex")
-      .agg((sum(col("shapWeighted")) / totalRows).alias("shapValues"))
+      .agg((sum(col("shapWeighted")) / totalRows).alias("shapValues"),
+        var_samp((col("shapValue")  / totalRows ).alias("shapVar"))
+      )
 
   }
 
