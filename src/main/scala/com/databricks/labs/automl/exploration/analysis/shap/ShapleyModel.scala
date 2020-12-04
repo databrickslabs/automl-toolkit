@@ -23,6 +23,11 @@ import org.apache.spark.ml.regression.{
 }
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{
+  StructType,
+  StructField,
+  DoubleType
+}
 
 import scala.collection.immutable
 
@@ -97,7 +102,6 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
 
   /**
     * Manual method interface for calculating the record level shap values per partition
-    * @note DeveloperAPI
     * @return Dataset[ShapResult] for manual calculation of record level shap values
     * @author Ben Wilson, Databricks
     * @since 0.8.0
@@ -116,8 +120,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
           )
         val partitionSize = vectorData.keys.size
 
-        // TODO: consider taking this away because we want to sample with replacement
-        val partitionIterations = scala.math.min(vectorMutations, partitionSize - 1)
+        val partitionIterations = vectorMutations
 
         val totalFeatures = vectorData(0).keys.size
         val featureIndices = (0 until totalFeatures).toList
@@ -158,8 +161,30 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
     }
 
   /**
+   * Manual method interface for calculating the record level shap values per partition as a DataFrame
+   *
+   * @note WARNING - in order to get accurate results for field attribution, the ordering of the
+   * field names MUST MATCH the order in which the fields were entered into the Vector Assembler phase.
+   * @param inputColumns Seq[String] of field names in the order in which they were used to create the feature vector
+   * @return Dataframe of original feature values and their corresponding shap values
+   * @author Nick Senno, Databricks
+   * @since 0.8.0
+   */
+  def calculateShapDF(inputColumns: Seq[String]): DataFrame = {
+    val shapRDD = calculate.rdd
+    val schemaFields = inputColumns.map{StructField(_, DoubleType)} ++ inputColumns.map{c => StructField(("shap_" + c), DoubleType)}
+    val shapSchema = StructType(schemaFields)
+
+    val flatShapRDD = shapRDD.map{r =>
+      Row(r.featureVector ++ r.shapleyVector: _*)
+    }
+
+    spark.createDataFrame(flatShapRDD, shapSchema)
+  }
+
+  /**
     * Private method for executing the shap calculation and collating the results from the
-    * partitioned calculations as a weighted average collection based on partition row counts.
+    * partitioned calculations average of the absolute value of shap values.
     * @return DataFrame of featureIndex and the averaged absolute value Shap values
     * @author Ben Wilson, Databricks
     * @since 0.8.0
