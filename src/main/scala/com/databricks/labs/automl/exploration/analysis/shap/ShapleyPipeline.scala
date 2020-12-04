@@ -1,7 +1,7 @@
 package com.databricks.labs.automl.exploration.analysis.shap
 
 import com.databricks.labs.automl.exploration.analysis.common.AnalysisUtilities
-import com.databricks.labs.automl.exploration.analysis.shap.tools.ShapOutput
+import com.databricks.labs.automl.exploration.analysis.shap.tools.ShapResult
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.classification.{
@@ -59,14 +59,14 @@ class ShapleyPipeline(vectorizedData: Dataset[Row],
   }
 
   /**
-    * Method for calculating the Shapley values per partition and returning the RDD of the ShapValues for further
+    * Method for calculating the record level Shapley values per partition and returning the Dataset of the ShapValues for further
     * processing
     * @note Developer API
-    * @return RDD[ShapOutput] for manual interaction with the results from this package.
+    * @return Dataset[ShapResult] for manual interaction with the results from this package.
     * @author Ben Wilson, Databricks
     * @since 0.8.0
     */
-  def calculateShapValues: RDD[ShapOutput] = {
+  def calculateShapValues: Dataset[ShapResult] = {
 
     ShapleyModel(
       vectorizedData,
@@ -94,7 +94,7 @@ class ShapleyPipeline(vectorizedData: Dataset[Row],
       repartitionValue,
       vectorMutations,
       randomSeed
-    ).calculateAsDF()
+    ).calculateAggregateShap()
 
   }
 
