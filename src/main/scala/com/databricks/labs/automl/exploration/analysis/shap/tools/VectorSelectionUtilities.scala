@@ -43,9 +43,8 @@ private[analysis] object VectorSelectionUtilities extends Serializable {
   def buildSelectionSet(indexUnderTest: Int,
                         partitionVectorSize: Int,
                         vectorCountToSelect: Int,
-                        randomSeed: Random): mutable.LinkedHashSet[Int] = {
-
-    val selectionPayload = mutable.LinkedHashSet.empty[Int]
+                        randomSeed: Random): mutable.MutableList[Int] = {
+    val selectionPayload = mutable.MutableList.empty[Int]
 
     do {
       selectionPayload += selectRandomVector(
@@ -75,40 +74,37 @@ private[analysis] object VectorSelectionUtilities extends Serializable {
 
   }
 
-  def mutateVectors(mutationVectors: Map[Int, Map[Int, Double]],
-                    referenceVector: Map[Int, Double],
-                    referenceIndex: Int,
-                    vectorIndexListing: List[Int],
+  def mutateVectors(vectorData: Map[Int, Map[Int, Double]],
+                    referenceFeatureVector: Map[Int, Double],
+                    referenceFeatureIndex: Int,
+                    featureIndices: List[Int],
                     partitionVectorSize: Int,
-                    selectedVectorsForMutation: List[Int],
+                    sampleVectorIndices: List[Int],
                     seed: Random): Array[MutatedVectors] = {
 
-    selectedVectorsForMutation
+    sampleVectorIndices
       .map(k => {
 
-        val randomVectorsForSample =
-          selectRandomVectorIndeces(vectorIndexListing, referenceIndex)
+        val sampleFeatureIndicesToMutate =
+          selectRandomVectorIndeces(featureIndices, referenceFeatureIndex)
 
-        val randomVectorForMutation =
-          selectRandomVector(k, partitionVectorSize, seed)
-
-        val vectorIncludeReference = vectorIndexListing
+        val vectorIncludeReference = featureIndices
           .map {
-            case x if randomVectorsForSample.contains(x) =>
-              mutationVectors(randomVectorForMutation)(x)
-            case x if !randomVectorsForSample.contains(x) => referenceVector(x)
+            case x if sampleFeatureIndicesToMutate.contains(x) =>
+              vectorData(k)(x)
+            case x if !sampleFeatureIndicesToMutate.contains(x) => referenceFeatureVector(x)
           }
           .toArray[Double]
 
-        val vectorReplaceReference = vectorIndexListing
+        val vectorReplaceReference = featureIndices
           .map {
-            case x if randomVectorsForSample.contains(x) =>
-              mutationVectors(randomVectorForMutation)(x)
-            case x if x == referenceIndex =>
-              mutationVectors(randomVectorForMutation)(x)
+            case x if sampleFeatureIndicesToMutate.contains(x) =>
+              vectorData(k)(x)
+            case x if x == referenceFeatureIndex =>
+              vectorData(k)(x)
             case x
-                if !randomVectorsForSample.contains(x) && x != referenceIndex =>
-              referenceVector(x)
+                if !sampleFeatureIndicesToMutate.contains(x) && x != referenceFeatureIndex =>
+              referenceFeatureVector(x)
           }
           .toArray[Double]
 

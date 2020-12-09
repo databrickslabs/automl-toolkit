@@ -2,7 +2,9 @@ package com.databricks.labs.automl.exploration.analysis.shap
 
 import com.databricks.labs.automl.exploration.analysis.shap.tools.{
   MutatedVectors,
-  ShapOutput,
+  VarianceAccumulator,
+  ShapVal,
+  ShapResult,
   VectorSelectionUtilities
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
@@ -19,9 +21,14 @@ import org.apache.spark.ml.regression.{
   LinearRegressionModel,
   RandomForestRegressionModel
 }
-import org.apache.spark.rdd.RDD
+
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{
+  StructType,
+  StructField,
+  DoubleType
+}
 
 import scala.collection.immutable
 
@@ -76,110 +83,121 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
     * Method for getting the per-row feature-based shap values.
     * @param featureIndex The index position of the vector currently being evaluated
     * @param vectorComparisons Array of vector positions to pull from the partition to mutate and do comparisons against
-    * @return HashMap of feature index to averaged score for the partition's index shap values
-    * @author Ben Wilson, Databricks
+    * @return VarianceAccumulator that gives the mean estimate and standard error of per recrod shap values
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
   private def scoreVectorMutations(
     featureIndex: Int,
     vectorComparisons: Array[MutatedVectors]
-  ): immutable.HashMap[Int, Double] = {
-
-    immutable.HashMap(featureIndex -> vectorComparisons.foldLeft(0.0) {
+  ): VarianceAccumulator = {
+    val mutationAgg = vectorComparisons.foldLeft(VarianceAccumulator(0.0, 0.0, 0)) {
       case (s, v) =>
         val withFeaturePred = finalModel.value.predict(v.referenceIncluded)
         val withoutFeaturePred = finalModel.value.predict(v.referenceExcluded)
-        s + (withFeaturePred - withoutFeaturePred)
-    } / vectorComparisons.length.toDouble)
+        val featureDiff = withFeaturePred - withoutFeaturePred
+        VarianceAccumulator(s.sum + featureDiff, s.sumSquare + featureDiff * featureDiff, s.n + 1)
+    }
+    mutationAgg
   }
 
   /**
-    * Manual method interface for calculating the shap values per partition
-    * @note DeveloperAPI
-    * @return RDD[ShapOutput] for manual calculation of shap values
-    * @author Ben Wilson, Databricks
+    * Manual method interface for calculating the record level shap values per partition
+    * @return Dataset[ShapResult] for manual calculation of record level shap values
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
-  def calculate(): RDD[ShapOutput] = {
+  def calculate(): Dataset[ShapResult] = {
 
-    val vectorOnlyRDD =
-      vectorizedData.select(featureCol).repartition(repartitionValue).rdd
+    import spark.implicits._
 
-    vectorOnlyRDD.mapPartitionsWithIndex {
-      case (i, d) => // for each partition
+    vectorizedData.select(featureCol).repartition(repartitionValue)
+      .mapPartitions{p =>
         val seedValue = new scala.util.Random(randomSeed)
-        val vectorData = VectorSelectionUtilities.extractFeatureCollection(
-          d.toArray,
-          featureCol
-        )
+        val vectorData = VectorSelectionUtilities
+          .extractFeatureCollection(
+            p.toArray,
+            featureCol
+          )
         val partitionSize = vectorData.keys.size
-        val partitionIterations =
-          scala.math.min(vectorMutations, partitionSize - 1)
+
         val totalFeatures = vectorData(0).keys.size
-        val vecIndeces = (0 until totalFeatures).toList
+        val featureIndices = (0 until totalFeatures).toList
 
-        val indexMapping =
-          (0 to totalFeatures)
-            .map(i => { // for each feature index
-              val indexScores = vectorData.keys
-                .map( // iterate over each row
-                  x => {
-                    val mutationIndeces = VectorSelectionUtilities
-                      .buildSelectionSet(
-                        x,
-                        partitionSize,
-                        partitionIterations,
-                        seedValue
-                      )
-                    val candidates = VectorSelectionUtilities
-                      .mutateVectors(
-                        vectorData,
-                        vectorData(x),
-                        i,
-                        vecIndeces,
-                        partitionSize,
-                        mutationIndeces.toList,
-                        seedValue
-                      )
-                    scoreVectorMutations(i, candidates)
-                  }
-                )
-                .toArray
-              partitionFeatureIndexMerge(indexScores)
-            })
-            .toArray
-
-        val outputConstruct = indexMapping.flatMap(x => {
-          x.map(y => ShapOutput(i, partitionSize, y._1, y._2))
-        })
-
-        outputConstruct.iterator
+        vectorData.keys.map{r =>
+          val featureVector = vectorData(r)
+          val shapArray = featureIndices.map { f =>
+            val sampleIndices = VectorSelectionUtilities
+              .buildSelectionSet(
+                r,
+                partitionSize,
+                vectorMutations,
+                seedValue
+              )
+            val mutatedVectors = VectorSelectionUtilities
+              .mutateVectors(
+                vectorData,
+                featureVector,
+                f,
+                featureIndices,
+                partitionSize,
+                sampleIndices.toList,
+                seedValue
+              )
+            val mutatedScore = scoreVectorMutations(
+              f,
+              mutatedVectors
+            )
+            ShapVal(mutatedScore.mean, mutatedScore.standardError)
+          }.toArray
+          ShapResult(
+            featureVector.keys.toArray.sorted.map{featureVector},
+            shapArray.map{_.value},
+            shapArray.map{_.stdErr}
+          )
+        }.toIterator
+      }
     }
 
+  /**
+   * Manual method interface for calculating the record level shap values per partition as a DataFrame
+   *
+   * @note WARNING - in order to get accurate results for field attribution, the ordering of the
+   * field names MUST MATCH the order in which the fields were entered into the Vector Assembler phase.
+   * @param inputColumns Seq[String] of field names in the order in which they were used to create the feature vector
+   * @return Dataframe of original feature values and their corresponding shap values
+   * @author Nick Senno, Databricks
+   * @since 0.8.0
+   */
+  def calculateShapDF(inputColumns: Seq[String]): DataFrame = {
+    val shapRDD = calculate.rdd
+    val schemaFields = inputColumns.map{StructField(_, DoubleType)} ++ inputColumns.map{c => StructField(("shap_" + c), DoubleType)}
+    val shapSchema = StructType(schemaFields)
+
+    val flatShapRDD = shapRDD.map{r =>
+      Row(r.featureVector ++ r.shapleyVector: _*)
+    }
+
+    spark.createDataFrame(flatShapRDD, shapSchema)
   }
 
   /**
     * Private method for executing the shap calculation and collating the results from the
-    * partitioned calculations as a weighted average collection based on partition row counts.
-    * @return DataFrame of featureIndex and the averaged Shap values
-    * @author Ben Wilson, Databricks
+    * partitioned calculations average of the absolute value of shap values.
+    * @return DataFrame of featureIndex and the averaged absolute value Shap values
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
-  protected[shap] def calculateAsDF(): DataFrame = {
+  protected[shap] def calculateAggregateShap(): DataFrame = {
 
-    import spark.implicits._
-
-    val shapPartitionedData = calculate()
-
-    val totalRows = vectorizedData.count()
-
-    val shapDFData = shapPartitionedData.toDF
-      .withColumn("shapWeighted", col("rows") * col("shapValue"))
+    val shapDFData = calculate.toDF
+      .select(posexplode(col("shapleyVector")))
+      .withColumnRenamed("pos","featureIndex")
+      .withColumnRenamed("col","value")
 
     shapDFData
       .groupBy("featureIndex")
-      .agg((sum(col("shapWeighted")) / totalRows).alias("shapValues"))
-
+      .agg(mean(abs(col("value"))).alias("shapValues"))
   }
 
   /**
@@ -188,14 +206,14 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
     *
     * @param vectorAssembler The vector assembler instance that was used to train the model being tested
     * @return DataFrame of feature names and Shap values
-    * @author Ben Wilson, Databricks
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
   def getShapValuesFromModel(vectorAssembler: VectorAssembler): DataFrame = {
 
     import spark.implicits._
 
-    val shapAggregation = calculateAsDF()
+    val shapAggregation = calculateAggregateShap()
 
     val featureNames = vectorAssembler.getInputCols.zipWithIndex
       .map(x => (x._2, x._1))
@@ -222,7 +240,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
 
     import spark.implicits._
 
-    val shapAggregation = calculateAsDF()
+    val shapAggregation = calculateAggregateShap()
 
     val featureNames = inputColumns.zipWithIndex
       .map(x => (x._2, x._1))
