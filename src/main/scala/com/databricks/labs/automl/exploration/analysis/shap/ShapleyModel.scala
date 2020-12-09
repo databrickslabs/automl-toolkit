@@ -21,6 +21,7 @@ import org.apache.spark.ml.regression.{
   LinearRegressionModel,
   RandomForestRegressionModel
 }
+
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{
@@ -83,7 +84,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
     * @param featureIndex The index position of the vector currently being evaluated
     * @param vectorComparisons Array of vector positions to pull from the partition to mutate and do comparisons against
     * @return VarianceAccumulator that gives the mean estimate and standard error of per recrod shap values
-    * @author Ben Wilson, Databricks
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
   private def scoreVectorMutations(
@@ -103,7 +104,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
   /**
     * Manual method interface for calculating the record level shap values per partition
     * @return Dataset[ShapResult] for manual calculation of record level shap values
-    * @author Ben Wilson, Databricks
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
   def calculate(): Dataset[ShapResult] = {
@@ -120,8 +121,6 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
           )
         val partitionSize = vectorData.keys.size
 
-        val partitionIterations = vectorMutations
-
         val totalFeatures = vectorData(0).keys.size
         val featureIndices = (0 until totalFeatures).toList
 
@@ -132,7 +131,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
               .buildSelectionSet(
                 r,
                 partitionSize,
-                partitionIterations,
+                vectorMutations,
                 seedValue
               )
             val mutatedVectors = VectorSelectionUtilities
@@ -186,7 +185,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
     * Private method for executing the shap calculation and collating the results from the
     * partitioned calculations average of the absolute value of shap values.
     * @return DataFrame of featureIndex and the averaged absolute value Shap values
-    * @author Ben Wilson, Databricks
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
   protected[shap] def calculateAggregateShap(): DataFrame = {
@@ -207,7 +206,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
     *
     * @param vectorAssembler The vector assembler instance that was used to train the model being tested
     * @return DataFrame of feature names and Shap values
-    * @author Ben Wilson, Databricks
+    * @author Ben Wilson, Nick Senno Databricks
     * @since 0.8.0
     */
   def getShapValuesFromModel(vectorAssembler: VectorAssembler): DataFrame = {
