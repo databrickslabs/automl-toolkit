@@ -2,17 +2,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.databricks</groupId>
-    <artifactId>automatedml_2.11</artifactId>
+    <artifactId>automatedml_2.12</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.2</version>
+    <version>0.8.0</version>
     <properties>
-        <scala.version>2.11.12</scala.version>
-        <spark.version>2.4.0</spark.version>
-        <mlflow.version>1.8.0</mlflow.version>
-        <json4s.version>3.5.3</json4s.version>
+        <scala.version>2.12.10</scala.version>
+        <spark.version>3.0.1</spark.version>
+        <mlflow.version>1.11.0</mlflow.version>
+        <json4s.version>3.6.6</json4s.version>
         <dependency.scope>provided</dependency.scope>
-        <dmlc.version>0.90</dmlc.version>
-        <mmlspark.version>0.18.1</mmlspark.version>
+        <dmlc.version>1.0.0</dmlc.version>
     </properties>
     <dependencies>
         <dependency>
@@ -23,19 +22,19 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.11</artifactId>
+            <artifactId>spark-core_2.12</artifactId>
             <version>${spark.version}</version>
             <scope>${dependency.scope}</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_2.11</artifactId>
+            <artifactId>spark-sql_2.12</artifactId>
             <version>${spark.version}</version>
             <scope>${dependency.scope}</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mllib_2.11</artifactId>
+            <artifactId>spark-mllib_2.12</artifactId>
             <version>${spark.version}</version>
             <scope>${dependency.scope}</scope>
         </dependency>
@@ -47,19 +46,19 @@
         </dependency>
         <dependency>
             <groupId>org.json4s</groupId>
-            <artifactId>json4s-jackson_2.11</artifactId>
+            <artifactId>json4s-jackson_2.12</artifactId>
             <version>${json4s.version}</version>
             <scope>${dependency.scope}</scope>
         </dependency>
         <dependency>
             <groupId>ml.dmlc</groupId>
-            <artifactId>xgboost4j</artifactId>
+            <artifactId>xgboost4j_2.12</artifactId>
             <version>${dmlc.version}</version>
             <scope>${dependency.scope}</scope>
         </dependency>
         <dependency>
             <groupId>ml.dmlc</groupId>
-            <artifactId>xgboost4j-spark</artifactId>
+            <artifactId>xgboost4j-spark_2.12</artifactId>
             <version>${dmlc.version}</version>
             <scope>${dependency.scope}</scope>
         </dependency>
@@ -70,44 +69,26 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.microsoft.ml.spark</groupId>
-            <artifactId>mmlspark_2.11</artifactId>
-            <version>${mmlspark.version}</version>
-            <scope>${dependency.scope}</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.vegas-viz</groupId>
-            <artifactId>vegas_2.11</artifactId>
-            <version>0.3.11</version>
-            <scope>${dependency.scope}</scope>
-        </dependency>
-        <dependency>
             <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_2.11</artifactId>
-            <version>3.0.6</version>
+            <artifactId>scalatest_2.12</artifactId>
+            <version>3.0.8</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.databricks</groupId>
-            <artifactId>dbutils-api_2.11</artifactId>
-            <version>0.0.4</version>
+            <artifactId>dbutils-api_2.12</artifactId>
+            <version>0.0.5</version>
             <scope>${dependency.scope}</scope>
         </dependency>
         <dependency>
             <groupId>ml.combust.mleap</groupId>
-            <artifactId>mleap-runtime_2.11</artifactId>
-            <version>0.14.0</version>
+            <artifactId>mleap-runtime_2.12</artifactId>
+            <version>0.16.0</version>
         </dependency>
         <dependency>
             <groupId>ml.combust.mleap</groupId>
-            <artifactId>mleap-spark_2.11</artifactId>
-            <version>0.14.0</version>
+            <artifactId>mleap-spark_2.12</artifactId>
+            <version>0.16.0</version>
         </dependency>
     </dependencies>
     <build>
@@ -115,6 +96,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -181,7 +163,7 @@
                         <artifactItem>
                             <groupId>com.databricks</groupId>
                             <artifactId>${project.artifactId}</artifactId>
-                            <version>${version}</version>
+                            <version>${project.version}</version>
                             <type>jar</type>
                             <overWrite>true</overWrite>
                             <outputDirectory>${project.basedir}/bin</outputDirectory>
@@ -307,7 +289,7 @@
                                     </relocations>
                                     <filters>
                                         <filter>
-                                            <artifact>${groupId}:${artifactId}</artifact>
+                                            <artifact>${project.groupId}:${project.artifactId}</artifact>
                                             <incldues>
                                                 <include></include>
                                             </incldues>
