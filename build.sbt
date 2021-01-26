@@ -1,3 +1,5 @@
+
+
 name := "AutomatedML"
 
 organization := "com.databricks"
@@ -14,7 +16,9 @@ libraryDependencies += "org.mlflow" % "mlflow-client" % "1.11.0"
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.6.6"
 libraryDependencies += "ml.dmlc" %% "xgboost4j" % "1.0.0"
 libraryDependencies += "ml.dmlc" %% "xgboost4j-spark" % "1.0.0"
-libraryDependencies += "junit" % "junit" % "4.12" % "test"
+libraryDependencies += "org.joda"% "joda-convert" % "1.7" % Test
+libraryDependencies += "joda-time" % "joda-time" % "2.10.5" % Test
+libraryDependencies += "junit" % "junit" % "4.12" % Test
 libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.8"
 libraryDependencies += "com.databricks" %% "dbutils-api" % "0.0.5" % Provided
 libraryDependencies += "ml.combust.mleap" %% "mleap-runtime" % "0.16.0"
