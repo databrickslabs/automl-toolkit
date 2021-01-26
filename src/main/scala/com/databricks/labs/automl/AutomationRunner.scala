@@ -1,44 +1,19 @@
 package com.databricks.labs.automl
 
 import com.databricks.labs.automl.executor.DataPrep
-import com.databricks.labs.automl.inference.{
-  InferenceConfig,
-  InferenceModelConfig,
-  InferenceTools
-}
+import com.databricks.labs.automl.inference.{InferenceConfig, InferenceModelConfig, InferenceTools}
 import com.databricks.labs.automl.model._
-import com.databricks.labs.automl.model.tools.split.{
-  DataSplitCustodial,
-  DataSplitUtility
-}
-import com.databricks.labs.automl.model.tools.{PostModelingOptimization}
+import com.databricks.labs.automl.model.tools.PostModelingOptimization
+import com.databricks.labs.automl.model.tools.split.{DataSplitCustodial, DataSplitUtility}
 import com.databricks.labs.automl.params._
-import com.databricks.labs.automl.reports.{
-  DecisionTreeSplits,
-  RandomForestFeatureImportance
-}
-import com.databricks.labs.automl.tracking.{
-  MLFlowReportStructure,
-  MLFlowReturn,
-  MLFlowTracker
-}
-import com.microsoft.ml.spark.lightgbm.{
-  LightGBMClassificationModel,
-  LightGBMRegressionModel
-}
-import ml.dmlc.xgboost4j.scala.spark.{
-  XGBoostClassificationModel,
-  XGBoostRegressionModel
-}
+import com.databricks.labs.automl.reports.{DecisionTreeSplits, RandomForestFeatureImportance}
+import com.databricks.labs.automl.tracking.{MLFlowReportStructure, MLFlowReturn, MLFlowTracker}
+//import com.microsoft.ml.spark.lightgbm.{LightGBMClassificationModel, LightGBMRegressionModel}
 import com.databricks.labs.automl.utils.AutoMlPipelineMlFlowUtils
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.classification._
-import org.apache.spark.ml.regression.{
-  DecisionTreeRegressionModel,
-  GBTRegressionModel,
-  LinearRegressionModel,
-  RandomForestRegressionModel
-}
+import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, GBTRegressionModel, LinearRegressionModel, RandomForestRegressionModel}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel
@@ -265,6 +240,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
 
   }
 
+  /* Currently we do not have LightGBM implemented for Scala 2.12
+  Therefore, we will comment this out until it has been updated
   private def runLightGBM(
     lightGBMType: String,
     payload: DataGeneration,
@@ -479,6 +456,8 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
     )
 
   }
+  
+  */
 
   private def runXGBoost(
     payload: DataGeneration,
@@ -2130,7 +2109,9 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           (genericResults, stats, selection, data)
         case "gbmBinary" | "gbmMulti" | "gbmMultiOVA" | "gbmHuber" | "gbmFair" |
             "gbmLasso" | "gbmRidge" | "gbmPoisson" | "gbmQuantile" | "gbmMape" |
-            "gbmTweedie" | "gbmGamma" =>
+            "gbmTweedie" | "gbmGamma" => throw new UnsupportedOperationException("LightGBM has not been implemented for Scala 2.12")
+          /*
+          Light GBM is not implimentented for Scala 2.12 therefore, we will comment this out
           val (results, stats, selection, data) =
             runLightGBM(_mainConfig.modelFamily, payload, isPipeline)
           results.foreach { x =>
@@ -2143,6 +2124,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             )
           }
           (genericResults, stats, selection, data)
+           */
         case "GBT" =>
           val (results, stats, selection, data) = runGBT(payload, isPipeline)
           results.foreach { x =>
@@ -2353,6 +2335,16 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
             val model = bestModel.model.asInstanceOf[XGBoostClassificationModel]
             model.transform(rawData)
         }
+        
+      case "gbmBinary" | "gbmMulti" | "gbmMultiOVA" => throw new UnsupportedOperationException("LightGBM has not been implemented for Scala 2.12")
+      
+      case "gbmHuber" | "gbmFair" | "gbmLasso" | "gbmRidge" | "gbmPoisson" |
+           "gbmQuantile" | "gbmMape" | "gbmTweedie" | "gbmGamma" => throw new UnsupportedOperationException("LightGBM has not been implemented for Scala 2.12")
+        
+        /**
+        Currently cannot handle the LightGBM model because it is not compiled with Scala 2.12
+        Therefore, we will commment this out until it is availabe for Scala 2.12
+        
       case "gbmBinary" | "gbmMulti" | "gbmMultiOVA" =>
         val model = bestModel.model.asInstanceOf[LightGBMClassificationModel]
         model.transform(rawData)
@@ -2360,6 +2352,7 @@ class AutomationRunner(df: DataFrame) extends DataPrep(df) with InferenceTools {
           "gbmQuantile" | "gbmMape" | "gbmTweedie" | "gbmGamma" =>
         val model = bestModel.model.asInstanceOf[LightGBMRegressionModel]
         model.transform(rawData)
+         */
       case "GBT" =>
         modelSelection match {
           case "regressor" =>
