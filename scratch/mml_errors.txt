@@ -1,8 +1,0 @@
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/AutomationRunner.scala:25: object microsoft is not a member of package com
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/AutomationRunner.scala:2357: not found: type LightGBMClassificationModel
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/AutomationRunner.scala:2361: not found: type LightGBMRegressionModel
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/model/LightGBMTuner.scala:11: object microsoft is not a member of package com
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/model/LightGBMTuner.scala:306: not found: type LightGBMRegressor
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/model/LightGBMTuner.scala:308: not found: type LightGBMRegressor
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/model/LightGBMTuner.scala:345: not found: type LightGBMClassifier
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/model/LightGBMTuner.scala:347: not found: type LightGBMClassifier

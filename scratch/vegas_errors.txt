@@ -1,7 +1,0 @@
-ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala:4: not found: object vegas
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala:5: not found: object vegas
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala:9: not found: type ExtendedUnitSpecBuilder
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala:15: not found: value Vegas
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala:17: not found: value Nom
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala:18: not found: value Quant
-[ERROR] /Users/Nick.Senno/repos/providentia/src/main/scala/com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala:19: not found: value Bar
