@@ -112,6 +112,10 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <excludes>
+                        <exclude>**/LightGBMTuner.scala</exclude>
+                        <exclude>**/OneDimVisualizations.scala</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>

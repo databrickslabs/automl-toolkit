@@ -52,3 +52,5 @@ assemblyExcludedJars in assembly := {
     f.data.getName.contains("com.databricks.dbutils-api_2.12")
   }
 }
+
+unmanagedSources / excludeFilter := HiddenFileFilter || "*LightGBMTuner.scala" || "*OneDimVisualizations.scala"

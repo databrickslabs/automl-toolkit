@@ -8,8 +8,8 @@ class InstanceConfigValidation(config: InstanceConfig)
 
   final val OHE_WARNING: String = "One hot encoding " +
     "is not recommended for tree-based algorithms.  In order to learn features, depending on cardinality of " +
-    "the categorical one hot encoding column, the depth of the trees would need to be very large.  This risks" +
-    "building a poorly fit model.  Proceeed only if you understand the implications."
+    "the categorical one hot encoding column, the depth of the trees would need to be very large.  This risks " +
+    "building a poorly fit model.  Proceed only if you understand the implications."
   final val SCALING_WARNING
     : String = "For a non-tree based model, failing to scale the feature vector could lead" +
     "to a model that fits erroneously to values that are of larger scaled magnitude that is not intended to influence" +
