@@ -112,10 +112,6 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
-                    <excludes>
-                        <exclude>**/LightGBMTuner.scala</exclude>
-                        <exclude>**/OneDimVisualizations.scala</exclude>
-                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -150,6 +146,13 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>com/databricks/labs/automl/model/LightGBMTuner.scala</exclude>
+                        <exclude>com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala</exclude>
+                        <exclude>com/databricks/labs/automl/exploration/visualizations/OneDimVisualizationsTest.scala</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
