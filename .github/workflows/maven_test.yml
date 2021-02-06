@@ -1,7 +1,6 @@
 name: 'Manually Trigger Maven Test'
 
 on:
-  workflow_dispatch
   pull_request:
     types: [opened]
 
