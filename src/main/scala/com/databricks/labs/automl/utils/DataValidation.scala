@@ -2,7 +2,7 @@ package com.databricks.labs.automl.utils
 
 import org.apache.log4j.Logger
 import org.apache.spark.ml.feature.{
-  OneHotEncoderEstimator,
+  OneHotEncoder,
   StringIndexer,
   VectorAssembler
 }
@@ -27,16 +27,16 @@ trait DataValidation {
 
   def oneHotEncodeStrings(
     stringIndexedFields: List[String]
-  ): (OneHotEncoderEstimator, Array[String]) = {
+  ): (OneHotEncoder, Array[String]) = {
 
     var encodedColumns = new ListBuffer[String]
-    var oneHotEncoders = new ListBuffer[OneHotEncoderEstimator]
+    var oneHotEncoders = new ListBuffer[OneHotEncoder]
 
     stringIndexedFields.foreach { x =>
       encodedColumns += x.dropRight(3) + "_oh"
     }
 
-    val oneHotEncodeObj = new OneHotEncoderEstimator()
+    val oneHotEncodeObj = new OneHotEncoder()
       .setHandleInvalid("keep")
       .setInputCols(stringIndexedFields.toArray)
       .setOutputCols(encodedColumns.result.toArray)

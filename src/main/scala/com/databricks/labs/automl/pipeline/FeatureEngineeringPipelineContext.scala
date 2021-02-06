@@ -1,19 +1,14 @@
 package com.databricks.labs.automl.pipeline
 
 import java.util.UUID
-
-import com.databricks.labs.automl.exceptions.{
-  DateFeatureConversionException,
-  FeatureConversionException,
-  TimeFeatureConversionException
-}
+import com.databricks.labs.automl.exceptions.{DateFeatureConversionException, FeatureConversionException, TimeFeatureConversionException}
 import com.databricks.labs.automl.feature.FeatureInteraction
 import com.databricks.labs.automl.params.{GroupedModelReturn, MainConfig}
 import com.databricks.labs.automl.pipeline.PipelineVars._
 import com.databricks.labs.automl.sanitize.Scaler
 import com.databricks.labs.automl.utils.{AutoMlPipelineMlFlowUtils, SchemaUtils}
 import org.apache.log4j.Logger
-import org.apache.spark.ml.feature._
+import org.apache.spark.ml.feature.{IndexToString, OneHotEncoder, StringIndexer, StringIndexerModel, VectorAssembler}
 import org.apache.spark.ml.mleap.SparkUtil
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.ml.{Model, Pipeline, PipelineModel, PipelineStage}
@@ -834,7 +829,7 @@ object FeatureEngineeringPipelineContext {
   ): Option[PipelineStage] = {
     if (mainConfig.oneHotEncodeFlag) {
       return Some(
-        new OneHotEncoderEstimator()
+        new OneHotEncoder()
           .setInputCols(stngIndxCols)
           .setOutputCols(
             stngIndxCols
