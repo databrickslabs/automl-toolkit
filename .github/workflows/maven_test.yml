@@ -1,7 +1,7 @@
 name: 'Manually Trigger Maven Test'
 
 on:
-  workflow_dispatch
+  push
 
 jobs:
   run-test-job:
