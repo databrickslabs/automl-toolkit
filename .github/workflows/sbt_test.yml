@@ -5,7 +5,8 @@ on: workflow_dispatch
 jobs:
   run-test-job:
     runs-on: ubuntu-18.04
-    env: SBT_OPTS=-Xss2M
+    env:
+      SBT_OPTS: -Xss2M
 
     steps:
       - name: Checkout
