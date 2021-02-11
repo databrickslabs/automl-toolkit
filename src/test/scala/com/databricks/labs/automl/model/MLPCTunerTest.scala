@@ -84,7 +84,7 @@ class MLPCTunerTest extends AbstractUnitSpec {
       data,
       1,
       "random",
-      "income",
+      "label",
       "dbfs:/test",
       "cache",
       "MLPC",

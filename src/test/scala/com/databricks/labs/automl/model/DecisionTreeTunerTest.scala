@@ -18,7 +18,7 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
         AutomationUnitTestsUtil.getAdultDf(),
         1,
         "random",
-        "income",
+        "label",
         "dbfs:/test",
         "cache",
         "Trees",

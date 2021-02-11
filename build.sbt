@@ -9,10 +9,10 @@ version := "0.8.0"
 scalaVersion := "2.12.10"
 scalacOptions ++= Seq("-Xmax-classfile-name", "78")
 
-libraryDependencies += "org.apache.spark" %% "spark-core" % "3.0.1"
-libraryDependencies += "org.apache.spark" %% "spark-mllib" % "3.0.1"
-libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.0.1"
-libraryDependencies += "org.mlflow" % "mlflow-client" % "1.11.0"
+libraryDependencies += "org.apache.spark" %% "spark-core" % "3.0.1" % Provided
+libraryDependencies += "org.apache.spark" %% "spark-mllib" % "3.0.1" % Provided
+libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.0.1" % Provided
+libraryDependencies += "org.mlflow" % "mlflow-client" % "1.11.0" 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.6.6"
 libraryDependencies += "ml.dmlc" %% "xgboost4j" % "1.0.0"
 libraryDependencies += "ml.dmlc" %% "xgboost4j-spark" % "1.0.0"
