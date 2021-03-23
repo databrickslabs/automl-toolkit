@@ -1,4 +1,5 @@
 package com.databricks.labs.automl.exploration.analysis.shap.tools
+import org.apache.spark.ml.linalg.Vector
 
 //case class ShapOutput(partition: Int,
 //                      rows: Long,
@@ -7,10 +8,12 @@ package com.databricks.labs.automl.exploration.analysis.shap.tools
 //    extends Serializable
 
 
-case class ShapResult(featureVector: Array[Double],
-                      shapleyVector: Array[Double],
+case class ShapResult(features: Vector,
+                      shapleyValues: Array[Double],
                       shapleyErrorEstimate: Array[Double])
       extends Serializable
+
+case class EfficiencyResult(shapleySum: Double, predictionDelta: Double, relativeDiff: Double)
 
 private[analysis] case class ShapVal(value: Double,
                    stdErr: Double)

@@ -45,9 +45,9 @@ object AutomationUnitTestsUtil {
       .load(getClass.getResource(csvPath).getPath)
   }
 
-  def getAdultDf(): DataFrame = {
+  def getAdultDf(csvPath: String = "/adult_data.csv"): DataFrame = {
     import sparkSession.implicits._
-    val adultDf = convertCsvToDf("/adult_data.csv")
+    val adultDf = convertCsvToDf(csvPath)
 
     var adultDfCleaned = adultDf
     for (colName <- adultDf.columns) {
