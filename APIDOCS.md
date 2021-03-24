@@ -63,6 +63,7 @@ to execute this code from.  This may not be desired, so it is recommended to ove
 
 Which are of type:
 ```scala
+import com.databricks.labs.automl.params.FamilyFinalOutput
 case class FamilyFinalOutputWithPipeline(
   familyFinalOutput: FamilyFinalOutput,
   bestPipelineModel: Map[String, PipelineModel],
@@ -72,6 +73,9 @@ case class FamilyFinalOutputWithPipeline(
 These return types are:
 * familyFinalOutput: `FamilyFinalOutput`
 ```scala
+import com.databricks.labs.automl.params.{GenerationalReport, GroupedModelReturn}
+import com.databricks.labs.automl.tracking.MLFlowReportStructure
+import org.apache.spark.sql.DataFrame
 case class FamilyFinalOutput(modelReport: Array[GroupedModelReturn],
                              generationReport: Array[GenerationalReport],
                              modelReportDataFrame: DataFrame,
@@ -110,6 +114,7 @@ case class GroupedModelReturn(modelFamily: String,
 
 * mlFlowReport -> Array[MLFlowReportStructure] that contains the following structures:
 ```scala
+import org.mlflow.tracking.MlflowClient
 case class MLFlowReturn(client: MlflowClient,
                         experimentId: String,
                         runIdPayload: Array[(String, Double)])
@@ -2542,6 +2547,7 @@ Default: cache
 ### Instance Config
 This is the main wrapper for all of the above grouped configuration modules.
 ```scala
+import com.databricks.labs.automl.executor.config.{AlgorithmConfig, GenericConfig, LoggingConfig, SwitchConfig}
 case class InstanceConfig(
   var modelFamily: String,
   var predictionType: String,
