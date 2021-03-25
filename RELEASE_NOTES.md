@@ -224,6 +224,8 @@ Now supported in the autoML Toolkit is 'intelligent minority class oversampling'
 ######Example:
 
 ```scala
+import com.databricks.labs.automl.executor.FamilyRunner
+import com.databricks.labs.automl.executor.config.ConfigurationGenerator
 val overrides = Map(
   "labelCol" -> "myLabel",
   "tunerTrainSplitMethod" -> "kSample",
@@ -251,7 +253,6 @@ val overrides = Map(
 val myConfig = ConfigurationGenerator.generateConfigFromMap("XGBoost", "classifier", overrides)
 
 val runner = FamilyRunner(data, Array(myConfig)).execute
-
 ```
 - Before turning on this mode, ensure that:
   * Modeling type is of 'classfication'

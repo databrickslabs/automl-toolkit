@@ -67,7 +67,7 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
       data,
       1,
       "random",
-      "income",
+      _mainConfig.labelCol,
       "dbfs:/test",
       "cache",
       "LinearRegression",

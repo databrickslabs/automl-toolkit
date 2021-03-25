@@ -14,10 +14,11 @@ python setup.py bdist_wheel
 ```
 
 ## General Overview 
-The python APIs currently support the three following classes:
+The python APIs currently support the four following classes:
 1. `FeatureImportance`
 2. `AutomationRunner`
 3. `FamilyRunner`
+4. `Shapley`
 
 
 ### Feature Importance Class
@@ -370,3 +371,41 @@ feat_eng_df = family_runner.feature_eng_pipeline(source_data,
 ```
 The `feature_eng_pipeline`function returns a feature engineered dataframe base on the 
 
+### Shapley 
+
+For more details see the [AnalysisTools](https://github.com/databricks/providentia/blob/master/ANALYSIS_TOOLS_DOCS.md)
+
+```python
+from pyspark.ml.regression import LinearRegressionModel
+
+from py_auto_ml.exploration.shapley import Shapley
+
+## Load a pre-trained LinearRegression Model
+model_path = "dbfs:/Users/nick.senno/shap/models/boston-linear/"
+model = LinearRegressionModel.load(model_path)
+
+## Load pre-scored data set used to train model 
+feature_cols = ["INDUS", "LSTAT", "DIS"]
+cols = feature_cols + ["features"] + ["label"]
+dataDF = spark.table("shap.boston_processed")
+featuresDF = dataDF.select("features")
+
+shapley = Shapley(featuresDF, model, "features", 10, 1000, 1621)
+
+## compute per record shapley values with approximate error 
+shapley_results = shapley.calculate()
+
+feature_results = shapley.feature_aggregated_shap(feature_cols)
+
+```
+
+The Shapley class takes the following parameters: 
+`feature_data` the Spark DataFrame that was used during model training (with feature vector) and result (label vector)
+`model`  PySpark model 
+`feature_col` the name of the single feature column created by the PySpark `VectorAssembler`
+`repartition_value` degree to which the training data is split. Higher numbers equate to more conncurrent SHAP calculations per partition but less data per partition
+`vector_mutations` number of vector mutations to consider per each record 
+`random_seed` seed for random number generator for creating vector mutations
+
+
+To calculate the aggregated Shapley values for each feature, use the `feature_aggregated_shap` method which takes a list of the original feature column names

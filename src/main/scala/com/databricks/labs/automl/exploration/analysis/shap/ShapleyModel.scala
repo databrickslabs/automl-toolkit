@@ -5,7 +5,8 @@ import com.databricks.labs.automl.exploration.analysis.shap.tools.{
   VarianceAccumulator,
   ShapVal,
   ShapResult,
-  VectorSelectionUtilities
+  VectorSelectionUtilities,
+  EfficiencyResult
 }
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.spark.ml.classification.{
@@ -14,6 +15,7 @@ import org.apache.spark.ml.classification.{
   LogisticRegressionModel,
   RandomForestClassificationModel
 }
+import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.regression.{
   DecisionTreeRegressionModel,
@@ -37,7 +39,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
                       featureCol: String,
                       repartitionValue: Int,
                       vectorMutations: Int,
-                      randomSeed: Long = 42L)
+                      randomSeed: Long)
     extends Serializable
     with SparkSessionWrapper {
 
@@ -151,7 +153,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
             ShapVal(mutatedScore.mean, mutatedScore.standardError)
           }.toArray
           ShapResult(
-            featureVector.keys.toArray.sorted.map{featureVector},
+            Vectors.dense(featureVector.keys.toArray.sorted.map{featureVector}),
             shapArray.map{_.value},
             shapArray.map{_.stdErr}
           )
@@ -175,7 +177,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
     val shapSchema = StructType(schemaFields)
 
     val flatShapRDD = shapRDD.map{r =>
-      Row(r.featureVector ++ r.shapleyVector: _*)
+      Row(r.features.toArray ++ r.shapleyValues: _*)
     }
 
     spark.createDataFrame(flatShapRDD, shapSchema)
@@ -191,7 +193,7 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
   protected[shap] def calculateAggregateShap(): DataFrame = {
 
     val shapDFData = calculate.toDF
-      .select(posexplode(col("shapleyVector")))
+      .select(posexplode(col("shapleyValues")))
       .withColumnRenamed("pos","featureIndex")
       .withColumnRenamed("col","value")
 
@@ -252,6 +254,57 @@ class ShapleyModel[T](vectorizedData: Dataset[Row],
 
   }
 
+  /**
+   * Public method for handling the case that a Java Array List is passed in to get the
+   * feature aggregated Shap values. This handles the case where the method is invoked by py4j
+   * which requires a java.util.ArrayList from a Python List
+   * @param inputColumns
+   * @return DataFrame of feature names and Shap values
+   * @author Nick Senno Databricks
+   * @since 0.8.0
+   */
+  def getShapValuesFromModel(inputColumns: java.util.ArrayList[String]): DataFrame = {
+    import scala.collection.JavaConversions._
+    getShapValuesFromModel(inputColumns.toSeq)
+  }
+
+  /**
+   * Private method for checking that the Shapley Values satisfy the efficiency constraint. This means that for each
+   * observaction, the sum of the Shapley values is equal to the difference between the prediction for the observation
+   * and the mean prediction over all observations
+   * @param featureShapData: DataFrame this should be the direct output of the calculate method
+   * @param tol The relative tolerance between the expected sum of Shapley Values from the Efficiency principal and actual sum of estimated Shapley Values
+   * @return The number of observations that do not satisfy Efficiency within the given tolerance
+   * @author Nick Senno Databricks
+   * @since 0.8.0
+   */
+  def countEfficiency(featureShapData: DataFrame, tol: Double = 1e-3): Long = {
+    import org.apache.spark.sql.functions.{abs, col, mean}
+    import spark.implicits._
+    
+    require(tol > 0 && tol < 1, "Relative Tolerance is required to be between zero and one")
+    
+    // This should be the same as the original VectoriedData but with added Shapley values
+    val predictedDF = fitModel.transform(featureShapData)
+    val meanPrediction = predictedDF.select(mean(col("prediction"))).collect.head.getAs[Double](0)
+    
+    // TODO there is probably a slick way to do a fold left here but we'll kee it verbose for now
+    // Could turn this into a method that returns 1 if shapleySum is outside our tolerance and zero otherwise then
+    // Do a fold left sum. However, do I want to be able to keep these relative differences to return to the user?
+    val efficiencyDF: Dataset[EfficiencyResult] = predictedDF.map{r =>
+      val shapleySum = r.getAs[Seq[Double]]("shapleyValues").sum
+      val predictionDelta = r.getAs[Double]("prediction") - meanPrediction
+      
+      // To prevent the denominator blowing up, if we have predictionDelta equal to zero within our tolerance we
+      // simply return the shapleySum
+      val relativeDiff = if (predictionDelta.abs > tol) 1.0 - shapleySum / predictionDelta else shapleySum
+      
+      EfficiencyResult(shapleySum, predictionDelta, relativeDiff)
+    }
+
+    efficiencyDF.where(abs(col("relativeDiff")) > tol).count
+
+  }
 }
 
 /**
@@ -264,7 +317,7 @@ object ShapleyModel {
                featureCol: String,
                repartitionValue: Int,
                vectorMutations: Int,
-               randomSeed: Long): ShapleyModel[T] =
+               randomSeed: Long = 1621L): ShapleyModel[T] =
     new ShapleyModel(
       vectorizedData,
       model,

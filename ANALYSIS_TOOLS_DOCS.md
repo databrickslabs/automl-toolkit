@@ -13,7 +13,8 @@ This toolkit provides a range of functionality surrounding SparkML Tree-based mo
 ### Constructor - Model-based API
 Initialization of the tool is through the following signature:
 ```scala
-  TreeModelVisualization(
+import breeze.stats.mode
+import com.databricks.labs.automl.exploration.analysis.trees.TreeModelVisualization  TreeModelVisualization(
     model: [T],
     mode: [String],
     vectorAssembler: <Option>[VectorAssembler],
@@ -23,7 +24,9 @@ Initialization of the tool is through the following signature:
 
 ### Constructor - Pipeline-based API
 ```scala
-  TreePipelineVisualization(
+import breeze.stats.mode
+import com.databricks.labs.automl.exploration.analysis.trees.TreePipelineVisualization
+import ml.combust.bundle.dsl.Bundle.BuiltinOps.pipeline  TreePipelineVisualization(
     pipeline: PipelineModel, 
     mode: String
   )
@@ -190,12 +193,14 @@ The visualizations are supported in Databricks Notebooks and will render as inte
 This API is accessible through a Model-based API and a Pipeline-based API.
 
 #### Model based API Signature
+The following calculates an array of Shapley Values for each record with the first Shapley value corresponding to the 
+first feature etc. An array containing the approximate error for each Shapley value is also returned
 ```scala
 import com.databricks.labs.automl.exploration.analysis.shap.ShapleyModel
 
-val shapPreDataModel = preStagePipeline.fit(data).transform(data)
-val shapValuesRF = ShapleyModel(shapPreDataModel, rfBuiltModel, FEATURES_COL, 200, 60, 11L).getShapValuesFromModel(preStagePipeline.getStages.last.asInstanceOf[VectorAssembler])
-display(shapValuesRF)
+val shapPreDataModel = model.fit(data).transform(data)
+val shapValuesLR = ShapleyModel(shapPreDataModel, model, featureCol, 200, 60, 11L).calculate
+display(shapValuesLR)
 ```
 
 The object constructor for ShapleyModel signature is as follows:
@@ -225,6 +230,17 @@ The featureCol is simply the name of the Vectorized feature field in the DataFra
 Vector mutations represents the maximum number of rows to use <i>within each partition</i> for calculating the shapley values.
 The random seed is a start value for the random selection of both vectors to mutate and the index shuffling algorithm for feature inclusion in mutation.
 
+To get aggregated Shapley values for the entire dataset
+
+```scala
+val shapPreDataModel = preStagePipeline.fit(data).transform(data)
+val shapValuesRF = ShapleyModel(shapPreDataModel, rfBuiltModel, FEATURES_COL, 2, 1000, 1620).getShapValuesFromModel(initialFeatures)
+display(shapValuesRF)
+```
+
+Where `initialFeatures` is an `Seq[String]` of the original feature names
+
+
 For further information on how calculating shapley values occurs, please see: [Interpreting ML predictions white paper](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions.pdf)
 
 #### Pipeline-based API
@@ -242,7 +258,7 @@ The signature of the ShapleyPipeline API is:
 - The fit pipeline (containing the model to test) 
 - the repartition count (higher numbers equate to more concurrent SHAP calculations per partition)
 - the number of partition-level shap calculations to perform (higher values increase accuracy at the expense of runtime)
-- seed value for reproducability for candidate row selection within partitions
+- seed value for reproducibility for candidate row selection within partitions
 
 
 #### Questions / Comments / Contributions
@@ -250,4 +266,4 @@ The signature of the ShapleyPipeline API is:
 Suggestions, feedback, and comments are welcome.  
 Contributions are even more welcome.
 
-Contact author at benjamin.wilson@databricks.com
+Contact authors at benjamin.wilson@databricks.com or nick.senno@databricks.com

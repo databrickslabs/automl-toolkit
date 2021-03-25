@@ -121,6 +121,7 @@ class MLFlowTracker extends InferenceTools {
     */
   def getMLFlowClient: MlflowClient = {
     if (_mlFlowClient == null) {
+      logger.log(Level.INFO, "Generating New Hosted MLflow Client")
       _mlFlowClient = createHostedMlFlowClient()
       _mlFlowClient
     } else {
@@ -150,9 +151,9 @@ class MLFlowTracker extends InferenceTools {
     val hosted: Boolean = HOSTED_NAMESPACE.exists(_mlFlowTrackingURI.contains)
 
     if (hosted) {
-      new MlflowClient(
-        new BasicMlflowHostCreds(_mlFlowTrackingURI, _mlFlowHostedAPIToken)
-      )
+      // This depends on the MLFLOW_TRACKING_URI environment variable being set
+      // which is currently the default behavior in Databricks
+      new MlflowClient()
     } else {
       new MlflowClient(_mlFlowTrackingURI)
     }
