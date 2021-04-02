@@ -1,6 +1,6 @@
 ## Auto ML Toolkit Release Notes
 
-### Version 0.8.0
+### Version 0.8.1
 #### Features
 * Added Distributed Shapley calculation APIs :
 ```scala 
@@ -15,6 +15,9 @@ see: [Documentation](ANALYSIS_TOOLS_DOCS.md) for details on the new API.
 com.databricks.labs.automl.exploration.analysis.trees.TreeModelVisualization
 com.databricks.labs.automl.exploration.analysis.trees.TreePipelineVisualization
 ```
+
+Update the group ID to relfect the updated Databricks Labs naming convention. See the project definitions in [pom.xml](pom.xml) or [build.sbt](build.sbt).
+
 see [Docs](ANALYSIS_TOOLS_DOCS.md) for API details.
 
 ### Version 0.7.1
