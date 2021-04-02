@@ -1,10 +1,10 @@
 
 
-name := "AutomatedML"
+name := "automl-toolkit"
 
-organization := "com.databricks"
+organization := "com.databricks.labs"
 
-version := "0.8.0"
+version := "0.8.1"
 
 scalaVersion := "2.12.10"
 scalacOptions ++= Seq("-Xmax-classfile-name", "78")
@@ -27,8 +27,8 @@ libraryDependencies += "ml.combust.mleap" %% "mleap-spark" % "0.16.0"
 //libraryDependencies += "org.vegas-viz" %% "vegas" % "0.3.11"
 
 lazy val commonSettings = Seq(
-  version := "0.8.0",
-  organization := "com.databricks",
+  version := "0.8.1",
+  organization := "com.databricks.labs",
   scalaVersion := "2.12.10"
 )
 

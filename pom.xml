@@ -1,10 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.databricks</groupId>
-    <artifactId>automatedml_2.12</artifactId>
+    <groupId>com.databricks.labs</groupId>
+    <artifactId>automl-toolkit_2.12</artifactId>
     <packaging>jar</packaging>
-    <version>0.8.0</version>
+    <version>0.8.1</version>
     <properties>
         <scala.version>2.12.10</scala.version>
         <spark.version>3.0.1</spark.version>
@@ -180,7 +180,7 @@
                 <configuration>
                     <artifactItems>
                         <artifactItem>
-                            <groupId>com.databricks</groupId>
+                            <groupId>com.databricks.labs</groupId>
                             <artifactId>${project.artifactId}</artifactId>
                             <version>${project.version}</version>
                             <type>jar</type>
@@ -340,11 +340,11 @@
 
     <!-- All below tags are needed for pushing to maven central  -->
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Databricks Labs AutoML toolkit</description>
+    <description>Databricks Labs AutoML Toolkit</description>
     <url>https://github.com/databrickslabs/automl-toolkit</url>
 
     <organization>
-        <name>com.databricks</name>
+        <name>com.databricks.labs</name>
         <url>https://github.com/databrickslabs/automl-toolkit</url>
     </organization>
 
@@ -384,6 +384,10 @@
         <developer>
             <id>danieltomes</id>
             <name>Daniel Tomes</name>
+        </developer>
+        <developer>
+            <id>nicksenno</id>
+            <name>Nick Senno</name>
         </developer>
     </developers>
 
