@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = "pyAutoML",
-    version= "0.2.0",
-    author="Databricks",
+    name = "automl-toolkit",
+    version= "0.8.1",
+    author="Databricks Labs",
     packages=find_packages()
     )

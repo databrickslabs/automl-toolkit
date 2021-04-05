@@ -104,7 +104,7 @@ generic_overrides = {
   }
   
   ## Calculate Feature Importance 
-from py_auto_ml.exploration.feature_importance import FeatureImportance
+from databricks.labs.automl_toolkit.exploration.feature_importance import FeatureImportance
 
 FI = FeatureImportance()
 
@@ -160,7 +160,7 @@ prediction_type = "classifier"
 run_type = "confusion"
 
 ## Kickoff Automation runner
-from py_auto_ml.automation_runner import AutomationRunner
+from databricks.labs.automl_toolkit.automation_runner import AutomationRunner
 
 
 runner = AutomationRunner.run_automation_runner(model_family,
@@ -283,7 +283,7 @@ logisticRegOverrides = {
   "pipelineDebugFlag": True
 }
 # Import the family runner
-from py_auto_ml.executor.family_runner import FamilyRunner
+from databricks.labs.automl_toolkit.executor.family_runner import FamilyRunner
 
 family_runner = FamilyRunner()
 prediction_type = "classifier"
@@ -378,7 +378,7 @@ For more details see the [AnalysisTools](https://github.com/databricks/provident
 ```python
 from pyspark.ml.regression import LinearRegressionModel
 
-from py_auto_ml.exploration.shapley import Shapley
+from databricks.labs.automl_toolkit.exploration.shapley import Shapley
 
 ## Load a pre-trained LinearRegression Model
 model_path = "dbfs:/Users/nick.senno/shap/models/boston-linear/"

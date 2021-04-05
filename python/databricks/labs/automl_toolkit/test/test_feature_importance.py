@@ -1,6 +1,6 @@
 import unittest
-from python.py_auto_ml.test.local_spark_singleton import SparkSingleton
-from python.py_auto_ml.exploration.feature_importance import FeatureImportance
+from databricks.labs.automl_toolkit.test.local_spark_singleton import SparkSingleton
+from databricks.labs.automl_toolkit.exploration.feature_importance import FeatureImportance
 from pyspark.sql import SparkSession
 
 
