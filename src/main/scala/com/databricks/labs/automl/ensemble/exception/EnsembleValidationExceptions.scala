@@ -14,4 +14,9 @@ object EnsembleValidationExceptions {
   val TRAIN_PORTION_EXCEPTION: EnsembleValidationException =
     new EnsembleValidationException("Train Split Config must be same for all weak learner configs")
 
+  val KSAMPLE_NOT_SUPPORTED: EnsembleValidationException =
+    new EnsembleValidationException(
+      "Ksample split type isn't supported for stacking ensemble",
+      new UnsupportedOperationException)
+
 }

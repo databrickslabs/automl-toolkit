@@ -9,10 +9,6 @@ import org.apache.spark.ml.mleap.SparkUtil
 
 object PipelineInternalUtils {
 
-   def mergePipelineModels(pipelineModels: ArrayBuffer[PipelineModel]): PipelineModel = {
-    mergePipelineModelsInternal(pipelineModels.toArray)
-  }
-
   def mergePipelineModels(pipelineModels: Array[PipelineModel]): PipelineModel = {
     mergePipelineModelsInternal(pipelineModels)
   }
@@ -30,4 +26,10 @@ object PipelineInternalUtils {
       pipelineModel.stages ++ transformers)
   }
 
+  def createPipelineModelFromStages(stages: Array[Transformer]): PipelineModel = {
+    SparkUtil.createPipelineModel(
+      "final_ml_pipeline_" + UUID.randomUUID().toString,
+      stages
+    )
+  }
 }

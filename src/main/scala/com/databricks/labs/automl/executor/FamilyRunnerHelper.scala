@@ -147,9 +147,7 @@ private[automl] trait FamilyRunnerHelper extends SparkSessionWrapper {
                                   pipelineConfigs: Map[String, (FeatureEngineeringOutput, MainConfig)]
                                 ): FamilyFinalOutputWithPipeline = {
 
-    configs.foreach { x =>
-      InstanceConfigValidation(x).validate()
-    }
+    configs.foreach(InstanceConfigValidation(_).validate())
 
     val pipelineModels = scala.collection.mutable.Map[String, PipelineModel]()
     val bestMlFlowRunIds = scala.collection.mutable.Map[String, String]()

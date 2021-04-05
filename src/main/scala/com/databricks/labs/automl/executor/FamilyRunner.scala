@@ -57,9 +57,7 @@ class FamilyRunner(data: DataFrame, configs: Array[InstanceConfig])
   @Deprecated
   def execute(): FamilyFinalOutput = {
 
-    configs.foreach { x =>
-      InstanceConfigValidation(x).validate()
-    }
+    configs.foreach(InstanceConfigValidation(_) validate())
 
     val outputBuffer = ArrayBuffer[FamilyOutput]()
 

@@ -7,8 +7,8 @@ import org.apache.spark.ml.PipelineModel
 
 case class EnsembleReturnType(bestEnsembleModel: PipelineModel,
                               bestEnsembleMlFlowRunId: String,
-                              metaLearner: FamilyFinalOutput,
-                              weakLearners: FamilyFinalOutput)
+                              weakLearners: FamilyFinalOutput,
+                              metaLearner: FamilyFinalOutput)
 
 abstract class EnsembleLearner[T <: CoreEnsembleSettings] extends EnsembleSettingsValidator[T] {
 

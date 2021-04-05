@@ -12,7 +12,7 @@ private[ensemble] class WeakLearnersFamilyRunner
     // convert configs into main configs
     val mainConfigs = getMainConfigs(configs)
     // Generate PipelineModel to get features column for all weak learner models
-    val fePipelineModels = getFePipelineModels(stackingEnsembleSettings, mainConfigs)
+    val fePipelineModels = getFePipelineModels(stackingEnsembleSettings.inputData, mainConfigs)
 
     // Combine all weak learners FE PipelineModels
     val weakLearnersFePipelineModel = PipelineInternalUtils.mergePipelineModels(fePipelineModels.map(_.pipelineModel))

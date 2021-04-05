@@ -150,7 +150,7 @@ object FeatureEngineeringPipelineContext {
         featureInteractionStage.pipeline.fit(thirdTransformationDf)
 
       mergePipelineModels(
-        ArrayBuffer(thirdPipelineModel, featureInteractionPipelineModel)
+        Array(thirdPipelineModel, featureInteractionPipelineModel)
       )
 
     } else thirdPipelineModel
@@ -264,7 +264,7 @@ object FeatureEngineeringPipelineContext {
 
     FeatureEngineeringOutput(
       mergePipelineModels(
-        ArrayBuffer(
+        Array(
           initialPipelineModel,
           secondTransformationPipelineModel,
           thirdPipelineModel,
@@ -320,7 +320,7 @@ object FeatureEngineeringPipelineContext {
     )
 
     pipelineModelStages += mlPipelineModel
-    val pipelinewithMlModel = mergePipelineModels(pipelineModelStages)
+    val pipelinewithMlModel = mergePipelineModels(pipelineModelStages.toArray)
     val pipelinewithMlModelDf = mlPipelineModel.transform(featureEngOutput.transformedForTrainingDf)
 
     // Add Index To String Stage
@@ -455,7 +455,7 @@ object FeatureEngineeringPipelineContext {
       labelRefactorPipelineModel.transform(dataFrame)
 
       return mergePipelineModels(
-        ArrayBuffer(pipelineModel, labelRefactorPipelineModel)
+        Array(pipelineModel, labelRefactorPipelineModel)
       )
 
     }
@@ -496,7 +496,7 @@ object FeatureEngineeringPipelineContext {
 
     userViewPipelineModel.transform(dataFrame)
 
-    mergePipelineModels(ArrayBuffer(pipelineModel, userViewPipelineModel))
+    mergePipelineModels(Array(pipelineModel, userViewPipelineModel))
   }
 
   /**

@@ -43,7 +43,7 @@ class EnsembleTunerSplits {
 
   def getMetaLearnersSplits(stackingEnsembleSettings: Option[StackingEnsembleSettings] = None): Array[TrainSplitReferences] = {
     if(metaLearnerSplits.isEmpty) {
-      val metaConfig = ConfigurationGenerator.generateMainConfig(stackingEnsembleSettings.get.metaLearnerConfig)
+      val metaConfig = ConfigurationGenerator.generateMainConfig(stackingEnsembleSettings.get.metaLearnerConfig.get)
       val metaSplits =  TunerUtils.buildSplitTrainTestData(metaConfig, stackingEnsembleSettings.get.inputData)
       metaLearnerSplits = Some(metaSplits)
     }

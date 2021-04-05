@@ -10,6 +10,8 @@ import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
+//import scala.collection.mutable.ArrayBuffer
+
 abstract class AbstractGeneticTunerDelegator[A <: AbstractTuner[C, B, D],
                             B <: TunerOutputWithResults[C, D],
                             C <: TunerConfigBase,
@@ -38,17 +40,17 @@ abstract class AbstractGeneticTunerDelegator[A <: AbstractTuner[C, B, D],
     val statsBuffer = new ArrayBuffer[DataFrame]()
     statsBuffer += modelStatsRaw
 
-    val genericResults = modelResultsRaw.map(item => {
-      GenericModelReturn(
-        hyperParams = extractPayload(item.modelHyperParams.asInstanceOf[Product]),
+    val genericResults = modelResultsRaw.map(item => GenericModelReturn(
+        hyperParams = extractPayload(item.modelHyperParams),
         model = item.model,
         score = item.score,
         metrics = item.evalMetrics,
         generation = item.generation
-      )
-    }).asInstanceOf[ArrayBuffer[GenericModelReturn]]
+      ))
 
-    val (resultBuffer1, statsBuffer1) = hyperSpaceInference(tuner, genericResults)
+    val genResultsAsBuffer = genericResults.to[ArrayBuffer]
+
+    val (resultBuffer1, statsBuffer1) = hyperSpaceInference(tuner, genResultsAsBuffer)
     statsBuffer ++= statsBuffer1
     resultBuffer ++= resultBuffer1
 

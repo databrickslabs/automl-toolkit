@@ -20,7 +20,7 @@ case class FilterData(field: String, uniqueValues: Long)
 case class ManualFilters(field: String, threshold: Double)
 
 // Marker trait for all tuner input configs
-trait TunerConfigBase{}
+trait TunerConfigBase extends Product {}
 
 case class XGBoostConfig(alpha: Double,
                          eta: Double,

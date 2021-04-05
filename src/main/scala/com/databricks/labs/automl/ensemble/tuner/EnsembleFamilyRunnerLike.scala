@@ -6,6 +6,7 @@ import com.databricks.labs.automl.executor.config.{ConfigurationGenerator, Insta
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
 import com.databricks.labs.automl.params.{DataGeneration, FamilyFinalOutputWithPipeline, FamilyOutput, MainConfig}
 import com.databricks.labs.automl.pipeline.{FeatureEngineeringOutput, FeatureEngineeringPipelineContext}
+import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable
@@ -14,7 +15,8 @@ import scala.collection.mutable.ArrayBuffer
 case class EnsembleFamilyRunnerLikeReturnType(familyFinalOutputWithPipeline: FamilyFinalOutputWithPipeline,
                                               ensembleTunerSplits: Option[EnsembleTunerSplits])
 
-case class MetaLearnerFamilyRunnerReturnType(familyFinalOutputWithPipeline: FamilyFinalOutputWithPipeline)
+case class MetaLearnerFamilyRunnerReturnType(familyFinalOutputWithPipeline: FamilyFinalOutputWithPipeline,
+                                             weakLeanerPipelineModel: PipelineModel)
 
 trait EnsembleFamilyRunnerLike[A, B] extends FamilyRunnerHelper {
 
@@ -32,7 +34,7 @@ trait EnsembleFamilyRunnerLike[A, B] extends FamilyRunnerHelper {
     }
   }
 
-  def getFePipelineModels(stackingEnsembleSettings: StackingEnsembleSettings,
+  def getFePipelineModels(inputData: DataFrame,
                          mainConfigs: Array[MainConfig]): Array[FeatureEngineeringOutput] = {
     mainConfigs.map { mainConfiguration =>
       // Setup MLflow Run
@@ -40,7 +42,7 @@ trait EnsembleFamilyRunnerLike[A, B] extends FamilyRunnerHelper {
       var p: Option[FeatureEngineeringOutput] = None
 //      Option[FeatureEngineeringOutput]
       withPipelineFailedException(mainConfiguration) {
-        p = Some(FeatureEngineeringPipelineContext.generatePipelineModel(stackingEnsembleSettings.inputData, mainConfiguration))
+        p = Some(FeatureEngineeringPipelineContext.generatePipelineModel(inputData, mainConfiguration))
       }
       p.get
     }
@@ -71,7 +73,4 @@ trait EnsembleFamilyRunnerLike[A, B] extends FamilyRunnerHelper {
       }
     (outputBuffer, pipelineConfigMap)
   }
-
-
-
 }
