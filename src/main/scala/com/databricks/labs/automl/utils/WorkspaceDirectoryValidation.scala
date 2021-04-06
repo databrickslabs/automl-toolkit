@@ -103,7 +103,11 @@ class WorkspaceDirectoryValidation(apiURL: String,
             s"in the Workspace.  Invalid access for path: $adjustedPath"
         )
         println(s"\n\n ${e.printStackTrace()}")
-        throw e
+        throw new RuntimeException(
+            s"The directory that you are attempting to log mlflow results to in your Workspace does not have " +
+              s"the correct permissions for your account to create this directory.  Please provide a valid location " +
+              s"in the Workspace.  Invalid access for path: $adjustedPath"
+        )
     }
 
     statusAnswer match {
