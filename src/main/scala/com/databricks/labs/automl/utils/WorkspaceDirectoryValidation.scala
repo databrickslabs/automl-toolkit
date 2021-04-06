@@ -1,5 +1,7 @@
 package com.databricks.labs.automl.utils
 
+import org.apache.log4j.{Level, Logger}
+
 import scala.sys.process._
 
 /**
@@ -20,6 +22,8 @@ import scala.sys.process._
 class WorkspaceDirectoryValidation(apiURL: String,
                                    apiToken: String,
                                    path: String) {
+  
+  private val logger: Logger = Logger.getLogger(this.getClass)
 
   final private val statusAPI = s"$apiURL/api/2.0/workspace/get-status"
   final private val mkdirAPI = s"$apiURL/api/2.0/workspace/mkdirs"
@@ -97,17 +101,14 @@ class WorkspaceDirectoryValidation(apiURL: String,
       statusReturn.split("\"")(1)
     } catch {
       case e: java.lang.ArrayIndexOutOfBoundsException =>
-        println(
-          s"The directory that you are attempting to log mlflow results to in your Workspace does not have " +
-            s"the correct permissions for your account to create this directory.  Please provide a valid location " +
-            s"in the Workspace.  Invalid access for path: $adjustedPath"
-        )
-        println(s"\n\n ${e.printStackTrace()}")
-        throw new RuntimeException(
-            s"The directory that you are attempting to log mlflow results to in your Workspace does not have " +
-              s"the correct permissions for your account to create this directory.  Please provide a valid location " +
-              s"in the Workspace.  Invalid access for path: $adjustedPath"
-        )
+        val exceptionMessage: String = s"The directory that you are attempting to log mlflow results to in your Workspace does not have " +
+          s"the correct permissions for your account to create this directory.  Please provide a valid location " +
+          s"in the Workspace.  Invalid access for path: $adjustedPath"
+        
+        logger.log(Level.ERROR, e.getMessage)
+        logger.log(Level.INFO, exceptionMessage)
+        
+        throw new RuntimeException(exceptionMessage)
     }
 
     statusAnswer match {
