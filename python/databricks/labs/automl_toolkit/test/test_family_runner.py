@@ -1,6 +1,6 @@
 import unittest
-from py_auto_ml.test.local_spark_singleton import SparkSingleton
-from py_auto_ml.executor.family_runner import FamilyRunner
+from databricks.labs.automl_toolkit.test.local_spark_singleton import SparkSingleton
+from databricks.labs.automl_toolkit.executor.family_runner import FamilyRunner
 
 
 class TestFamilyRunner(unittest.TestCase):

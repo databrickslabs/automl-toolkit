@@ -1,4 +1,4 @@
-# Databricks Labs AutoML
+# Databricks Labs AutoML Toolkit
 [Release Notes](RELEASE_NOTES.md) |
 [Python API Docs](python/docs/APIDOCs.md) |
 [Python Artifact](python/dist/pyAutoML-0.2.0-py3-none-any.whl) |
@@ -51,9 +51,9 @@ Darabricks Labs AutoML can be pulled from maven central with the following coord
 Example - to install 0.7.2 AutoML:
 ```
 <dependency>
-  <groupId>com.databricks</groupId>
-  <artifactId>automatedml_2.12</artifactId>
-  <version>0.8.0</version>
+  <groupId>com.databricks.labs</groupId>
+  <artifactId>automl-toolkit_2.12</artifactId>
+  <version>0.8.1</version>
 </dependency>
 ```
 

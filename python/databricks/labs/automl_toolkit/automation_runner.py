@@ -1,7 +1,7 @@
 import json
 from pyspark.sql.functions import DataFrame
-from py_auto_ml.local_spark_singleton import SparkSingleton
-from py_auto_ml.utilities.helpers import Helpers
+from databricks.labs.automl_toolkit.local_spark_singleton import SparkSingleton
+from databricks.labs.automl_toolkit.utilities.helpers import Helpers
 
 
 class AutomationRunner:

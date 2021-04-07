@@ -1,4 +1,4 @@
-from py_auto_ml.local_spark_singleton import SparkSingleton
+from databricks.labs.automl_toolkit.local_spark_singleton import SparkSingleton
 from pyspark.ml.common import _java2py
 
 
