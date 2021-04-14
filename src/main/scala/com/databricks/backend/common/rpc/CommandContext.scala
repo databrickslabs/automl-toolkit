@@ -1,5 +1,3 @@
 package com.databricks.backend.common.rpc
 
-class CommandContext {
-  
-}
+trait CommandContext {}
