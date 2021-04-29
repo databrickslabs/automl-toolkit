@@ -130,7 +130,7 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
       .show(100)
   }
 
-  ignore should "run train pipeline" in {
+  it should "run train pipeline" in {
     val overrides = Map(
       "labelCol" -> "label",
       "mlFlowLoggingFlag" -> false,
@@ -148,7 +148,7 @@ class FeatureEngineeringPipelineContextTest extends AbstractUnitSpec {
       "outlierFilterPrecision" -> 0.05,
       "outlierLowerFilterNTile" -> 0.05,
       "outlierUpperFilterNTile" -> 0.95,
-      "tunerTrainSplitMethod" -> "kSample",
+      "tunerTrainSplitMethod" -> "random",
       "tunerKFold" -> 1,
       "tunerTrainPortion" -> 0.70,
       "tunerFirstGenerationGenePool" -> 5,

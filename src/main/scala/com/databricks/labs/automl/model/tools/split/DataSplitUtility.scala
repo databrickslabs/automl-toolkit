@@ -40,6 +40,34 @@ class DataSplitUtility(mainDataset: DataFrame,
 
   final val uniqueLabels = mainDataset.select(labelColumn).distinct().collect()
 
+  def trainSplitNoPersist: Array[TrainSplitReferences] = {
+    (0 until kIterations).map { x =>
+      val Array(train, test) =
+        SplitOperators.genTestTrain(
+          mainDataset,
+          scala.util.Random.nextLong(),
+          uniqueLabels,
+          splitMethod,
+          labelColumn,
+          trainPortion,
+          syntheticCol,
+          trainSplitChronologicalColumn,
+          trainSplitChronologicalRandomPercentage,
+          reductionFactor
+        )
+      logger.log(
+        Level.DEBUG,
+        s"DEBUG: Generated train/test split for kfold $x. Beginning persist."
+      )
+
+      TrainSplitReferences(
+        x,
+        TrainTestData(train, test),
+        TrainTestPaths("", "")
+      )
+    }.toArray
+  }
+
   /**
     * Method for persisting the train test splits to local disk.
     * @return Array[TrainSplitReferences], containing pointers to the Data, organized by kFold index, as well as
@@ -88,6 +116,35 @@ class DataSplitUtility(mainDataset: DataFrame,
 
     }.toArray
 
+  }
+
+  private def trainSplitNoCache: Array[TrainSplitReferences] = {
+    (0 to kIterations).map { x =>
+      val Array(train, test) =
+        SplitOperators.genTestTrain(
+          mainDataset,
+          scala.util.Random.nextLong(),
+          uniqueLabels,
+          splitMethod,
+          labelColumn,
+          trainPortion,
+          syntheticCol,
+          trainSplitChronologicalColumn,
+          trainSplitChronologicalRandomPercentage,
+          reductionFactor
+        )
+
+      logger.log(
+        Level.DEBUG,
+        s"DEBUG: Generated train/test split for kfold $x. Beginning cache to memory."
+      )
+
+      TrainSplitReferences(
+        x,
+        TrainTestData(train, test),
+        TrainTestPaths("", "")
+      )
+    }.toArray
   }
 
   /**
@@ -182,14 +239,15 @@ class DataSplitUtility(mainDataset: DataFrame,
 
   /**
     * Wrapper interface for performing the splits, dependent on mode
+   * @param isTestTrainOptimized: Flag for turning on cache/persist on splits
     * @return Array[TrainSplitReferences] from the above methods.
     */
-  def performSplit: Array[TrainSplitReferences] = {
+  def performSplit(isTestTrainOptimized: Boolean = true): Array[TrainSplitReferences] = {
 
     persistMode match {
-      case "persist" => trainSplitPersist
+      case "persist" => if(isTestTrainOptimized) trainSplitPersist else trainSplitNoPersist
       case "delta"   => trainSplitDelta
-      case "cache"   => trainSplitCache
+      case "cache"   => if(isTestTrainOptimized) trainSplitCache else trainSplitNoCache
       case _ =>
         throw new UnsupportedOperationException(
           s"Train Split mode $persistMode is not supported."
@@ -214,7 +272,8 @@ object DataSplitUtility {
             syntheticCol: String,
             trainSplitChronologicalColumn: String,
             trainSplitChronologicalRandomPercentage: Double,
-            reductionFactor: Double): Array[TrainSplitReferences] =
+            reductionFactor: Double,
+            isTestTrainOptimized: Boolean = true): Array[TrainSplitReferences] =
     new DataSplitUtility(
       mainDataSet,
       kIterations,
@@ -229,6 +288,6 @@ object DataSplitUtility {
       trainSplitChronologicalColumn,
       trainSplitChronologicalRandomPercentage,
       reductionFactor
-    ).performSplit
+    ).performSplit(isTestTrainOptimized)
 
 }

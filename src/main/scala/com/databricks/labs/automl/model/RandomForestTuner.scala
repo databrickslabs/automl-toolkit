@@ -26,7 +26,8 @@ class RandomForestTuner(df: DataFrame,
                         isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
-    with Defaults {
+    with Defaults
+    with AbstractTuner[RandomForestConfig, RandomForestModelsWithResults, Any] {
 
   @transient private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -492,7 +493,7 @@ class RandomForestTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[RandomForestConfig]
           val startingModelSeed = generateRandomForestConfig(_modelSeed)
           genArray += startingModelSeed
@@ -640,7 +641,7 @@ class RandomForestTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[RandomForestConfig]
           val startingModelSeed = generateRandomForestConfig(_modelSeed)
           generativeArray += startingModelSeed
@@ -800,7 +801,7 @@ class RandomForestTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[RandomForestConfig]
   ): (Array[RandomForestModelsWithResults], DataFrame) = {
 

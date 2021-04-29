@@ -1,20 +1,12 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.model.tools.{
-  GenerationOptimizer,
-  HyperParameterFullSearch,
-  ModelReporting
-}
-import com.databricks.labs.automl.params.{
-  Defaults,
-  SVMConfig,
-  SVMModelsWithResults
-}
+import com.databricks.labs.automl.model.tools.{GenerationOptimizer, HyperParameterFullSearch, ModelReporting}
+import com.databricks.labs.automl.params.{Defaults, SVMConfig, SVMModelsWithResults}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.ml.classification.LinearSVC
+import org.apache.spark.ml.classification.{LinearSVC, LinearSVCModel}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
@@ -28,7 +20,8 @@ class SVMTuner(df: DataFrame,
                isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
-    with Defaults {
+    with Defaults
+    with AbstractTuner[SVMConfig, SVMModelsWithResults, LinearSVCModel] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -325,7 +318,7 @@ class SVMTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[SVMConfig]
           val startingModelSeed = generateSVMConfig(_modelSeed)
           genArray += startingModelSeed
@@ -467,7 +460,7 @@ class SVMTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[SVMConfig]
           val startingModelSeed = generateSVMConfig(_modelSeed)
           generativeArray += startingModelSeed
@@ -624,7 +617,7 @@ class SVMTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[SVMConfig]
   ): (Array[SVMModelsWithResults], DataFrame) = {
 

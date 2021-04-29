@@ -1,20 +1,12 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.model.tools.{
-  GenerationOptimizer,
-  HyperParameterFullSearch,
-  ModelReporting
-}
-import com.databricks.labs.automl.params.{
-  Defaults,
-  MLPCConfig,
-  MLPCModelsWithResults
-}
+import com.databricks.labs.automl.model.tools.{GenerationOptimizer, HyperParameterFullSearch, ModelReporting}
+import com.databricks.labs.automl.params.{Defaults, MLPCConfig, MLPCModelsWithResults}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
+import org.apache.spark.ml.classification.{MultilayerPerceptronClassificationModel, MultilayerPerceptronClassifier}
 import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
@@ -29,7 +21,8 @@ class MLPCTuner(df: DataFrame,
                 isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
-    with Defaults {
+    with Defaults
+    with AbstractTuner[MLPCConfig, MLPCModelsWithResults, MultilayerPerceptronClassificationModel] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -371,7 +364,7 @@ class MLPCTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[MLPCConfig]
           val startingModelSeed = generateMLPCConfig(_modelSeed)
           genArray += startingModelSeed
@@ -524,7 +517,7 @@ class MLPCTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[MLPCConfig]
           val startingModelSeed = generateMLPCConfig(_modelSeed)
           generativeArray += startingModelSeed
@@ -689,7 +682,7 @@ class MLPCTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[MLPCConfig]
   ): (Array[MLPCModelsWithResults], DataFrame) = {
 

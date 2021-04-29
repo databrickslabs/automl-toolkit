@@ -68,7 +68,7 @@ object PerformanceSettings extends SparkSessionWrapper {
               s"floor(total Cluster Cores / spark.task.cpus / parallelism).toInt. This number must be >= 1. \n " +
               s"XGB numWorkers == ${workerCount} \n " +
               s"Total Cluster Cores == ${totalCores} \n " +
-              s"spark.task.cpu == ${coresPerTask} == nThread" +
+              s"spark.task.cpu == ${coresPerTask} == nThread \n" +
               s"Parallelism == ${parallelism}"
           )
         }

@@ -31,7 +31,8 @@ class GBTreesTuner(df: DataFrame,
                    isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Evolution
-    with Defaults {
+    with Defaults
+    with AbstractTuner[GBTConfig, GBTModelsWithResults, Any] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -502,7 +503,7 @@ class GBTreesTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[GBTConfig]
           val startingModelSeed = generateGBTConfig(_modelSeed)
           genArray += startingModelSeed
@@ -649,7 +650,7 @@ class GBTreesTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[GBTConfig]
           val startingModelSeed = generateGBTConfig(_modelSeed)
           generativeArray += startingModelSeed
@@ -805,7 +806,7 @@ class GBTreesTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[GBTConfig]
   ): (Array[GBTModelsWithResults], DataFrame) = {
 
