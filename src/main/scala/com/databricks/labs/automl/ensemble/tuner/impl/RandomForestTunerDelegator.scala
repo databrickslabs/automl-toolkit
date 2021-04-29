@@ -38,7 +38,7 @@ private[tuner] class RandomForestTunerDelegator(mainConfig: MainConfig,
   }
 
   override def validate(mainConfig: MainConfig): Unit = {
-    "d"
+
   }
 
 }
