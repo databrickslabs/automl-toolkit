@@ -13,8 +13,7 @@ This toolkit provides a range of functionality surrounding SparkML Tree-based mo
 ### Constructor - Model-based API
 Initialization of the tool is through the following signature:
 ```scala
-import breeze.stats.mode
-import com.databricks.labs.automl.exploration.analysis.trees.TreeModelVisualization  TreeModelVisualization(
+TreeModelVisualization(
     model: [T],
     mode: [String],
     vectorAssembler: <Option>[VectorAssembler],
@@ -24,9 +23,7 @@ import com.databricks.labs.automl.exploration.analysis.trees.TreeModelVisualizat
 
 ### Constructor - Pipeline-based API
 ```scala
-import breeze.stats.mode
-import com.databricks.labs.automl.exploration.analysis.trees.TreePipelineVisualization
-import ml.combust.bundle.dsl.Bundle.BuiltinOps.pipeline  TreePipelineVisualization(
+TreePipelineVisualization(
     pipeline: PipelineModel, 
     mode: String
   )
@@ -156,13 +153,13 @@ import com.databricks.labs.automl.exploration.analysis.trees.TreeModelVisualizat
 
 // Manual API for model + VectorAssembler
 val dtVectorAssembler = dtModelingPipeline.getStages.head.asInstanceOf[Pipeline].getStages.last.asInstanceOf[VectorAssembler]
-val allTreeExtract = new TreeModelVisualization(rfFit, "static").extractAllTreeVisualization
-displayHTML(allTreeExtract(1).html)
+val allTreeExtract = new TreeModelVisualization(dtBuiltModel, "static", dtVectorAssembler).extractAllTreeVisualization
+displayHTML(allTreeExtract(0).html)
 
 // -----------------------// Feature Importances as Table
 // Manual API for model + column listing for feature vector
 val inputFields = dtVectorAssembler.getInputCols
-displayHTML(TreeModelVisualization(dtBuiltModel, "dynamic", inputFields).extractImportancesAsTable)
+displayHTML(TreeModelVisualization(dtBuiltModel, "dynamic", vectorInputCols=inputFields).extractImportancesAsTable)
 // -----------------------//
 // Pipeline API for tree Data Feature Importances
 import com.databricks.labs.automl.exploration.analysis.trees.TreePipelineVisualization

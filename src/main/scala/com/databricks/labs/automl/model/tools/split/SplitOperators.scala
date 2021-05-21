@@ -72,7 +72,7 @@ object SplitOperators extends SparkSessionWrapper {
 
     logger.log(Level.DEBUG, "DEBUG: Generating empty train/test split sets")
 
-    var (trainData, testData) = generateEmptyTrainTest(data.schema)
+    var (trainData, testData) = generateEmptyTrainTest(data.schema) 
 
     val totalDataSetCount = data.count()
 

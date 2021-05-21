@@ -155,7 +155,7 @@ object AutoMlPipelineMlFlowUtils {
       case e: Exception => {
         throw new RuntimeException(
           s"Exception in fetching Pipeline model path by MlFlow Run ID $runId",
-          e
+            e
         )
       }
     }

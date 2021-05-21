@@ -53,5 +53,5 @@ assemblyExcludedJars in assembly := {
   }
 }
 
-unmanagedSources / excludeFilter := HiddenFileFilter || "*LightGBMTuner.scala" || "*OneDimVisualizations.scala"
+unmanagedSources / excludeFilter := HiddenFileFilter || "*GbmTunerDelegator.scala" || "*LightGBMTuner.scala" || "*OneDimVisualizations.scala"
 Test / unmanagedSources / excludeFilter := HiddenFileFilter || "*OneDimVisualizationsTest.scala"

@@ -19,6 +19,9 @@ case class FilterData(field: String, uniqueValues: Long)
 
 case class ManualFilters(field: String, threshold: Double)
 
+// Marker trait for all tuner input configs
+trait TunerConfigBase extends Product {}
+
 case class XGBoostConfig(alpha: Double,
                          eta: Double,
                          gamma: Double,
@@ -28,7 +31,7 @@ case class XGBoostConfig(alpha: Double,
                          minChildWeight: Double,
                          numRound: Int,
                          maxBins: Int,
-                         trainTestRatio: Double)
+                         trainTestRatio: Double) extends TunerConfigBase
 
 case class RandomForestConfig(numTrees: Int,
                               impurity: String,
@@ -36,13 +39,13 @@ case class RandomForestConfig(numTrees: Int,
                               maxDepth: Int,
                               minInfoGain: Double,
                               subSamplingRate: Double,
-                              featureSubsetStrategy: String)
+                              featureSubsetStrategy: String) extends TunerConfigBase
 
 case class TreesConfig(impurity: String,
                        maxBins: Int,
                        maxDepth: Int,
                        minInfoGain: Double,
-                       minInstancesPerNode: Int)
+                       minInstancesPerNode: Int) extends TunerConfigBase
 
 case class GBTConfig(impurity: String,
                      lossType: String,
@@ -51,14 +54,14 @@ case class GBTConfig(impurity: String,
                      maxIter: Int,
                      minInfoGain: Double,
                      minInstancesPerNode: Int,
-                     stepSize: Double)
+                     stepSize: Double) extends TunerConfigBase
 
 case class LogisticRegressionConfig(elasticNetParams: Double,
                                     fitIntercept: Boolean,
                                     maxIter: Int,
                                     regParam: Double,
                                     standardization: Boolean,
-                                    tolerance: Double)
+                                    tolerance: Double) extends TunerConfigBase
 
 case class LinearRegressionConfig(elasticNetParams: Double,
                                   fitIntercept: Boolean,
@@ -66,81 +69,96 @@ case class LinearRegressionConfig(elasticNetParams: Double,
                                   maxIter: Int,
                                   regParam: Double,
                                   standardization: Boolean,
-                                  tolerance: Double)
+                                  tolerance: Double) extends TunerConfigBase
 
-case class LinearRegressionModelsWithResults(
-  modelHyperParams: LinearRegressionConfig,
-  model: LinearRegressionModel,
-  score: Double,
-  evalMetrics: Map[String, Double],
-  generation: Int
-)
+// Market trait for tuner results
+trait TunerOutputWithResults[A, B]{
+  def modelHyperParams: A
+  def model: B
+  def score: Double
+  def evalMetrics: Map[String, Double]
+  def generation: Int
+}
 
-case class LogisticRegressionModelsWithResults(
-  modelHyperParams: LogisticRegressionConfig,
-  model: LogisticRegressionModel,
-  score: Double,
-  evalMetrics: Map[String, Double],
-  generation: Int
-)
+case class LinearRegressionModelsWithResults(override val modelHyperParams: LinearRegressionConfig,
+                                             override val model: LinearRegressionModel,
+                                             override val score: Double,
+                                             override val evalMetrics: Map[String, Double],
+                                             override val generation: Int)
+  extends TunerOutputWithResults[LinearRegressionConfig, LinearRegressionModel]
 
-case class XGBoostModelsWithResults(modelHyperParams: XGBoostConfig,
-                                    model: Any,
-                                    score: Double,
-                                    evalMetrics: Map[String, Double],
-                                    generation: Int)
+case class LogisticRegressionModelsWithResults(override val modelHyperParams: LogisticRegressionConfig,
+                                               override val model: LogisticRegressionModel,
+                                               override val score: Double,
+                                               override val evalMetrics: Map[String, Double],
+                                               override val generation: Int)
+  extends TunerOutputWithResults[LogisticRegressionConfig, LogisticRegressionModel]
 
-case class RandomForestModelsWithResults(modelHyperParams: RandomForestConfig,
-                                         model: Any,
-                                         score: Double,
-                                         evalMetrics: Map[String, Double],
-                                         generation: Int)
 
-case class TreesModelsWithResults(modelHyperParams: TreesConfig,
-                                  model: Any,
-                                  score: Double,
-                                  evalMetrics: Map[String, Double],
-                                  generation: Int)
+case class XGBoostModelsWithResults(override val modelHyperParams: XGBoostConfig,
+                                    override val model: Any,
+                                    override val score: Double,
+                                    override val evalMetrics: Map[String, Double],
+                                    override val generation: Int)
+  extends TunerOutputWithResults[XGBoostConfig, Any]
 
-case class GBTModelsWithResults(modelHyperParams: GBTConfig,
-                                model: Any,
-                                score: Double,
-                                evalMetrics: Map[String, Double],
-                                generation: Int)
+case class RandomForestModelsWithResults(override val modelHyperParams: RandomForestConfig,
+                                         override val model: Any,
+                                         override val score: Double,
+                                         override val evalMetrics: Map[String, Double],
+                                         override val generation: Int)
+  extends TunerOutputWithResults[RandomForestConfig, Any]
+
+case class TreesModelsWithResults(override val modelHyperParams: TreesConfig,
+                                  override val model: Any,
+                                  override val score: Double,
+                                  override val evalMetrics: Map[String, Double],
+                                  override val generation: Int)
+  extends TunerOutputWithResults[TreesConfig, Any]
+
+case class GBTModelsWithResults(override val modelHyperParams: GBTConfig,
+                                override val model: Any,
+                                override val score: Double,
+                                override val evalMetrics: Map[String, Double],
+                                override val generation: Int)
+  extends TunerOutputWithResults[GBTConfig, Any]
 
 case class SVMConfig(fitIntercept: Boolean,
                      maxIter: Int,
                      regParam: Double,
                      standardization: Boolean,
-                     tolerance: Double)
+                     tolerance: Double) extends TunerConfigBase
 
-case class SVMModelsWithResults(modelHyperParams: SVMConfig,
-                                model: LinearSVCModel,
-                                score: Double,
-                                evalMetrics: Map[String, Double],
-                                generation: Int)
+case class SVMModelsWithResults(override val modelHyperParams: SVMConfig,
+                                override val model: LinearSVCModel,
+                                override val score: Double,
+                                override val evalMetrics: Map[String, Double],
+                                override val generation: Int)
+  extends TunerOutputWithResults[SVMConfig, LinearSVCModel]
 
 case class MLPCConfig(layers: Array[Int],
                       maxIter: Int,
                       solver: String,
                       stepSize: Double,
-                      tolerance: Double)
+                      tolerance: Double) extends TunerConfigBase
 
-case class MLPCModelsWithResults(modelHyperParams: MLPCConfig,
-                                 model: MultilayerPerceptronClassificationModel,
-                                 score: Double,
-                                 evalMetrics: Map[String, Double],
-                                 generation: Int)
+case class MLPCModelsWithResults(override val modelHyperParams: MLPCConfig,
+                                 override val model: MultilayerPerceptronClassificationModel,
+                                 override val score: Double,
+                                 override val evalMetrics: Map[String, Double],
+                                 override val generation: Int)
+  extends TunerOutputWithResults[MLPCConfig, MultilayerPerceptronClassificationModel]
 
 case class NaiveBayesConfig(modelType: String,
                             smoothing: Double,
-                            thresholds: Boolean)
+                            thresholds: Boolean) extends TunerConfigBase
 
-case class NaiveBayesModelsWithResults(modelHyperParams: NaiveBayesConfig,
-                                       model: NaiveBayesModel,
-                                       score: Double,
-                                       evalMetrics: Map[String, Double],
-                                       generation: Int)
+case class NaiveBayesModelsWithResults(override val modelHyperParams: NaiveBayesConfig,
+                                       override val model: NaiveBayesModel,
+                                       override val score: Double,
+                                       override val evalMetrics: Map[String, Double],
+                                       override val generation: Int)
+  extends TunerOutputWithResults[NaiveBayesConfig, NaiveBayesModel]
 
 case class LightGBMConfig(baggingFraction: Double,
                           baggingFreq: Int,
@@ -155,13 +173,14 @@ case class LightGBMConfig(baggingFraction: Double,
                           lambdaL1: Double,
                           lambdaL2: Double,
                           alpha: Double,
-                          boostingType: String)
+                          boostingType: String) extends TunerConfigBase
 
-case class LightGBMModelsWithResults(modelHyperParams: LightGBMConfig,
-                                     model: Any,
-                                     score: Double,
-                                     evalMetrics: Map[String, Double],
-                                     generation: Int)
+case class LightGBMModelsWithResults(override val modelHyperParams: LightGBMConfig,
+                                     override val model: Any,
+                                     override val score: Double,
+                                     override val evalMetrics: Map[String, Double],
+                                     override val generation: Int)
+  extends TunerOutputWithResults[LightGBMConfig, Any]
 
 case class StaticModelConfig(labelColumn: String, featuresColumn: String)
 

@@ -1,20 +1,12 @@
 package com.databricks.labs.automl.model
 
 import com.databricks.labs.automl.model.tools.structures.TrainSplitReferences
-import com.databricks.labs.automl.model.tools.{
-  GenerationOptimizer,
-  HyperParameterFullSearch,
-  ModelReporting
-}
-import com.databricks.labs.automl.params.{
-  Defaults,
-  LinearRegressionConfig,
-  LinearRegressionModelsWithResults
-}
+import com.databricks.labs.automl.model.tools.{GenerationOptimizer, HyperParameterFullSearch, ModelReporting}
+import com.databricks.labs.automl.params.{Defaults, LinearRegressionConfig, LinearRegressionModelsWithResults}
 import com.databricks.labs.automl.utils.SparkSessionWrapper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.ml.regression.LinearRegression
+import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 
@@ -28,7 +20,8 @@ class LinearRegressionTuner(df: DataFrame,
                             isPipeline: Boolean = false)
     extends SparkSessionWrapper
     with Defaults
-    with Evolution {
+    with Evolution
+    with AbstractTuner[LinearRegressionConfig, LinearRegressionModelsWithResults, LinearRegressionModel] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -388,7 +381,7 @@ class LinearRegressionTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[LinearRegressionConfig]
           val startingModelSeed = generateLinearRegressionConfig(_modelSeed)
           genArray += startingModelSeed
@@ -533,7 +526,7 @@ class LinearRegressionTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[LinearRegressionConfig]
           val startingModelSeed = generateLinearRegressionConfig(_modelSeed)
           generativeArray += startingModelSeed
@@ -693,7 +686,7 @@ class LinearRegressionTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[LinearRegressionConfig]
   ): (Array[LinearRegressionModelsWithResults], DataFrame) = {
 

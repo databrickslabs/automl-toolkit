@@ -31,7 +31,8 @@ class XGBoostTuner(df: DataFrame,
     extends SparkSessionWrapper
     with Evolution
     with Defaults
-    with Serializable {
+    with Serializable
+    with AbstractTuner[XGBoostConfig, XGBoostModelsWithResults, Any] {
 
   private val logger: Logger = Logger.getLogger(this.getClass)
 
@@ -541,7 +542,7 @@ class XGBoostTuner(df: DataFrame,
     var runSet = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val genArray = new ArrayBuffer[XGBoostConfig]
           val startingModelSeed = generateXGBoostConfig(_modelSeed)
           genArray += startingModelSeed
@@ -685,7 +686,7 @@ class XGBoostTuner(df: DataFrame,
     val primordial = _initialGenerationMode match {
 
       case "random" =>
-        if (_modelSeedSet) {
+        if (_modelSeed.nonEmpty) {
           val generativeArray = new ArrayBuffer[XGBoostConfig]
           val startingModelSeed = generateXGBoostConfig(_modelSeed)
           generativeArray += startingModelSeed
@@ -841,7 +842,7 @@ class XGBoostTuner(df: DataFrame,
     *                     inference
     * @return The results of the hyper parameter test, as well as the scored DataFrame report.
     */
-  def postRunModeledHyperParams(
+  override def postRunModeledHyperParams(
     paramsToTest: Array[XGBoostConfig]
   ): (Array[XGBoostModelsWithResults], DataFrame) = {
 
