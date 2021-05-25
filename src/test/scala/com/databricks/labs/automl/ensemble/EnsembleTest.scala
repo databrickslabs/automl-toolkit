@@ -21,7 +21,6 @@ class EnsembleTest extends AbstractUnitSpec {
           trim(col(colName))
         )
         .drop(colName)
-        .except()
     }
     adultDfCleaned = adultDfCleaned.withColumnRenamed("class_trimmed", "label")
 
