@@ -148,6 +148,7 @@
                 </executions>
                 <configuration>
                     <excludes>
+                        <exclude>com/databricks/labs/automl/ensemble/tuner/impl/GbmTunerDelegator.scala</exclude>
                         <exclude>com/databricks/labs/automl/model/LightGBMTuner.scala</exclude>
                         <exclude>com/databricks/labs/automl/exploration/visualizations/OneDimVisualizations.scala</exclude>
                         <exclude>com/databricks/labs/automl/exploration/visualizations/OneDimVisualizationsTest.scala</exclude>
@@ -161,7 +162,10 @@
                 <configuration>
                     <forkCount>8</forkCount>
                     <reuseForks>true</reuseForks>
-                    <argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
+                    <argLine>-Xmx2048m -XX:MaxPermSize=256m</argLine>
+                    <excludes>
+                        <exclude>**/*TunerTest.scala</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>

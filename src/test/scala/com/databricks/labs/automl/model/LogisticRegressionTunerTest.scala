@@ -20,7 +20,7 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
         "dbfs:/test",
         "cache",
         "LogisticRegression",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -45,7 +45,7 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
         "dbfs:/test",
         "cache",
         "LogisticRegression",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -77,7 +77,7 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "LogisticRegression",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -198,4 +198,6 @@ class LogisticRegressionTunerTest extends AbstractUnitSpec {
       "modelHyperParams should not have been null"
     )
   }
+
+
 }

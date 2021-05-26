@@ -22,7 +22,7 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
         "dbfs:/test",
         "cache",
         "Trees",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -40,11 +40,11 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
         AutomationUnitTestsUtil.getAdultDf(),
         1,
         "random",
-        "income",
+        "label",
         "dbfs:/test",
         "cache",
         "Trees",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -77,7 +77,7 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "Trees",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -210,7 +210,7 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "Trees",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -344,7 +344,7 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "Trees",
-      1,
+      2,
       0.8,
       "synthCol",
       "datetime",
@@ -362,7 +362,7 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
       .setTreesStringBoundaries(_mainConfig.stringBoundaries)
-      .setScoringMetric("rmse")
+      .setScoringMetric("accuracy")
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
       .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
       .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)

@@ -22,7 +22,7 @@ class RandomForestTunerTest extends AbstractUnitSpec {
         "dbfs:/test",
         "cache",
         "RandomForest",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -44,7 +44,7 @@ class RandomForestTunerTest extends AbstractUnitSpec {
         "dbfs:/test",
         "cache",
         "RandomForest",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -75,7 +75,7 @@ class RandomForestTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "RandomForest",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -205,7 +205,7 @@ class RandomForestTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "RandomForest",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -335,7 +335,7 @@ class RandomForestTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "RandomForest",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -457,4 +457,6 @@ class RandomForestTunerTest extends AbstractUnitSpec {
       "modelHyperParams should not have been null"
     )
   }
+
+
 }
