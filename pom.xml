@@ -162,7 +162,7 @@
                 <configuration>
                     <forkCount>8</forkCount>
                     <reuseForks>true</reuseForks>
-                    <argLine>-Xmx4096m -XX:MaxPermSize=256m</argLine>
+                    <argLine>-Xmx2048m -XX:MaxPermSize=256m</argLine>
                     <excludes>
                         <exclude>**/*TunerTest.scala</exclude>
                     </excludes>

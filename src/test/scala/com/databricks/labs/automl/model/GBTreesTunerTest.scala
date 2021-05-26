@@ -18,11 +18,11 @@ class GBTreesTunerTest extends AbstractUnitSpec {
         AutomationUnitTestsUtil.getAdultDf(),
         1,
         "random",
-        "income",
+        "label",
         "dbfs:/test",
         "cache",
         "GBT",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -40,11 +40,11 @@ class GBTreesTunerTest extends AbstractUnitSpec {
         AutomationUnitTestsUtil.getAdultDf(),
         1,
         "random",
-        "income",
+        "label",
         "dbfs:/test",
         "cache",
         "GBT",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -73,7 +73,7 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "GBT",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -186,7 +186,7 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       "modelHyperParams should not have been null"
     )
   }
-  
+
   it should "should throw an exception for attempting to run Multiclass Classification in GBT" in {
 
     val _mainConfig = ConfigurationGenerator.generateMainConfig(
@@ -205,7 +205,7 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "GBT",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -324,7 +324,7 @@ class GBTreesTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "GBT",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",

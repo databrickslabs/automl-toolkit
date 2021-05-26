@@ -7,17 +7,18 @@ import com.databricks.labs.automl.params.LinearRegressionModelsWithResults
 import com.databricks.labs.automl.{AbstractUnitSpec, AutomationUnitTestsUtil}
 
 class LinearRegressionTunerTest extends AbstractUnitSpec {
+
   "LinearRegressionTuner" should "throw NoSuchElementException for passing invalid params" in {
     a[NullPointerException] should be thrownBy {
       val splitData = DataSplitUtility.split(
         AutomationUnitTestsUtil.getAdultDf(),
         1,
         "random",
-        "income",
+        "label",
         "dbfs:/test",
         "cache",
         "LinearRegression",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -35,11 +36,11 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
         AutomationUnitTestsUtil.getAdultDf(),
         1,
         "random",
-        "income",
+        "label",
         "dbfs:/test",
         "cache",
         "LinearRegression",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -71,7 +72,7 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "LinearRegression",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -195,4 +196,5 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
       "modelHyperParams should not have been null"
     )
   }
+
 }

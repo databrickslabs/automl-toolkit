@@ -28,7 +28,7 @@ class MLPCTunerTest extends AbstractUnitSpec {
         "dbfs:/test",
         "cache",
         "MLPC",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -55,7 +55,7 @@ class MLPCTunerTest extends AbstractUnitSpec {
         "dbfs:/test",
         "cache",
         "MLPC",
-        1,
+        2,
         0.7,
         "synth",
         "datetime",
@@ -88,7 +88,7 @@ class MLPCTunerTest extends AbstractUnitSpec {
       "dbfs:/test",
       "cache",
       "MLPC",
-      1,
+      2,
       0.7,
       "synth",
       "datetime",
@@ -202,5 +202,7 @@ class MLPCTunerTest extends AbstractUnitSpec {
       "modelHyperParams should not have been null"
     )
   }
+
+
 
 }
