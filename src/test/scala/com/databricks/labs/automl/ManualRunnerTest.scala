@@ -26,7 +26,7 @@ class ManualRunnerTest extends AbstractUnitSpec {
       .setFirstGenerationGenePool(5)
       .mlFlowLoggingOff()
       .mlFlowLogArtifactsOff()
-      .setInferenceConfigSaveLocation(AutomationUnitTestsUtil.getSerializablesToTmpLocation())
+      .setInferenceConfigSaveLocation("dbfs:/"+AutomationUnitTestsUtil.getSerializablesToTmpLocation())
       .runWithConfusionReport()
 
     assert(confusionOutput != null, "confusionOutput should not have been null")

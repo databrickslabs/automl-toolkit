@@ -139,7 +139,7 @@ class LinearRegressionTunerTest extends AbstractUnitSpec {
         .setTrainSplitChronologicalRandomPercentage(
           _mainConfig.geneticConfig.trainSplitChronologicalRandomPercentage
         )
-        .setParallelism(1)
+        .setParallelism(2)
         .setKFold(1)
         .setSeed(_mainConfig.geneticConfig.seed)
         .setOptimizationStrategy("minimize")

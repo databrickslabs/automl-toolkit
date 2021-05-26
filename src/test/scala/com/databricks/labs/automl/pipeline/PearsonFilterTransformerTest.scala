@@ -50,7 +50,7 @@ class PearsonFilterTransformerTest extends AbstractUnitSpec {
       .transform(testVars.df)
 
     assert(
-      pearsonDf.columns.length == 8,
+      pearsonDf.columns.length == 12,
       "PearsonFilterTransformer should have retained only 8 columns"
     )
   }

@@ -100,7 +100,7 @@ class XgboostLoanRiskTest extends AbstractUnitSpec {
     familyRunner.bestPipelineModel(("XGBoost")).transform(loanRiskDf).show(10)
   }
 
-
+/*
   "ad" should "" in {
 
 
@@ -125,7 +125,7 @@ class XgboostLoanRiskTest extends AbstractUnitSpec {
     print("done")
 
   }
-
+*/
   def getStringIndexerMapping(
                                pipeline: PipelineModel
                              ): Array[StringIndexerMappings] = {

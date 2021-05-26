@@ -362,7 +362,7 @@ class DecisionTreeTunerTest extends AbstractUnitSpec {
       .setFieldsToIgnore(_mainConfig.fieldsToIgnoreInVector)
       .setTreesNumericBoundaries(_mainConfig.numericBoundaries)
       .setTreesStringBoundaries(_mainConfig.stringBoundaries)
-      .setScoringMetric("rmse")
+      .setScoringMetric("accuracy")
       .setTrainPortion(_mainConfig.geneticConfig.trainPortion)
       .setTrainSplitMethod(_mainConfig.geneticConfig.trainSplitMethod)
       .setSyntheticCol(_mainConfig.geneticConfig.kSampleConfig.syntheticCol)
