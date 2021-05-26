@@ -10,7 +10,7 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.{col, last, trim}
 
 class EnsembleTest extends AbstractUnitSpec {
-
+/*
   it should "run stacking ensemble" in {
     val adultDf = convertCsvToDf("/adult_data.csv")
     var adultDfCleaned = adultDf
@@ -126,5 +126,5 @@ class EnsembleTest extends AbstractUnitSpec {
 //      .show(100)
 
   }
-
+*/
 }
